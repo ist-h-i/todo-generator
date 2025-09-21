@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Gemini icon">
+  <defs>
+    <linearGradient id="g" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="28" fill="url(#g)" />
+  <path
+    d="M32 32h56v12H32zm0 44c10 6 22 10 28 10s18-4 28-10v12c-10 6-22 10-28 10s-18-4-28-10zm0-32h12v32H32zm44 0h12v32H76z"
+    fill="#f8fafc"
+  />
+</svg>
