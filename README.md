@@ -292,7 +292,7 @@ Todo Generator is a productivity support system that transforms unstructured use
 - キーボード操作: Tab全対応、ショートカットはモーダルで案内
 
 #### プロトタイプとユーザーテスト
-- Figma/XDでトークン・コンポーネントをライブラリ化
+- デザイントークンとコンポーネントをデザインライブラリとして整理
 - シナリオ: 入力→送信→成功/失敗→履歴確認
 - テスト: 5–8人で完了率・エラー率・SUSスコアを測定
 - 成功基準: 完了率95%以上、SUS80以上
