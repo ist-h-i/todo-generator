@@ -202,3 +202,98 @@ Todo Generator is a productivity support system that transforms unstructured use
 - Clarify collaboration requirements (single workspace vs. multi-tenancy).
 - Define retention policy for AI-generated data and logs.
 
+## 13. UIデザインガイドライン
+
+### 汎用UIデザインルール（AI生成用プロンプト）
+
+#### 成果物
+シンプルで直感的、かつモダンなデスクトップWebアプリケーション向けのUIデザイン案。
+ミニマリズムを徹底し、アクセシビリティ対応を含む詳細なデザインガイドラインとコンポーネント設計ドキュメント。
+
+#### 制約条件
+- ミニマリズムとフラットデザインを徹底し、視覚的ノイズを排除する。
+- 余白はpaddingとmarginで豊富に設け、情報のグループ化と分離を明確化。
+- ドロップシャドウは最小限（例: 0px 2px 4px rgba(0,0,0,0.1)）。
+- タイポグラフィはサンセリフ体（Noto Sans JP / Roboto / Inter）。font-weightは強調部分のみ。
+- カラーパレットは白・グレー・黒基調、アクセントは最大2色。CSS変数で管理。
+- ダークモード対応を必須とし、prefers-color-schemeで切替。暗背景時は背景・文字・境界色を調整。
+- ユーザーアクションは `transition: all 0.2s ease-in-out` を使い、色・影・スケールを変化。
+- 入力フォームはリアルタイムバリデーション。エラー時は赤枠とインラインメッセージ。
+- レスポンシブはFlexbox＋Grid。max-widthベースのメディアクエリで最適化。
+- キーボード操作はTabで全て可能。:focusで明確なアウトライン。ARIA属性を適切に付与。
+- UIコンポーネントは再利用可能に設計。カラー・スペーシング・フォントはデザイントークンで管理。
+- グリッドシステムは8ptベース。
+- 画像はSVG・WebPを優先。
+- CSSアニメーションはtransform・opacityのみ利用（GPU効率化）。
+
+#### ワイヤーフレーム概要
+- **Header**: ロゴ／ナビゲーション／グローバルアクション（role="banner"）
+- **Main**: ページ固有の機能（role="main"）
+- **Side Panel**: タスク履歴や補助情報（role="complementary"）
+- **Footer**: 法務リンク・ショートカット案内（role="contentinfo"）
+- レイアウトは8ptグリッド、主要セクション間24px、コンポーネント間16px。
+
+#### UIコンポーネント仕様
+- **Card**: 白背景、枠線、角丸8–12px、最小限の影。ダークモードでは背景を--surface-darkに切替。
+- **Form**: ラベル必須。フォーカス時は青リング。エラーは赤枠＋メッセージ。暗背景時は枠線色を明度調整。
+- **Button**: primary / secondary / ghost / danger。ホバーで持ち上がり、押下で戻る。暗背景では背景色・文字色を反転。
+- **List/Table**: 行ホバー時に背景変化。キーボード操作可。
+- **Modal**: role="dialog" aria-modal="true"、フォーカストラップ、ESCで閉じる。背景オーバーレイはlight/darkで透明度調整。
+
+#### デザイントークン例
+```css
+:root {
+  --color-primary: #0A74DA;
+  --color-secondary: #F5A623;
+  --bg: #FFFFFF;
+  --text: #111111;
+  --text-muted: #666666;
+  --surface: #FFFFFF;
+  --surface-border: #E5E7EB;
+  --focus-ring: #3B82F6;
+  --font-sans: "Noto Sans JP", "Inter", "Roboto", sans-serif;
+  --fs-md: 16px;
+  --fw-medium: 500;
+  --space-4: 16px;
+  --space-6: 24px;
+  --radius-md: 12px;
+  --shadow-1: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ダークモード */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1A1A1A;
+    --text: #F5F5F5;
+    --text-muted: #AAAAAA;
+    --surface: #2A2A2A;
+    --surface-border: #3A3A3A;
+    --shadow-1: 0 2px 4px rgba(0,0,0,0.4);
+  }
+}
+```
+
+#### ユーザーインタラクション仕様
+- ホバー: 色強調、持ち上がり（translateY -1px）
+- アクティブ: フラットに戻る
+- バリデーション: 入力即時検証、エラーは赤枠＋alert
+- 状態通知: 送信中/成功/失敗はrole="status"、致命的エラーはrole="alert"
+
+#### レスポンシブ概要
+- 1280px: 標準レイアウト
+- 1024px: サイドパネル折りたたみ
+- 768px: 1カラム化、補助情報は下部へ
+
+#### アクセシビリティ要件
+- ランドマーク: banner / main / complementary / contentinfo
+- フォーム: label＋aria-describedby
+- 状態変化: aria-live="polite" or role="alert"
+- コントラスト比: WCAG 2.1 AA (ライト/ダーク両方で確認)
+- キーボード操作: Tab全対応、ショートカットはモーダルで案内
+
+#### プロトタイプとユーザーテスト
+- デザイントークンとコンポーネントをデザインライブラリとして整理
+- シナリオ: 入力→送信→成功/失敗→履歴確認
+- テスト: 5–8人で完了率・エラー率・SUSスコアを測定
+- 成功基準: 完了率95%以上、SUS80以上
+
