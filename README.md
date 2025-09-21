@@ -1,11 +1,11 @@
 # Todo Generator Requirements Definition
 
 ## 1. Project Overview
-Todo Generator is a productivity support system that transforms unstructured user input (e.g., bug reports, mistake summaries, task ideas) into structured task cards. The application assists users by analyzing entered text with Gemini, extracting labels, priorities, and deadlines, and generating actionable subtasks. Users can review, adjust, and manage these cards through an interactive Angular-based interface backed by a Python service layer.
+Todo Generator is a productivity support system that transforms unstructured user input (e.g., bug reports, mistake summaries, task ideas) into structured task cards. The application assists users by analyzing entered text with ChatGPT, extracting labels, priorities, and deadlines, and generating actionable subtasks. Users can review, adjust, and manage these cards through an interactive Angular-based interface backed by a Python service layer.
 
 ## 2. Objectives
 - Provide a streamlined workflow for capturing free-form user input and translating it into organized task cards.
-- Offer AI-assisted analysis (Gemini) to suggest labels, statuses, subtasks, due dates, and other task metadata.
+- Offer AI-assisted analysis (ChatGPT) to suggest labels, statuses, subtasks, due dates, and other task metadata.
 - Enable intuitive drag-and-drop management of cards and subtasks, supporting collaborative planning workflows.
 - Allow extensive user customization of statuses, labels, and card attributes to fit diverse project methodologies.
 
@@ -25,13 +25,13 @@ Todo Generator is a productivity support system that transforms unstructured use
 ## 4. Functional Requirements
 ### 4.1 Input & AI Analysis
 1. Accept raw text input describing issues, mistakes, or goals.
-2. Send input to Gemini to extract:
+2. Send input to ChatGPT to extract:
    - Suggested task title, summary, and acceptance criteria.
    - Recommended labels, status, and story points.
    - Start and due dates inferred from context or defaults.
    - Subtask list with names, descriptions, and initial statuses.
 3. Allow the user to review AI output before finalizing card creation.
-4. Support multiple cards generated from a single input when Gemini detects distinct tasks.
+4. Support multiple cards generated from a single input when ChatGPT detects distinct tasks.
 5. Provide quick editing tools for all AI-generated fields (text, dropdowns, date pickers, number inputs).
 
 ### 4.2 Card Management
@@ -52,7 +52,7 @@ Todo Generator is a productivity support system that transforms unstructured use
 
 ### 4.4 Subtask Management
 1. Each subtask includes: id, title, description, status, priority, assignee, start date, due date, estimate (hours), story points, and optional checklist items.
-2. Gemini suggests initial subtasks, but users can add, modify, or remove subtasks at any time.
+2. ChatGPT suggests initial subtasks, but users can add, modify, or remove subtasks at any time.
 3. Subtask status updates should be draggable (e.g., todo/in-progress/done) via kanban-style lanes within the detail view.
 4. Completion percentage for parent card is derived from subtask statuses.
 
@@ -75,7 +75,7 @@ Todo Generator is a productivity support system that transforms unstructured use
 ## 5. Non-Functional Requirements
 - **Performance:** Sub-200 ms response time for API calls under normal load; board interactions should feel instantaneous (<16ms frame budget).
 - **Scalability:** Support teams of up to 200 active users with real-time collaboration and thousands of cards.
-- **Reliability:** 99.5% uptime target with graceful degradation if Gemini API is unavailable (fall back to manual creation).
+- **Reliability:** 99.5% uptime target with graceful degradation if ChatGPT API is unavailable (fall back to manual creation).
 - **Security:** Enforce secure authentication (OAuth2/OpenID Connect), encrypt data in transit (HTTPS) and at rest, sanitize AI prompts, and log access.
 - **Compliance:** GDPR-ready data handling including right-to-be-forgotten operations.
 
@@ -94,7 +94,7 @@ Todo Generator is a productivity support system that transforms unstructured use
 ### 6.2 Backend (Python)
 - FastAPI service hosted in `backend/`.
 - RESTful API endpoints:
-  - `POST /analysis`: submit raw input for Gemini processing and return structured card proposals.
+  - `POST /analysis`: submit raw input for ChatGPT processing and return structured card proposals.
   - `GET/POST/PUT/DELETE /cards`: CRUD operations on cards.
   - `GET/POST/PUT/DELETE /cards/{card_id}/subtasks`: manage subtasks.
   - `GET /labels`, `POST /labels`, etc. for customizable taxonomy.
@@ -103,11 +103,11 @@ Todo Generator is a productivity support system that transforms unstructured use
 - Database layer using SQLAlchemy with SQLite/PostgreSQL; migrations handled via Alembic.
 - Background tasks with Celery or FastAPI background jobs for scheduled reminders or batch exports.
 - Authentication via OAuth2 with JWT tokens.
-- Integration with Gemini service through dedicated client module handling prompt templates and retry logic.
+- Integration with ChatGPT service through dedicated client module handling prompt templates and retry logic.
 
-### 6.3 Gemini Integration
+### 6.3 ChatGPT Integration
 - Standard prompt template combining user input with context (project settings, historical tasks).
-- Post-processing pipeline to normalize Gemini output to system schemas, including confidence scores.
+- Post-processing pipeline to normalize ChatGPT output to system schemas, including confidence scores.
 - Error handling and fallback flows for partial responses or API rate limits.
 - Logging of prompts/responses with redaction for sensitive data.
 
@@ -172,7 +172,7 @@ Todo Generator is a productivity support system that transforms unstructured use
 ## 8. Workflow
 1. User opens the Input Analyzer and enters textual description(s).
 2. Frontend sends payload to backend `POST /analysis`.
-3. Backend orchestrates Gemini prompt, receives proposed card(s), normalizes data, and returns to frontend.
+3. Backend orchestrates ChatGPT prompt, receives proposed card(s), normalizes data, and returns to frontend.
 4. User reviews proposals, edits metadata, and confirms card creation.
 5. Cards appear on the board grouped by label; user drags cards to update statuses or reposition within groups.
 6. Clicking a card opens the detail view where subtasks, comments, and history can be managed.
@@ -181,23 +181,23 @@ Todo Generator is a productivity support system that transforms unstructured use
 
 ## 9. Integration & Extensibility
 - Webhooks for external integrations (Slack, Jira, GitHub) triggered on card creation or status changes.
-- Import existing tasks from CSV or third-party systems, with optional Gemini reclassification.
+- Import existing tasks from CSV or third-party systems, with optional ChatGPT reclassification.
 - Plugin architecture for custom AI prompts or additional analytics dashboards.
 
 ## 10. Testing Strategy
 - **Frontend:** Unit tests with Jasmine/Karma, component tests with Jest/Testing Library, e2e tests with Cypress or Playwright.
-- **Backend:** Unit tests with pytest, integration tests for API endpoints, contract tests for Gemini client.
-- **AI Validation:** Automated regression tests to compare Gemini output against golden datasets and ensure consistent labeling.
+- **Backend:** Unit tests with pytest, integration tests for API endpoints, contract tests for ChatGPT client.
+- **AI Validation:** Automated regression tests to compare ChatGPT output against golden datasets and ensure consistent labeling.
 - **Performance:** Load testing for API endpoints and board interactions.
 
 ## 11. Deployment & DevOps
 - CI/CD pipeline running linting, tests, and build steps for both frontend and backend.
 - Containerized deployment using Docker Compose (frontend, backend, database, message broker).
-- Environment-based configuration (dev/staging/prod) with secure management of Gemini API keys.
+- Environment-based configuration (dev/staging/prod) with secure management of ChatGPT API keys.
 - Monitoring via Prometheus/Grafana and centralized logging.
 
 ## 12. Open Questions
-- Determine pricing and usage quotas for Gemini API.
+- Determine pricing and usage quotas for ChatGPT API.
 - Decide on primary database (start with SQLite, migrate to PostgreSQL for production).
 - Clarify collaboration requirements (single workspace vs. multi-tenancy).
 - Define retention policy for AI-generated data and logs.

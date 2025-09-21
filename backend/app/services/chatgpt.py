@@ -13,8 +13,8 @@ class KeywordMapping:
     label: str
 
 
-class GeminiClient:
-    """Deterministic stub that emulates Gemini summarisation."""
+class ChatGPTClient:
+    """Deterministic stub that emulates ChatGPT summarisation."""
 
     DEFAULT_LABELS: List[KeywordMapping] = [
         KeywordMapping("bug", "bug"),
@@ -25,7 +25,7 @@ class GeminiClient:
     ]
 
     def __init__(self, model: str | None = None) -> None:
-        self.model = model or settings.gemini_model
+        self.model = model or settings.chatgpt_model
 
     def analyze(self, request: AnalysisRequest) -> AnalysisResponse:
         text = request.text.strip()
@@ -109,5 +109,5 @@ class GeminiClient:
         return subtasks
 
 
-def get_gemini_client() -> GeminiClient:
-    return GeminiClient()
+def get_chatgpt_client() -> ChatGPTClient:
+    return ChatGPTClient()

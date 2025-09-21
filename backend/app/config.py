@@ -8,7 +8,7 @@ class Settings(BaseSettings):
         default="sqlite:///./todo.db", env="DATABASE_URL"
     )
     debug: bool = Field(default=False, env="DEBUG")
-    gemini_model: str = Field(default="gemini-pro", env="GEMINI_MODEL")
+    chatgpt_model: str = Field(default="gpt-4o-mini", env="CHATGPT_MODEL")
 
     class Config:
         env_file = ".env"

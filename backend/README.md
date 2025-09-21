@@ -7,7 +7,7 @@ This FastAPI application implements the backend described in the project require
 - FastAPI service with modular routers and automatic OpenAPI documentation.
 - SQLAlchemy data models reflecting cards, subtasks, labels, statuses, user preferences, comments, and activity logs.
 - SQLite database by default (configurable via the `DATABASE_URL` environment variable).
-- Stubbed Gemini client that deterministically converts free-form text into card proposals for local development.
+- Stubbed ChatGPT client that deterministically converts free-form text into card proposals for local development.
 - CRUD endpoints for all primary entities, including nested operations for subtasks.
 - Activity logging to track significant changes.
 - Automated tests using `pytest` and FastAPI's `TestClient`.
@@ -44,7 +44,7 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 
 - `DATABASE_URL`: SQLAlchemy connection string. Defaults to `sqlite:///./todo.db`.
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
-- `GEMINI_MODEL`: Logical name for the Gemini model stub (default: `gemini-pro`).
+- `CHATGPT_MODEL`: Logical name for the ChatGPT model stub (default: `gpt-4o-mini`).
 
 ## Project Structure
 
@@ -57,7 +57,7 @@ backend/
 │   ├── models.py        # ORM models
 │   ├── schemas.py       # Pydantic schemas
 │   ├── routers/         # API routers (analysis, cards, labels, etc.)
-│   ├── services/        # External integrations (Gemini stub)
+│   ├── services/        # External integrations (ChatGPT stub)
 │   └── utils/           # Shared helpers (activity logging)
 └── tests/
     ├── conftest.py      # Test fixtures and client setup
@@ -66,5 +66,5 @@ backend/
 
 ## Notes
 
-- The Gemini integration is stubbed for now; replace `services/gemini.py` with a real client when credentials are available.
+- The ChatGPT integration is stubbed for now; replace `services/chatgpt.py` with a real client when credentials are available.
 - Authentication and real-time collaboration are not yet implemented but the architecture leaves room for future expansion.
