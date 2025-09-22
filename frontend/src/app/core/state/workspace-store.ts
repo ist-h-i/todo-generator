@@ -66,7 +66,9 @@ const INITIAL_CARDS: Card[] = [
     storyPoints: 5,
     assignee: '田中太郎',
     confidence: 0.74,
-    subtasks: buildSubtasks(['事例収集', '評価実験', 'レビュー共有']),
+    subtasks: buildSubtasks(['事例収集', '評価実験', 'レビュー共有']).map((subtask, index, list) =>
+      index === list.length - 1 ? { ...subtask, status: 'non-issue' } : subtask,
+    ),
     comments: [],
     activities: [],
   },
@@ -105,7 +107,10 @@ const INITIAL_CARDS: Card[] = [
     priority: 'medium',
     storyPoints: 2,
     assignee: '田中太郎',
-    subtasks: buildSubtasks(['UI 設計', 'ストア連携']),
+    subtasks: buildSubtasks(['UI 設計', 'ストア連携']).map((subtask) => ({
+      ...subtask,
+      status: 'done',
+    })),
     comments: [],
     activities: [],
   },
@@ -134,7 +139,7 @@ const INITIAL_SETTINGS: WorkspaceSettings = {
 export class WorkspaceStore {
   private readonly settingsSignal = signal<WorkspaceSettings>(INITIAL_SETTINGS);
   private readonly cardsSignal = signal<readonly Card[]>(INITIAL_CARDS);
-  private readonly groupingSignal = signal<BoardGrouping>('status');
+  private readonly groupingSignal = signal<BoardGrouping>('label');
   private readonly filtersSignal = signal<BoardFilters>({ ...INITIAL_FILTERS });
   private readonly selectedCardIdSignal = signal<string | null>(null);
 
@@ -143,6 +148,11 @@ export class WorkspaceStore {
   public readonly grouping = computed(() => this.groupingSignal());
   public readonly filters = computed(() => this.filtersSignal());
   public readonly selectedCardId = computed(() => this.selectedCardIdSignal());
+
+  public readonly filteredCards = computed<readonly Card[]>(() => {
+    const allowed = new Set(this.filteredCardIds());
+    return this.cardsSignal().filter((card) => allowed.has(card.id));
+  });
 
   public readonly summary = computed<WorkspaceSummary>(() => {
     const cards = this.cardsSignal();
@@ -310,6 +320,30 @@ export class WorkspaceStore {
           ? {
               ...card,
               statusId,
+            }
+          : card,
+      ),
+    );
+  };
+
+  public readonly updateSubtaskStatus = (
+    cardId: string,
+    subtaskId: string,
+    status: Subtask['status'],
+  ): void => {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              subtasks: card.subtasks.map((subtask) =>
+                subtask.id === subtaskId
+                  ? {
+                      ...subtask,
+                      status,
+                    }
+                  : subtask,
+              ),
             }
           : card,
       ),
