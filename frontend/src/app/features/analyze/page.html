@@ -55,16 +55,6 @@
             </span>
           </label>
         </div>
-        <label class="flex flex-col gap-2">
-          <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ゴール</span>
-          <textarea
-            class="min-h-[160px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring disabled:bg-surface/70"
-            placeholder="例: 新規登録フローの離脱率を20%改善する"
-            [value]="analyzeForm.controls.objective.value()"
-            (input)="analyzeForm.controls.objective.setValue($any($event.target).value)"
-            [disabled]="isAutoObjectiveEnabled()"
-          ></textarea>
-        </label>
         @if (isAutoObjectiveEnabled()) {
           <div class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
             <p class="text-sm font-semibold text-on-surface">AIおすすめのゴール候補</p>
@@ -74,6 +64,15 @@
             </p>
           </div>
         } @else {
+          <label class="flex flex-col gap-2">
+            <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ゴール</span>
+            <textarea
+              class="min-h-[160px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+              placeholder="例: 新規登録フローの離脱率を20%改善する"
+              [value]="analyzeForm.controls.objective.value()"
+              (input)="analyzeForm.controls.objective.setValue($any($event.target).value)"
+            ></textarea>
+          </label>
           <p class="text-[11px] text-slate-400 dark:text-slate-500">
             ゴールは ChatGPT が提案を組み立てる際の到達点になります。できるだけ具体的に記載してください。
           </p>
