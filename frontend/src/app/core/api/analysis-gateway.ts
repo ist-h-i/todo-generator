@@ -44,7 +44,7 @@ export class AnalysisGateway {
               const buildProposal = (index: number): AnalysisProposal => ({
                 id: createId(),
                 title: `${baseTitle} #${index + 1}`,
-                summary: `${this.resolveToneSummary(params.tone)}${params.objective} を達成するためのステップを整理しました。`,
+                summary: `${params.objective} を達成するためのステップを整理しました。`,
                 suggestedStatusId: index === 0 ? 'todo' : 'in-progress',
                 suggestedLabelIds: index === 0 ? ['ai'] : ['frontend'],
                 subtasks,
@@ -83,7 +83,7 @@ export class AnalysisGateway {
    * @returns Primary title text.
    */
   private readonly resolveBaseTitle = (request: AnalysisRequest): string =>
-    request.notes.split('\n')[0]?.trim() || 'Gemini 提案';
+    request.notes.split('\n')[0]?.trim() || 'ChatGPT 提案';
 
   /**
    * Builds a consistent subtask list based on the objective strategy.
@@ -96,13 +96,4 @@ export class AnalysisGateway {
     '重要な関係者と論点を共有',
     'リスクと成功条件を定義',
   ];
-
-  /**
-   * Provides a short phrase describing how the proposal text will be written based on tone.
-   *
-   * @param tone - Selected tone from the analyze form.
-   * @returns Tone specific introduction for proposal summaries.
-   */
-  private readonly resolveToneSummary = (tone: AnalysisRequest['tone']): string =>
-    tone === 'formal' ? '丁寧でフォーマルな表現で、' : 'フラットで親しみやすい表現で、';
 }

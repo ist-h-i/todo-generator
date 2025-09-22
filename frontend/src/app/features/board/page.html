@@ -46,11 +46,20 @@
         </button>
       </div>
     </div>
+    <p class="rounded-3xl bg-accent-muted px-6 py-4 text-sm text-accent-strong shadow-soft">
+      カードをドラッグ＆ドロップしてステータスを更新できます。ステータス以外でグルーピングしている場合はカード詳細から調整してください。
+    </p>
   </header>
 
-  <div class="grid gap-6 lg:grid-cols-4">
+  <div class="board-columns" cdkDropListGroup>
     @for (column of columnsSignal(); track column.id) {
-      <section class="surface-panel flex min-h-[320px] flex-col gap-4 px-5 py-5">
+      <section
+        class="board-column"
+        cdkDropList
+        [cdkDropListData]="column.cards"
+        [cdkDropListDisabled]="groupingSignal() !== 'status'"
+        (cdkDropListDropped)="handleDrop(column.id, $event)"
+      >
         <header class="flex items-center justify-between">
           <div>
             <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ column.id }}</p>
@@ -58,17 +67,27 @@
           </div>
           <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">{{ column.count }} 件</span>
         </header>
-        <div class="flex flex-1 flex-col gap-4">
+        <div class="board-card-list">
           @if (column.cards.length === 0) {
-            <p class="rounded-2xl border border-dashed border-subtle px-4 py-6 text-center text-sm text-slate-500">
-              カードがありません。
-            </p>
+            <p class="board-empty text-sm">カードがありません。{{ groupingSignal() === 'status' ? 'ここにカードをドラッグすると移動できます。' : '' }}</p>
           } @else {
             @for (cardId of column.cards; track cardId) {
               @if (cardsByIdSignal().get(cardId); as card) {
-                <article class="surface-card flex flex-col gap-3 px-4 py-4">
-                  <div class="flex items-center justify-between gap-2">
-                    <h4 class="text-base font-semibold text-on-surface">{{ card.title }}</h4>
+                <article
+                  class="board-card surface-card flex flex-col gap-4 px-5 py-5"
+                  cdkDrag
+                  [cdkDragData]="card.id"
+                  [cdkDragDisabled]="groupingSignal() !== 'status'"
+                  [style.borderColor]="statusColor(card.statusId) + '33'"
+                  [style.background]="
+                    'linear-gradient(180deg, ' + statusColor(card.statusId) + '14 0%, var(--surface) 65%)'
+                  "
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="space-y-2">
+                      <h4 class="text-base font-semibold text-on-surface">{{ card.title }}</h4>
+                      <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">{{ card.summary }}</p>
+                    </div>
                     <button
                       type="button"
                       class="surface-pill focus-ring px-3 py-1 text-xs font-semibold text-slate-500"
@@ -77,16 +96,15 @@
                       詳細
                     </button>
                   </div>
-                  <p class="text-sm text-slate-600 dark:text-slate-300">{{ card.summary }}</p>
-                  <div class="flex flex-wrap gap-2 text-xs text-slate-500">
-                    <span class="surface-pill px-3 py-1" [style.color]="statusColor(card.statusId)">
+                  <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
+                    <span class="board-badge" [style.color]="statusColor(card.statusId)">
                       {{ statusName(card.statusId) }}
                     </span>
                     @for (labelId of card.labelIds; track labelId) {
-                      <span class="surface-pill px-3 py-1">{{ labelName(labelId) }}</span>
+                      <span class="board-badge">{{ labelName(labelId) }}</span>
                     }
                   </div>
-                  <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                     <span>SP: {{ card.storyPoints }}</span>
                     @if (card.assignee) {
                       <span>担当: {{ card.assignee }}</span>
@@ -95,17 +113,19 @@
                       <span>AIおすすめ度: {{ (card.confidence * 100) | number: '1.0-0' }}%</span>
                     }
                   </div>
-                  <div class="flex flex-wrap gap-2 text-xs">
-                    @for (status of statusesSignal(); track status.id) {
-                      <button
-                        type="button"
-                        class="surface-pill focus-ring px-3 py-1"
-                        (click)="moveCard(card.id, status.id)"
-                      >
-                        {{ status.name }}
-                      </button>
-                    }
-                  </div>
+                  @if (groupingSignal() !== 'status') {
+                    <div class="flex flex-wrap gap-2 text-xs">
+                      @for (status of statusesSignal(); track status.id) {
+                        <button
+                          type="button"
+                          class="surface-pill focus-ring px-3 py-1"
+                          (click)="moveCard(card.id, status.id)"
+                        >
+                          {{ status.name }}
+                        </button>
+                      }
+                    </div>
+                  }
                 </article>
               }
             }

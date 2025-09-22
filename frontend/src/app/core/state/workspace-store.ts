@@ -33,7 +33,7 @@ const INITIAL_TEMPLATES: TemplatePreset[] = [
   {
     id: 'ai-template',
     name: 'AI 改善サイクル',
-    description: 'Gemini 改修用のチェックリストテンプレート',
+    description: 'ChatGPT 改修用のチェックリストテンプレート',
     defaultStatusId: 'todo',
     defaultLabelIds: ['ai'],
   },
@@ -58,7 +58,7 @@ const buildSubtasks = (titles: readonly string[]): Subtask[] =>
 const INITIAL_CARDS: Card[] = [
   {
     id: createId(),
-    title: 'Gemini プロンプトの改善',
+    title: 'ChatGPT プロンプトの改善',
     summary: '分析精度向上のための新しいプロンプト設計を検証します。',
     statusId: 'in-progress',
     labelIds: ['ai'],
