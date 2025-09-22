@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 
@@ -157,6 +157,18 @@ export class BoardPage {
 
   public readonly searchForm = createSignalForm({ search: '' });
 
+  private lastSelectedCardId: string | null = null;
+
+  public readonly commentForm = createSignalForm({
+    author: '',
+    message: '',
+  });
+
+  public readonly isCommentFormValid = computed(() => {
+    const value = this.commentForm.value();
+    return value.author.trim().length > 0 && value.message.trim().length > 0;
+  });
+
   /**
    * Applies a text search filter to the board.
    *
@@ -232,6 +244,40 @@ export class BoardPage {
   };
 
   public readonly selectedCardSignal = this.workspace.selectedCard;
+
+  private readonly resetCommentFormEffect = effect(() => {
+    const active = this.selectedCardSignal();
+    const nextId = active?.id ?? null;
+    if (nextId === this.lastSelectedCardId) {
+      return;
+    }
+
+    this.lastSelectedCardId = nextId;
+    this.commentForm.reset({
+      author: active?.assignee ?? '',
+      message: '',
+    });
+  });
+
+  public readonly saveComment = (event: Event): void => {
+    event.preventDefault();
+
+    const active = this.selectedCardSignal();
+    if (!active || !this.isCommentFormValid()) {
+      return;
+    }
+
+    const snapshot = this.commentForm.value();
+    const author = snapshot.author.trim();
+    const message = snapshot.message.trim();
+
+    this.workspace.addComment(active.id, { author, message });
+
+    this.commentForm.reset({
+      author,
+      message: '',
+    });
+  };
 
   public readonly isActiveCard = (cardId: string): boolean =>
     this.workspace.selectedCardId() === cardId;

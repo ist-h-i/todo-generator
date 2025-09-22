@@ -344,6 +344,7 @@ class CommentCreate(CommentBase):
 class CommentRead(CommentBase):
     id: str
     created_at: datetime
+    updated_at: datetime
 
     class Config:
         orm_mode = True
