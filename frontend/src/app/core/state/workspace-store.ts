@@ -460,30 +460,6 @@ export class WorkspaceStore {
     );
   };
 
-  public readonly updateSubtaskStatus = (
-    cardId: string,
-    subtaskId: string,
-    status: Subtask['status'],
-  ): void => {
-    this.cardsSignal.update((cards) =>
-      cards.map((card) =>
-        card.id === cardId
-          ? {
-              ...card,
-              subtasks: card.subtasks.map((subtask) =>
-                subtask.id === subtaskId
-                  ? {
-                      ...subtask,
-                      status,
-                    }
-                  : subtask,
-              ),
-            }
-          : card,
-      ),
-    );
-  };
-
   /**
    * Creates a new card from a suggested improvement action.
    *
