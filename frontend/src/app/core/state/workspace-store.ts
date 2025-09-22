@@ -479,6 +479,45 @@ export class WorkspaceStore {
   };
 
   /**
+   * Appends a new comment to the specified card.
+   *
+   * @param cardId - Identifier of the card receiving the comment.
+   * @param payload - Author and message content entered by the user.
+   */
+  public readonly addComment = (
+    cardId: string,
+    payload: { author: string; message: string },
+  ): void => {
+    const author = payload.author.trim();
+    const message = payload.message.trim();
+    if (!author || !message) {
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+
+    this.cardsSignal.update((cards) =>
+      cards.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              comments: [
+                ...card.comments,
+                {
+                  id: createId(),
+                  author,
+                  message,
+                  createdAt: timestamp,
+                  updatedAt: timestamp,
+                },
+              ],
+            }
+          : card,
+      ),
+    );
+  };
+
+  /**
    * Creates a new card from a suggested improvement action.
    *
    * @param payload - Attributes describing the new card.

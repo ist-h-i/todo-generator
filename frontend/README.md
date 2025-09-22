@@ -1,10 +1,10 @@
 # Todo Generator Frontend
 
-Angular 20 single-page application that follows the product specification in the repository root README. It provides the Gemini-assisted capture flow, kanban board, analytics, and workspace configuration screens required for the Todo Generator experience.
+Angular 20 single-page application that follows the product specification in the repository root README. It provides the ChatGPT-assisted capture flow, kanban board, analytics, and workspace configuration screens required for the Todo Generator experience.
 
 ## Key Features
 
-- **Input Analyzer** – Paste free-form notes and review Gemini proposals before publishing tasks to the board.
+- **Input Analyzer** – Paste free-form notes and review ChatGPT proposals before publishing tasks to the board.
 - **Workspace Board** – Accessible CDK drag-and-drop columns grouped by status, label, or assignee with card detail drawers.
 - **Card Detail Management** – Update metadata, progress subtasks, and log comments/activity from a focused drawer UI.
 - **Analytics Dashboard** – Summaries for completion rate, story points, and distribution across statuses and labels.
