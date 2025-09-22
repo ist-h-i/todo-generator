@@ -117,6 +117,9 @@
           <p class="text-sm text-slate-600 dark:text-slate-300">{{ template.description }}</p>
           <p class="text-xs text-slate-500">初期ステータス: {{ template.defaultStatusId }}</p>
           <p class="text-xs text-slate-500">初期ラベル: {{ template.defaultLabelIds.join(', ') }}</p>
+          <p class="text-xs text-slate-500">
+            最小おすすめ度: {{ (template.confidenceThreshold * 100) | number: '1.0-0' }}%
+          </p>
         </li>
       }
     </ul>

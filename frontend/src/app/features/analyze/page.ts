@@ -33,6 +33,19 @@ export class AnalyzePage {
     this.requestSignal,
   );
 
+  public readonly eligibleProposals = computed<readonly AnalysisProposal[]>(() => {
+    const result = this.analysisResource.value();
+    if (!result) {
+      return [];
+    }
+
+    return result.proposals.filter((proposal) => this.workspace.isProposalEligible(proposal));
+  });
+
+  public readonly hasEligibleProposals = computed(
+    () => this.eligibleProposals().length > 0,
+  );
+
   public readonly hasResult = computed(() => this.analysisResource.value() !== null);
 
   public readonly isAutoObjectiveEnabled = computed(() =>
