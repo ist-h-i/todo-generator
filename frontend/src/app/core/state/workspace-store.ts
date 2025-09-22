@@ -18,20 +18,6 @@ import { createId } from '@core/utils/create-id';
 
 const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 0.5;
 
-const DEFAULT_TEMPLATE_FIELD_VISIBILITY: TemplateFieldVisibility = {
-  showStoryPoints: true,
-  showDueDate: true,
-  showAssignee: true,
-  showConfidence: true,
-};
-
-type TemplateUpdate = Partial<
-  Omit<TemplatePreset, 'id' | 'fieldVisibility' | 'defaultLabelIds'>
-> & {
-  readonly defaultLabelIds?: readonly string[];
-  readonly fieldVisibility?: Partial<TemplateFieldVisibility>;
-};
-
 const INITIAL_LABELS: Label[] = [
   { id: 'frontend', name: 'フロントエンド', color: '#38bdf8' },
   { id: 'backend', name: 'バックエンド', color: '#a855f7' },
@@ -54,12 +40,6 @@ const INITIAL_TEMPLATES: TemplatePreset[] = [
     defaultStatusId: 'todo',
     defaultLabelIds: ['ai'],
     confidenceThreshold: 0.6,
-    fieldVisibility: {
-      showStoryPoints: true,
-      showDueDate: false,
-      showAssignee: true,
-      showConfidence: true,
-    },
   },
   {
     id: 'ux-template',
@@ -68,12 +48,6 @@ const INITIAL_TEMPLATES: TemplatePreset[] = [
     defaultStatusId: 'in-progress',
     defaultLabelIds: ['ux'],
     confidenceThreshold: 0.7,
-    fieldVisibility: {
-      showStoryPoints: false,
-      showDueDate: true,
-      showAssignee: false,
-      showConfidence: true,
-    },
   },
 ];
 
@@ -199,9 +173,9 @@ export class WorkspaceStore {
    * @param proposal - Proposal metadata returned from the analyzer.
    * @returns True when the proposal should be presented to the user.
    */
-  public isProposalEligible(
+  public readonly isProposalEligible = (
     proposal: Pick<AnalysisProposal, 'templateId' | 'confidence'>,
-  ): boolean {
+  ): boolean => {
     const threshold =
       proposal.templateId !== undefined && proposal.templateId !== null
         ? this.templateConfidenceThresholds().get(proposal.templateId)
@@ -348,17 +322,13 @@ export class WorkspaceStore {
       const template = proposal.templateId
         ? settings.templates.find((entry) => entry.id === proposal.templateId)
         : undefined;
-      const templateFields = template?.fieldVisibility ?? DEFAULT_TEMPLATE_FIELD_VISIBILITY;
 
       const statusId = proposal.suggestedStatusId || template?.defaultStatusId || defaultStatus;
-      const templateDefaultLabels = template?.defaultLabelIds ?? [];
-      const labelSource = proposal.suggestedLabelIds.length > 0
-        ? proposal.suggestedLabelIds
-        : templateDefaultLabels.length > 0
-          ? templateDefaultLabels
-          : [defaultLabel];
-      const labelIds = Array.from(new Set(labelSource));
-      const assignee = templateFields.showAssignee ? settings.defaultAssignee : undefined;
+      const labelIds = proposal.suggestedLabelIds.length > 0
+        ? [...proposal.suggestedLabelIds]
+        : template
+            ? [...template.defaultLabelIds]
+            : [defaultLabel];
 
       return {
         id: createId(),
@@ -366,10 +336,9 @@ export class WorkspaceStore {
         summary: proposal.summary,
         statusId,
         labelIds,
-        templateId: proposal.templateId ?? null,
         priority: 'medium',
         storyPoints: 3,
-        assignee,
+        assignee: settings.defaultAssignee,
         confidence: proposal.confidence,
         subtasks: proposal.subtasks.map((task) => ({
           id: createId(),
@@ -403,6 +372,74 @@ export class WorkspaceStore {
     );
   };
 
+  public readonly updateSubtaskStatus = (
+    cardId: string,
+    subtaskId: string,
+    status: Subtask['status'],
+  ): void => {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              subtasks: card.subtasks.map((subtask) =>
+                subtask.id === subtaskId
+                  ? {
+                      ...subtask,
+                      status,
+                    }
+                  : subtask,
+              ),
+            }
+          : card,
+      ),
+    );
+  };
+
+  /**
+   * Creates a new card from a suggested improvement action.
+   *
+   * @param payload - Attributes describing the new card.
+   * @returns Created card instance.
+   */
+  public readonly createCardFromSuggestion = (payload: {
+    title: string;
+    summary: string;
+    statusId?: string;
+    labelIds?: readonly string[];
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
+    assignee?: string;
+    dueDate?: string;
+    originSuggestionId?: string;
+    initiativeId?: string;
+  }): Card => {
+    const settings = this.settingsSignal();
+    const defaultStatusId = payload.statusId || settings.defaultStatusId;
+    const labels = payload.labelIds && payload.labelIds.length > 0
+      ? [...payload.labelIds]
+      : [settings.labels[0]?.id ?? 'general'];
+
+    const card: Card = {
+      id: createId(),
+      title: payload.title,
+      summary: payload.summary,
+      statusId: defaultStatusId,
+      labelIds: labels,
+      priority: payload.priority ?? 'medium',
+      storyPoints: 3,
+      assignee: payload.assignee ?? settings.defaultAssignee,
+      dueDate: payload.dueDate,
+      subtasks: [],
+      comments: [],
+      activities: [],
+      originSuggestionId: payload.originSuggestionId,
+      initiativeId: payload.initiativeId,
+    };
+
+    this.cardsSignal.update((cards) => [card, ...cards]);
+
+    return card;
+  };
   /**
    * Replaces the label set associated with a card.
    *
@@ -565,13 +602,7 @@ export class WorkspaceStore {
     defaultStatusId: string;
     defaultLabelIds: readonly string[];
     confidenceThreshold: number;
-    fieldVisibility?: Partial<TemplateFieldVisibility>;
   }): void => {
-    const fieldVisibility: TemplateFieldVisibility = {
-      ...DEFAULT_TEMPLATE_FIELD_VISIBILITY,
-      ...(payload.fieldVisibility ?? {}),
-    };
-    const defaultLabelIds = Array.from(new Set(payload.defaultLabelIds));
     this.settingsSignal.update((settings) => ({
       ...settings,
       templates: [
@@ -581,9 +612,8 @@ export class WorkspaceStore {
           name: payload.name,
           description: payload.description,
           defaultStatusId: payload.defaultStatusId,
-          defaultLabelIds,
+          defaultLabelIds: [...payload.defaultLabelIds],
           confidenceThreshold: payload.confidenceThreshold,
-          fieldVisibility,
         },
       ],
     }));
@@ -595,7 +625,10 @@ export class WorkspaceStore {
    * @param templateId - Target template identifier.
    * @param changes - Partial template payload.
    */
-  public readonly updateTemplate = (templateId: string, changes: TemplateUpdate): void => {
+  public readonly updateTemplate = (
+    templateId: string,
+    changes: Partial<Omit<TemplatePreset, 'id'>>,
+  ): void => {
     this.settingsSignal.update((settings) => ({
       ...settings,
       templates: settings.templates.map((template) => {
@@ -603,18 +636,12 @@ export class WorkspaceStore {
           return template;
         }
 
-        const { fieldVisibility, defaultLabelIds, ...rest } = changes;
+        const { defaultLabelIds, ...rest } = changes;
         return {
           ...template,
           ...rest,
           defaultLabelIds:
-            defaultLabelIds !== undefined
-              ? Array.from(new Set(defaultLabelIds))
-              : template.defaultLabelIds,
-          fieldVisibility:
-            fieldVisibility !== undefined
-              ? { ...template.fieldVisibility, ...fieldVisibility }
-              : template.fieldVisibility,
+            defaultLabelIds !== undefined ? [...defaultLabelIds] : template.defaultLabelIds,
         } satisfies TemplatePreset;
       }),
     }));

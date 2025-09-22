@@ -38,7 +38,6 @@ export interface TemplatePreset {
   readonly defaultStatusId: string;
   readonly defaultLabelIds: readonly string[];
   readonly confidenceThreshold: number;
-  readonly fieldVisibility: TemplateFieldVisibility;
 }
 
 /**
