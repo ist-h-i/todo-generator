@@ -1,10 +1,10 @@
 <section class="space-y-10">
   <form class="surface-panel space-y-6 px-8 py-8" (submit)="handleSubmit($event)">
     <header class="space-y-2">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Gemini Analyzer</p>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400">ChatGPT Analyzer</p>
       <h2 class="text-2xl font-semibold text-on-surface">入力テキストを解析</h2>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        作業メモやアイデアを貼り付けると、Gemini がカード候補とサブタスクを提案します。
+        作業メモやアイデアを貼り付けると、ChatGPT がカード候補とサブタスクを提案します。
       </p>
     </header>
 
@@ -70,7 +70,7 @@
     <header class="flex items-center justify-between">
       <div>
         <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Proposals</p>
-        <h3 class="text-xl font-semibold text-on-surface">Gemini の提案結果</h3>
+        <h3 class="text-xl font-semibold text-on-surface">ChatGPT の提案結果</h3>
       </div>
       <button
         type="button"
@@ -83,7 +83,7 @@
 
     @if (analysisResource.status() === 'loading') {
       <div class="surface-panel animate-pulse space-y-3 px-6 py-6 text-sm text-slate-500">
-        Gemini が提案を作成しています...
+        ChatGPT が提案を作成しています...
       </div>
     }
 

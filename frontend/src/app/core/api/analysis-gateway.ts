@@ -83,7 +83,7 @@ export class AnalysisGateway {
    * @returns Primary title text.
    */
   private readonly resolveBaseTitle = (request: AnalysisRequest): string =>
-    request.notes.split('\n')[0]?.trim() || 'Gemini 提案';
+    request.notes.split('\n')[0]?.trim() || 'ChatGPT 提案';
 
   /**
    * Builds a consistent subtask list based on the preferred tone.
