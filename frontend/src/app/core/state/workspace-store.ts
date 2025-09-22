@@ -13,6 +13,7 @@ import {
   TemplatePreset,
   WorkspaceSettings,
   WorkspaceSummary,
+  DEFAULT_TEMPLATE_FIELDS,
 } from '@core/models';
 import { createId } from '@core/utils/create-id';
 
@@ -40,6 +41,7 @@ const INITIAL_TEMPLATES: TemplatePreset[] = [
     defaultStatusId: 'todo',
     defaultLabelIds: ['ai'],
     confidenceThreshold: 0.6,
+    fieldVisibility: { ...DEFAULT_TEMPLATE_FIELDS },
   },
   {
     id: 'ux-template',
@@ -48,6 +50,7 @@ const INITIAL_TEMPLATES: TemplatePreset[] = [
     defaultStatusId: 'in-progress',
     defaultLabelIds: ['ux'],
     confidenceThreshold: 0.7,
+    fieldVisibility: { ...DEFAULT_TEMPLATE_FIELDS },
   },
 ];
 
@@ -140,6 +143,21 @@ const INITIAL_FILTERS: BoardFilters = {
   search: '',
   labelIds: [],
   statusIds: [],
+};
+
+type CardSuggestionPayload = {
+  readonly title: string;
+  readonly summary: string;
+  readonly statusId?: string;
+  readonly labelIds?: readonly string[];
+  readonly priority?: Card['priority'];
+  readonly assignee?: string;
+  readonly dueDate?: string;
+  readonly originSuggestionId?: string;
+  readonly initiativeId?: string;
+  readonly confidence?: number;
+  readonly storyPoints?: number;
+  readonly subtasks?: readonly Subtask[];
 };
 
 /**
@@ -330,14 +348,12 @@ export class WorkspaceStore {
             ? [...template.defaultLabelIds]
             : [defaultLabel];
 
-      return {
-        id: createId(),
+      return this.buildCardFromPayload({
         title: proposal.title,
         summary: proposal.summary,
         statusId,
         labelIds,
         priority: 'medium',
-        storyPoints: 3,
         assignee: settings.defaultAssignee,
         confidence: proposal.confidence,
         subtasks: proposal.subtasks.map((task) => ({
@@ -345,9 +361,7 @@ export class WorkspaceStore {
           title: task,
           status: 'todo',
         })),
-        comments: [],
-        activities: [],
-      } satisfies Card;
+      });
     });
 
     this.cardsSignal.update((current) => [...mapped, ...current]);
@@ -402,43 +416,40 @@ export class WorkspaceStore {
    * @param payload - Attributes describing the new card.
    * @returns Created card instance.
    */
-  public readonly createCardFromSuggestion = (payload: {
-    title: string;
-    summary: string;
-    statusId?: string;
-    labelIds?: readonly string[];
-    priority?: 'low' | 'medium' | 'high' | 'urgent';
-    assignee?: string;
-    dueDate?: string;
-    originSuggestionId?: string;
-    initiativeId?: string;
-  }): Card => {
-    const settings = this.settingsSignal();
-    const defaultStatusId = payload.statusId || settings.defaultStatusId;
-    const labels = payload.labelIds && payload.labelIds.length > 0
-      ? [...payload.labelIds]
-      : [settings.labels[0]?.id ?? 'general'];
-
-    const card: Card = {
-      id: createId(),
-      title: payload.title,
-      summary: payload.summary,
-      statusId: defaultStatusId,
-      labelIds: labels,
-      priority: payload.priority ?? 'medium',
-      storyPoints: 3,
-      assignee: payload.assignee ?? settings.defaultAssignee,
-      dueDate: payload.dueDate,
-      subtasks: [],
-      comments: [],
-      activities: [],
-      originSuggestionId: payload.originSuggestionId,
-      initiativeId: payload.initiativeId,
-    };
+  public readonly createCardFromSuggestion = (payload: CardSuggestionPayload): Card => {
+    const card = this.buildCardFromPayload(payload);
 
     this.cardsSignal.update((cards) => [card, ...cards]);
 
     return card;
+  };
+
+  private readonly buildCardFromPayload = (payload: CardSuggestionPayload): Card => {
+    const settings = this.settingsSignal();
+    const statusId = payload.statusId ?? settings.defaultStatusId;
+    const labelIds = payload.labelIds && payload.labelIds.length > 0
+      ? [...payload.labelIds]
+      : [settings.labels[0]?.id ?? 'general'];
+
+    return {
+      id: createId(),
+      title: payload.title,
+      summary: payload.summary,
+      statusId,
+      labelIds,
+      priority: payload.priority ?? 'medium',
+      storyPoints: payload.storyPoints ?? 3,
+      assignee: payload.assignee ?? settings.defaultAssignee,
+      dueDate: payload.dueDate,
+      confidence: payload.confidence,
+      subtasks: payload.subtasks
+        ? payload.subtasks.map((subtask) => ({ ...subtask }))
+        : [],
+      comments: [],
+      activities: [],
+      originSuggestionId: payload.originSuggestionId,
+      initiativeId: payload.initiativeId,
+    } satisfies Card;
   };
   /**
    * Replaces the label set associated with a card.
@@ -458,51 +469,6 @@ export class WorkspaceStore {
           : card,
       ),
     );
-  };
-
-  /**
-   * Creates a new card from a suggested improvement action.
-   *
-   * @param payload - Attributes describing the new card.
-   * @returns Created card instance.
-   */
-  public readonly createCardFromSuggestion = (payload: {
-    title: string;
-    summary: string;
-    statusId?: string;
-    labelIds?: readonly string[];
-    priority?: 'low' | 'medium' | 'high' | 'urgent';
-    assignee?: string;
-    dueDate?: string;
-    originSuggestionId?: string;
-    initiativeId?: string;
-  }): Card => {
-    const settings = this.settingsSignal();
-    const defaultStatusId = payload.statusId || settings.defaultStatusId;
-    const labels = payload.labelIds && payload.labelIds.length > 0
-      ? [...payload.labelIds]
-      : [settings.labels[0]?.id ?? 'general'];
-
-    const card: Card = {
-      id: createId(),
-      title: payload.title,
-      summary: payload.summary,
-      statusId: defaultStatusId,
-      labelIds: labels,
-      priority: payload.priority ?? 'medium',
-      storyPoints: 3,
-      assignee: payload.assignee ?? settings.defaultAssignee,
-      dueDate: payload.dueDate,
-      subtasks: [],
-      comments: [],
-      activities: [],
-      originSuggestionId: payload.originSuggestionId,
-      initiativeId: payload.initiativeId,
-    };
-
-    this.cardsSignal.update((cards) => [card, ...cards]);
-
-    return card;
   };
 
   /**
@@ -578,6 +544,7 @@ export class WorkspaceStore {
     defaultStatusId: string;
     defaultLabelIds: readonly string[];
     confidenceThreshold: number;
+    fieldVisibility: TemplateFieldVisibility;
   }): void => {
     this.settingsSignal.update((settings) => ({
       ...settings,
@@ -590,6 +557,7 @@ export class WorkspaceStore {
           defaultStatusId: payload.defaultStatusId,
           defaultLabelIds: [...payload.defaultLabelIds],
           confidenceThreshold: payload.confidenceThreshold,
+          fieldVisibility: { ...payload.fieldVisibility },
         },
       ],
     }));
@@ -612,12 +580,14 @@ export class WorkspaceStore {
           return template;
         }
 
-        const { defaultLabelIds, ...rest } = changes;
+        const { defaultLabelIds, fieldVisibility, ...rest } = changes;
         return {
           ...template,
           ...rest,
           defaultLabelIds:
             defaultLabelIds !== undefined ? [...defaultLabelIds] : template.defaultLabelIds,
+          fieldVisibility:
+            fieldVisibility !== undefined ? { ...fieldVisibility } : template.fieldVisibility,
         } satisfies TemplatePreset;
       }),
     }));

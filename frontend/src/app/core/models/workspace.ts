@@ -28,6 +28,13 @@ export interface TemplateFieldVisibility {
   readonly showConfidence: boolean;
 }
 
+export const DEFAULT_TEMPLATE_FIELDS: TemplateFieldVisibility = {
+  showStoryPoints: true,
+  showDueDate: false,
+  showAssignee: true,
+  showConfidence: true,
+};
+
 /**
  * Template definition reused by the analyzer when proposing cards.
  */
@@ -38,6 +45,7 @@ export interface TemplatePreset {
   readonly defaultStatusId: string;
   readonly defaultLabelIds: readonly string[];
   readonly confidenceThreshold: number;
+  readonly fieldVisibility: TemplateFieldVisibility;
 }
 
 /**
