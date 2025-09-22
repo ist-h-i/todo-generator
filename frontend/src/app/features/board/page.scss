@@ -87,6 +87,25 @@
   box-shadow: var(--shadow-strong);
 }
 
+.board-card--active {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.board-card--compact {
+  gap: 0.75rem;
+  opacity: 0.9;
+}
+
+.board-card-compact-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: rgba(148, 163, 184, 0.16);
+}
+
 .board-badge {
   display: inline-flex;
   align-items: center;
@@ -111,4 +130,46 @@
 
 .cdk-drag-placeholder {
   opacity: 0;
+}
+
+.subtask-columns .board-column {
+  min-width: 18rem;
+}
+
+.subtask-card {
+  gap: 0.75rem;
+}
+
+.subtask-card--highlight {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: var(--shadow-strong);
+}
+
+.subtask-card--compact {
+  opacity: 0.65;
+}
+
+.subtask-card-labels {
+  gap: 0.5rem;
+}
+
+.subtask-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+@media (prefers-color-scheme: dark) {
+  .subtask-badge {
+    background: rgba(30, 41, 59, 0.65);
+    border-color: rgba(148, 163, 184, 0.5);
+  }
+}
+
+.subtask-card-compact-note {
+  font-style: italic;
 }
