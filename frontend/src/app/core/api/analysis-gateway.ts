@@ -49,6 +49,7 @@ export class AnalysisGateway {
                 suggestedLabelIds: index === 0 ? ['ai'] : ['frontend'],
                 subtasks,
                 confidence: 0.62 + index * 0.12,
+                templateId: index === 0 ? 'ai-template' : 'ux-template',
               });
 
               subscriber.next({

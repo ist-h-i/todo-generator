@@ -15,6 +15,8 @@ import {
 } from '@core/models';
 import { createId } from '@core/utils/create-id';
 
+const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 0.5;
+
 const INITIAL_LABELS: Label[] = [
   { id: 'frontend', name: 'フロントエンド', color: '#38bdf8' },
   { id: 'backend', name: 'バックエンド', color: '#a855f7' },
@@ -36,6 +38,7 @@ const INITIAL_TEMPLATES: TemplatePreset[] = [
     description: 'ChatGPT 改修用のチェックリストテンプレート',
     defaultStatusId: 'todo',
     defaultLabelIds: ['ai'],
+    confidenceThreshold: 0.6,
   },
   {
     id: 'ux-template',
@@ -43,6 +46,7 @@ const INITIAL_TEMPLATES: TemplatePreset[] = [
     description: 'プロトタイプ検証とユーザーテスト',
     defaultStatusId: 'in-progress',
     defaultLabelIds: ['ux'],
+    confidenceThreshold: 0.7,
   },
 ];
 
@@ -142,6 +146,9 @@ export class WorkspaceStore {
   private readonly groupingSignal = signal<BoardGrouping>('label');
   private readonly filtersSignal = signal<BoardFilters>({ ...INITIAL_FILTERS });
   private readonly selectedCardIdSignal = signal<string | null>(null);
+  private readonly templateConfidenceThresholds = computed(() =>
+    new Map(this.settingsSignal().templates.map((template) => [template.id, template.confidenceThreshold])),
+  );
 
   public readonly settings = computed(() => this.settingsSignal());
   public readonly cards = computed(() => this.cardsSignal());
@@ -153,6 +160,23 @@ export class WorkspaceStore {
     const allowed = new Set(this.filteredCardIds());
     return this.cardsSignal().filter((card) => allowed.has(card.id));
   });
+
+  /**
+   * Evaluates whether a proposal meets the workspace template confidence threshold.
+   *
+   * @param proposal - Proposal metadata returned from the analyzer.
+   * @returns True when the proposal should be presented to the user.
+   */
+  public readonly isProposalEligible = (
+    proposal: Pick<AnalysisProposal, 'templateId' | 'confidence'>,
+  ): boolean => {
+    const threshold =
+      proposal.templateId !== undefined && proposal.templateId !== null
+        ? this.templateConfidenceThresholds().get(proposal.templateId)
+        : undefined;
+
+    return proposal.confidence >= (threshold ?? DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD);
+  };
 
   public readonly summary = computed<WorkspaceSummary>(() => {
     const cards = this.cardsSignal();
@@ -279,30 +303,46 @@ export class WorkspaceStore {
       return;
     }
 
-    const defaultStatus = this.settingsSignal().defaultStatusId;
-    const defaultLabel = this.settingsSignal().labels[0]?.id ?? 'general';
+    const eligible = proposals.filter((proposal) => this.isProposalEligible(proposal));
+    if (eligible.length === 0) {
+      return;
+    }
 
-    const mapped: Card[] = proposals.map((proposal) => ({
-      id: createId(),
-      title: proposal.title,
-      summary: proposal.summary,
-      statusId: proposal.suggestedStatusId || defaultStatus,
-      labelIds:
-        proposal.suggestedLabelIds.length > 0
-          ? [...proposal.suggestedLabelIds]
-          : [defaultLabel],
-      priority: 'medium',
-      storyPoints: 3,
-      assignee: this.settingsSignal().defaultAssignee,
-      confidence: proposal.confidence,
-      subtasks: proposal.subtasks.map((task) => ({
+    const settings = this.settingsSignal();
+    const defaultStatus = settings.defaultStatusId;
+    const defaultLabel = settings.labels[0]?.id ?? 'general';
+
+    const mapped: Card[] = eligible.map((proposal) => {
+      const template = proposal.templateId
+        ? settings.templates.find((entry) => entry.id === proposal.templateId)
+        : undefined;
+
+      const statusId = proposal.suggestedStatusId || template?.defaultStatusId || defaultStatus;
+      const labelIds = proposal.suggestedLabelIds.length > 0
+        ? [...proposal.suggestedLabelIds]
+        : template
+            ? [...template.defaultLabelIds]
+            : [defaultLabel];
+
+      return {
         id: createId(),
-        title: task,
-        status: 'todo',
-      })),
-      comments: [],
-      activities: [],
-    }));
+        title: proposal.title,
+        summary: proposal.summary,
+        statusId,
+        labelIds,
+        priority: 'medium',
+        storyPoints: 3,
+        assignee: settings.defaultAssignee,
+        confidence: proposal.confidence,
+        subtasks: proposal.subtasks.map((task) => ({
+          id: createId(),
+          title: task,
+          status: 'todo',
+        })),
+        comments: [],
+        activities: [],
+      } satisfies Card;
+    });
 
     this.cardsSignal.update((current) => [...mapped, ...current]);
   };
@@ -410,5 +450,73 @@ export class WorkspaceStore {
         ],
       };
     });
+  };
+
+  /**
+   * Registers a new template available for analyzer driven proposals.
+   *
+   * @param payload - Template information collected from settings forms.
+   */
+  public readonly addTemplate = (payload: {
+    name: string;
+    description: string;
+    defaultStatusId: string;
+    defaultLabelIds: readonly string[];
+    confidenceThreshold: number;
+  }): void => {
+    this.settingsSignal.update((settings) => ({
+      ...settings,
+      templates: [
+        ...settings.templates,
+        {
+          id: createId(),
+          name: payload.name,
+          description: payload.description,
+          defaultStatusId: payload.defaultStatusId,
+          defaultLabelIds: [...payload.defaultLabelIds],
+          confidenceThreshold: payload.confidenceThreshold,
+        },
+      ],
+    }));
+  };
+
+  /**
+   * Applies updates to an existing template.
+   *
+   * @param templateId - Target template identifier.
+   * @param changes - Partial template payload.
+   */
+  public readonly updateTemplate = (
+    templateId: string,
+    changes: Partial<Omit<TemplatePreset, 'id'>>,
+  ): void => {
+    this.settingsSignal.update((settings) => ({
+      ...settings,
+      templates: settings.templates.map((template) => {
+        if (template.id !== templateId) {
+          return template;
+        }
+
+        const { defaultLabelIds, ...rest } = changes;
+        return {
+          ...template,
+          ...rest,
+          defaultLabelIds:
+            defaultLabelIds !== undefined ? [...defaultLabelIds] : template.defaultLabelIds,
+        } satisfies TemplatePreset;
+      }),
+    }));
+  };
+
+  /**
+   * Removes a template from the workspace configuration.
+   *
+   * @param templateId - Identifier of the template to delete.
+   */
+  public readonly removeTemplate = (templateId: string): void => {
+    this.settingsSignal.update((settings) => ({
+      ...settings,
+      templates: settings.templates.filter((template) => template.id !== templateId),
+    }));
   };
 }
