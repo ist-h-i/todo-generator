@@ -2,8 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { CommonModule } from '@angular/common';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
-import { BoardColumnView, BoardGrouping, Card, Label } from '@core/models';
+import { BoardColumnView, BoardGrouping, Card, Label, Status } from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
+
+const DEFAULT_STATUS_COLOR = '#94a3b8';
 
 /**
  * Board page rendering grouped task cards with filtering controls.
@@ -25,7 +27,7 @@ export class BoardPage {
   public readonly statusesSignal = computed(() => this.workspace.settings().statuses);
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
 
-  public readonly cardsById = computed(() => {
+  public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();
     for (const card of this.workspace.cards()) {
       lookup.set(card.id, card);
@@ -33,10 +35,18 @@ export class BoardPage {
     return lookup;
   });
 
-  public readonly labelsById = computed(() => {
+  public readonly labelsByIdSignal = computed<ReadonlyMap<string, Label>>(() => {
     const lookup = new Map<string, Label>();
     for (const label of this.labelsSignal()) {
       lookup.set(label.id, label);
+    }
+    return lookup;
+  });
+
+  public readonly statusesByIdSignal = computed<ReadonlyMap<string, Status>>(() => {
+    const lookup = new Map<string, Status>();
+    for (const status of this.statusesSignal()) {
+      lookup.set(status.id, status);
     }
     return lookup;
   });
@@ -89,22 +99,22 @@ export class BoardPage {
     this.workspace.updateCardStatus(cardId, statusId);
   };
 
-  public readonly selectedCard = computed(() => this.workspace.selectedCard());
+  public readonly selectedCardSignal = this.workspace.selectedCard;
 
   public readonly statusColor = (statusId: string): string => {
-    const status = this.statusesSignal().find((item) => item.id === statusId);
-    return status?.color ?? '#94a3b8';
+    const status = this.statusesByIdSignal().get(statusId);
+    return status?.color ?? DEFAULT_STATUS_COLOR;
   };
 
   public readonly columnAccent = (column: BoardColumnView): string => column.accent;
 
   public readonly statusName = (statusId: string): string => {
-    const status = this.statusesSignal().find((item) => item.id === statusId);
+    const status = this.statusesByIdSignal().get(statusId);
     return status ? status.name : statusId;
   };
 
   public readonly labelName = (labelId: string): string => {
-    const label = this.labelsById().get(labelId);
+    const label = this.labelsByIdSignal().get(labelId);
     return label ? label.name : labelId;
   };
 }
