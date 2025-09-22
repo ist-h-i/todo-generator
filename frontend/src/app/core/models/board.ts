@@ -4,12 +4,23 @@
 export type BoardGrouping = 'status' | 'label';
 
 /**
+ * Quick filter categories available from the board toolbar.
+ */
+export type BoardQuickFilter =
+  | 'myAssignments'
+  | 'dueSoon'
+  | 'recentlyCreated'
+  | 'highPriority'
+  | 'noAssignee';
+
+/**
  * Filters available for board searching.
  */
 export interface BoardFilters {
   readonly search: string;
   readonly labelIds: readonly string[];
   readonly statusIds: readonly string[];
+  readonly quickFilters: readonly BoardQuickFilter[];
 }
 
 /**

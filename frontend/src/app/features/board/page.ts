@@ -6,6 +6,7 @@ import { WorkspaceStore } from '@core/state/workspace-store';
 import {
   BoardColumnView,
   BoardGrouping,
+  BoardQuickFilter,
   Card,
   Label,
   Status,
@@ -16,6 +17,44 @@ import {
 import { createSignalForm } from '@lib/forms/signal-forms';
 
 const DEFAULT_STATUS_COLOR = '#94a3b8';
+
+interface QuickFilterOption {
+  readonly id: BoardQuickFilter;
+  readonly label: string;
+  readonly description: string;
+}
+
+const QUICK_FILTER_OPTIONS: readonly QuickFilterOption[] = [
+  {
+    id: 'myAssignments',
+    label: '自分の担当',
+    description: 'ワークスペースのデフォルト担当者に割り当てられたカードだけを表示します。',
+  },
+  {
+    id: 'dueSoon',
+    label: '期限が近い',
+    description: '期限日が7日以内、または直近で期限切れのカードを抽出します。',
+  },
+  {
+    id: 'recentlyCreated',
+    label: '最近作成',
+    description: '直近14日以内に作成された新しいカードだけを表示します。',
+  },
+  {
+    id: 'highPriority',
+    label: '重要タスク',
+    description: '優先度が高または緊急に設定されたカードに絞り込みます。',
+  },
+  {
+    id: 'noAssignee',
+    label: '担当未設定',
+    description: '担当者がまだ割り当てられていないカードを見つけます。',
+  },
+];
+
+const QUICK_FILTER_LABEL_LOOKUP = new Map(
+  QUICK_FILTER_OPTIONS.map((option) => [option.id, option.label] as const),
+);
 
 type SubtaskStatus = Subtask['status'];
 
@@ -79,6 +118,7 @@ export class BoardPage {
   public readonly statusesSignal = computed(() => this.workspace.settings().statuses);
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
   public readonly templatesSignal = computed(() => this.workspace.settings().templates);
+  public readonly quickFilters = QUICK_FILTER_OPTIONS;
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();
@@ -157,6 +197,17 @@ export class BoardPage {
 
   public readonly searchForm = createSignalForm({ search: '' });
 
+  public readonly quickFilterSummarySignal = computed(() => {
+    const active = this.filtersSignal().quickFilters;
+    if (active.length === 0) {
+      return 'なし';
+    }
+
+    return active
+      .map((id) => QUICK_FILTER_LABEL_LOOKUP.get(id) ?? id)
+      .join(', ');
+  });
+
   /**
    * Applies a text search filter to the board.
    *
@@ -174,6 +225,20 @@ export class BoardPage {
     this.searchForm.reset({ search: '' });
     this.workspace.resetFilters();
   };
+
+  public readonly toggleQuickFilter = (filter: BoardQuickFilter): void => {
+    const current = new Set(this.filtersSignal().quickFilters);
+    if (current.has(filter)) {
+      current.delete(filter);
+    } else {
+      current.add(filter);
+    }
+
+    this.workspace.updateFilters({ quickFilters: Array.from(current) });
+  };
+
+  public readonly isQuickFilterActive = (filter: BoardQuickFilter): boolean =>
+    this.filtersSignal().quickFilters.includes(filter);
 
   public readonly selectGrouping = (grouping: BoardGrouping): void => {
     this.workspace.setGrouping(grouping);

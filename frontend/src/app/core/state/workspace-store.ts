@@ -73,6 +73,7 @@ const INITIAL_CARDS: Card[] = [
     templateId: 'ai-template',
     priority: 'high',
     storyPoints: 5,
+    createdAt: '2025-04-18T09:00:00.000Z',
     assignee: '田中太郎',
     confidence: 0.74,
     subtasks: buildSubtasks(['事例収集', '評価実験', 'レビュー共有']).map((subtask, index, list) =>
@@ -90,6 +91,7 @@ const INITIAL_CARDS: Card[] = [
     templateId: 'ux-template',
     priority: 'medium',
     storyPoints: 3,
+    createdAt: '2025-04-25T04:30:00.000Z',
     dueDate: '2025-04-30',
     assignee: '佐藤花子',
     subtasks: buildSubtasks(['想定シナリオ整理', 'VoiceOver テスト']),
@@ -105,7 +107,8 @@ const INITIAL_CARDS: Card[] = [
     templateId: null,
     priority: 'urgent',
     storyPoints: 8,
-    assignee: '李開発',
+    createdAt: '2025-05-01T01:15:00.000Z',
+    dueDate: '2025-05-12',
     subtasks: buildSubtasks(['スキーマ定義', 'Resolver 実装', 'E2E テスト']),
     comments: [],
     activities: [],
@@ -119,6 +122,7 @@ const INITIAL_CARDS: Card[] = [
     templateId: 'ai-template',
     priority: 'medium',
     storyPoints: 2,
+    createdAt: '2025-03-30T10:45:00.000Z',
     assignee: '田中太郎',
     subtasks: buildSubtasks(['UI 設計', 'ストア連携']).map((subtask) => ({
       ...subtask,
@@ -143,7 +147,12 @@ const INITIAL_FILTERS: BoardFilters = {
   search: '',
   labelIds: [],
   statusIds: [],
+  quickFilters: [],
 };
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const QUICK_FILTER_RECENT_DAYS = 14;
+const QUICK_FILTER_DUE_SOON_DAYS = 7;
 
 type CardSuggestionPayload = {
   readonly title: string;
@@ -153,6 +162,7 @@ type CardSuggestionPayload = {
   readonly priority?: Card['priority'];
   readonly assignee?: string;
   readonly dueDate?: string;
+  readonly createdAt?: string;
   readonly originSuggestionId?: string;
   readonly initiativeId?: string;
   readonly confidence?: number;
@@ -221,8 +231,12 @@ export class WorkspaceStore {
   });
 
   private readonly filteredCardIds = computed(() => {
-    const { search, labelIds, statusIds } = this.filtersSignal();
+    const { search, labelIds, statusIds, quickFilters } = this.filtersSignal();
     const normalizedSearch = search.trim().toLowerCase();
+    const quickFilterSet = new Set(quickFilters);
+    const settings = this.settingsSignal();
+    const now = new Date();
+    const defaultAssignee = settings.defaultAssignee.trim().toLowerCase();
 
     return this.cardsSignal()
       .filter((card) => {
@@ -239,6 +253,60 @@ export class WorkspaceStore {
 
         if (statusIds.length > 0 && !statusIds.includes(card.statusId)) {
           return false;
+        }
+
+        if (quickFilterSet.size > 0) {
+          if (quickFilterSet.has('myAssignments')) {
+            const assignee = card.assignee?.trim().toLowerCase() ?? '';
+            if (!defaultAssignee || assignee !== defaultAssignee) {
+              return false;
+            }
+          }
+
+          if (quickFilterSet.has('noAssignee')) {
+            if ((card.assignee?.trim() ?? '').length > 0) {
+              return false;
+            }
+          }
+
+          if (quickFilterSet.has('highPriority')) {
+            if (card.priority !== 'high' && card.priority !== 'urgent') {
+              return false;
+            }
+          }
+
+          if (quickFilterSet.has('dueSoon')) {
+            if (!card.dueDate) {
+              return false;
+            }
+
+            const due = new Date(card.dueDate);
+            const dueTime = due.getTime();
+            if (Number.isNaN(dueTime)) {
+              return false;
+            }
+
+            const diffMs = dueTime - now.getTime();
+            const threshold = QUICK_FILTER_DUE_SOON_DAYS * MS_PER_DAY;
+            if (diffMs > threshold) {
+              return false;
+            }
+            if (diffMs < 0 && Math.abs(diffMs) > threshold) {
+              return false;
+            }
+          }
+
+          if (quickFilterSet.has('recentlyCreated')) {
+            const created = new Date(card.createdAt);
+            const createdTime = created.getTime();
+            if (Number.isNaN(createdTime)) {
+              return false;
+            }
+
+            if (now.getTime() - createdTime > QUICK_FILTER_RECENT_DAYS * MS_PER_DAY) {
+              return false;
+            }
+          }
         }
 
         return true;
@@ -439,6 +507,7 @@ export class WorkspaceStore {
       labelIds,
       priority: payload.priority ?? 'medium',
       storyPoints: payload.storyPoints ?? 3,
+      createdAt: payload.createdAt ?? new Date().toISOString(),
       assignee: payload.assignee ?? settings.defaultAssignee,
       dueDate: payload.dueDate,
       confidence: payload.confidence,
