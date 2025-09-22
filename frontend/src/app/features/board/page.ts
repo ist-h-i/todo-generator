@@ -3,10 +3,17 @@ import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
-import { BoardColumnView, Card, Label, Status, Subtask } from '@core/models';
+import { BoardColumnView, Card, Label, Status, Subtask, TemplateFieldVisibility } from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
 
 const DEFAULT_STATUS_COLOR = '#94a3b8';
+
+const DEFAULT_TEMPLATE_FIELDS: TemplateFieldVisibility = {
+  showStoryPoints: true,
+  showDueDate: true,
+  showAssignee: true,
+  showConfidence: true,
+};
 
 type SubtaskStatus = Subtask['status'];
 
@@ -65,11 +72,20 @@ export class BoardPage {
   public readonly filteredCardsSignal = this.workspace.filteredCards;
   public readonly statusesSignal = computed(() => this.workspace.settings().statuses);
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
+  public readonly templatesSignal = computed(() => this.workspace.settings().templates);
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();
     for (const card of this.workspace.cards()) {
       lookup.set(card.id, card);
+    }
+    return lookup;
+  });
+
+  public readonly templateVisibilityByIdSignal = computed<ReadonlyMap<string, TemplateFieldVisibility>>(() => {
+    const lookup = new Map<string, TemplateFieldVisibility>();
+    for (const template of this.templatesSignal()) {
+      lookup.set(template.id, template.fieldVisibility);
     }
     return lookup;
   });
@@ -215,6 +231,14 @@ export class BoardPage {
     return status?.color ?? DEFAULT_STATUS_COLOR;
   };
 
+  public readonly cardFieldVisibility = (card: Card): TemplateFieldVisibility => {
+    if (!card.templateId) {
+      return DEFAULT_TEMPLATE_FIELDS;
+    }
+
+    return this.templateVisibilityByIdSignal().get(card.templateId) ?? DEFAULT_TEMPLATE_FIELDS;
+  };
+
   public readonly columnAccent = (column: BoardColumnView): string => column.accent;
 
   public readonly statusName = (statusId: string): string => {
@@ -225,5 +249,22 @@ export class BoardPage {
   public readonly labelName = (labelId: string): string => {
     const label = this.labelsByIdSignal().get(labelId);
     return label ? label.name : labelId;
+  };
+
+  public readonly isLabelApplied = (card: Card, labelId: string): boolean =>
+    card.labelIds.includes(labelId);
+
+  public readonly handleLabelToggle = (
+    card: Card,
+    labelId: string,
+    checked: boolean,
+  ): void => {
+    const labels = new Set(card.labelIds);
+    if (checked) {
+      labels.add(labelId);
+    } else {
+      labels.delete(labelId);
+    }
+    this.workspace.updateCardLabels(card.id, Array.from(labels));
   };
 }
