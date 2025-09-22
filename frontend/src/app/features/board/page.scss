@@ -16,7 +16,6 @@
     justify-content: flex-start;
   }
 }
-
 @media (min-width: 1024px) {
   .board-columns {
     margin: 0;
@@ -37,6 +36,12 @@
   background: linear-gradient(180deg, rgba(148, 163, 184, 0.12), rgba(148, 163, 184, 0.24));
   box-shadow: var(--shadow-soft);
   transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.board-column header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 @media (prefers-color-scheme: dark) {

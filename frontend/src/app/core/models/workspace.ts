@@ -27,6 +27,7 @@ export interface TemplatePreset {
   readonly description: string;
   readonly defaultStatusId: string;
   readonly defaultLabelIds: readonly string[];
+  readonly confidenceThreshold: number;
 }
 
 /**

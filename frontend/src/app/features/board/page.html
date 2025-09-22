@@ -271,7 +271,7 @@
 
     @if (selectedCardSignal(); as active) {
       <aside class="surface-panel grid min-w-0 gap-6 px-8 py-8 lg:grid-cols-[2fr_1fr]">
-        <div class="space-y-4 min-w-0">
+        <div class="min-w-0 space-y-4">
           <div class="flex items-center justify-between">
             <h3 class="text-xl font-semibold text-on-surface">{{ active.title }}</h3>
             <button type="button" class="surface-pill focus-ring px-4 py-2 text-xs font-semibold" (click)="openCard(null)">
@@ -291,7 +291,7 @@
             </ul>
           </div>
         </div>
-        <div class="space-y-4 min-w-0">
+        <div class="min-w-0 space-y-4">
           <p class="text-xs uppercase tracking-[0.3em] text-slate-400">コメント</p>
           @if (active.comments.length === 0) {
             <p class="rounded-2xl border border-dashed border-subtle px-4 py-6 text-sm text-slate-500">
