@@ -1,5 +1,9 @@
 from collections.abc import Generator
 
+from .sqlalchemy_py313_compat import ensure_typingonly_is_compatible
+
+ensure_typingonly_is_compatible()
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
