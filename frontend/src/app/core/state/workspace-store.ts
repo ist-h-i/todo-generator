@@ -9,11 +9,25 @@ import {
   Label,
   Status,
   Subtask,
+  TemplateFieldVisibility,
   TemplatePreset,
   WorkspaceSettings,
   WorkspaceSummary,
 } from '@core/models';
 import { createId } from '@core/utils/create-id';
+
+const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 0.5;
+
+const DEFAULT_TEMPLATE_FIELD_VISIBILITY: TemplateFieldVisibility = {
+  showStoryPoints: true,
+  showDueDate: true,
+  showAssignee: true,
+  showConfidence: true,
+};
+
+type TemplateUpdate = Partial<Omit<TemplatePreset, 'id' | 'fieldVisibility'>> & {
+  readonly fieldVisibility?: Partial<TemplateFieldVisibility>;
+};
 
 const INITIAL_LABELS: Label[] = [
   { id: 'frontend', name: 'フロントエンド', color: '#38bdf8' },
@@ -35,14 +49,26 @@ const INITIAL_TEMPLATES: TemplatePreset[] = [
     name: 'AI 改善サイクル',
     description: 'ChatGPT 改修用のチェックリストテンプレート',
     defaultStatusId: 'todo',
-    defaultLabelIds: ['ai'],
+    confidenceThreshold: 0.6,
+    fieldVisibility: {
+      showStoryPoints: true,
+      showDueDate: false,
+      showAssignee: true,
+      showConfidence: true,
+    },
   },
   {
     id: 'ux-template',
     name: 'UX 検証',
     description: 'プロトタイプ検証とユーザーテスト',
     defaultStatusId: 'in-progress',
-    defaultLabelIds: ['ux'],
+    confidenceThreshold: 0.7,
+    fieldVisibility: {
+      showStoryPoints: false,
+      showDueDate: true,
+      showAssignee: false,
+      showConfidence: true,
+    },
   },
 ];
 
@@ -62,6 +88,7 @@ const INITIAL_CARDS: Card[] = [
     summary: '分析精度向上のための新しいプロンプト設計を検証します。',
     statusId: 'in-progress',
     labelIds: ['ai'],
+    templateId: 'ai-template',
     priority: 'high',
     storyPoints: 5,
     assignee: '田中太郎',
@@ -78,8 +105,10 @@ const INITIAL_CARDS: Card[] = [
     summary: 'キーボード操作とスクリーンリーダー読み上げを改善します。',
     statusId: 'review',
     labelIds: ['ux'],
+    templateId: 'ux-template',
     priority: 'medium',
     storyPoints: 3,
+    dueDate: '2025-04-30',
     assignee: '佐藤花子',
     subtasks: buildSubtasks(['想定シナリオ整理', 'VoiceOver テスト']),
     comments: [],
@@ -91,6 +120,7 @@ const INITIAL_CARDS: Card[] = [
     summary: 'カード取得と更新 API を GraphQL で再設計します。',
     statusId: 'todo',
     labelIds: ['backend'],
+    templateId: null,
     priority: 'urgent',
     storyPoints: 8,
     assignee: '李開発',
@@ -104,6 +134,7 @@ const INITIAL_CARDS: Card[] = [
     summary: 'テンプレートの並び替えと検索機能を追加します。',
     statusId: 'done',
     labelIds: ['frontend'],
+    templateId: 'ai-template',
     priority: 'medium',
     storyPoints: 2,
     assignee: '田中太郎',
@@ -142,6 +173,9 @@ export class WorkspaceStore {
   private readonly groupingSignal = signal<BoardGrouping>('label');
   private readonly filtersSignal = signal<BoardFilters>({ ...INITIAL_FILTERS });
   private readonly selectedCardIdSignal = signal<string | null>(null);
+  private readonly templateConfidenceThresholds = computed(() =>
+    new Map(this.settingsSignal().templates.map((template) => [template.id, template.confidenceThreshold])),
+  );
 
   public readonly settings = computed(() => this.settingsSignal());
   public readonly cards = computed(() => this.cardsSignal());
@@ -153,6 +187,23 @@ export class WorkspaceStore {
     const allowed = new Set(this.filteredCardIds());
     return this.cardsSignal().filter((card) => allowed.has(card.id));
   });
+
+  /**
+   * Evaluates whether a proposal meets the workspace template confidence threshold.
+   *
+   * @param proposal - Proposal metadata returned from the analyzer.
+   * @returns True when the proposal should be presented to the user.
+   */
+  public isProposalEligible(
+    proposal: Pick<AnalysisProposal, 'templateId' | 'confidence'>,
+  ): boolean {
+    const threshold =
+      proposal.templateId !== undefined && proposal.templateId !== null
+        ? this.templateConfidenceThresholds().get(proposal.templateId)
+        : undefined;
+
+    return proposal.confidence >= (threshold ?? DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD);
+  }
 
   public readonly summary = computed<WorkspaceSummary>(() => {
     const cards = this.cardsSignal();
@@ -279,30 +330,47 @@ export class WorkspaceStore {
       return;
     }
 
-    const defaultStatus = this.settingsSignal().defaultStatusId;
-    const defaultLabel = this.settingsSignal().labels[0]?.id ?? 'general';
+    const eligible = proposals.filter((proposal) => this.isProposalEligible(proposal));
+    if (eligible.length === 0) {
+      return;
+    }
 
-    const mapped: Card[] = proposals.map((proposal) => ({
-      id: createId(),
-      title: proposal.title,
-      summary: proposal.summary,
-      statusId: proposal.suggestedStatusId || defaultStatus,
-      labelIds:
-        proposal.suggestedLabelIds.length > 0
-          ? [...proposal.suggestedLabelIds]
-          : [defaultLabel],
-      priority: 'medium',
-      storyPoints: 3,
-      assignee: this.settingsSignal().defaultAssignee,
-      confidence: proposal.confidence,
-      subtasks: proposal.subtasks.map((task) => ({
+    const settings = this.settingsSignal();
+    const defaultStatus = settings.defaultStatusId;
+    const defaultLabel = settings.labels[0]?.id ?? 'general';
+
+    const mapped: Card[] = eligible.map((proposal) => {
+      const template = proposal.templateId
+        ? settings.templates.find((entry) => entry.id === proposal.templateId)
+        : undefined;
+      const templateFields = template?.fieldVisibility ?? DEFAULT_TEMPLATE_FIELD_VISIBILITY;
+
+      const statusId = proposal.suggestedStatusId || template?.defaultStatusId || defaultStatus;
+      const labelIds = proposal.suggestedLabelIds.length > 0
+        ? Array.from(new Set(proposal.suggestedLabelIds))
+        : [defaultLabel];
+      const assignee = templateFields.showAssignee ? settings.defaultAssignee : undefined;
+
+      return {
         id: createId(),
-        title: task,
-        status: 'todo',
-      })),
-      comments: [],
-      activities: [],
-    }));
+        title: proposal.title,
+        summary: proposal.summary,
+        statusId,
+        labelIds,
+        templateId: proposal.templateId ?? null,
+        priority: 'medium',
+        storyPoints: 3,
+        assignee,
+        confidence: proposal.confidence,
+        subtasks: proposal.subtasks.map((task) => ({
+          id: createId(),
+          title: task,
+          status: 'todo',
+        })),
+        comments: [],
+        activities: [],
+      } satisfies Card;
+    });
 
     this.cardsSignal.update((current) => [...mapped, ...current]);
   };
@@ -320,6 +388,26 @@ export class WorkspaceStore {
           ? {
               ...card,
               statusId,
+            }
+          : card,
+      ),
+    );
+  };
+
+  /**
+   * Replaces the label set associated with a card.
+   *
+   * @param cardId - Identifier of the card to update.
+   * @param labelIds - Next label identifiers selected by the user.
+   */
+  public readonly updateCardLabels = (cardId: string, labelIds: readonly string[]): void => {
+    const unique = Array.from(new Set(labelIds));
+    this.cardsSignal.update((cards) =>
+      cards.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              labelIds: unique,
             }
           : card,
       ),
@@ -410,5 +498,76 @@ export class WorkspaceStore {
         ],
       };
     });
+  };
+
+  /**
+   * Registers a new template available for analyzer driven proposals.
+   *
+   * @param payload - Template information collected from settings forms.
+   */
+  public readonly addTemplate = (payload: {
+    name: string;
+    description: string;
+    defaultStatusId: string;
+    confidenceThreshold: number;
+    fieldVisibility?: Partial<TemplateFieldVisibility>;
+  }): void => {
+    const fieldVisibility: TemplateFieldVisibility = {
+      ...DEFAULT_TEMPLATE_FIELD_VISIBILITY,
+      ...(payload.fieldVisibility ?? {}),
+    };
+    this.settingsSignal.update((settings) => ({
+      ...settings,
+      templates: [
+        ...settings.templates,
+        {
+          id: createId(),
+          name: payload.name,
+          description: payload.description,
+          defaultStatusId: payload.defaultStatusId,
+          confidenceThreshold: payload.confidenceThreshold,
+          fieldVisibility,
+        },
+      ],
+    }));
+  };
+
+  /**
+   * Applies updates to an existing template.
+   *
+   * @param templateId - Target template identifier.
+   * @param changes - Partial template payload.
+   */
+  public readonly updateTemplate = (templateId: string, changes: TemplateUpdate): void => {
+    this.settingsSignal.update((settings) => ({
+      ...settings,
+      templates: settings.templates.map((template) => {
+        if (template.id !== templateId) {
+          return template;
+        }
+
+        const { fieldVisibility, ...rest } = changes;
+        return {
+          ...template,
+          ...rest,
+          fieldVisibility:
+            fieldVisibility !== undefined
+              ? { ...template.fieldVisibility, ...fieldVisibility }
+              : template.fieldVisibility,
+        } satisfies TemplatePreset;
+      }),
+    }));
+  };
+
+  /**
+   * Removes a template from the workspace configuration.
+   *
+   * @param templateId - Identifier of the template to delete.
+   */
+  public readonly removeTemplate = (templateId: string): void => {
+    this.settingsSignal.update((settings) => ({
+      ...settings,
+      templates: settings.templates.filter((template) => template.id !== templateId),
+    }));
   };
 }

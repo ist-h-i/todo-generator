@@ -18,6 +18,7 @@ export interface AnalysisProposal {
   readonly suggestedLabelIds: readonly string[];
   readonly subtasks: readonly string[];
   readonly confidence: number;
+  readonly templateId?: string | null;
 }
 
 /**

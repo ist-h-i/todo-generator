@@ -106,19 +106,290 @@
   </div>
 
   <section class="surface-panel space-y-6 px-8 py-8">
-    <h3 class="text-lg font-semibold text-on-surface">テンプレート</h3>
-    <ul class="grid gap-4 sm:grid-cols-2">
+    <div class="space-y-2">
+      <h3 class="text-lg font-semibold text-on-surface">テンプレート</h3>
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        AI 提案から生成されるカードの初期ステータスや表示フィールドをテンプレートとして管理します。
+      </p>
+    </div>
+    <ul class="space-y-4">
       @for (template of settingsSignal().templates; track template.id) {
-        <li class="surface-card space-y-3 px-5 py-5">
-          <div class="flex items-center justify-between">
-            <h4 class="text-base font-semibold text-on-surface">{{ template.name }}</h4>
-            <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">{{ template.id }}</span>
+        <li class="surface-card space-y-4 px-5 py-5">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="space-y-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <h4 class="text-base font-semibold text-on-surface">{{ template.name }}</h4>
+                <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">{{ template.id }}</span>
+              </div>
+              <p class="text-sm text-slate-600 dark:text-slate-300">
+                {{ template.description || '説明は設定されていません。' }}
+              </p>
+            </div>
+            <div class="flex gap-2 text-xs">
+              <button
+                type="button"
+                class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+                (click)="openTemplateEditor(template)"
+              >
+                編集
+              </button>
+              <button
+                type="button"
+                class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-red-500"
+                (click)="removeTemplate(template.id)"
+              >
+                削除
+              </button>
+            </div>
           </div>
-          <p class="text-sm text-slate-600 dark:text-slate-300">{{ template.description }}</p>
-          <p class="text-xs text-slate-500">初期ステータス: {{ template.defaultStatusId }}</p>
-          <p class="text-xs text-slate-500">初期ラベル: {{ template.defaultLabelIds.join(', ') }}</p>
+          <div class="flex flex-wrap gap-2 text-xs text-slate-500">
+            <span class="surface-pill px-3 py-1">初期ステータス: {{ template.defaultStatusId }}</span>
+            <span class="surface-pill px-3 py-1">
+              おすすめ度しきい値: {{ (template.confidenceThreshold * 100) | number: '1.0-0' }}%
+            </span>
+          </div>
+          <div class="space-y-1 text-xs text-slate-500">
+            <p class="font-semibold text-on-surface">表示フィールド</p>
+            <div class="flex flex-wrap gap-2">
+              @if (template.fieldVisibility.showStoryPoints) {
+                <span class="surface-pill px-3 py-1">ストーリーポイント</span>
+              }
+              @if (template.fieldVisibility.showDueDate) {
+                <span class="surface-pill px-3 py-1">期限</span>
+              }
+              @if (template.fieldVisibility.showAssignee) {
+                <span class="surface-pill px-3 py-1">担当</span>
+              }
+              @if (template.fieldVisibility.showConfidence) {
+                <span class="surface-pill px-3 py-1">AIおすすめ度</span>
+              }
+              @if (
+                !template.fieldVisibility.showStoryPoints &&
+                  !template.fieldVisibility.showDueDate &&
+                  !template.fieldVisibility.showAssignee &&
+                  !template.fieldVisibility.showConfidence
+              ) {
+                <span class="surface-pill px-3 py-1 text-slate-400">選択なし</span>
+              }
+            </div>
+          </div>
+          @if (editingTemplateId() === template.id) {
+            <form
+              class="grid gap-4 rounded-2xl border border-dashed border-subtle px-5 py-5"
+              (submit)="updateTemplatePreset($event)"
+            >
+              <div class="grid gap-2">
+                <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="template-edit-name"
+                  >テンプレート名</label
+                >
+                <input
+                  id="template-edit-name"
+                  class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+                  placeholder="例: テスト計画"
+                  [value]="templateEditForm.controls.name.value()"
+                  (input)="templateEditForm.controls.name.setValue($any($event.target).value)"
+                />
+              </div>
+              <div class="grid gap-2">
+                <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="template-edit-desc"
+                  >説明</label
+                >
+                <textarea
+                  id="template-edit-desc"
+                  class="min-h-[80px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+                  placeholder="テンプレートの用途を入力"
+                  [value]="templateEditForm.controls.description.value()"
+                  (input)="templateEditForm.controls.description.setValue($any($event.target).value)"
+                ></textarea>
+              </div>
+              <div class="grid gap-2">
+                <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="template-edit-status"
+                  >初期ステータス</label
+                >
+                <select
+                  id="template-edit-status"
+                  class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+                  [value]="templateEditForm.controls.defaultStatusId.value()"
+                  (change)="templateEditForm.controls.defaultStatusId.setValue($any($event.target).value)"
+                >
+                  @for (status of settingsSignal().statuses; track status.id) {
+                    <option [value]="status.id">{{ status.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="grid gap-2">
+                <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="template-edit-threshold"
+                  >おすすめ度しきい値</label
+                >
+                <input
+                  id="template-edit-threshold"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+                  [value]="templateEditForm.controls.confidenceThreshold.value()"
+                  (input)="templateEditForm.controls.confidenceThreshold.setValue($any($event.target).valueAsNumber)"
+                />
+              </div>
+              <div class="space-y-2">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">表示フィールド</p>
+                <div class="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-300">
+                  <label class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 text-accent focus-ring"
+                      [checked]="templateEditForm.controls.showStoryPoints.value()"
+                      (change)="templateEditForm.controls.showStoryPoints.setValue($any($event.target).checked)"
+                    />
+                    <span>ストーリーポイント</span>
+                  </label>
+                  <label class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 text-accent focus-ring"
+                      [checked]="templateEditForm.controls.showDueDate.value()"
+                      (change)="templateEditForm.controls.showDueDate.setValue($any($event.target).checked)"
+                    />
+                    <span>期限</span>
+                  </label>
+                  <label class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 text-accent focus-ring"
+                      [checked]="templateEditForm.controls.showAssignee.value()"
+                      (change)="templateEditForm.controls.showAssignee.setValue($any($event.target).checked)"
+                    />
+                    <span>担当</span>
+                  </label>
+                  <label class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 text-accent focus-ring"
+                      [checked]="templateEditForm.controls.showConfidence.value()"
+                      (change)="templateEditForm.controls.showConfidence.setValue($any($event.target).checked)"
+                    />
+                    <span>AIおすすめ度</span>
+                  </label>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-3">
+                <button type="submit" class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold">
+                  テンプレートを更新
+                </button>
+                <button
+                  type="button"
+                  class="surface-pill focus-ring px-6 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300"
+                  (click)="cancelTemplateEdit()"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </form>
+          }
         </li>
       }
     </ul>
+    <form class="grid gap-4 rounded-2xl border border-dashed border-subtle px-6 py-6" (submit)="saveTemplatePreset($event)">
+      <h4 class="text-base font-semibold text-on-surface">テンプレートを追加</h4>
+      <div class="grid gap-2">
+        <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="template-name"
+          >テンプレート名</label
+        >
+        <input
+          id="template-name"
+          class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+          placeholder="例: スプリント改善"
+          [value]="templateForm.controls.name.value()"
+          (input)="templateForm.controls.name.setValue($any($event.target).value)"
+        />
+      </div>
+      <div class="grid gap-2">
+        <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="template-description"
+          >説明</label
+        >
+        <textarea
+          id="template-description"
+          class="min-h-[80px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+          placeholder="テンプレートの利用シーンを記載してください"
+          [value]="templateForm.controls.description.value()"
+          (input)="templateForm.controls.description.setValue($any($event.target).value)"
+        ></textarea>
+      </div>
+      <div class="grid gap-2">
+        <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="template-status"
+          >初期ステータス</label
+        >
+        <select
+          id="template-status"
+          class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+          [value]="templateForm.controls.defaultStatusId.value()"
+          (change)="templateForm.controls.defaultStatusId.setValue($any($event.target).value)"
+        >
+          @for (status of settingsSignal().statuses; track status.id) {
+            <option [value]="status.id">{{ status.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="grid gap-2">
+        <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="template-threshold"
+          >おすすめ度しきい値</label
+        >
+        <input
+          id="template-threshold"
+          type="number"
+          min="0"
+          max="1"
+          step="0.05"
+          class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+          [value]="templateForm.controls.confidenceThreshold.value()"
+          (input)="templateForm.controls.confidenceThreshold.setValue($any($event.target).valueAsNumber)"
+        />
+      </div>
+      <div class="space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">表示フィールド</p>
+        <div class="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-300">
+          <label class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              class="h-4 w-4 text-accent focus-ring"
+              [checked]="templateForm.controls.showStoryPoints.value()"
+              (change)="templateForm.controls.showStoryPoints.setValue($any($event.target).checked)"
+            />
+            <span>ストーリーポイント</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              class="h-4 w-4 text-accent focus-ring"
+              [checked]="templateForm.controls.showDueDate.value()"
+              (change)="templateForm.controls.showDueDate.setValue($any($event.target).checked)"
+            />
+            <span>期限</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              class="h-4 w-4 text-accent focus-ring"
+              [checked]="templateForm.controls.showAssignee.value()"
+              (change)="templateForm.controls.showAssignee.setValue($any($event.target).checked)"
+            />
+            <span>担当</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input
+              type="checkbox"
+              class="h-4 w-4 text-accent focus-ring"
+              [checked]="templateForm.controls.showConfidence.value()"
+              (change)="templateForm.controls.showConfidence.setValue($any($event.target).checked)"
+            />
+            <span>AIおすすめ度</span>
+          </label>
+        </div>
+      </div>
+      <button type="submit" class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold">
+        テンプレートを追加
+      </button>
+    </form>
   </section>
 </section>

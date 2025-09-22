@@ -37,6 +37,7 @@ export interface Card {
   readonly summary: string;
   readonly statusId: string;
   readonly labelIds: readonly string[];
+  readonly templateId?: string | null;
   readonly priority: 'low' | 'medium' | 'high' | 'urgent';
   readonly storyPoints: number;
   readonly startDate?: string;
