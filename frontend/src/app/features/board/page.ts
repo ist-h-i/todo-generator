@@ -3,7 +3,16 @@ import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
-import { BoardColumnView, BoardGrouping, Card, Label, Status, Subtask } from '@core/models';
+import {
+  BoardColumnView,
+  BoardGrouping,
+  Card,
+  Label,
+  Status,
+  Subtask,
+  TemplateFieldVisibility,
+  DEFAULT_TEMPLATE_FIELDS,
+} from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
 
 const DEFAULT_STATUS_COLOR = '#94a3b8';
@@ -148,48 +157,6 @@ export class BoardPage {
 
   public readonly searchForm = createSignalForm({ search: '' });
 
-  public readonly isCardResolved = (card: Card): boolean =>
-    card.subtasks.length > 0 && card.subtasks.every((task) => this.isSubtaskResolved(task));
-
-  public readonly subtaskColumnsSignal = computed<SubtaskColumnView[]>(() => {
-    const cards = this.filteredCardsSignal();
-    const selectedCardId = this.workspace.selectedCardId();
-
-    return SUBTASK_STATUS_META.map((meta) => {
-      const subtasks: SubtaskCardView[] = [];
-
-      for (const card of cards) {
-        for (const subtask of card.subtasks) {
-          if (subtask.status !== meta.id) {
-            continue;
-          }
-
-          subtasks.push({
-            id: subtask.id,
-            title: subtask.title,
-            parentId: card.id,
-            parentTitle: card.title,
-            parentLabels: card.labelIds,
-            status: subtask.status,
-            assignee: subtask.assignee,
-            estimateHours: subtask.estimateHours,
-            highlight: card.id === selectedCardId,
-            isCompact: this.isSubtaskResolved(subtask),
-          });
-        }
-      }
-
-      return {
-        id: meta.id,
-        title: meta.title,
-        accent: meta.accent,
-        subtasks,
-      } satisfies SubtaskColumnView;
-    });
-  });
-
-  public readonly searchForm = createSignalForm({ search: '' });
-
   /**
    * Applies a text search filter to the board.
    *
@@ -206,6 +173,10 @@ export class BoardPage {
   public readonly clearFilters = (): void => {
     this.searchForm.reset({ search: '' });
     this.workspace.resetFilters();
+  };
+
+  public readonly selectGrouping = (grouping: BoardGrouping): void => {
+    this.workspace.setGrouping(grouping);
   };
 
   /**
