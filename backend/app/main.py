@@ -4,7 +4,21 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
-from .routers import activity, analysis, cards, comments, labels, preferences, statuses
+from .routers import (
+    activity,
+    analytics,
+    analysis,
+    cards,
+    comments,
+    error_categories,
+    filters,
+    initiatives,
+    labels,
+    preferences,
+    reports,
+    statuses,
+    suggested_actions,
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -23,12 +37,18 @@ app.add_middleware(
 )
 
 app.include_router(analysis.router)
+app.include_router(analytics.router)
 app.include_router(cards.router)
 app.include_router(labels.router)
 app.include_router(statuses.router)
 app.include_router(preferences.router)
 app.include_router(comments.router)
 app.include_router(activity.router)
+app.include_router(error_categories.router)
+app.include_router(filters.router)
+app.include_router(initiatives.router)
+app.include_router(suggested_actions.router)
+app.include_router(reports.router)
 
 
 @app.get("/health", tags=["health"])
