@@ -197,6 +197,18 @@ export class BoardPage {
 
   public readonly searchForm = createSignalForm({ search: '' });
 
+  public readonly commentForm = createSignalForm({
+    author: '',
+    message: '',
+  });
+
+  private lastSelectedCardId: string | null = null;
+
+  public readonly isCommentFormValid = (): boolean => {
+    const snapshot = this.commentForm.value();
+    return snapshot.author.trim().length > 0 && snapshot.message.trim().length > 0;
+  };
+
   public readonly quickFilterSummarySignal = computed(() => {
     const active = this.filtersSignal().quickFilters;
     if (active.length === 0) {
