@@ -110,7 +110,7 @@
                       <span>担当: {{ card.assignee }}</span>
                     }
                     @if (card.confidence) {
-                      <span>AI信頼度: {{ (card.confidence * 100) | number: '1.0-0' }}%</span>
+                      <span>AIおすすめ度: {{ (card.confidence * 100) | number: '1.0-0' }}%</span>
                     }
                   </div>
                   @if (groupingSignal() !== 'status') {

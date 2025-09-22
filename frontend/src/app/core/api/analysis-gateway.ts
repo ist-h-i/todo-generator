@@ -40,7 +40,7 @@ export class AnalysisGateway {
           const timer = setTimeout(() => {
             try {
               const baseTitle = this.resolveBaseTitle(params);
-              const subtasks = this.resolveSubtasks(params.tone);
+              const subtasks = this.resolveSubtasks(params.autoObjective);
               const buildProposal = (index: number): AnalysisProposal => ({
                 id: createId(),
                 title: `${baseTitle} #${index + 1}`,
@@ -86,13 +86,13 @@ export class AnalysisGateway {
     request.notes.split('\n')[0]?.trim() || 'ChatGPT 提案';
 
   /**
-   * Builds a consistent subtask list based on the preferred tone.
+   * Builds a consistent subtask list based on the objective strategy.
    *
-   * @param tone - Desired communication tone.
+   * @param autoObjective - Whether the objective was AI generated.
    * @returns Subtask description list.
    */
-  private readonly resolveSubtasks = (tone: 'formal' | 'casual'): readonly string[] => [
-    `${tone === 'formal' ? 'フォーマル' : 'カジュアル'}なトーンで現状整理`,
+  private readonly resolveSubtasks = (autoObjective: boolean): readonly string[] => [
+    autoObjective ? 'AIが提案したゴール案を確認' : '提供されたゴールを整理',
     '重要な関係者と論点を共有',
     'リスクと成功条件を定義',
   ];
