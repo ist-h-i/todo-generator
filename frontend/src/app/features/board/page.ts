@@ -27,10 +27,6 @@ export class BoardPage {
   public readonly filtersSignal = this.workspace.filters;
   public readonly statusesSignal = computed(() => this.workspace.settings().statuses);
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
-  public readonly progressLabel = computed(() => {
-    const summary = this.summarySignal();
-    return `${summary.progressRatio}% 完了`;
-  });
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();
