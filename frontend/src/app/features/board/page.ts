@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { BoardColumnView, BoardGrouping, Card, Label, Status } from '@core/models';
@@ -13,7 +14,7 @@ const DEFAULT_STATUS_COLOR = '#94a3b8';
 @Component({
   selector: 'app-board-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, DragDropModule],
   templateUrl: './page.html',
   styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -97,6 +98,23 @@ export class BoardPage {
    */
   public readonly moveCard = (cardId: string, statusId: string): void => {
     this.workspace.updateCardStatus(cardId, statusId);
+  };
+
+  public readonly handleDrop = (columnId: string, event: CdkDragDrop<readonly string[]>): void => {
+    if (this.groupingSignal() !== 'status') {
+      return;
+    }
+
+    if (event.previousContainer === event.container) {
+      return;
+    }
+
+    const cardId = event.item.data as string | undefined;
+    if (!cardId) {
+      return;
+    }
+
+    this.moveCard(cardId, columnId);
   };
 
   public readonly selectedCardSignal = this.workspace.selectedCard;

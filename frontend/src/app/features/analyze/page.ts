@@ -7,7 +7,7 @@ import { AnalysisProposal, AnalysisRequest } from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
 
 /**
- * Analyzer page allowing users to submit notes and review Gemini-style proposals.
+ * Analyzer page allowing users to submit notes and review ChatGPT-style proposals.
  */
 @Component({
   selector: 'app-analyze-page',
