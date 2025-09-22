@@ -41,6 +41,7 @@ export interface Card {
   readonly templateId?: string | null;
   readonly priority: 'low' | 'medium' | 'high' | 'urgent';
   readonly storyPoints: number;
+  readonly createdAt: string;
   readonly startDate?: string;
   readonly dueDate?: string;
   readonly assignee?: string;
