@@ -6,6 +6,7 @@ export interface CardComment {
   readonly author: string;
   readonly message: string;
   readonly createdAt: string;
+  readonly updatedAt: string;
 }
 
 /**
