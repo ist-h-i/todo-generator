@@ -21,11 +21,16 @@ const DEFAULT_STATUS_COLOR = '#94a3b8';
 export class BoardPage {
   private readonly workspace = inject(WorkspaceStore);
 
+  public readonly summarySignal = this.workspace.summary;
   public readonly groupingSignal = this.workspace.grouping;
   public readonly columnsSignal = this.workspace.boardColumns;
   public readonly filtersSignal = this.workspace.filters;
   public readonly statusesSignal = computed(() => this.workspace.settings().statuses);
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
+  public readonly progressLabel = computed(() => {
+    const summary = this.summarySignal();
+    return `${summary.progressRatio}% 完了`;
+  });
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();

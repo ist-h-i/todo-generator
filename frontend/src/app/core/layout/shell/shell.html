@@ -25,35 +25,7 @@
     </div>
   </header>
 
-  <main class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10 lg:flex-row">
-    <aside class="lg:w-72">
-      @if (summarySignal(); as summary) {
-        <section class="surface-panel flex flex-col gap-6 px-6 py-8">
-          <div>
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">進捗状況</p>
-            <p class="mt-2 text-xl font-semibold text-on-surface">{{ progressLabel() }}</p>
-          </div>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between text-sm text-slate-500">
-              <span>完了カード</span>
-              <span class="font-semibold text-on-surface">{{ summary.doneCards }}</span>
-            </div>
-            <div class="flex items-center justify-between text-sm text-slate-500">
-              <span>総カード数</span>
-              <span class="font-semibold text-on-surface">{{ summary.totalCards }}</span>
-            </div>
-            <div class="flex items-center justify-between text-sm text-slate-500">
-              <span>アクティブラベル</span>
-              <span class="font-semibold text-on-surface">{{ summary.activeLabels }}</span>
-            </div>
-          </div>
-          <div class="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-800">
-            <div class="h-2 rounded-full bg-accent transition-all" [style.width.%]="summary.progressRatio"></div>
-          </div>
-        </section>
-      }
-    </aside>
-
+  <main class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10">
     <section class="flex-1">
       <router-outlet />
     </section>
