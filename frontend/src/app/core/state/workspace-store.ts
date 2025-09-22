@@ -152,12 +152,6 @@ const INITIAL_CARDS: Card[] = [
   },
 ];
 
-const INITIAL_FILTERS: BoardFilters = {
-  search: '',
-  labelIds: [],
-  statusIds: [],
-};
-
 const INITIAL_SETTINGS: WorkspaceSettings = {
   defaultStatusId: 'todo',
   defaultAssignee: '田中太郎',
@@ -166,6 +160,12 @@ const INITIAL_SETTINGS: WorkspaceSettings = {
   labels: INITIAL_LABELS,
   templates: INITIAL_TEMPLATES,
   storyPointScale: [1, 2, 3, 5, 8, 13],
+};
+
+const INITIAL_FILTERS: BoardFilters = {
+  search: '',
+  labelIds: [],
+  statusIds: [],
 };
 
 /**
