@@ -19,40 +19,64 @@
         ></textarea>
       </label>
       <div class="flex flex-col gap-4">
-        <label class="flex flex-col gap-2">
-          <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">目的</span>
-          <input
-            class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
-            placeholder="最終的に達成したいゴールを記載"
-            [value]="analyzeForm.controls.objective.value()"
-            (input)="analyzeForm.controls.objective.setValue($any($event.target).value)"
-          />
-        </label>
-        <fieldset class="space-y-3 rounded-2xl border border-dashed border-subtle px-4 py-4">
-          <legend class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">トーン</legend>
-          <label class="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+        <div class="space-y-3 rounded-2xl border border-dashed border-subtle px-4 py-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ゴール設定</p>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500">
+            解析結果で目指すゴールをどのように決めるか選択してください。
+          </p>
+          <label class="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
             <input
               type="radio"
-              name="tone"
-              value="formal"
-              [checked]="analyzeForm.controls.tone.value() === 'formal'"
-              (change)="analyzeForm.controls.tone.setValue('formal')"
-              class="h-4 w-4 text-accent focus-ring"
+              name="autoObjective"
+              [checked]="isAutoObjectiveEnabled()"
+              (change)="analyzeForm.controls.autoObjective.setValue(true)"
+              class="mt-1 h-4 w-4 text-accent focus-ring"
             />
-            フォーマル – 役員向けの説明や公式ドキュメントに適した文体
+            <span class="space-y-1">
+              <span class="block font-semibold text-on-surface">AIにおまかせ</span>
+              <span class="block text-xs text-slate-500 dark:text-slate-400">
+                ノートの内容から Gemini がおすすめのゴールを自動設定します。
+              </span>
+            </span>
           </label>
-          <label class="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+          <label class="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
             <input
               type="radio"
-              name="tone"
-              value="casual"
-              [checked]="analyzeForm.controls.tone.value() === 'casual'"
-              (change)="analyzeForm.controls.tone.setValue('casual')"
-              class="h-4 w-4 text-accent focus-ring"
+              name="autoObjective"
+              [checked]="!isAutoObjectiveEnabled()"
+              (change)="analyzeForm.controls.autoObjective.setValue(false)"
+              class="mt-1 h-4 w-4 text-accent focus-ring"
             />
-            カジュアル – チーム内共有やSlackポストなどフラットなコミュニケーション
+            <span class="space-y-1">
+              <span class="block font-semibold text-on-surface">自分で指定</span>
+              <span class="block text-xs text-slate-500 dark:text-slate-400">
+                ゴールを詳しく入力して Gemini に具体的な提案を依頼します。
+              </span>
+            </span>
           </label>
-        </fieldset>
+        </div>
+        @if (isAutoObjectiveEnabled()) {
+          <div class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-xs text-slate-600 dark:text-slate-300">
+            <p class="text-sm font-semibold text-on-surface">AIおすすめのゴール候補</p>
+            <p class="mt-1 leading-relaxed">{{ autoObjectivePreview() }}</p>
+            <p class="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+              解析を実行すると、このゴールを前提に提案が生成されます。
+            </p>
+          </div>
+        } @else {
+          <label class="flex flex-col gap-2">
+            <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ゴール</span>
+            <textarea
+              class="min-h-[160px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+              placeholder="例: 新規登録フローの離脱率を20%改善する"
+              [value]="analyzeForm.controls.objective.value()"
+              (input)="analyzeForm.controls.objective.setValue($any($event.target).value)"
+            ></textarea>
+          </label>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500">
+            ゴールは Gemini が提案を組み立てる際の到達点になります。できるだけ具体的に記載してください。
+          </p>
+        }
       </div>
     </div>
 
@@ -100,7 +124,7 @@
             <div class="flex items-center justify-between">
               <h4 class="text-lg font-semibold text-on-surface">{{ proposal.title }}</h4>
               <span class="surface-pill px-3 py-1 text-xs font-semibold text-accent-strong">
-                信頼度 {{ (proposal.confidence * 100) | number: '1.0-0' }}%
+                おすすめ度 {{ (proposal.confidence * 100) | number: '1.0-0' }}%
               </span>
             </div>
             <p class="text-sm text-slate-600 dark:text-slate-300">{{ proposal.summary }}</p>

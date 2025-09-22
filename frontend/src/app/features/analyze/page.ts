@@ -24,7 +24,7 @@ export class AnalyzePage {
   public readonly analyzeForm = createSignalForm<AnalysisRequest>({
     notes: '',
     objective: '',
-    tone: 'formal',
+    autoObjective: true,
   });
 
   private readonly requestSignal = signal<AnalysisRequest | null>(null);
@@ -35,13 +35,31 @@ export class AnalyzePage {
 
   public readonly hasResult = computed(() => this.analysisResource.value() !== null);
 
+  public readonly isAutoObjectiveEnabled = computed(() =>
+    this.analyzeForm.controls.autoObjective.value(),
+  );
+
+  public readonly autoObjectivePreview = computed(() =>
+    this.resolveAutoObjective(this.analyzeForm.controls.notes.value().trim()),
+  );
+
   private readonly dispatchAnalyze = this.analyzeForm.submit((value) => {
-    if (value.notes.trim().length === 0) {
+    const trimmedNotes = value.notes.trim();
+    if (trimmedNotes.length === 0) {
       return;
     }
+
+    const manualObjective = value.objective.trim();
+    if (!value.autoObjective && manualObjective.length === 0) {
+      return;
+    }
+
     this.requestSignal.set({
-      ...value,
-      notes: value.notes.trim(),
+      autoObjective: value.autoObjective,
+      notes: trimmedNotes,
+      objective: value.autoObjective
+        ? this.resolveAutoObjective(trimmedNotes)
+        : manualObjective,
     });
   });
 
@@ -65,7 +83,7 @@ export class AnalyzePage {
       return;
     }
     this.workspace.importProposals(proposals);
-    this.analyzeForm.reset({ notes: '', objective: '', tone: 'formal' });
+    this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
     this.requestSignal.set(null);
   };
 
@@ -73,7 +91,26 @@ export class AnalyzePage {
    * Clears the current proposals and resets form values.
    */
   public readonly resetForm = (): void => {
-    this.analyzeForm.reset({ notes: '', objective: '', tone: 'formal' });
+    this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
     this.requestSignal.set(null);
+  };
+
+  /**
+   * Creates an automatic objective phrase based on the user's notes.
+   *
+   * @param notes - Notes entered by the user.
+   * @returns A synthesized objective string.
+   */
+  private readonly resolveAutoObjective = (notes: string): string => {
+    const firstMeaningfulLine = notes
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line.length > 0);
+
+    if (!firstMeaningfulLine) {
+      return '貼り付けた内容から優先的に取り組むべきゴールを特定する';
+    }
+
+    return `「${firstMeaningfulLine}」への対応方針を整理する`;
   };
 }
