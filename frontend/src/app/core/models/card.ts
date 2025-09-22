@@ -14,7 +14,7 @@ export interface CardComment {
 export interface Subtask {
   readonly id: string;
   readonly title: string;
-  readonly status: 'todo' | 'in-progress' | 'done';
+  readonly status: 'todo' | 'in-progress' | 'done' | 'non-issue';
   readonly assignee?: string;
   readonly estimateHours?: number;
 }

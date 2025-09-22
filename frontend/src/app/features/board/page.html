@@ -25,7 +25,6 @@
         </div>
       </section>
     }
-
     <div class="flex h-full min-w-0 flex-col gap-4">
       <header class="space-y-3">
         <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -35,11 +34,11 @@
           </div>
           <div class="flex flex-wrap gap-2 text-xs text-slate-500">
             <span class="surface-pill px-3 py-1">{{ filtersSignal().search || '検索なし' }}</span>
-            <span class="surface-pill px-3 py-1">グルーピング: {{ groupingSignal() }}</span>
+            <span class="surface-pill px-3 py-1">タスク: {{ groupingLabelSignal() }}</span>
+            <span class="surface-pill px-3 py-1">サブタスク: ステータス別</span>
           </div>
         </div>
       </header>
-
       <section
         class="flex min-w-0 flex-col gap-4 rounded-3xl border border-subtle bg-surface px-6 py-5 shadow-soft lg:flex-row lg:items-center lg:justify-between"
       >
@@ -74,101 +73,201 @@
             class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
             (click)="clearFilters()"
           >
-            クリア
+            フィルターをクリア
           </button>
         </div>
       </section>
-
       <p class="rounded-3xl bg-accent-muted px-6 py-4 text-sm text-accent-strong shadow-soft">
-        カードをドラッグ＆ドロップしてステータスを更新できます。ステータス以外でグルーピングしている場合はカード詳細から調整してください。
+        タスクはラベルやステータスで切り替えながら管理でき、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。選択したタスクに紐づくサブタスクはハイライト表示されます。
       </p>
     </div>
   </div>
 
   <div class="flex min-h-0 flex-col gap-8">
-    <div class="board-columns" cdkDropListGroup>
-      @for (column of columnsSignal(); track column.id) {
-        <section
-          class="board-column"
-          cdkDropList
-          [cdkDropListData]="column.cards"
-          [cdkDropListDisabled]="groupingSignal() !== 'status'"
-          (cdkDropListDropped)="handleDrop(column.id, $event)"
-        >
-          <header class="flex items-center justify-between">
-            <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ column.id }}</p>
-              <h3 class="text-lg font-semibold" [style.color]="columnAccent(column)">{{ column.title }}</h3>
-            </div>
-            <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">{{ column.count }} 件</span>
-          </header>
-          <div class="board-card-list">
-            @if (column.cards.length === 0) {
-              <p class="board-empty text-sm">カードがありません。{{ groupingSignal() === 'status' ? 'ここにカードをドラッグすると移動できます。' : '' }}</p>
-            } @else {
-              @for (cardId of column.cards; track cardId) {
-                @if (cardsByIdSignal().get(cardId); as card) {
-                  <article
-                    class="board-card surface-card flex min-w-0 flex-col gap-4 px-5 py-5"
-                    cdkDrag
-                    [cdkDragData]="card.id"
-                    [cdkDragDisabled]="groupingSignal() !== 'status'"
-                    [style.borderColor]="statusColor(card.statusId) + '33'"
-                    [style.background]="
-                      'linear-gradient(180deg, ' + statusColor(card.statusId) + '14 0%, var(--surface) 65%)'
-                    "
-                  >
-                    <div class="flex items-start justify-between gap-3">
-                      <div class="min-w-0 space-y-2">
-                        <h4 class="break-words text-base font-semibold text-on-surface">{{ card.title }}</h4>
-                        <p class="break-words text-sm leading-6 text-slate-600 dark:text-slate-300">{{ card.summary }}</p>
+    <section class="space-y-4">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h3 class="text-lg font-semibold text-on-surface">タスク一覧</h3>
+        <span class="text-xs text-slate-500">完了またはNonIssueのサブタスクのみのタスクは簡易表示になります。</span>
+      </div>
+      <div class="board-columns" cdkDropListGroup>
+        @for (column of columnsSignal(); track column.id) {
+          <section
+            class="board-column"
+            cdkDropList
+            [cdkDropListData]="column.cards"
+            [cdkDropListDisabled]="groupingSignal() !== 'status'"
+            (cdkDropListDropped)="handleDrop(column.id, $event)"
+          >
+            <header class="flex items-center justify-between">
+              <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ column.id }}</p>
+                <h3 class="text-lg font-semibold" [style.color]="columnAccent(column)">{{ column.title }}</h3>
+              </div>
+              <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">{{ column.count }} 件</span>
+            </header>
+            <div class="board-card-list">
+              @if (column.cards.length === 0) {
+                <p class="board-empty text-sm">
+                  カードがありません。{{ groupingSignal() === 'status' ? 'ここにカードをドラッグすると移動できます。' : '' }}
+                </p>
+              } @else {
+                @for (cardId of column.cards; track cardId) {
+                  @if (cardsByIdSignal().get(cardId); as card) {
+                    <article
+                      class="board-card surface-card flex min-w-0 flex-col gap-4 px-5 py-5"
+                      cdkDrag
+                      [cdkDragData]="card.id"
+                      [cdkDragDisabled]="groupingSignal() !== 'status'"
+                      [style.borderColor]="statusColor(card.statusId) + '33'"
+                      [style.background]="
+                        'linear-gradient(180deg, ' + statusColor(card.statusId) + '14 0%, var(--surface) 65%)'
+                      "
+                      [class.board-card--compact]="isCardResolved(card)"
+                      [class.board-card--active]="isActiveCard(card.id)"
+                    >
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 space-y-2">
+                          <h4 class="break-words text-base font-semibold text-on-surface">{{ card.title }}</h4>
+                          @if (!isCardResolved(card)) {
+                            <p class="break-words text-sm leading-6 text-slate-600 dark:text-slate-300">
+                              {{ card.summary }}
+                            </p>
+                          } @else {
+                            <p class="board-card-compact-note text-xs text-slate-500">
+                              サブタスクはすべて完了または NonIssue です。
+                            </p>
+                          }
+                        </div>
+                        <button
+                          type="button"
+                          class="surface-pill focus-ring px-3 py-1 text-xs font-semibold text-slate-500"
+                          (click)="openCard(card.id)"
+                        >
+                          詳細
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        class="surface-pill focus-ring px-3 py-1 text-xs font-semibold text-slate-500"
-                        (click)="openCard(card.id)"
-                      >
-                        詳細
-                      </button>
-                    </div>
-                    <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
-                      <span class="board-badge" [style.color]="statusColor(card.statusId)">
-                        {{ statusName(card.statusId) }}
-                      </span>
-                      @for (labelId of card.labelIds; track labelId) {
-                        <span class="board-badge">{{ labelName(labelId) }}</span>
-                      }
-                    </div>
-                    <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                      <span>SP: {{ card.storyPoints }}</span>
-                      @if (card.assignee) {
-                        <span>担当: {{ card.assignee }}</span>
-                      }
-                      @if (card.confidence) {
-                        <span>AIおすすめ度: {{ (card.confidence * 100) | number: '1.0-0' }}%</span>
-                      }
-                    </div>
-                    @if (groupingSignal() !== 'status') {
-                      <div class="flex flex-wrap gap-2 text-xs">
-                        @for (status of statusesSignal(); track status.id) {
-                          <button
-                            type="button"
-                            class="surface-pill focus-ring px-3 py-1"
-                            (click)="moveCard(card.id, status.id)"
-                          >
-                            {{ status.name }}
-                          </button>
+                      <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
+                        <span class="board-badge" [style.color]="statusColor(card.statusId)">
+                          {{ statusName(card.statusId) }}
+                        </span>
+                        @for (labelId of card.labelIds; track labelId) {
+                          <span class="board-badge">{{ labelName(labelId) }}</span>
                         }
                       </div>
+                      @if (!isCardResolved(card)) {
+                        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                          <span>SP: {{ card.storyPoints }}</span>
+                          @if (card.assignee) {
+                            <span>担当: {{ card.assignee }}</span>
+                          }
+                          @if (card.confidence) {
+                            <span>AIおすすめ度: {{ (card.confidence * 100) | number: '1.0-0' }}%</span>
+                          }
+                        </div>
+                        @if (groupingSignal() !== 'status') {
+                          <div class="flex flex-wrap gap-2 text-xs">
+                            @for (status of statusesSignal(); track status.id) {
+                              <button
+                                type="button"
+                                class="surface-pill focus-ring px-3 py-1"
+                                (click)="moveCard(card.id, status.id)"
+                              >
+                                {{ status.name }}
+                              </button>
+                            }
+                          </div>
+                        }
+                      }
+                    </article>
+                  }
+                }
+              }
+            </div>
+          </section>
+        }
+      </div>
+    </section>
+
+    <section class="space-y-4">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-on-surface">サブタスク一覧</h3>
+          <p class="text-xs text-slate-500">ステータスごとに並び替え、個別に管理します。</p>
+        </div>
+        <div class="rounded-3xl border border-subtle bg-surface px-4 py-2 text-xs text-slate-500 shadow-soft">
+          ドラッグ＆ドロップでステータスを更新できます。
+        </div>
+      </div>
+      <div class="board-columns subtask-columns" cdkDropListGroup>
+        @for (column of subtaskColumnsSignal(); track column.id) {
+          <section
+            class="board-column subtask-column"
+            cdkDropList
+            [cdkDropListData]="column.subtasks"
+            (cdkDropListDropped)="handleSubtaskDrop(column.id, $event)"
+          >
+            <header class="flex items-center justify-between">
+              <div>
+                <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ column.id }}</p>
+                <h3 class="text-lg font-semibold" [style.color]="column.accent">{{ column.title }}</h3>
+              </div>
+              <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">
+                {{ column.subtasks.length }} 件
+              </span>
+            </header>
+            <div class="board-card-list">
+              @if (column.subtasks.length === 0) {
+                <p class="board-empty text-sm">このステータスのサブタスクはありません。</p>
+              } @else {
+                @for (subtask of column.subtasks; track subtask.id) {
+                  <article
+                    class="board-card subtask-card surface-card flex min-w-0 flex-col gap-3 px-4 py-4"
+                    cdkDrag
+                    [cdkDragData]="subtask"
+                    [style.borderColor]="column.accent + '33'"
+                    [style.background]="
+                      'linear-gradient(180deg, ' + column.accent + '14 0%, var(--surface) 65%)'
+                    "
+                    [class.subtask-card--highlight]="subtask.highlight"
+                    [class.subtask-card--compact]="subtask.isCompact"
+                  >
+                    <div class="flex items-start justify-between gap-2">
+                      <h4 class="min-w-0 break-words text-sm font-semibold text-on-surface">{{ subtask.title }}</h4>
+                      <span class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        {{ column.title }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-500">
+                      親タスク:
+                      <span class="break-words font-medium text-on-surface">{{ subtask.parentTitle }}</span>
+                    </p>
+                    <div class="subtask-card-labels flex flex-wrap gap-2 text-[11px] text-slate-500">
+                      @for (labelId of subtask.parentLabels; track labelId) {
+                        <span class="subtask-badge">{{ labelName(labelId) }}</span>
+                      }
+                    </div>
+                    @if (!subtask.isCompact) {
+                      <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+                        @if (subtask.assignee) {
+                          <span>担当: {{ subtask.assignee }}</span>
+                        }
+                        @if (subtask.estimateHours) {
+                          <span>工数: {{ subtask.estimateHours }}h</span>
+                        }
+                      </div>
+                    } @else {
+                      <p class="subtask-card-compact-note text-xs text-slate-500">
+                        {{ subtask.status === 'non-issue' ? 'NonIssue として対応済み' : '完了済みのサブタスク' }}
+                      </p>
                     }
                   </article>
                 }
               }
-            }
-          </div>
-        </section>
-      }
-    </div>
+            </div>
+          </section>
+        }
+      </div>
+    </section>
 
     @if (selectedCardSignal(); as active) {
       <aside class="surface-panel grid min-w-0 gap-6 px-8 py-8 lg:grid-cols-[2fr_1fr]">
