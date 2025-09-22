@@ -2,8 +2,30 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.services.email import EMAIL_OUTBOX
 
-def create_status(client: TestClient) -> str:
+
+def _latest_password(email: str) -> str:
+    for message in reversed(EMAIL_OUTBOX):
+        if message.to == email:
+            return message.password
+    raise AssertionError(f"No password email found for {email}")
+
+
+def register_and_login(client: TestClient, email: str) -> dict[str, str]:
+    response = client.post("/auth/register", json={"email": email})
+    assert response.status_code == 201, response.text
+    password = _latest_password(email)
+    login_response = client.post(
+        "/auth/login",
+        json={"email": email, "password": password},
+    )
+    assert login_response.status_code == 200, login_response.text
+    token = login_response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
+def create_status(client: TestClient, headers: dict[str, str]) -> str:
     response = client.post(
         "/statuses",
         json={
@@ -12,23 +34,26 @@ def create_status(client: TestClient) -> str:
             "order": 1,
             "color": "#0088ff",
         },
+        headers=headers,
     )
     assert response.status_code == 201
     return response.json()["id"]
 
 
-def create_label(client: TestClient) -> str:
+def create_label(client: TestClient, headers: dict[str, str]) -> str:
     response = client.post(
         "/labels",
         json={"name": "Backend", "color": "#ffaa00", "description": "API work"},
+        headers=headers,
     )
     assert response.status_code == 201
     return response.json()["id"]
 
 
 def test_create_card_with_subtasks(client: TestClient) -> None:
-    status_id = create_status(client)
-    label_id = create_label(client)
+    headers = register_and_login(client, "owner@example.com")
+    status_id = create_status(client, headers)
+    label_id = create_label(client, headers)
 
     response = client.post(
         "/cards",
@@ -46,6 +71,7 @@ def test_create_card_with_subtasks(client: TestClient) -> None:
                 {"title": "Implement CRUD"},
             ],
         },
+        headers=headers,
     )
     assert response.status_code == 201, response.text
     data = response.json()
@@ -54,23 +80,25 @@ def test_create_card_with_subtasks(client: TestClient) -> None:
     assert len(data["labels"]) == 1
     assert data["status"]["id"] == status_id
 
-    list_response = client.get("/cards")
+    list_response = client.get("/cards", headers=headers)
     assert list_response.status_code == 200
     assert len(list_response.json()) == 1
 
-    detail_response = client.get(f"/cards/{data['id']}")
+    detail_response = client.get(f"/cards/{data['id']}", headers=headers)
     assert detail_response.status_code == 200
     assert detail_response.json()["title"] == "Implement API skeleton"
 
 
 def test_subtask_crud_flow(client: TestClient) -> None:
-    status_id = create_status(client)
+    headers = register_and_login(client, "subtasks@example.com")
+    status_id = create_status(client, headers)
     card_response = client.post(
         "/cards",
         json={
             "title": "Prepare release",
             "status_id": status_id,
         },
+        headers=headers,
     )
     card = card_response.json()
 
@@ -80,6 +108,7 @@ def test_subtask_crud_flow(client: TestClient) -> None:
             "title": "Write changelog",
             "status": "in-progress",
         },
+        headers=headers,
     )
     assert create_response.status_code == 201
     subtask = create_response.json()
@@ -88,16 +117,18 @@ def test_subtask_crud_flow(client: TestClient) -> None:
     update_response = client.put(
         f"/cards/{card['id']}/subtasks/{subtask['id']}",
         json={"status": "done", "checklist": [{"label": "Publish", "done": True}]},
+        headers=headers,
     )
     assert update_response.status_code == 200
     assert update_response.json()["status"] == "done"
 
     delete_response = client.delete(
-        f"/cards/{card['id']}/subtasks/{subtask['id']}"
+        f"/cards/{card['id']}/subtasks/{subtask['id']}",
+        headers=headers,
     )
     assert delete_response.status_code == 204
 
-    list_response = client.get(f"/cards/{card['id']}/subtasks")
+    list_response = client.get(f"/cards/{card['id']}/subtasks", headers=headers)
     assert list_response.status_code == 200
     assert list_response.json() == []
 
@@ -115,3 +146,27 @@ def test_analysis_endpoint(client: TestClient) -> None:
     assert data["model"]
     assert len(data["proposals"]) >= 1
     assert data["proposals"][0]["title"]
+
+
+def test_cards_are_scoped_to_current_user(client: TestClient) -> None:
+    owner_headers = register_and_login(client, "alice@example.com")
+    status_id = create_status(client, owner_headers)
+    create_response = client.post(
+        "/cards",
+        json={"title": "Owner card", "status_id": status_id},
+        headers=owner_headers,
+    )
+    assert create_response.status_code == 201
+    card_id = create_response.json()["id"]
+
+    other_headers = register_and_login(client, "bob@example.com")
+    list_other = client.get("/cards", headers=other_headers)
+    assert list_other.status_code == 200
+    assert list_other.json() == []
+
+    detail_other = client.get(f"/cards/{card_id}", headers=other_headers)
+    assert detail_other.status_code == 404
+
+    list_owner = client.get("/cards", headers=owner_headers)
+    assert list_owner.status_code == 200
+    assert len(list_owner.json()) == 1
