@@ -149,6 +149,20 @@
             </span>
           </div>
           <div class="space-y-1 text-xs text-slate-500">
+            <p class="font-semibold text-on-surface">初期ラベル</p>
+            <div class="flex flex-wrap gap-2">
+              @if (template.defaultLabelIds.length > 0) {
+                @for (labelId of template.defaultLabelIds; track labelId) {
+                  <span class="surface-pill px-3 py-1">
+                    {{ labelsById().get(labelId) ?? labelId }}
+                  </span>
+                }
+              } @else {
+                <span class="surface-pill px-3 py-1 text-slate-400">選択なし</span>
+              }
+            </div>
+          </div>
+          <div class="space-y-1 text-xs text-slate-500">
             <p class="font-semibold text-on-surface">表示フィールド</p>
             <div class="flex flex-wrap gap-2">
               @if (template.fieldVisibility.showStoryPoints) {
@@ -231,6 +245,25 @@
                   [value]="templateEditForm.controls.confidenceThreshold.value()"
                   (input)="templateEditForm.controls.confidenceThreshold.setValue($any($event.target).valueAsNumber)"
                 />
+              </div>
+              <div class="space-y-2">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">初期ラベル</p>
+                <div class="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-300">
+                  @for (label of settingsSignal().labels; track label.id) {
+                    <label class="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        class="h-4 w-4 text-accent focus-ring"
+                        [checked]="templateEditForm.controls.defaultLabelIds.value().includes(label.id)"
+                        (change)="toggleEditTemplateLabel(label.id, $any($event.target).checked)"
+                      />
+                      <span>{{ label.name }}</span>
+                    </label>
+                  }
+                  @if (settingsSignal().labels.length === 0) {
+                    <span class="text-xs text-slate-400">ラベルが未設定です</span>
+                  }
+                </div>
               </div>
               <div class="space-y-2">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">表示フィールド</p>
@@ -345,6 +378,25 @@
           [value]="templateForm.controls.confidenceThreshold.value()"
           (input)="templateForm.controls.confidenceThreshold.setValue($any($event.target).valueAsNumber)"
         />
+      </div>
+      <div class="space-y-2">
+        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">初期ラベル</p>
+        <div class="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-300">
+          @for (label of settingsSignal().labels; track label.id) {
+            <label class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                class="h-4 w-4 text-accent focus-ring"
+                [checked]="templateForm.controls.defaultLabelIds.value().includes(label.id)"
+                (change)="toggleCreateTemplateLabel(label.id, $any($event.target).checked)"
+              />
+              <span>{{ label.name }}</span>
+            </label>
+          }
+          @if (settingsSignal().labels.length === 0) {
+            <span class="text-xs text-slate-400">ラベルが未設定です</span>
+          }
+        </div>
       </div>
       <div class="space-y-2">
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">表示フィールド</p>

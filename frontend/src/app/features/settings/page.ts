@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { TemplatePreset } from '@core/models';
-import { createSignalForm } from '@lib/forms/signal-forms';
+import { SignalControl, createSignalForm } from '@lib/forms/signal-forms';
 
 /**
  * Settings page exposing workspace configuration controls.
@@ -20,6 +20,13 @@ export class SettingsPage {
   private readonly workspace = inject(WorkspaceStore);
 
   public readonly settingsSignal = this.workspace.settings;
+  public readonly labelsById = computed(() => {
+    const map = new Map<string, string>();
+    for (const label of this.settingsSignal().labels) {
+      map.set(label.id, label.name);
+    }
+    return map;
+  });
 
   public readonly labelForm = createSignalForm({ name: '', color: '#38bdf8' });
   public readonly statusForm = createSignalForm({
@@ -31,6 +38,7 @@ export class SettingsPage {
     name: '',
     description: '',
     defaultStatusId: 'todo',
+    defaultLabelIds: [] as readonly string[],
     confidenceThreshold: 0.6,
     showStoryPoints: true,
     showDueDate: false,
@@ -41,6 +49,7 @@ export class SettingsPage {
     name: '',
     description: '',
     defaultStatusId: 'todo',
+    defaultLabelIds: [] as readonly string[],
     confidenceThreshold: 0.6,
     showStoryPoints: true,
     showDueDate: false,
@@ -103,6 +112,7 @@ export class SettingsPage {
       name: value.name.trim(),
       description: value.description.trim(),
       defaultStatusId: value.defaultStatusId,
+      defaultLabelIds: value.defaultLabelIds,
       confidenceThreshold: threshold,
       fieldVisibility: {
         showStoryPoints: value.showStoryPoints,
@@ -116,6 +126,7 @@ export class SettingsPage {
       name: '',
       description: '',
       defaultStatusId: 'todo',
+      defaultLabelIds: [],
       confidenceThreshold: 0.6,
       showStoryPoints: true,
       showDueDate: false,
@@ -135,6 +146,7 @@ export class SettingsPage {
       name: template.name,
       description: template.description,
       defaultStatusId: template.defaultStatusId,
+      defaultLabelIds: template.defaultLabelIds,
       confidenceThreshold: template.confidenceThreshold,
       showStoryPoints: template.fieldVisibility.showStoryPoints,
       showDueDate: template.fieldVisibility.showDueDate,
@@ -152,6 +164,7 @@ export class SettingsPage {
       name: '',
       description: '',
       defaultStatusId: 'todo',
+      defaultLabelIds: [],
       confidenceThreshold: 0.6,
       showStoryPoints: true,
       showDueDate: false,
@@ -185,6 +198,7 @@ export class SettingsPage {
       name: value.name.trim(),
       description: value.description.trim(),
       defaultStatusId: value.defaultStatusId,
+      defaultLabelIds: value.defaultLabelIds,
       confidenceThreshold: threshold,
       fieldVisibility: {
         showStoryPoints: value.showStoryPoints,
@@ -195,6 +209,38 @@ export class SettingsPage {
     });
 
     this.cancelTemplateEdit();
+  };
+
+  private updateDefaultLabelSelection(
+    control: SignalControl<readonly string[]>,
+    labelId: string,
+    checked: boolean,
+  ): void {
+    control.updateValue((current) => {
+      const selection = new Set(current);
+      if (checked) {
+        selection.add(labelId);
+      } else {
+        selection.delete(labelId);
+      }
+      return Array.from(selection);
+    });
+  }
+
+  public readonly toggleCreateTemplateLabel = (labelId: string, checked: boolean): void => {
+    this.updateDefaultLabelSelection(
+      this.templateForm.controls.defaultLabelIds,
+      labelId,
+      checked,
+    );
+  };
+
+  public readonly toggleEditTemplateLabel = (labelId: string, checked: boolean): void => {
+    this.updateDefaultLabelSelection(
+      this.templateEditForm.controls.defaultLabelIds,
+      labelId,
+      checked,
+    );
   };
 
   /**

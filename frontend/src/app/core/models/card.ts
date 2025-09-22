@@ -47,4 +47,6 @@ export interface Card {
   readonly subtasks: readonly Subtask[];
   readonly comments: readonly CardComment[];
   readonly activities: readonly CardActivity[];
+  readonly originSuggestionId?: string;
+  readonly initiativeId?: string;
 }

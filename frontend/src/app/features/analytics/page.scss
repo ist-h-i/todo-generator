@@ -2,3 +2,135 @@
   display: block;
   padding: 1rem 0 4rem;
 }
+
+.snapshot-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.snapshot-chip:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.snapshot-chip--active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+}
+
+.severity-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cause-column {
+  border-radius: 1.25rem;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  padding: 1.25rem;
+}
+
+.cause-card {
+  border-radius: 1rem;
+  border: 1px dashed var(--color-border-subtle);
+  background: color-mix(in srgb, var(--color-surface) 90%, transparent);
+  padding: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.action-card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-pill--pending {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+}
+
+.status-pill--done {
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  color: var(--color-success);
+}
+
+.metric-card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  padding: 1.25rem;
+}
+
+.initiative-card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  padding: 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.health-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--color-border-strong) 10%, transparent);
+  color: var(--color-border-strong);
+}
+
+.health-pill[data-health='good'] {
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  color: var(--color-success);
+}
+
+.health-pill[data-health='watch'] {
+  background: color-mix(in srgb, var(--color-warning) 16%, transparent);
+  color: var(--color-warning);
+}
+
+.health-pill[data-health='poor'] {
+  background: color-mix(in srgb, var(--color-danger) 16%, transparent);
+  color: var(--color-danger);
+}
+
+.report-preview {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-stronger);
+  padding: 1rem;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--color-on-surface);
+}
