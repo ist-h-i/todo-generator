@@ -69,11 +69,20 @@ export class BoardPage {
   public readonly filteredCardsSignal = this.workspace.filteredCards;
   public readonly statusesSignal = computed(() => this.workspace.settings().statuses);
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
+  public readonly templatesSignal = computed(() => this.workspace.settings().templates);
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();
     for (const card of this.workspace.cards()) {
       lookup.set(card.id, card);
+    }
+    return lookup;
+  });
+
+  public readonly templateVisibilityByIdSignal = computed<ReadonlyMap<string, TemplateFieldVisibility>>(() => {
+    const lookup = new Map<string, TemplateFieldVisibility>();
+    for (const template of this.templatesSignal()) {
+      lookup.set(template.id, template.fieldVisibility);
     }
     return lookup;
   });
@@ -139,14 +148,47 @@ export class BoardPage {
 
   public readonly searchForm = createSignalForm({ search: '' });
 
-  /**
-   * Updates the board grouping signal.
-   *
-   * @param grouping - Desired grouping.
-   */
-  public readonly selectGrouping = (grouping: BoardGrouping): void => {
-    this.workspace.setGrouping(grouping);
-  };
+  public readonly isCardResolved = (card: Card): boolean =>
+    card.subtasks.length > 0 && card.subtasks.every((task) => this.isSubtaskResolved(task));
+
+  public readonly subtaskColumnsSignal = computed<SubtaskColumnView[]>(() => {
+    const cards = this.filteredCardsSignal();
+    const selectedCardId = this.workspace.selectedCardId();
+
+    return SUBTASK_STATUS_META.map((meta) => {
+      const subtasks: SubtaskCardView[] = [];
+
+      for (const card of cards) {
+        for (const subtask of card.subtasks) {
+          if (subtask.status !== meta.id) {
+            continue;
+          }
+
+          subtasks.push({
+            id: subtask.id,
+            title: subtask.title,
+            parentId: card.id,
+            parentTitle: card.title,
+            parentLabels: card.labelIds,
+            status: subtask.status,
+            assignee: subtask.assignee,
+            estimateHours: subtask.estimateHours,
+            highlight: card.id === selectedCardId,
+            isCompact: this.isSubtaskResolved(subtask),
+          });
+        }
+      }
+
+      return {
+        id: meta.id,
+        title: meta.title,
+        accent: meta.accent,
+        subtasks,
+      } satisfies SubtaskColumnView;
+    });
+  });
+
+  public readonly searchForm = createSignalForm({ search: '' });
 
   /**
    * Applies a text search filter to the board.
@@ -228,6 +270,14 @@ export class BoardPage {
     return status?.color ?? DEFAULT_STATUS_COLOR;
   };
 
+  public readonly cardFieldVisibility = (card: Card): TemplateFieldVisibility => {
+    if (!card.templateId) {
+      return DEFAULT_TEMPLATE_FIELDS;
+    }
+
+    return this.templateVisibilityByIdSignal().get(card.templateId) ?? DEFAULT_TEMPLATE_FIELDS;
+  };
+
   public readonly columnAccent = (column: BoardColumnView): string => column.accent;
 
   public readonly statusName = (statusId: string): string => {
@@ -238,5 +288,22 @@ export class BoardPage {
   public readonly labelName = (labelId: string): string => {
     const label = this.labelsByIdSignal().get(labelId);
     return label ? label.name : labelId;
+  };
+
+  public readonly isLabelApplied = (card: Card, labelId: string): boolean =>
+    card.labelIds.includes(labelId);
+
+  public readonly handleLabelToggle = (
+    card: Card,
+    labelId: string,
+    checked: boolean,
+  ): void => {
+    const labels = new Set(card.labelIds);
+    if (checked) {
+      labels.add(labelId);
+    } else {
+      labels.delete(labelId);
+    }
+    this.workspace.updateCardLabels(card.id, Array.from(labels));
   };
 }

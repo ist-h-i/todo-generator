@@ -9,6 +9,7 @@ import {
   Label,
   Status,
   Subtask,
+  TemplateFieldVisibility,
   TemplatePreset,
   WorkspaceSettings,
   WorkspaceSummary,
@@ -66,6 +67,7 @@ const INITIAL_CARDS: Card[] = [
     summary: '分析精度向上のための新しいプロンプト設計を検証します。',
     statusId: 'in-progress',
     labelIds: ['ai'],
+    templateId: 'ai-template',
     priority: 'high',
     storyPoints: 5,
     assignee: '田中太郎',
@@ -82,8 +84,10 @@ const INITIAL_CARDS: Card[] = [
     summary: 'キーボード操作とスクリーンリーダー読み上げを改善します。',
     statusId: 'review',
     labelIds: ['ux'],
+    templateId: 'ux-template',
     priority: 'medium',
     storyPoints: 3,
+    dueDate: '2025-04-30',
     assignee: '佐藤花子',
     subtasks: buildSubtasks(['想定シナリオ整理', 'VoiceOver テスト']),
     comments: [],
@@ -95,6 +99,7 @@ const INITIAL_CARDS: Card[] = [
     summary: 'カード取得と更新 API を GraphQL で再設計します。',
     statusId: 'todo',
     labelIds: ['backend'],
+    templateId: null,
     priority: 'urgent',
     storyPoints: 8,
     assignee: '李開発',
@@ -108,6 +113,7 @@ const INITIAL_CARDS: Card[] = [
     summary: 'テンプレートの並び替えと検索機能を追加します。',
     statusId: 'done',
     labelIds: ['frontend'],
+    templateId: 'ai-template',
     priority: 'medium',
     storyPoints: 2,
     assignee: '田中太郎',
@@ -176,7 +182,8 @@ export class WorkspaceStore {
         : undefined;
 
     return proposal.confidence >= (threshold ?? DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD);
-  };
+  }
+
   public readonly summary = computed<WorkspaceSummary>(() => {
     const cards = this.cardsSignal();
     const doneStatusIds = new Set(
@@ -433,6 +440,95 @@ export class WorkspaceStore {
 
     return card;
   };
+  /**
+   * Replaces the label set associated with a card.
+   *
+   * @param cardId - Identifier of the card to update.
+   * @param labelIds - Next label identifiers selected by the user.
+   */
+  public readonly updateCardLabels = (cardId: string, labelIds: readonly string[]): void => {
+    const unique = Array.from(new Set(labelIds));
+    this.cardsSignal.update((cards) =>
+      cards.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              labelIds: unique,
+            }
+          : card,
+      ),
+    );
+  };
+
+  public readonly updateSubtaskStatus = (
+    cardId: string,
+    subtaskId: string,
+    status: Subtask['status'],
+  ): void => {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) =>
+        card.id === cardId
+          ? {
+              ...card,
+              subtasks: card.subtasks.map((subtask) =>
+                subtask.id === subtaskId
+                  ? {
+                      ...subtask,
+                      status,
+                    }
+                  : subtask,
+              ),
+            }
+          : card,
+      ),
+    );
+  };
+
+  /**
+   * Creates a new card from a suggested improvement action.
+   *
+   * @param payload - Attributes describing the new card.
+   * @returns Created card instance.
+   */
+  public readonly createCardFromSuggestion = (payload: {
+    title: string;
+    summary: string;
+    statusId?: string;
+    labelIds?: readonly string[];
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
+    assignee?: string;
+    dueDate?: string;
+    originSuggestionId?: string;
+    initiativeId?: string;
+  }): Card => {
+    const settings = this.settingsSignal();
+    const defaultStatusId = payload.statusId || settings.defaultStatusId;
+    const labels = payload.labelIds && payload.labelIds.length > 0
+      ? [...payload.labelIds]
+      : [settings.labels[0]?.id ?? 'general'];
+
+    const card: Card = {
+      id: createId(),
+      title: payload.title,
+      summary: payload.summary,
+      statusId: defaultStatusId,
+      labelIds: labels,
+      priority: payload.priority ?? 'medium',
+      storyPoints: 3,
+      assignee: payload.assignee ?? settings.defaultAssignee,
+      dueDate: payload.dueDate,
+      subtasks: [],
+      comments: [],
+      activities: [],
+      originSuggestionId: payload.originSuggestionId,
+      initiativeId: payload.initiativeId,
+    };
+
+    this.cardsSignal.update((cards) => [card, ...cards]);
+
+    return card;
+  };
+
   /**
    * Derives the card for the current selection.
    *

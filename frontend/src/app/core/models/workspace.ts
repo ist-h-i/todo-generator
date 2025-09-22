@@ -19,6 +19,16 @@ export interface Status {
 }
 
 /**
+ * Controls which card fields should be surfaced for a given template.
+ */
+export interface TemplateFieldVisibility {
+  readonly showStoryPoints: boolean;
+  readonly showDueDate: boolean;
+  readonly showAssignee: boolean;
+  readonly showConfidence: boolean;
+}
+
+/**
  * Template definition reused by the analyzer when proposing cards.
  */
 export interface TemplatePreset {
