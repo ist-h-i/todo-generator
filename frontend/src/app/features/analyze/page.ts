@@ -6,6 +6,13 @@ import { WorkspaceStore } from '@core/state/workspace-store';
 import { AnalysisProposal, AnalysisRequest } from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
 
+interface ToneConfig {
+  readonly label: string;
+  readonly description: string;
+  readonly previewLead: string;
+  readonly previewExample: string;
+}
+
 /**
  * Analyzer page allowing users to submit notes and review Gemini-style proposals.
  */
@@ -21,10 +28,34 @@ export class AnalyzePage {
   private readonly analysisGateway = inject(AnalysisGateway);
   private readonly workspace = inject(WorkspaceStore);
 
+  private readonly toneDictionary: Record<AnalysisRequest['tone'], ToneConfig> = {
+    formal: {
+      label: 'フォーマル',
+      description: '役員報告や公式文書向けに、落ち着いた丁寧な文体で提案をまとめます。',
+      previewLead: '敬語を使いながら事実を端的に伝え、落ち着いた印象を与える文章になります。',
+      previewExample: '本件については現状の課題を整理し、次回会議までに論点とアクションを共有いたします。',
+    },
+    casual: {
+      label: 'カジュアル',
+      description: 'チーム内の共有やチャット投稿に合う、親しみやすい語り口でまとめます。',
+      previewLead: '柔らかい語尾や共感の言葉を交え、フラットに読み進められる文章になります。',
+      previewExample: '今回のタスクはこのステップで進めるのが良さそうです。気になる点があればいつでも教えてください。',
+    },
+  };
+
+  public readonly toneOptions = (
+    Object.keys(this.toneDictionary) as AnalysisRequest['tone'][]
+  ).map((value) => ({
+    value,
+    label: this.toneDictionary[value].label,
+    description: this.toneDictionary[value].description,
+  }));
+
   public readonly analyzeForm = createSignalForm<AnalysisRequest>({
     notes: '',
     objective: '',
     autoObjective: true,
+    tone: 'formal',
   });
 
   private readonly requestSignal = signal<AnalysisRequest | null>(null);
@@ -41,6 +72,10 @@ export class AnalyzePage {
 
   public readonly autoObjectivePreview = computed(() =>
     this.resolveAutoObjective(this.analyzeForm.controls.notes.value().trim()),
+  );
+
+  public readonly tonePreview = computed(
+    () => this.toneDictionary[this.analyzeForm.controls.tone.value()],
   );
 
   private readonly dispatchAnalyze = this.analyzeForm.submit((value) => {
@@ -60,6 +95,7 @@ export class AnalyzePage {
       objective: value.autoObjective
         ? this.resolveAutoObjective(trimmedNotes)
         : manualObjective,
+      tone: value.tone,
     });
   });
 
@@ -83,7 +119,12 @@ export class AnalyzePage {
       return;
     }
     this.workspace.importProposals(proposals);
-    this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
+    this.analyzeForm.reset({
+      notes: '',
+      objective: '',
+      autoObjective: true,
+      tone: 'formal',
+    });
     this.requestSignal.set(null);
   };
 
@@ -91,7 +132,12 @@ export class AnalyzePage {
    * Clears the current proposals and resets form values.
    */
   public readonly resetForm = (): void => {
-    this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
+    this.analyzeForm.reset({
+      notes: '',
+      objective: '',
+      autoObjective: true,
+      tone: 'formal',
+    });
     this.requestSignal.set(null);
   };
 

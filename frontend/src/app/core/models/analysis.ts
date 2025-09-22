@@ -5,6 +5,7 @@ export interface AnalysisRequest extends Record<string, unknown> {
   readonly notes: string;
   readonly objective: string;
   readonly autoObjective: boolean;
+  readonly tone: 'formal' | 'casual';
 }
 
 /**
