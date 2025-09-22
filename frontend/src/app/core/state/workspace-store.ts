@@ -319,12 +319,16 @@ export class WorkspaceStore {
   /**
    * Derives the card for the current selection.
    *
-   * @returns Selected card or undefined.
+   * @returns Signal exposing the active card when available.
    */
-  public readonly selectedCard = (): Card | undefined => {
+  public readonly selectedCard = computed<Card | undefined>(() => {
     const cardId = this.selectedCardIdSignal();
+    if (!cardId) {
+      return undefined;
+    }
+
     return this.cardsSignal().find((card) => card.id === cardId);
-  };
+  });
 
   /**
    * Exposes a read method for cards by identifier.

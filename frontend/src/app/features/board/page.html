@@ -65,7 +65,7 @@
             </p>
           } @else {
             @for (cardId of column.cards; track cardId) {
-              @if (cardsById().get(cardId); as card) {
+              @if (cardsByIdSignal().get(cardId); as card) {
                 <article class="surface-card flex flex-col gap-3 px-4 py-4">
                   <div class="flex items-center justify-between gap-2">
                     <h4 class="text-base font-semibold text-on-surface">{{ card.title }}</h4>
@@ -115,7 +115,7 @@
     }
   </div>
 
-  @if (selectedCard(); as active) {
+  @if (selectedCardSignal(); as active) {
     <aside class="surface-panel grid gap-6 px-8 py-8 lg:grid-cols-[2fr_1fr]">
       <div class="space-y-4">
         <div class="flex items-center justify-between">
