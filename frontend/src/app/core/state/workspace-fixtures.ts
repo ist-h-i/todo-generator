@@ -52,7 +52,9 @@ export const INITIAL_CARDS: Card[] = [
     storyPoints: 5,
     assignee: '田中太郎',
     confidence: 0.74,
-    subtasks: buildSubtasks(['事例収集', '評価実験', 'レビュー共有']),
+    subtasks: buildSubtasks(['事例収集', '評価実験', 'レビュー共有']).map((subtask, index, list) =>
+      index === list.length - 1 ? { ...subtask, status: 'non-issue' } : subtask,
+    ),
     comments: [],
     activities: [],
   },
@@ -91,7 +93,10 @@ export const INITIAL_CARDS: Card[] = [
     priority: 'medium',
     storyPoints: 2,
     assignee: '田中太郎',
-    subtasks: buildSubtasks(['UI 設計', 'ストア連携']),
+    subtasks: buildSubtasks(['UI 設計', 'ストア連携']).map((subtask) => ({
+      ...subtask,
+      status: 'done',
+    })),
     comments: [],
     activities: [],
   },
