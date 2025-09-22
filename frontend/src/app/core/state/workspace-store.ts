@@ -120,12 +120,6 @@ const INITIAL_CARDS: Card[] = [
   },
 ];
 
-const INITIAL_FILTERS: BoardFilters = {
-  search: '',
-  labelIds: [],
-  statusIds: [],
-};
-
 const INITIAL_SETTINGS: WorkspaceSettings = {
   defaultStatusId: 'todo',
   defaultAssignee: '田中太郎',
@@ -134,6 +128,12 @@ const INITIAL_SETTINGS: WorkspaceSettings = {
   labels: INITIAL_LABELS,
   templates: INITIAL_TEMPLATES,
   storyPointScale: [1, 2, 3, 5, 8, 13],
+};
+
+const INITIAL_FILTERS: BoardFilters = {
+  search: '',
+  labelIds: [],
+  statusIds: [],
 };
 
 /**
@@ -160,23 +160,6 @@ export class WorkspaceStore {
     const allowed = new Set(this.filteredCardIds());
     return this.cardsSignal().filter((card) => allowed.has(card.id));
   });
-
-  /**
-   * Evaluates whether a proposal meets the workspace template confidence threshold.
-   *
-   * @param proposal - Proposal metadata returned from the analyzer.
-   * @returns True when the proposal should be presented to the user.
-   */
-  public readonly isProposalEligible = (
-    proposal: Pick<AnalysisProposal, 'templateId' | 'confidence'>,
-  ): boolean => {
-    const threshold =
-      proposal.templateId !== undefined && proposal.templateId !== null
-        ? this.templateConfidenceThresholds().get(proposal.templateId)
-        : undefined;
-
-    return proposal.confidence >= (threshold ?? DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD);
-  };
 
   public readonly summary = computed<WorkspaceSummary>(() => {
     const cards = this.cardsSignal();
@@ -388,6 +371,51 @@ export class WorkspaceStore {
           : card,
       ),
     );
+  };
+
+  /**
+   * Creates a new card from a suggested improvement action.
+   *
+   * @param payload - Attributes describing the new card.
+   * @returns Created card instance.
+   */
+  public readonly createCardFromSuggestion = (payload: {
+    title: string;
+    summary: string;
+    statusId?: string;
+    labelIds?: readonly string[];
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
+    assignee?: string;
+    dueDate?: string;
+    originSuggestionId?: string;
+    initiativeId?: string;
+  }): Card => {
+    const settings = this.settingsSignal();
+    const defaultStatusId = payload.statusId || settings.defaultStatusId;
+    const labels = payload.labelIds && payload.labelIds.length > 0
+      ? [...payload.labelIds]
+      : [settings.labels[0]?.id ?? 'general'];
+
+    const card: Card = {
+      id: createId(),
+      title: payload.title,
+      summary: payload.summary,
+      statusId: defaultStatusId,
+      labelIds: labels,
+      priority: payload.priority ?? 'medium',
+      storyPoints: 3,
+      assignee: payload.assignee ?? settings.defaultAssignee,
+      dueDate: payload.dueDate,
+      subtasks: [],
+      comments: [],
+      activities: [],
+      originSuggestionId: payload.originSuggestionId,
+      initiativeId: payload.initiativeId,
+    };
+
+    this.cardsSignal.update((cards) => [card, ...cards]);
+
+    return card;
   };
 
   /**
