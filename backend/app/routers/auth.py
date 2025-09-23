@@ -27,8 +27,12 @@ def register(
     payload: schemas.RegistrationRequest,
     db: Session = Depends(get_db),
 ) -> schemas.TokenResponse:
-    payload_data = payload.model_dump()
-    raw_email = str(payload_data.pop("email"))
+    payload_data = (
+        payload.model_dump()
+        if hasattr(payload, "model_dump")
+        else payload.dict()  # type: ignore[attr-defined]
+    )
+    raw_email = str(payload_data.get("email", payload.email))
     email_candidates = get_email_lookup_candidates(raw_email)
     existing = (
         db.query(models.User)
@@ -42,10 +46,15 @@ def register(
         )
 
     is_first_user = db.query(models.User).count() == 0
-    password = payload_data.pop("password")
+    password = payload_data.get("password", payload.password)
     normalized_email = normalize_email(raw_email)
+    remaining_fields = {
+        key: value
+        for key, value in payload_data.items()
+        if key not in {"email", "password"}
+    }
     user_values = {
-        **payload_data,
+        **remaining_fields,
         "email": normalized_email,
         "password_hash": hash_password(password),
         "is_admin": is_first_user,
