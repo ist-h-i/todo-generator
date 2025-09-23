@@ -13,6 +13,9 @@ from ..auth import get_current_user
 from ..database import get_db
 from ..utils.activity import record_activity
 
+DAILY_CARD_CREATION_LIMIT = 5
+
+
 router = APIRouter(prefix="/cards", tags=["cards"])
 
 
@@ -206,6 +209,27 @@ def create_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Card:
+    start_of_today = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    start_of_tomorrow = start_of_today + timedelta(days=1)
+
+    cards_created_today = (
+        db.query(models.Card)
+        .filter(
+            models.Card.owner_id == current_user.id,
+            models.Card.created_at >= start_of_today,
+            models.Card.created_at < start_of_tomorrow,
+        )
+        .count()
+    )
+
+    if cards_created_today >= DAILY_CARD_CREATION_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Daily card creation limit reached. Please try again tomorrow.",
+        )
+
     card = models.Card(
         title=payload.title,
         summary=payload.summary,

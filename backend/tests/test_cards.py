@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.routers.cards import DAILY_CARD_CREATION_LIMIT
+
 DEFAULT_PASSWORD = "Register123!"
 
 
@@ -170,3 +172,27 @@ def test_cards_are_scoped_to_current_user(client: TestClient) -> None:
     list_owner = client.get("/cards", headers=owner_headers)
     assert list_owner.status_code == 200
     assert len(list_owner.json()) == 1
+
+
+def test_card_creation_daily_limit(client: TestClient) -> None:
+    headers = register_and_login(client, "limit@example.com")
+    status_id = create_status(client, headers)
+
+    for index in range(DAILY_CARD_CREATION_LIMIT):
+        response = client.post(
+            "/cards",
+            json={"title": f"Task {index}", "status_id": status_id},
+            headers=headers,
+        )
+        assert response.status_code == 201, response.text
+
+    limit_response = client.post(
+        "/cards",
+        json={"title": "Limit exceeded", "status_id": status_id},
+        headers=headers,
+    )
+    assert limit_response.status_code == 429
+    assert (
+        limit_response.json()["detail"]
+        == "Daily card creation limit reached. Please try again tomorrow."
+    )
