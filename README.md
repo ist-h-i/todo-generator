@@ -105,12 +105,9 @@ The frontend also supports `npm run build` to produce a production bundle under 
 ## MCP Server Integration
 
 Workspace-ready settings for [Model Context Protocol](https://modelcontextprotocol.io/) clients are
-checked into the repository so compatible tools can register servers immediately:
-
-- `.modelcontext.json` works with any MCP-aware client (including Codex and Claude Code) by pointing
-  to the Git and filesystem servers at the workspace root.
-- `.codex/config.json` remains available for Codex’s built-in workspace discovery so existing users
-  continue to get automatic registration when opening the repo.
+checked into the repository so compatible tools can register servers immediately via the
+`.modelcontext.json` manifest. Any MCP-aware client (including Codex and Claude Code) can read this
+file to discover the Git and filesystem servers hosted at the workspace root.
 
 Each configuration registers two servers:
 

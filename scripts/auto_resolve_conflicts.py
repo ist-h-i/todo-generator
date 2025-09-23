@@ -84,7 +84,7 @@ def ask_codex_to_resolve(filename: str, content: str, *, error_log: str | None =
         prompt = f"""
 あなたはソフトウェアエンジニアです。
 以下のソースコードには Git マージコンフリクトがあります。
-<<<<<<<, =======, >>>>>>> を検出し、解消後の正しいコードを返してください。
+`<<<<<<<, =======, >>>>>>>` を検出し、解消後の正しいコードを返してください。
 余計なコメントやマーカーは残さないでください。
 
 ### ファイル名
@@ -104,6 +104,11 @@ def ask_codex_to_resolve(filename: str, content: str, *, error_log: str | None =
     )
 
     return _response_text(response)
+
+
+def merge_in_progress() -> bool:
+    """Return True if Git reports an in-progress merge."""
+    return Path(".git/MERGE_HEAD").exists()
 
 
 def resolve_conflicts() -> List[str]:
@@ -195,7 +200,11 @@ def main() -> None:
         return
 
     for attempt in range(1, MAX_RETRIES + 1):
-        run_cmd(["git", "commit", "--amend", "-m", f"🤖 auto-resolve attempt {attempt}"])
+        commit_message = f"🤖 auto-resolve attempt {attempt}"
+        if attempt == 1 and merge_in_progress():
+            run_cmd(["git", "commit", "-m", commit_message])
+        else:
+            run_cmd(["git", "commit", "--amend", "-m", commit_message])
         success, out, err = run_tests()
 
         if success:
