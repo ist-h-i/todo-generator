@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
@@ -8,6 +8,7 @@ from sqlalchemy import (
     JSON,
     Boolean,
     Column,
+    Date,
     DateTime,
     Float,
     ForeignKey,
@@ -49,6 +50,9 @@ class User(Base, TimestampMixin):
     cards: Mapped[list["Card"]] = relationship("Card", back_populates="owner", cascade="all, delete-orphan")
     tokens: Mapped[list["SessionToken"]] = relationship(
         "SessionToken", back_populates="user", cascade="all, delete-orphan"
+    )
+    daily_card_quotas: Mapped[list["DailyCardQuota"]] = relationship(
+        "DailyCardQuota", back_populates="owner", cascade="all, delete-orphan"
     )
 
 
@@ -110,6 +114,23 @@ class Card(Base, TimestampMixin):
         "SuggestedAction", back_populates="created_card", uselist=False
     )
     owner: Mapped[User] = relationship("User", back_populates="cards")
+
+
+class DailyCardQuota(Base):
+    __tablename__ = "daily_card_quotas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    quota_date: Mapped[date] = mapped_column(Date, nullable=False)
+    created_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    owner: Mapped[User] = relationship("User", back_populates="daily_card_quotas")
+
+    __table_args__ = (
+        UniqueConstraint("owner_id", "quota_date", name="uq_daily_card_quota_owner_date"),
+    )
 
 
 class Subtask(Base, TimestampMixin):
