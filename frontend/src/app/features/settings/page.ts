@@ -261,7 +261,7 @@ export class SettingsPage {
 
     const statuses = this.settingsSignal().statuses;
     const fallbackId =
-      statuses.find((status) => status.id === fallback)?.id ?? (statuses[0]?.id ?? fallback);
+      statuses.find((status) => status.id === fallback)?.id ?? statuses[0]?.id ?? fallback;
 
     const ensureValidStatus = (control: SignalControl<string>): void => {
       if (!statuses.some((status) => status.id === control.value())) {

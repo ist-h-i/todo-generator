@@ -145,8 +145,7 @@ export class LoginPage {
   );
   public readonly canSubmitRegistration = computed(
     () =>
-      this.isRegisterFormValid() &&
-      (!this.pending() || this.registerFormChangedSinceLastSubmit()),
+      this.isRegisterFormValid() && (!this.pending() || this.registerFormChangedSinceLastSubmit()),
   );
 
   public constructor() {

@@ -27,9 +27,7 @@ const createDeferred = <T>(): Deferred<T> => {
 };
 
 class MockRouter {
-  public readonly navigateByUrl = jasmine
-    .createSpy('navigateByUrl')
-    .and.callFake(async () => true);
+  public readonly navigateByUrl = jasmine.createSpy('navigateByUrl').and.callFake(async () => true);
 }
 
 interface LoginCall {
@@ -62,9 +60,8 @@ class MockAuthService {
     .createSpy('ensureInitialized')
     .and.callFake(async () => undefined);
 
-  public readonly login: jasmine.Spy<(email: string, password: string) => Promise<boolean>> = jasmine
-    .createSpy('login')
-    .and.callFake((email: string, password: string) => {
+  public readonly login: jasmine.Spy<(email: string, password: string) => Promise<boolean>> =
+    jasmine.createSpy('login').and.callFake((email: string, password: string) => {
       this.pendingStore.set(true);
       const deferred = createDeferred<boolean>();
       this.loginCalls.push({ email, password, deferred });
@@ -75,17 +72,15 @@ class MockAuthService {
     });
 
   public readonly register: jasmine.Spy<(email: string, password: string) => Promise<boolean>> =
-    jasmine
-      .createSpy('register')
-      .and.callFake((email: string, password: string) => {
-        this.pendingStore.set(true);
-        const deferred = createDeferred<boolean>();
-        this.registerCalls.push({ email, password, deferred });
-        deferred.promise.finally(() => {
-          this.pendingStore.set(false);
-        });
-        return deferred.promise;
+    jasmine.createSpy('register').and.callFake((email: string, password: string) => {
+      this.pendingStore.set(true);
+      const deferred = createDeferred<boolean>();
+      this.registerCalls.push({ email, password, deferred });
+      deferred.promise.finally(() => {
+        this.pendingStore.set(false);
       });
+      return deferred.promise;
+    });
 
   public setError(message: string | null): void {
     this.errorStore.set(message);

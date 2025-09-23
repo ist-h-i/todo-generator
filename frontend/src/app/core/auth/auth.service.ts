@@ -271,7 +271,9 @@ export class AuthService {
       }
     }
 
-    const passwordError = entries.find((entry) => this.detailIncludesField(entry['loc'], 'password'));
+    const passwordError = entries.find((entry) =>
+      this.detailIncludesField(entry['loc'], 'password'),
+    );
     if (passwordError) {
       const message = typeof passwordError['msg'] === 'string' ? passwordError['msg'] : null;
       if (message) {
@@ -299,7 +301,9 @@ export class AuthService {
       return false;
     }
 
-    return loc.some((part) => typeof part === 'string' && part.toLowerCase() === field.toLowerCase());
+    return loc.some(
+      (part) => typeof part === 'string' && part.toLowerCase() === field.toLowerCase(),
+    );
   }
 
   private getFallbackMessage(context: 'login' | 'register' | 'general'): string {

@@ -667,10 +667,7 @@ export class WorkspaceStore {
     this.settingsSignal.update((settings) => {
       const next: WorkspaceSettings = {
         ...settings,
-        labels: [
-          ...settings.labels,
-          { id: createId(), name: payload.name, color: payload.color },
-        ],
+        labels: [...settings.labels, { id: createId(), name: payload.name, color: payload.color }],
       };
       this.persistSettings(next);
       return next;
@@ -820,9 +817,7 @@ export class WorkspaceStore {
 
     const fallback = fallbackStatusId;
     this.cardsSignal.update((cards) =>
-      cards.map((card) =>
-        card.statusId === statusId ? { ...card, statusId: fallback } : card,
-      ),
+      cards.map((card) => (card.statusId === statusId ? { ...card, statusId: fallback } : card)),
     );
 
     this.filtersSignal.update((filters) => ({
@@ -957,9 +952,7 @@ export class WorkspaceStore {
     }
 
     this.cardsSignal.update((cards) =>
-      cards.map((card) =>
-        card.templateId === templateId ? { ...card, templateId: null } : card,
-      ),
+      cards.map((card) => (card.templateId === templateId ? { ...card, templateId: null } : card)),
     );
   };
 
@@ -1253,10 +1246,7 @@ export class WorkspaceStore {
       typeof input === 'boolean' ? input : fallback;
 
     return {
-      showStoryPoints: toBoolean(
-        record.showStoryPoints,
-        DEFAULT_TEMPLATE_FIELDS.showStoryPoints,
-      ),
+      showStoryPoints: toBoolean(record.showStoryPoints, DEFAULT_TEMPLATE_FIELDS.showStoryPoints),
       showDueDate: toBoolean(record.showDueDate, DEFAULT_TEMPLATE_FIELDS.showDueDate),
       showAssignee: toBoolean(record.showAssignee, DEFAULT_TEMPLATE_FIELDS.showAssignee),
       showConfidence: toBoolean(record.showConfidence, DEFAULT_TEMPLATE_FIELDS.showConfidence),
