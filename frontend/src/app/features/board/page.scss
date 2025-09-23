@@ -82,15 +82,9 @@
   position: relative;
   border-width: 1px;
   overflow: hidden;
-  cursor: pointer;
   transition:
     transform 150ms ease,
     box-shadow 150ms ease;
-}
-
-.board-card:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
 }
 
 .board-card:hover {
@@ -98,14 +92,39 @@
   box-shadow: var(--shadow-strong);
 }
 
+.board-card__select {
+  display: flex;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.board-card__select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .board-card--active {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
+.board-card--active .board-card__select:focus-visible {
+  outline: 0;
+}
+
 .board-card--compact {
   gap: 0.75rem;
   opacity: 0.9;
+}
+
+.board-card--compact .board-card__select {
+  gap: 0.75rem;
 }
 
 .board-card-compact-note {

@@ -193,63 +193,65 @@
                       "
                       [class.board-card--compact]="isCardResolved(card)"
                       [class.board-card--active]="isActiveCard(card.id)"
-                      (click)="openCard(card.id)"
-                      (keydown)="handleCardKeydown($event, card.id)"
-                      tabindex="0"
-                      role="button"
-                      [attr.aria-pressed]="isActiveCard(card.id)"
                     >
-                      <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0 space-y-2">
-                          <h4 class="break-words text-base font-semibold text-on-surface">
-                            {{ card.title }}
-                          </h4>
-                          @if (!isCardResolved(card)) {
-                            <p
-                              class="break-words text-sm leading-6 text-slate-600 dark:text-slate-300"
-                            >
-                              {{ card.summary }}
-                            </p>
-                          } @else {
-                            <p class="board-card-compact-note text-xs text-slate-500">
-                              サブタスクはすべて完了または NonIssue です。
-                            </p>
-                          }
-                        </div>
-                      </div>
-                      <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
-                        <span class="board-badge" [style.color]="statusColor(card.statusId)">
-                          {{ statusName(card.statusId) }}
-                        </span>
-                        @for (labelId of card.labelIds; track labelId) {
-                          <span class="board-badge">{{ labelName(labelId) }}</span>
-                        }
-                      </div>
-                      @if (!isCardResolved(card)) {
-                        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                          <span>SP: {{ card.storyPoints }}</span>
-                          @if (card.assignee) {
-                            <span>担当: {{ card.assignee }}</span>
-                          }
-                          @if (card.confidence) {
-                            <span
-                              >AIおすすめ度: {{ card.confidence * 100 | number: '1.0-0' }}%</span
-                            >
-                          }
-                        </div>
-                        @if (groupingSignal() !== 'status') {
-                          <div class="flex flex-wrap gap-2 text-xs">
-                            @for (status of statusesSignal(); track status.id) {
-                              <button
-                                type="button"
-                                class="surface-pill focus-ring px-3 py-1"
-                                (click)="moveCard(card.id, status.id); $event.stopPropagation()"
+                      <button
+                        type="button"
+                        class="board-card__select focus-ring flex min-w-0 flex-col gap-4 text-left"
+                        (click)="openCard(card.id)"
+                        [attr.aria-pressed]="isActiveCard(card.id)"
+                      >
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0 space-y-2">
+                            <h4 class="break-words text-base font-semibold text-on-surface">
+                              {{ card.title }}
+                            </h4>
+                            @if (!isCardResolved(card)) {
+                              <p
+                                class="break-words text-sm leading-6 text-slate-600 dark:text-slate-300"
                               >
-                                {{ status.name }}
-                              </button>
+                                {{ card.summary }}
+                              </p>
+                            } @else {
+                              <p class="board-card-compact-note text-xs text-slate-500">
+                                サブタスクはすべて完了または NonIssue です。
+                              </p>
+                            }
+                          </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
+                          <span class="board-badge" [style.color]="statusColor(card.statusId)">
+                            {{ statusName(card.statusId) }}
+                          </span>
+                          @for (labelId of card.labelIds; track labelId) {
+                            <span class="board-badge">{{ labelName(labelId) }}</span>
+                          }
+                        </div>
+                        @if (!isCardResolved(card)) {
+                          <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                            <span>SP: {{ card.storyPoints }}</span>
+                            @if (card.assignee) {
+                              <span>担当: {{ card.assignee }}</span>
+                            }
+                            @if (card.confidence) {
+                              <span
+                                >AIおすすめ度: {{ card.confidence * 100 | number: '1.0-0' }}%</span
+                              >
                             }
                           </div>
                         }
+                      </button>
+                      @if (!isCardResolved(card) && groupingSignal() !== 'status') {
+                        <div class="board-card__actions flex flex-wrap gap-2 text-xs">
+                          @for (status of statusesSignal(); track status.id) {
+                            <button
+                              type="button"
+                              class="surface-pill focus-ring px-3 py-1"
+                              (click)="moveCard(card.id, status.id)"
+                            >
+                              {{ status.name }}
+                            </button>
+                          }
+                        </div>
                       }
                     </article>
                   }

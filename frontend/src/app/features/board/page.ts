@@ -256,15 +256,6 @@ export class BoardPage {
     this.workspace.setGrouping(grouping);
   };
 
-  public readonly handleCardKeydown = (event: KeyboardEvent, cardId: string): void => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    event.preventDefault();
-    this.openCard(cardId);
-  };
-
   /**
    * Opens the card detail drawer by storing selection state.
    *
