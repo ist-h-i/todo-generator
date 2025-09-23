@@ -1,17 +1,100 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Iterable, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, or_
+from sqlalchemy import func, insert, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
 from ..utils.activity import record_activity
+
+DAILY_CARD_CREATION_LIMIT = 5
+_DAILY_CARD_LIMIT_MESSAGE = (
+    "Daily card creation limit reached. Please try again tomorrow."
+)
+
+
+def _reserve_daily_card_quota(db: Session, *, owner_id: str, quota_day: date) -> None:
+    quota_cls = models.DailyCardQuota
+
+    def _try_increment() -> bool:
+        result = db.execute(
+            update(quota_cls)
+            .where(
+                quota_cls.owner_id == owner_id,
+                quota_cls.quota_date == quota_day,
+                quota_cls.created_count < DAILY_CARD_CREATION_LIMIT,
+            )
+            .values(created_count=quota_cls.created_count + 1)
+        )
+        return bool(result.rowcount)
+
+    if _try_increment():
+        return
+
+    dialect_name = db.bind.dialect.name if db.bind else ""
+    if dialect_name == "sqlite":
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+        insert_stmt = (
+            sqlite_insert(quota_cls)
+            .values(owner_id=owner_id, quota_date=quota_day, created_count=1)
+            .on_conflict_do_nothing(
+                index_elements=[quota_cls.owner_id, quota_cls.quota_date]
+            )
+        )
+    elif dialect_name == "postgresql":
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+        insert_stmt = (
+            pg_insert(quota_cls)
+            .values(owner_id=owner_id, quota_date=quota_day, created_count=1)
+            .on_conflict_do_nothing(
+                index_elements=[quota_cls.owner_id, quota_cls.quota_date]
+            )
+        )
+    else:
+        insert_stmt = insert(quota_cls).values(
+            owner_id=owner_id,
+            quota_date=quota_day,
+            created_count=1,
+        )
+
+    try:
+        insert_result = db.execute(insert_stmt)
+    except IntegrityError:
+        db.rollback()
+    else:
+        if insert_result.rowcount:
+            return
+
+    if _try_increment():
+        return
+
+    existing_count = db.execute(
+        select(quota_cls.created_count).where(
+            quota_cls.owner_id == owner_id,
+            quota_cls.quota_date == quota_day,
+        )
+    ).scalar_one_or_none()
+
+    if existing_count is None or existing_count < DAILY_CARD_CREATION_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to reserve daily card quota.",
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=_DAILY_CARD_LIMIT_MESSAGE,
+    )
+
 
 router = APIRouter(prefix="/cards", tags=["cards"])
 
@@ -199,6 +282,9 @@ def create_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Card:
+    quota_day = datetime.now(timezone.utc).date()
+    _reserve_daily_card_quota(db, owner_id=current_user.id, quota_day=quota_day)
+
     card = models.Card(
         title=payload.title,
         summary=payload.summary,
