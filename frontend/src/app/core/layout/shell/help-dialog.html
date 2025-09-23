@@ -1,0 +1,63 @@
+<div class="help-dialog" (click)="close()">
+  <div class="help-dialog__backdrop" aria-hidden="true"></div>
+  <article
+    #panel
+    class="help-dialog__panel focus-ring"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="help-dialog-title"
+    aria-describedby="help-dialog-description"
+    tabindex="-1"
+    (click)="$event.stopPropagation()"
+    id="help-dialog"
+  >
+    <header class="help-dialog__header">
+      <div>
+        <p class="help-dialog__eyebrow">ガイドとサポート</p>
+        <h2 class="help-dialog__title" id="help-dialog-title">Todo Generator ヘルプセンター</h2>
+        <p class="help-dialog__description" id="help-dialog-description">
+          主要な画面の使い方と、よくある質問への回答をまとめています。
+        </p>
+      </div>
+      <button type="button" class="help-dialog__close focus-ring" (click)="close()" aria-label="ヘルプを閉じる">
+        <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6l-12 12" />
+        </svg>
+      </button>
+    </header>
+
+    <section class="help-dialog__section">
+      <h3 class="help-dialog__section-title">各画面の使い方</h3>
+      <p class="help-dialog__section-lead">
+        アプリ全体の流れを把握できるよう、それぞれの画面でできることをハイライトしました。
+      </p>
+      <div class="help-dialog__guides">
+        @for (guide of guides; track guide.title) {
+          <article class="help-dialog__card">
+            <img [src]="guide.image" [alt]="guide.alt" loading="lazy" decoding="async" />
+            <div class="help-dialog__card-body">
+              <h4 class="help-dialog__card-title">{{ guide.title }}</h4>
+              <p class="help-dialog__card-text">{{ guide.description }}</p>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section class="help-dialog__section">
+      <h3 class="help-dialog__section-title">よくある質問</h3>
+      <dl class="help-dialog__faq">
+        @for (item of faqs; track item.question) {
+          <div class="help-dialog__faq-item">
+            <dt class="help-dialog__faq-question">{{ item.question }}</dt>
+            <dd class="help-dialog__faq-answer">{{ item.answer }}</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <footer class="help-dialog__footer">
+      <button type="button" class="help-dialog__primary focus-ring" (click)="close()">閉じる</button>
+    </footer>
+  </article>
+</div>

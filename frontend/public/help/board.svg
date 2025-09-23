@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" role="img" aria-labelledby="title desc">
+  <title id="title">Board overview illustration</title>
+  <desc id="desc">Kanban board with multiple columns and cards</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#e0e7ff" />
+      <stop offset="1" stop-color="#ede9fe" />
+    </linearGradient>
+    <linearGradient id="column" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="1" stop-color="#e2e8f0" stop-opacity="0.9" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#312e81" flood-opacity="0.18" />
+    </filter>
+  </defs>
+  <rect width="360" height="240" rx="26" fill="url(#bg)" />
+  <g transform="translate(26 36)" filter="url(#shadow)">
+    <rect width="96" height="168" rx="18" fill="url(#column)" />
+    <rect x="12" y="20" width="72" height="28" rx="8" fill="#c7d2fe" opacity="0.9" />
+    <rect x="12" y="60" width="72" height="52" rx="10" fill="#e0e7ff" opacity="0.9" />
+    <rect x="12" y="122" width="72" height="24" rx="8" fill="#c4b5fd" opacity="0.95" />
+  </g>
+  <g transform="translate(140 28)" filter="url(#shadow)">
+    <rect width="104" height="184" rx="20" fill="url(#column)" />
+    <rect x="16" y="22" width="72" height="40" rx="12" fill="#bfdbfe" opacity="0.95" />
+    <rect x="16" y="78" width="72" height="32" rx="10" fill="#c4b5fd" opacity="0.9" />
+    <rect x="16" y="122" width="72" height="24" rx="8" fill="#f9a8d4" opacity="0.9" />
+  </g>
+  <g transform="translate(254 44)" filter="url(#shadow)">
+    <rect width="96" height="152" rx="18" fill="url(#column)" />
+    <rect x="12" y="20" width="72" height="28" rx="8" fill="#bbf7d0" opacity="0.9" />
+    <rect x="12" y="64" width="72" height="28" rx="8" fill="#fef08a" opacity="0.9" />
+    <rect x="12" y="108" width="72" height="20" rx="8" fill="#bae6fd" opacity="0.95" />
+  </g>
+  <path
+    d="M90 26h72"
+    stroke="#4f46e5"
+    stroke-width="4"
+    stroke-linecap="round"
+    opacity="0.6"
+  />
+</svg>
