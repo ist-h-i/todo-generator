@@ -36,6 +36,21 @@ def email(email_factory: Callable[[], str]) -> str:
 
 
 @pytest.fixture()
+def email_factory() -> Callable[[], str]:
+    counter = itertools.count()
+
+    def _factory() -> str:
+        return f"user-{next(counter)}@example.com"
+
+    return _factory
+
+
+@pytest.fixture()
+def email(email_factory: Callable[[], str]) -> str:
+    return email_factory()
+
+
+@pytest.fixture()
 def client() -> Generator[TestClient, None, None]:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
