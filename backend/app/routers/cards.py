@@ -9,14 +9,15 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from .. import models, schemas
+from ..auth import get_current_user
 from ..database import get_db
 from ..utils.activity import record_activity
 
 router = APIRouter(prefix="/cards", tags=["cards"])
 
 
-def _card_query(db: Session):
-    return (
+def _card_query(db: Session, *, owner_id: Optional[str] = None):
+    query = (
         db.query(models.Card)
         .options(
             selectinload(models.Card.subtasks),
@@ -26,6 +27,11 @@ def _card_query(db: Session):
             joinedload(models.Card.initiative),
         )
     )
+
+    if owner_id:
+        query = query.filter(models.Card.owner_id == owner_id)
+
+    return query
 
 
 def _derive_created_from(time_range: str) -> Optional[datetime]:
@@ -126,8 +132,9 @@ def list_cards(
     due_to: Optional[datetime] = Query(default=None),
     time_range: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> List[models.Card]:
-    query = _card_query(db)
+    query = _card_query(db, owner_id=current_user.id)
 
     effective_status_ids = set(status_ids or [])
     if status_id:
@@ -194,7 +201,11 @@ def list_cards(
 
 
 @router.post("/", response_model=schemas.CardRead, status_code=status.HTTP_201_CREATED)
-def create_card(payload: schemas.CardCreate, db: Session = Depends(get_db)) -> models.Card:
+def create_card(
+    payload: schemas.CardCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> models.Card:
     card = models.Card(
         title=payload.title,
         summary=payload.summary,
@@ -213,6 +224,7 @@ def create_card(payload: schemas.CardCreate, db: Session = Depends(get_db)) -> m
         error_category_id=payload.error_category_id,
         initiative_id=payload.initiative_id,
         analytics_notes=payload.analytics_notes,
+        owner=current_user,
     )
 
     if payload.label_ids:
@@ -227,16 +239,20 @@ def create_card(payload: schemas.CardCreate, db: Session = Depends(get_db)) -> m
         card.subtasks.append(models.Subtask(**subtask_data.dict()))
 
     db.add(card)
-    record_activity(db, action="card_created", card_id=card.id)
+    record_activity(db, action="card_created", card_id=card.id, actor_id=current_user.id)
     db.commit()
     db.refresh(card)
     return card
 
 
 @router.get("/{card_id}", response_model=schemas.CardRead)
-def get_card(card_id: str, db: Session = Depends(get_db)) -> models.Card:
+def get_card(
+    card_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> models.Card:
     card = (
-        _card_query(db)
+        _card_query(db, owner_id=current_user.id)
         .filter(models.Card.id == card_id)
         .order_by(models.Card.created_at.desc())
         .first()
@@ -248,9 +264,12 @@ def get_card(card_id: str, db: Session = Depends(get_db)) -> models.Card:
 
 @router.put("/{card_id}", response_model=schemas.CardRead)
 def update_card(
-    card_id: str, payload: schemas.CardUpdate, db: Session = Depends(get_db)
+    card_id: str,
+    payload: schemas.CardUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> models.Card:
-    card = _card_query(db).filter(models.Card.id == card_id).first()
+    card = _card_query(db, owner_id=current_user.id).filter(models.Card.id == card_id).first()
     if not card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
@@ -265,7 +284,7 @@ def update_card(
         card.labels = labels
 
     db.add(card)
-    record_activity(db, action="card_updated", card_id=card.id)
+    record_activity(db, action="card_updated", card_id=card.id, actor_id=current_user.id)
     db.commit()
     db.refresh(card)
     return card
@@ -276,21 +295,29 @@ def update_card(
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
 )
-def delete_card(card_id: str, db: Session = Depends(get_db)) -> Response:
+def delete_card(
+    card_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> Response:
     card = db.get(models.Card, card_id)
-    if not card:
+    if not card or card.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
-    record_activity(db, action="card_deleted", card_id=card.id)
+    record_activity(db, action="card_deleted", card_id=card.id, actor_id=current_user.id)
     db.delete(card)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{card_id}/subtasks", response_model=List[schemas.SubtaskRead])
-def list_subtasks(card_id: str, db: Session = Depends(get_db)) -> List[models.Subtask]:
+def list_subtasks(
+    card_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> List[models.Subtask]:
     card = db.get(models.Card, card_id)
-    if not card:
+    if not card or card.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
     return (
@@ -307,10 +334,13 @@ def list_subtasks(card_id: str, db: Session = Depends(get_db)) -> List[models.Su
     status_code=status.HTTP_201_CREATED,
 )
 def create_subtask(
-    card_id: str, payload: schemas.SubtaskCreate, db: Session = Depends(get_db)
+    card_id: str,
+    payload: schemas.SubtaskCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> models.Subtask:
     card = db.get(models.Card, card_id)
-    if not card:
+    if not card or card.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
     subtask = models.Subtask(card_id=card_id, **payload.dict())
@@ -319,6 +349,7 @@ def create_subtask(
         db,
         action="subtask_created",
         card_id=card_id,
+        actor_id=current_user.id,
         details={"subtask_id": subtask.id},
     )
     db.commit()
@@ -332,7 +363,12 @@ def update_subtask(
     subtask_id: str,
     payload: schemas.SubtaskUpdate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> models.Subtask:
+    card = db.get(models.Card, card_id)
+    if not card or card.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+
     subtask = db.get(models.Subtask, subtask_id)
     if not subtask or subtask.card_id != card_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
@@ -345,6 +381,7 @@ def update_subtask(
         db,
         action="subtask_updated",
         card_id=card_id,
+        actor_id=current_user.id,
         details={"subtask_id": subtask.id},
     )
     db.commit()
@@ -358,8 +395,15 @@ def update_subtask(
     response_class=Response,
 )
 def delete_subtask(
-    card_id: str, subtask_id: str, db: Session = Depends(get_db)
+    card_id: str,
+    subtask_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> Response:
+    card = db.get(models.Card, card_id)
+    if not card or card.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+
     subtask = db.get(models.Subtask, subtask_id)
     if not subtask or subtask.card_id != card_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
@@ -368,6 +412,7 @@ def delete_subtask(
         db,
         action="subtask_deleted",
         card_id=card_id,
+        actor_id=current_user.id,
         details={"subtask_id": subtask.id},
     )
     db.delete(subtask)

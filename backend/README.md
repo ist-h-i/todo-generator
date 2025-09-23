@@ -45,6 +45,7 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 - `DATABASE_URL`: SQLAlchemy connection string. Defaults to `sqlite:///./todo.db`.
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
 - `CHATGPT_MODEL`: Logical name for the ChatGPT model stub (default: `gpt-4o-mini`).
+- `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).
 
 ## Project Structure
 

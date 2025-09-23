@@ -13,6 +13,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from app.database import Base, get_db
 from app.main import app
+from app.services.email import clear_outbox
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(
@@ -41,3 +42,10 @@ def client() -> Generator[TestClient, None, None]:
         yield test_client
 
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def reset_email_outbox() -> Generator[None, None, None]:
+    clear_outbox()
+    yield
+    clear_outbox()

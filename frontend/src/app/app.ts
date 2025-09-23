@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-import { Shell } from '@core/layout/shell/shell';
+import { RouterOutlet } from '@angular/router';
 
 /**
  * Root component wrapping the workspace shell.
@@ -8,7 +8,7 @@ import { Shell } from '@core/layout/shell/shell';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [Shell],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

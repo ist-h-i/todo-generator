@@ -1,27 +1,117 @@
 <div class="flex min-h-screen flex-col bg-surface">
-  <header class="border-b border-subtle bg-surface-strong backdrop-blur">
-    <div class="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
-      <div class="flex items-center gap-3">
-        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-lg font-semibold text-on-surface-inverse shadow-soft">
-          TG
-        </span>
-        <div>
-          <p class="text-sm uppercase tracking-[0.3em] text-slate-400">Todo Generator</p>
-          <h1 class="text-2xl font-semibold">ワークスペース</h1>
-        </div>
-      </div>
-      <nav class="flex flex-wrap items-center gap-2 text-sm">
-        @for (link of links; track link.path) {
-          <a
-            [routerLink]="link.path"
-            routerLinkActive="surface-primary-muted text-accent-strong"
-            [routerLinkActiveOptions]="{ exact: true }"
-            class="focus-ring surface-pill px-4 py-2 text-sm font-medium text-slate-600 hover:text-accent-strong dark:text-slate-300"
+  <header class="shell-header">
+    <div
+      class="shell-header__content mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8 lg:flex-row lg:items-center lg:justify-between"
+    >
+      <div class="flex w-full flex-col gap-6 lg:flex-row lg:items-center lg:gap-12">
+        <div class="flex items-center gap-4">
+          <span
+            class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent-strong text-lg font-semibold text-on-surface-inverse shadow-strong"
           >
-            {{ link.label }}
-          </a>
+            TG
+          </span>
+          <div>
+            <p class="text-xs uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">
+              Todo Generator
+            </p>
+            <p class="mt-1 text-base font-medium text-slate-500 dark:text-slate-400">
+              AI がサポートするプロダクティビティハブ
+            </p>
+          </div>
+        </div>
+
+        <nav class="shell-nav" aria-label="主要ナビゲーション">
+          @for (link of links; track link.path) {
+            <a
+              [routerLink]="link.path"
+              routerLinkActive="shell-nav__link--active"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="shell-nav__link focus-ring"
+            >
+              {{ link.label }}
+            </a>
+          }
+        </nav>
+      </div>
+
+      <div
+        class="flex flex-col items-stretch gap-3 text-sm sm:flex-row sm:items-center sm:justify-end sm:gap-4"
+      >
+        <button
+          type="button"
+          class="shell-quick-action focus-ring"
+          (click)="toggleTheme()"
+          [attr.aria-pressed]="isDark()"
+          [attr.aria-label]="themeToggleAriaLabel()"
+        >
+          <span class="shell-quick-action__icon">
+            @if (isDark()) {
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                class="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79Z"
+                />
+              </svg>
+            } @else {
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                class="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path
+                  stroke-linecap="round"
+                  d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95l-1.414 1.414m0-12.728 1.414 1.414m10.9 10.9 1.414 1.414"
+                />
+              </svg>
+            }
+          </span>
+          <span class="shell-quick-action__label">
+            {{ isDark() ? 'ライトモードに切替' : 'ダークモードに切替' }}
+          </span>
+        </button>
+
+        @if (user(); as currentUser) {
+          <span class="shell-user" [attr.title]="currentUser.email">
+            {{ currentUser.email }}
+          </span>
+          <button type="button" class="shell-primary-action focus-ring" (click)="logout()">
+            <span class="shell-primary-action__icon">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                class="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M18 12H9m0 0 3 3m-3-3 3-3"
+                />
+              </svg>
+            </span>
+            <span>ログアウト</span>
+          </button>
         }
-      </nav>
+      </div>
     </div>
   </header>
 

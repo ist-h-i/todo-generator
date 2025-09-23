@@ -3,11 +3,13 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .config import settings
 from .database import Base, engine
 from .routers import (
     activity,
     analytics,
     analysis,
+    auth,
     cards,
     comments,
     error_categories,
@@ -30,7 +32,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,6 +40,7 @@ app.add_middleware(
 
 app.include_router(analysis.router)
 app.include_router(analytics.router)
+app.include_router(auth.router)
 app.include_router(cards.router)
 app.include_router(labels.router)
 app.include_router(statuses.router)
