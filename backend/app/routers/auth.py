@@ -10,6 +10,7 @@ from ..auth import (
     get_email_lookup_candidates,
     normalize_email,
     hash_password,
+    normalize_email,
     verify_password,
 )
 from ..database import get_db

@@ -30,22 +30,41 @@
               autocomplete="email"
               [value]="loginForm.controls.email.value()"
               (input)="onLoginEmailInput($event)"
+              [class.input-invalid]="loginEmailError()"
+              [attr.aria-invalid]="loginEmailError() ? 'true' : null"
+              [attr.aria-describedby]="loginEmailError() ? 'login-email-error' : null"
               class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="you@example.com"
             />
+            @if (loginEmailError(); as emailError) {
+              <p id="login-email-error" class="field-error" aria-live="polite">
+                {{ emailError }}
+              </p>
+            }
           </label>
 
           <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
             パスワード
             <input
+              id="login-password"
               name="password"
               type="password"
               autocomplete="current-password"
+              autocapitalize="off"
+              spellcheck="false"
               [value]="loginForm.controls.password.value()"
               (input)="onLoginPasswordInput($event)"
+              [class.input-invalid]="loginPasswordError()"
+              [attr.aria-invalid]="loginPasswordError() ? 'true' : null"
+              [attr.aria-describedby]="loginPasswordError() ? 'login-password-error' : null"
               class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="パスワード"
             />
+            @if (loginPasswordError(); as passwordError) {
+              <p id="login-password-error" class="field-error" aria-live="polite">
+                {{ passwordError }}
+              </p>
+            }
           </label>
 
           <button
@@ -91,35 +110,65 @@
               autocomplete="email"
               [value]="registerForm.controls.email.value()"
               (input)="onRegisterEmailInput($event)"
+              [class.input-invalid]="registerEmailError()"
+              [attr.aria-invalid]="registerEmailError() ? 'true' : null"
+              [attr.aria-describedby]="registerEmailError() ? 'register-email-error' : null"
               class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="you@example.com"
             />
+            @if (registerEmailError(); as emailError) {
+              <p id="register-email-error" class="field-error" aria-live="polite">
+                {{ emailError }}
+              </p>
+            }
           </label>
 
           <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
             パスワード
             <input
-              name="register-password"
+              id="register-password"
+              name="new-password"
               type="password"
               autocomplete="new-password"
+              autocapitalize="off"
+              spellcheck="false"
               [value]="registerForm.controls.password.value()"
               (input)="onRegisterPasswordInput($event)"
+              [class.input-invalid]="registerPasswordError()"
+              [attr.aria-invalid]="registerPasswordError() ? 'true' : null"
+              [attr.aria-describedby]="registerPasswordError() ? 'register-password-error' : null"
               class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="8文字以上で入力"
             />
+            @if (registerPasswordError(); as passwordError) {
+              <p id="register-password-error" class="field-error" aria-live="polite">
+                {{ passwordError }}
+              </p>
+            }
           </label>
 
           <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
             パスワード（確認）
             <input
-              name="register-confirm-password"
+              id="register-confirm-password"
+              name="confirm-password"
               type="password"
               autocomplete="new-password"
+              autocapitalize="off"
+              spellcheck="false"
               [value]="registerForm.controls.confirmPassword.value()"
               (input)="onRegisterConfirmInput($event)"
+              [class.input-invalid]="registerConfirmError()"
+              [attr.aria-invalid]="registerConfirmError() ? 'true' : null"
+              [attr.aria-describedby]="registerConfirmError() ? 'register-confirm-error' : null"
               class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="確認のため再入力"
             />
+            @if (registerConfirmError(); as confirmError) {
+              <p id="register-confirm-error" class="field-error" aria-live="polite">
+                {{ confirmError }}
+              </p>
+            }
           </label>
 
           <button

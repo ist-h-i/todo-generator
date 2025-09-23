@@ -12,7 +12,10 @@ import { Router } from '@angular/router';
 import { AuthService } from '@core/auth/auth.service';
 import { createSignalForm } from '@lib/forms/signal-forms';
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_EMAIL_LENGTH = 320;
 const MIN_PASSWORD_LENGTH = 8;
+const MAX_PASSWORD_LENGTH = 128;
 const HOME_ROUTE = '/';
 
 interface LoginSubmission {
@@ -49,22 +52,69 @@ export class LoginPage {
   public readonly pending = this.auth.pending;
   private readonly lastLoginSubmission = signal<LoginSubmission | null>(null);
   private readonly lastRegisterSubmission = signal<RegistrationSubmission | null>(null);
+  private readonly loginEmailTouched = signal(false);
+  private readonly loginPasswordTouched = signal(false);
+  private readonly registerEmailTouched = signal(false);
+  private readonly registerPasswordTouched = signal(false);
+  private readonly registerConfirmTouched = signal(false);
+  public readonly loginEmailError = computed(() => {
+    if (!this.loginEmailTouched()) {
+      return null;
+    }
+
+    const value = this.loginForm.controls.email.value();
+    return this.getEmailError(value);
+  });
+  public readonly loginPasswordError = computed(() => {
+    if (!this.loginPasswordTouched()) {
+      return null;
+    }
+
+    const value = this.loginForm.controls.password.value();
+    return this.getPasswordError(value);
+  });
   public readonly isLoginFormValid = computed(() => {
-    const value = this.loginForm.value();
-    return value.email.trim().length > 0 && value.password.length > 0;
+    const email = this.loginForm.controls.email.value();
+    const password = this.loginForm.controls.password.value();
+
+    return !this.getEmailError(email) && !this.getPasswordError(password);
   });
   public readonly isRegisterFormValid = computed(() => {
-    const value = this.registerForm.value();
-    const email = this.sanitizeEmail(value.email);
-    const password = value.password;
-    const confirmPassword = value.confirmPassword;
+    const email = this.registerForm.controls.email.value();
+    const password = this.registerForm.controls.password.value();
+    const confirmPassword = this.registerForm.controls.confirmPassword.value();
 
     return (
-      email.length > 0 &&
-      password.length >= MIN_PASSWORD_LENGTH &&
-      confirmPassword.length >= MIN_PASSWORD_LENGTH &&
-      password === confirmPassword
+      !this.getEmailError(email) &&
+      !this.getPasswordError(password) &&
+      !this.getRegisterConfirmError(password, confirmPassword)
     );
+  });
+  public readonly registerEmailError = computed(() => {
+    if (!this.registerEmailTouched()) {
+      return null;
+    }
+
+    const value = this.registerForm.controls.email.value();
+    return this.getEmailError(value);
+  });
+  public readonly registerPasswordError = computed(() => {
+    if (!this.registerPasswordTouched()) {
+      return null;
+    }
+
+    const value = this.registerForm.controls.password.value();
+    return this.getPasswordError(value);
+  });
+  public readonly registerConfirmError = computed(() => {
+    if (!this.registerConfirmTouched()) {
+      return null;
+    }
+
+    const password = this.registerForm.controls.password.value();
+    const confirmPassword = this.registerForm.controls.confirmPassword.value();
+
+    return this.getRegisterConfirmError(password, confirmPassword);
   });
   public readonly loginFormChangedSinceLastSubmit = computed(() => {
     const lastSubmission = this.lastLoginSubmission();
@@ -116,13 +166,16 @@ export class LoginPage {
   public async onLoginSubmit(event: Event): Promise<void> {
     event.preventDefault();
     this.resetNotices();
+    this.loginEmailTouched.set(true);
+    this.loginPasswordTouched.set(true);
 
-    if (!this.isLoginFormValid()) {
-      this.loginNotice.set('メールアドレスとパスワードを入力してください。');
+    const credentials = this.loginForm.value();
+    const validationError = this.resolveLoginErrorMessage(credentials);
+    if (validationError) {
+      this.loginNotice.set(validationError);
       return;
     }
 
-    const credentials = this.loginForm.value();
     const email = this.sanitizeEmail(credentials.email);
     const password = credentials.password;
 
@@ -135,6 +188,7 @@ export class LoginPage {
     const success = await this.auth.login(email, password);
     if (success) {
       this.loginForm.reset();
+      this.resetLoginInteractions();
       this.clearLastLoginSubmission();
       await this.router.navigateByUrl(HOME_ROUTE);
       return;
@@ -146,35 +200,30 @@ export class LoginPage {
 
   public onLoginEmailInput(event: Event): void {
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.loginEmailTouched.set(true);
     this.loginForm.controls.email.setValue(value);
   }
 
   public onLoginPasswordInput(event: Event): void {
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.loginPasswordTouched.set(true);
     this.loginForm.controls.password.setValue(value);
   }
 
   public async onRegisterSubmit(event: Event): Promise<void> {
     event.preventDefault();
     this.resetNotices();
+    this.registerEmailTouched.set(true);
+    this.registerPasswordTouched.set(true);
+    this.registerConfirmTouched.set(true);
 
     const value = this.registerForm.value();
     const email = this.sanitizeEmail(value.email);
     const password = value.password;
-    const confirmPassword = value.confirmPassword;
 
-    if (!email) {
-      this.registerNotice.set('メールアドレスを入力してください。');
-      return;
-    }
-
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      this.registerNotice.set(`パスワードは${MIN_PASSWORD_LENGTH}文字以上で入力してください。`);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      this.registerNotice.set('確認用パスワードが一致しません。');
+    const validationError = this.resolveRegisterErrorMessage(value);
+    if (validationError) {
+      this.registerNotice.set(validationError);
       return;
     }
 
@@ -187,6 +236,7 @@ export class LoginPage {
     const success = await this.auth.register(email, password);
     if (success) {
       this.registerForm.reset();
+      this.resetRegisterInteractions();
       this.clearLastRegisterSubmission();
       await this.router.navigateByUrl(HOME_ROUTE);
       return;
@@ -198,16 +248,19 @@ export class LoginPage {
 
   public onRegisterEmailInput(event: Event): void {
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.registerEmailTouched.set(true);
     this.registerForm.controls.email.setValue(value);
   }
 
   public onRegisterPasswordInput(event: Event): void {
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.registerPasswordTouched.set(true);
     this.registerForm.controls.password.setValue(value);
   }
 
   public onRegisterConfirmInput(event: Event): void {
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.registerConfirmTouched.set(true);
     this.registerForm.controls.confirmPassword.setValue(value);
   }
 
@@ -224,7 +277,105 @@ export class LoginPage {
     this.lastRegisterSubmission.set(null);
   }
 
+  private resetLoginInteractions(): void {
+    this.loginEmailTouched.set(false);
+    this.loginPasswordTouched.set(false);
+  }
+
+  private resetRegisterInteractions(): void {
+    this.registerEmailTouched.set(false);
+    this.registerPasswordTouched.set(false);
+    this.registerConfirmTouched.set(false);
+  }
+
   private sanitizeEmail(value: string): string {
     return value.normalize('NFKC').trim().toLowerCase();
+  }
+
+  private getEmailError(value: string): string | null {
+    const sanitized = this.sanitizeEmail(value);
+
+    if (sanitized.length === 0) {
+      return 'メールアドレスを入力してください。';
+    }
+
+    if (sanitized.length > MAX_EMAIL_LENGTH) {
+      return `メールアドレスは${MAX_EMAIL_LENGTH}文字以内で入力してください。`;
+    }
+
+    if (!EMAIL_PATTERN.test(sanitized)) {
+      return 'メールアドレスの形式が正しくありません。';
+    }
+
+    return null;
+  }
+
+  private getPasswordError(value: string): string | null {
+    if (value.trim().length === 0) {
+      return 'パスワードを入力してください。';
+    }
+
+    if (value.length < MIN_PASSWORD_LENGTH) {
+      return `パスワードは${MIN_PASSWORD_LENGTH}文字以上で入力してください。`;
+    }
+
+    if (value.length > MAX_PASSWORD_LENGTH) {
+      return `パスワードは${MAX_PASSWORD_LENGTH}文字以内で入力してください。`;
+    }
+
+    return null;
+  }
+
+  private getRegisterConfirmError(password: string, confirmPassword: string): string | null {
+    if (confirmPassword.trim().length === 0) {
+      return '確認用パスワードを入力してください。';
+    }
+
+    if (this.getPasswordError(password)) {
+      return null;
+    }
+
+    if (password !== confirmPassword) {
+      return '確認用パスワードが一致しません。';
+    }
+
+    return null;
+  }
+
+  private resolveLoginErrorMessage(value: { email: string; password: string }): string | null {
+    const emailError = this.getEmailError(value.email);
+    if (emailError) {
+      return emailError;
+    }
+
+    const passwordError = this.getPasswordError(value.password);
+    if (passwordError) {
+      return passwordError;
+    }
+
+    return null;
+  }
+
+  private resolveRegisterErrorMessage(value: {
+    email: string;
+    password: string;
+    confirmPassword: string;
+  }): string | null {
+    const emailError = this.getEmailError(value.email);
+    if (emailError) {
+      return emailError;
+    }
+
+    const passwordError = this.getPasswordError(value.password);
+    if (passwordError) {
+      return passwordError;
+    }
+
+    const confirmError = this.getRegisterConfirmError(value.password, value.confirmPassword);
+    if (confirmError) {
+      return confirmError;
+    }
+
+    return null;
   }
 }
