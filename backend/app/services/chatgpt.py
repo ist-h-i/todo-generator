@@ -160,10 +160,8 @@ class ChatGPTClient:
 
         response = self._client.responses.create(
             model=self.model,
-            input=[
-                {"role": "system", "content": self._SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
+            instructions=self._SYSTEM_PROMPT,
+            input=user_prompt,
             response_format=response_format,
         )
 
@@ -171,6 +169,10 @@ class ChatGPTClient:
         data = self._parse_json_payload(content)
         if not isinstance(data, dict):
             raise ChatGPTError("ChatGPT response must be a JSON object.")
+        if (not data.get("model")) and getattr(response, "model", None):
+            enriched = dict(data)
+            enriched["model"] = response.model
+            return enriched
         return data
 
     def _build_response_format(self, max_cards: int) -> dict[str, Any]:

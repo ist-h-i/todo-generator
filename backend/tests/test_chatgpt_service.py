@@ -83,3 +83,28 @@ def test_parse_json_payload_raises_for_invalid_json() -> None:
 
     with pytest.raises(json.JSONDecodeError):
         ChatGPTClient._parse_json_payload(client, "not-json")
+
+
+def test_request_analysis_enriches_model_from_response() -> None:
+    client = _make_client()
+
+    recorded: dict[str, object] = {}
+
+    def fake_create(**kwargs: object) -> SimpleNamespace:
+        recorded.update(kwargs)
+        return SimpleNamespace(
+            model="gpt-test",
+            output=[
+                SimpleNamespace(
+                    content=[SimpleNamespace(text="{\"proposals\": []}")]
+                )
+            ],
+        )
+
+    client._client = SimpleNamespace(responses=SimpleNamespace(create=fake_create))  # type: ignore[attr-defined]
+
+    data = ChatGPTClient._request_analysis(client, "Analyse Notes", 2)
+
+    assert data == {"model": "gpt-test", "proposals": []}
+    assert recorded["instructions"] == ChatGPTClient._SYSTEM_PROMPT
+    assert "Analyse Notes" in recorded["input"]
