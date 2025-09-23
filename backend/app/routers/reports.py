@@ -132,7 +132,7 @@ def update_template(
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
-    update_data = payload.dict(exclude_unset=True)
+    update_data = payload.model_dump(exclude_unset=True)
     sections = update_data.pop("sections", None)
     for key, value in update_data.items():
         setattr(template, key, value)

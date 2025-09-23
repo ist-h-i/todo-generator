@@ -58,7 +58,7 @@ def update_filter(
     if not saved_filter:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Filter not found")
 
-    for key, value in payload.dict(exclude_unset=True).items():
+    for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(saved_filter, key, value)
 
     db.add(saved_filter)

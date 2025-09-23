@@ -31,7 +31,7 @@ def update_board_layout(payload: schemas.BoardLayoutUpdate, db: Session = Depend
     if not preference:
         preference = models.UserPreference(user_id=payload.user_id)
 
-    update_data = payload.dict(exclude={"user_id"}, exclude_unset=True)
+    update_data = payload.model_dump(exclude={"user_id"}, exclude_unset=True)
     for key, value in update_data.items():
         setattr(preference, key, value)
 

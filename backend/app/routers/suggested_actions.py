@@ -47,7 +47,7 @@ def update_suggested_action(
     if not suggestion:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Suggestion not found")
 
-    for key, value in payload.dict(exclude_unset=True).items():
+    for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(suggestion, key, value)
 
     db.add(suggestion)
