@@ -47,7 +47,7 @@
           <button
             type="submit"
             class="focus-ring mt-2 inline-flex items-center justify-center rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-slate-400"
-            [disabled]="pending()"
+            [disabled]="!canSubmitLogin()"
           >
             サインイン
           </button>
@@ -86,7 +86,7 @@
           <button
             type="button"
             class="focus-ring inline-flex items-center justify-center rounded-xl border border-accent px-4 py-2 text-sm font-semibold text-accent transition hover:border-accent-strong hover:text-accent-strong disabled:cursor-not-allowed disabled:border-slate-400 disabled:text-slate-400"
-            [disabled]="pending()"
+            [disabled]="!canSubmitRequestEmail()"
             (click)="onRequestRegistration()"
           >
             新規登録メールを送信
@@ -94,7 +94,7 @@
           <button
             type="button"
             class="focus-ring inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-800 disabled:cursor-not-allowed disabled:border-slate-400 disabled:text-slate-400 dark:border-slate-600 dark:text-slate-200 dark:hover:text-slate-100"
-            [disabled]="pending()"
+            [disabled]="!canSubmitRequestEmail()"
             (click)="onRequestPasswordReset()"
           >
             パスワード再発行メールを送信
