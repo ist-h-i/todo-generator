@@ -152,7 +152,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXISTING_PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXISTING_PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
+          set -e
+
+          if [ -n "${EXISTING_PR_NUMBER}" ]; then
+            pr_url="${EXISTING_PR_URL:-https://github.com/${GITHUB_REPOSITORY}/pull/${EXISTING_PR_NUMBER}}"
+            echo "Pull request already exists: ${pr_url}"
+            exit 0
+          fi
+
           gh pr create \
             --base main \
             --head ${{ github.head_ref }} \
