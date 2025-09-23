@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     )
     debug: bool = Field(default=False, env="DEBUG")
     chatgpt_model: str = Field(default="gpt-4o-mini", env="CHATGPT_MODEL")
+    chatgpt_api_key: str | None = Field(default=None, env="OPENAI_API_KEY")
     allowed_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:4200"], env="ALLOWED_ORIGINS"
     )

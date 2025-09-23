@@ -7,7 +7,7 @@ This FastAPI application implements the backend described in the project require
 - FastAPI service with modular routers and automatic OpenAPI documentation.
 - SQLAlchemy data models reflecting cards, subtasks, labels, statuses, user preferences, comments, and activity logs.
 - SQLite database by default (configurable via the `DATABASE_URL` environment variable).
-- Stubbed ChatGPT client that deterministically converts free-form text into card proposals for local development.
+- Real ChatGPT integration that converts free-form text into card proposals using OpenAI's Responses API.
 - CRUD endpoints for all primary entities, including nested operations for subtasks.
 - Activity logging to track significant changes.
 - Automated tests using `pytest` and FastAPI's `TestClient`.
@@ -44,7 +44,8 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 
 - `DATABASE_URL`: SQLAlchemy connection string. Defaults to `sqlite:///./todo.db`.
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
-- `CHATGPT_MODEL`: Logical name for the ChatGPT model stub (default: `gpt-4o-mini`).
+- `CHATGPT_MODEL`: Logical name for the ChatGPT model (default: `gpt-4o-mini`).
+- `OPENAI_API_KEY`: Secret used to authenticate against the OpenAI API. Required for the analysis endpoint.
 - `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).
 
 ## Project Structure
@@ -58,7 +59,7 @@ backend/
 │   ├── models.py        # ORM models
 │   ├── schemas.py       # Pydantic schemas
 │   ├── routers/         # API routers (analysis, cards, labels, etc.)
-│   ├── services/        # External integrations (ChatGPT stub)
+│   ├── services/        # External integrations (ChatGPT client)
 │   └── utils/           # Shared helpers (activity logging)
 └── tests/
     ├── conftest.py      # Test fixtures and client setup
@@ -208,5 +209,6 @@ All endpoints are served under the root path (`/`). Unless otherwise stated the 
 
 ## Notes
 
-- The ChatGPT integration is stubbed for now; replace `services/chatgpt.py` with a real client when credentials are available.
+- The ChatGPT integration requires a valid OpenAI API key. If the key is missing the `/analysis` endpoint returns HTTP 503. When
+  configured, the backend calls the official ChatGPT Responses API and enforces the response schema via structured outputs.
 - Authentication and real-time collaboration are not yet implemented but the architecture leaves room for future expansion.
