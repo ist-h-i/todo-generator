@@ -68,12 +68,21 @@ export class Shell {
     }
   });
 
-  public readonly links = [
-    { path: '/board', label: 'ボード' },
-    { path: '/input', label: 'インプット解析' },
-    { path: '/analytics', label: 'アナリティクス' },
-    { path: '/settings', label: 'ワークスペース設定' },
-  ] as const;
+  public readonly isAdmin = this.auth.isAdmin;
+
+  public readonly navigationLinks = computed(() => {
+    const links = [
+      { path: '/board', label: 'ボード' },
+      { path: '/input', label: 'インプット解析' },
+      { path: '/analytics', label: 'アナリティクス' },
+    ];
+
+    if (this.isAdmin()) {
+      links.push({ path: '/settings', label: 'ワークスペース設定' });
+    }
+
+    return links;
+  });
 
   public readonly year = new Date().getFullYear();
   public readonly user = this.auth.user;
@@ -85,6 +94,10 @@ export class Shell {
   public readonly logout = (): void => {
     this.auth.logout();
     void this.router.navigateByUrl('/login');
+  };
+
+  public readonly openSettings = (): void => {
+    void this.router.navigateByUrl('/settings');
   };
 
   public constructor() {

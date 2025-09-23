@@ -34,7 +34,12 @@ def register(
             detail="User with this email already exists.",
         )
 
-    user = models.User(email=email, password_hash=hash_password(payload.password))
+    is_first_user = db.query(models.User).count() == 0
+    user = models.User(
+        email=email,
+        password_hash=hash_password(payload.password),
+        is_admin=is_first_user,
+    )
     db.add(user)
     db.flush()
     token_value = create_session_token(db, user)
