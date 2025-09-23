@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Mapping, Optional
 from uuid import uuid4
 import unicodedata
 
@@ -241,12 +241,14 @@ class CardRead(CardBase):
     @model_validator(mode="before")
     @classmethod
     def populate_label_ids(cls, values: Any) -> Any:
-        if not isinstance(values, dict):
-            return values
+        data: Dict[str, Any] | None = None
+        if isinstance(values, Mapping):
+            data = dict(values)
 
-        data = dict(values)
-        labels = data.get("labels")
-        if labels is not None and "label_ids" not in data:
+        labels = (data or {}).get("labels") if data is not None else getattr(values, "labels", None)
+        label_ids_present = (data or {}).get("label_ids") if data is not None else getattr(values, "label_ids", None)
+
+        if labels is not None and label_ids_present is None:
             label_ids: List[str] = []
             for label in labels:
                 if isinstance(label, dict) and "id" in label:
@@ -255,8 +257,15 @@ class CardRead(CardBase):
                     label_id = getattr(label, "id", None)
                     if label_id:
                         label_ids.append(label_id)
-            data["label_ids"] = label_ids
-        return data
+            if data is not None:
+                data["label_ids"] = label_ids
+            else:
+                try:
+                    setattr(values, "label_ids", label_ids)
+                except Exception:
+                    pass
+
+        return data if data is not None else values
 
 
 class SimilarItem(BaseModel):
