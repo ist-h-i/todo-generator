@@ -1,10 +1,10 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '@core/auth/auth.service';
 
-type ThemePreference = 'light' | 'dark';
+type ThemePreference = 'light' | 'dark' | 'system';
 
 /**
  * Workspace shell providing navigation and global context for all feature pages.
@@ -21,16 +21,35 @@ export class Shell {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly themeStorageKey = 'todo-generator:theme-preference';
 
+  private readonly themeLabels: Record<ThemePreference, string> = {
+    light: 'ライトモード',
+    dark: 'ダークモード',
+    system: 'システム設定',
+  } as const;
+
+  private readonly themeCycle: readonly ThemePreference[] = ['system', 'dark', 'light'] as const;
+
+  private readonly systemTheme = signal<'dark' | 'light'>(this.detectSystemTheme());
   private readonly theme = signal<ThemePreference>(this.resolveInitialTheme());
-  public readonly isDark = computed(() => this.theme() === 'dark');
-  public readonly themeToggleAriaLabel = computed(() =>
-    this.isDark() ? 'ライトモードに切り替え' : 'ダークモードに切り替え'
+  private readonly effectiveTheme = computed<'dark' | 'light'>(() => {
+    const preference = this.theme();
+    return preference === 'system' ? this.systemTheme() : preference;
+  });
+
+  public readonly themePreference = computed(() => this.theme());
+  public readonly themeDisplayLabel = computed(() => this.themeLabels[this.themePreference()]);
+  public readonly themeNextLabel = computed(() => this.themeLabels[this.nextTheme(this.themePreference())]);
+  public readonly isDark = computed(() => this.effectiveTheme() === 'dark');
+  public readonly themeToggleAriaLabel = computed(
+    () => `テーマ設定。現在は${this.themeDisplayLabel()}。クリックすると${this.themeNextLabel()}に切り替わります。`
   );
 
   private readonly syncTheme = effect(() => {
-    const mode = this.theme();
+    const preference = this.theme();
+    const mode = this.effectiveTheme();
     const root = this.document?.documentElement;
 
     if (!root) {
@@ -42,7 +61,7 @@ export class Shell {
 
     if (typeof window !== 'undefined') {
       try {
-        window.localStorage.setItem(this.themeStorageKey, mode);
+        window.localStorage.setItem(this.themeStorageKey, preference);
       } catch {
         // Storage might be unavailable (private mode or SSR); ignore errors silently.
       }
@@ -60,7 +79,7 @@ export class Shell {
   public readonly user = this.auth.user;
 
   public toggleTheme(): void {
-    this.theme.update((mode) => (mode === 'dark' ? 'light' : 'dark'));
+    this.theme.update((mode) => this.nextTheme(mode));
   }
 
   public readonly logout = (): void => {
@@ -68,28 +87,77 @@ export class Shell {
     void this.router.navigateByUrl('/login');
   };
 
+  public constructor() {
+    this.setupSystemThemeListener();
+  }
+
   private resolveInitialTheme(): ThemePreference {
     if (typeof window === 'undefined') {
-      return 'light';
+      return 'system';
     }
 
     try {
       const stored = window.localStorage.getItem(this.themeStorageKey);
-      if (stored === 'dark' || stored === 'light') {
+      if (stored === 'dark' || stored === 'light' || stored === 'system') {
         return stored;
       }
     } catch {
       // Ignore storage access issues and fallback to system preference.
     }
 
-    if (typeof window.matchMedia === 'function') {
-      try {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      } catch {
-        return 'light';
-      }
+    return 'system';
+  }
+
+  private detectSystemTheme(): 'dark' | 'light' {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return 'light';
     }
 
-    return 'light';
+    try {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  }
+
+  private setupSystemThemeListener(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    let mediaQuery: MediaQueryList;
+    try {
+      mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    } catch {
+      return;
+    }
+
+    const updateTheme = (matches: boolean): void => {
+      this.systemTheme.set(matches ? 'dark' : 'light');
+    };
+
+    updateTheme(mediaQuery.matches);
+
+    const listener = (event: MediaQueryListEvent): void => {
+      updateTheme(event.matches);
+    };
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', listener);
+      this.destroyRef.onDestroy(() => mediaQuery.removeEventListener('change', listener));
+    } else if (typeof mediaQuery.addListener === 'function') {
+      mediaQuery.addListener(listener);
+      this.destroyRef.onDestroy(() => mediaQuery.removeListener(listener));
+    }
+  }
+
+  private nextTheme(mode: ThemePreference): ThemePreference {
+    const index = this.themeCycle.indexOf(mode);
+
+    if (index === -1) {
+      return this.themeCycle[0];
+    }
+
+    return this.themeCycle[(index + 1) % this.themeCycle.length];
   }
 }
