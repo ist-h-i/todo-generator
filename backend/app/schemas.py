@@ -31,20 +31,13 @@ class AuthCredentials(BaseModel):
 
 class RegistrationRequest(BaseModel):
     email: EmailStr
-
-
-class PasswordResetRequest(BaseModel):
-    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
     user: UserRead
-
-
-class MessageResponse(BaseModel):
-    message: str
 
 
 class LabelBase(BaseModel):
