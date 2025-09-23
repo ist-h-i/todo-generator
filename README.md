@@ -8,25 +8,27 @@ continuous-improvement reports.
 
 ## Key Capabilities
 
-- **AI-assisted capture** – The `/analysis` endpoint now calls the ChatGPT Responses API to
-  turn multi-paragraph input into titled cards, suggested labels, priorities, due date hints,
-  and starter subtasks ready for human review. Structured outputs ensure the response matches
-  the backend schema.
-- **Rich task management** – REST endpoints for cards, subtasks, statuses, labels, saved
-  filters, and board layouts power the drag-and-drop workspace board, inline editing, and
-  comment/activity history surfaces in the frontend.
-- **Analytics & root-cause exploration** – Persist analytics snapshots, run Why-Why analyses,
-  classify error categories, and surface similar work so teams can understand recurring issues
-  before converting insights into action.
-- **Suggested actions & initiatives** – Track improvement initiatives, capture progress logs,
-  and manage AI-authored suggested actions so remedial plans stay connected to the original
-  problem statements.
-- **Narrative reporting** – Compose stakeholder-ready reports from templates that blend
-  analytics highlights, root-cause findings, initiative status, and recommended next steps into
-  a single exportable document.
-- **Extensible architecture** – FastAPI provides typed schemas, modular routers, and automatic
-  OpenAPI docs, while the Angular frontend applies a signal-first design system with dark mode,
-  accessibility landmarks, and Tailwind-powered layouts.
+- **AI-first intake & triage** – The `/analysis` endpoint calls the ChatGPT Responses API to
+  convert free-form notes into validated proposals with titles, summaries, labels, priority,
+  due-date guidance, and subtasks that align with the backend schema before humans approve
+  new cards.
+- **Collaborative board & filtering** – Cards capture statuses, labels, priorities, assignees,
+  error categories, initiatives, subtasks, comments, and activity history, while saved filters,
+  advanced search facets, and workspace preferences keep the kanban board focused on the
+  highest-impact work.
+- **Similarity & analytics intelligence** – Analytics snapshots, multi-depth Why-Why analyses,
+  and `/cards/{id}/similar` recommendations surface recurring issues, related cards and
+  subtasks, and the error categories driving them so teams can diagnose patterns faster.
+- **Guided improvements & initiatives** – Suggested actions store effort and impact metadata,
+  convert into linked cards in one click, and roll up to improvement initiatives with progress
+  logs and health metrics to keep remediation plans on track.
+- **Narrative reporting & storytelling** – Report templates and the generator blend analytics
+  highlights, root-cause findings, initiative updates, and action plans into shareable
+  narratives ready for stakeholders.
+- **Extensible architecture & tooling** – FastAPI routers expose typed OpenAPI endpoints,
+  the Angular 20 frontend leans on signal-first patterns with Tailwind-powered dark mode, and
+  automation hooks (activity logging, MCP manifests, conflict-resolution workflows) make the
+  stack integration friendly.
 
 ## Repository Layout
 
