@@ -8,6 +8,7 @@ from ..auth import (
     create_session_token,
     get_current_user,
     get_email_lookup_candidates,
+    normalize_email,
     hash_password,
     verify_password,
 )
@@ -38,8 +39,9 @@ def register(
         )
 
     is_first_user = db.query(models.User).count() == 0
+    normalized_email = normalize_email(str(payload.email))
     user = models.User(
-        email=email,
+        email=normalized_email,
         password_hash=hash_password(payload.password),
         is_admin=is_first_user,
     )

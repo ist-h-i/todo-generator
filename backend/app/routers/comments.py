@@ -27,7 +27,7 @@ def create_comment(payload: schemas.CommentCreate, db: Session = Depends(get_db)
     if not card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
-    comment = models.Comment(**payload.dict())
+    comment = models.Comment(**payload.model_dump())
     db.add(comment)
     record_activity(
         db,

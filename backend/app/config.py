@@ -1,38 +1,51 @@
 from typing import Any
 
-from pydantic import BaseSettings, Field, validator
+from pydantic import AliasChoices, Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
 
-    database_url: str = Field(default="sqlite:///./todo.db", env="DATABASE_URL")
-    debug: bool = Field(default=False, env="DEBUG")
-    chatgpt_model: str = Field(default="gpt-4o-mini", env="CHATGPT_MODEL")
-    chatgpt_api_key: str | None = Field(default=None, env="OPENAI_API_KEY")
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+
+    database_url: str = Field(
+        default="sqlite:///./todo.db",
+        validation_alias=AliasChoices("DATABASE_URL", "database_url"),
+    )
+    debug: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("DEBUG", "debug"),
+    )
+    chatgpt_model: str = Field(
+        default="gpt-4o-mini",
+        validation_alias=AliasChoices("CHATGPT_MODEL", "chatgpt_model"),
+    )
+    chatgpt_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("OPENAI_API_KEY", "chatgpt_api_key"),
+    )
     allowed_origins: list[str] = Field(
-        default_factory=lambda: ["http://localhost:4200"], env="ALLOWED_ORIGINS"
+        default_factory=lambda: ["http://localhost:4200"],
+        validation_alias=AliasChoices("ALLOWED_ORIGINS", "allowed_origins"),
     )
 
-    @validator("allowed_origins", pre=True)
+    @field_validator("allowed_origins", mode="before")
+    @classmethod
     def split_allowed_origins(cls, value: Any) -> list[str]:
         """Parse comma-separated origins from environment variables."""
 
         if value is None:
-            parsed = []
+            parsed: list[str] = []
         elif isinstance(value, str):
             parsed = [origin.strip() for origin in value.split(",") if origin.strip()]
         else:
-            parsed = value
+            parsed = list(value)
 
         if parsed and any(origin == "*" for origin in parsed):
             raise ValueError("Wildcard origins are not permitted when credentials are allowed.")
 
         return parsed
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
 
 
 def get_settings() -> Settings:

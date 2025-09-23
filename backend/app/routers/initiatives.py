@@ -65,7 +65,7 @@ def update_initiative(
     if not initiative:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
 
-    for key, value in payload.dict(exclude_unset=True).items():
+    for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(initiative, key, value)
 
     db.add(initiative)

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Literal, Optional
 from uuid import uuid4
 import unicodedata
 
-from pydantic import BaseModel, EmailStr, Field, root_validator, validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 # Shared schema components
@@ -22,8 +22,7 @@ class UserRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 def _normalize_email_input(value: str | EmailStr) -> str:
@@ -35,8 +34,9 @@ class AuthCredentials(BaseModel):
     email: EmailStr
     password: str
 
-    @validator("email", pre=True)
-    def normalize_email_field(cls, value: EmailStr | str) -> str:
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email_field(cls, value: EmailStr | str | None) -> str | EmailStr | None:
         if value is None:
             return value
 
@@ -47,8 +47,9 @@ class RegistrationRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
 
-    @validator("email", pre=True)
-    def normalize_email_field(cls, value: EmailStr | str) -> str:
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email_field(cls, value: EmailStr | str | None) -> str | EmailStr | None:
         if value is None:
             return value
 
@@ -82,8 +83,7 @@ class LabelUpdate(BaseModel):
 class LabelRead(LabelBase):
     id: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class StatusBase(BaseModel):
@@ -109,8 +109,7 @@ class StatusUpdate(BaseModel):
 class StatusRead(StatusBase):
     id: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ErrorCategoryBase(BaseModel):
@@ -134,8 +133,7 @@ class ErrorCategoryRead(ErrorCategoryBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SubtaskBase(BaseModel):
@@ -177,8 +175,7 @@ class SubtaskRead(SubtaskBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CardBase(BaseModel):
@@ -239,11 +236,14 @@ class CardRead(CardBase):
     initiative: Optional["ImprovementInitiativeRead"] = None
     owner: Optional[UserRead] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
-    @root_validator(pre=True)
-    def populate_label_ids(cls, values: dict[str, Any]) -> dict[str, Any]:
+    @model_validator(mode="before")
+    @classmethod
+    def populate_label_ids(cls, values: Any) -> Any:
+        if not isinstance(values, dict):
+            return values
+
         data = dict(values)
         labels = data.get("labels")
         if labels is not None and "label_ids" not in data:
@@ -306,8 +306,7 @@ class SavedFilterRead(SavedFilterBase):
     updated_at: datetime
     last_used_at: Optional[datetime] = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class InitiativeBase(BaseModel):
@@ -345,8 +344,7 @@ class InitiativeProgressLogRead(InitiativeProgressLogCreate):
     id: str
     timestamp: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ImprovementInitiativeRead(InitiativeBase):
@@ -355,8 +353,7 @@ class ImprovementInitiativeRead(InitiativeBase):
     updated_at: datetime
     progress_logs: List[InitiativeProgressLogRead] = Field(default_factory=list)
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserPreferenceBase(BaseModel):
@@ -372,8 +369,7 @@ class UserPreferenceRead(UserPreferenceBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BoardLayoutUpdate(UserPreferenceBase):
@@ -395,8 +391,7 @@ class CommentRead(CommentBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ActivityLogRead(BaseModel):
@@ -407,8 +402,7 @@ class ActivityLogRead(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AnalysisRequest(BaseModel):
@@ -467,8 +461,7 @@ class AnalyticsSnapshotRead(AnalyticsSnapshotBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class WhyWhyRequest(BaseModel):
@@ -476,8 +469,7 @@ class WhyWhyRequest(BaseModel):
     focus_question: Optional[str] = None
     context: Dict[str, Any] = Field(default_factory=dict)
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class WhyWhyTriggerResponse(BaseModel):
@@ -498,8 +490,7 @@ class RootCauseNodeRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SuggestedActionBase(BaseModel):
@@ -537,8 +528,7 @@ class SuggestedActionRead(SuggestedActionBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RootCauseAnalysisRead(BaseModel):
@@ -556,8 +546,7 @@ class RootCauseAnalysisRead(BaseModel):
     nodes: List[RootCauseNodeRead] = Field(default_factory=list)
     suggestions: List[SuggestedActionRead] = Field(default_factory=list)
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SuggestionConversionRequest(BaseModel):
@@ -601,8 +590,7 @@ class ReportTemplateRead(ReportTemplateBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class GeneratedReportRead(BaseModel):
@@ -615,8 +603,7 @@ class GeneratedReportRead(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ReportGenerateRequest(BaseModel):
@@ -633,4 +620,4 @@ class ReportGenerateResponse(GeneratedReportRead):
 
 
 # Resolve forward references for nested models defined later in the module.
-CardRead.update_forward_refs(ImprovementInitiativeRead=ImprovementInitiativeRead)
+CardRead.model_rebuild()

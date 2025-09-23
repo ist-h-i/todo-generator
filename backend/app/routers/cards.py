@@ -328,7 +328,7 @@ def create_card(
         card.labels = labels
 
     for subtask_data in payload.subtasks:
-        card.subtasks.append(models.Subtask(**subtask_data.dict()))
+        card.subtasks.append(models.Subtask(**subtask_data.model_dump()))
 
     db.add(card)
     record_activity(db, action="card_created", card_id=card.id, actor_id=current_user.id)
@@ -365,7 +365,7 @@ def update_card(
     if not card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
-    update_data = payload.dict(exclude_unset=True)
+    update_data = payload.model_dump(exclude_unset=True)
     label_ids = update_data.pop("label_ids", None)
 
     for key, value in update_data.items():
@@ -430,7 +430,7 @@ def create_subtask(
     if not card or card.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
-    subtask = models.Subtask(card_id=card_id, **payload.dict())
+    subtask = models.Subtask(card_id=card_id, **payload.model_dump())
     db.add(subtask)
     record_activity(
         db,
@@ -460,7 +460,7 @@ def update_subtask(
     if not subtask or subtask.card_id != card_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
-    for key, value in payload.dict(exclude_unset=True).items():
+    for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(subtask, key, value)
 
     db.add(subtask)
