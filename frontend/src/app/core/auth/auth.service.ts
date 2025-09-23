@@ -228,7 +228,7 @@ export class AuthService {
       if (Array.isArray(detail)) {
         for (const entry of detail) {
           if (entry && typeof entry === 'object') {
-            const message = (entry as Record<string, unknown>).msg;
+            const message = (entry as Record<string, unknown>)['msg'];
             if (typeof message === 'string' && message.trim().length > 0) {
               return message;
             }
