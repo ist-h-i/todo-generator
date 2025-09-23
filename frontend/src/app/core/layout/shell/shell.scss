@@ -1,5 +1,14 @@
 :host {
   display: block;
+  --shell-inline-padding: clamp(1.5rem, 4vw, 5rem);
+  --shell-max-width: min(100%, 120rem);
+}
+
+.shell-container {
+  box-sizing: border-box;
+  width: var(--shell-max-width);
+  margin-inline: auto;
+  padding-inline: var(--shell-inline-padding);
 }
 
 .shell-header {
