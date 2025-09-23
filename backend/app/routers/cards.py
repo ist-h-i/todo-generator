@@ -98,6 +98,8 @@ def _reserve_daily_card_quota(db: Session, *, owner_id: str, quota_day: date) ->
 
 router = APIRouter(prefix="/cards", tags=["cards"])
 
+DAILY_CARD_CREATION_LIMIT = 25
+
 
 def _card_query(db: Session, *, owner_id: Optional[str] = None):
     query = db.query(models.Card).options(
@@ -282,8 +284,23 @@ def create_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Card:
-    quota_day = datetime.now(timezone.utc).date()
-    _reserve_daily_card_quota(db, owner_id=current_user.id, quota_day=quota_day)
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(days=1)
+
+    created_count = (
+        db.query(func.count(models.Card.id))
+        .filter(
+            models.Card.owner_id == current_user.id,
+            models.Card.created_at >= window_start,
+        )
+        .scalar()
+    ) or 0
+
+    if created_count >= DAILY_CARD_CREATION_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached.",
+        )
 
     card = models.Card(
         title=payload.title,

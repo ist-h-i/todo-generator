@@ -6,7 +6,14 @@ from copy import deepcopy
 from typing import Any, List, Optional, Sequence
 
 from fastapi import HTTPException, status
-from openai import OpenAI, OpenAIError
+
+try:  # pragma: no cover - optional dependency wrapper
+    from openai import OpenAI, OpenAIError
+except ModuleNotFoundError:  # pragma: no cover - executed when SDK missing
+    OpenAI = None  # type: ignore[misc, assignment]
+
+    class OpenAIError(Exception):
+        """Fallback error raised when the OpenAI SDK is unavailable."""
 
 from ..config import settings
 from ..schemas import (
@@ -22,6 +29,8 @@ logger = logging.getLogger(__name__)
 class ChatGPTError(RuntimeError):
     """Base exception for ChatGPT integration errors."""
 
+class ChatGPTError(RuntimeError):
+    """Base exception for ChatGPT integration errors."""
 
 class ChatGPTConfigurationError(ChatGPTError):
     """Raised when required configuration for ChatGPT is missing."""
@@ -104,6 +113,11 @@ class ChatGPTClient:
         if not self.api_key:
             raise ChatGPTConfigurationError(
                 "ChatGPT API key is not configured. Set OPENAI_API_KEY environment variable."
+            )
+
+        if OpenAI is None:
+            raise ChatGPTConfigurationError(
+                "OpenAI SDK is not installed. Install the 'openai' package to enable analysis."
             )
 
         self._client = OpenAI(api_key=self.api_key)
