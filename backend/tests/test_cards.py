@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.services.email import EMAIL_OUTBOX
+DEFAULT_PASSWORD = "Register123!"
 
 
-def _latest_password(email: str) -> str:
-    for message in reversed(EMAIL_OUTBOX):
-        if message.to == email:
-            return message.password
-    raise AssertionError(f"No password email found for {email}")
-
-
-def register_and_login(client: TestClient, email: str) -> dict[str, str]:
-    response = client.post("/auth/register", json={"email": email})
+def register_and_login(
+    client: TestClient, email: str, password: str = DEFAULT_PASSWORD
+) -> dict[str, str]:
+    response = client.post(
+        "/auth/register",
+        json={"email": email, "password": password},
+    )
     assert response.status_code == 201, response.text
-    password = _latest_password(email)
+    token_payload = response.json()
+    assert "access_token" in token_payload
+    assert token_payload["user"]["email"] == email
     login_response = client.post(
         "/auth/login",
         json={"email": email, "password": password},

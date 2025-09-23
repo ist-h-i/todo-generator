@@ -6,14 +6,12 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import (
     create_session_token,
-    generate_password,
     get_current_user,
     hash_password,
     normalize_email,
     verify_password,
 )
 from ..database import get_db
-from ..services.email import send_password_email
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -21,13 +19,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post(
     "/register",
-    response_model=schemas.MessageResponse,
+    response_model=schemas.TokenResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def register(
     payload: schemas.RegistrationRequest,
     db: Session = Depends(get_db),
-) -> schemas.MessageResponse:
+) -> schemas.TokenResponse:
     email = normalize_email(payload.email)
     existing = db.query(models.User).filter(models.User.email == email).first()
     if existing:
@@ -36,12 +34,13 @@ def register(
             detail="User with this email already exists.",
         )
 
-    password = generate_password()
-    user = models.User(email=email, password_hash=hash_password(password))
+    user = models.User(email=email, password_hash=hash_password(payload.password))
     db.add(user)
+    db.flush()
+    token_value = create_session_token(db, user)
     db.commit()
-    send_password_email(email=payload.email, password=password, reason="register")
-    return schemas.MessageResponse(message="初期パスワードをメールで送信しました。")
+    db.refresh(user)
+    return schemas.TokenResponse(access_token=token_value, user=user)
 
 
 @router.post("/login", response_model=schemas.TokenResponse)
@@ -61,32 +60,6 @@ def login(
     token_value = create_session_token(db, user)
     db.commit()
     return schemas.TokenResponse(access_token=token_value, user=user)
-
-
-@router.post(
-    "/password-reset",
-    response_model=schemas.MessageResponse,
-    status_code=status.HTTP_200_OK,
-)
-def reset_password(
-    payload: schemas.PasswordResetRequest,
-    db: Session = Depends(get_db),
-) -> schemas.MessageResponse:
-    email = normalize_email(payload.email)
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found.",
-        )
-
-    new_password = generate_password()
-    user.password_hash = hash_password(new_password)
-    db.query(models.SessionToken).filter(models.SessionToken.user_id == user.id).delete()
-    db.add(user)
-    db.commit()
-    send_password_email(email=payload.email, password=new_password, reason="reset")
-    return schemas.MessageResponse(message="初期パスワードをメールで送信しました。")
 
 
 @router.get("/me", response_model=schemas.UserRead)
