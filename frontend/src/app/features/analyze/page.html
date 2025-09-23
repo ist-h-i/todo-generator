@@ -10,16 +10,16 @@
     </header>
 
     <div class="grid gap-4 lg:grid-cols-2">
-      <label class="flex flex-col gap-2">
+      <label class="flex h-full flex-col gap-2">
         <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ノート</span>
         <textarea
-          class="min-h-[180px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+          class="min-h-[260px] flex-1 rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
           placeholder="例: ユーザーからのフィードバックや不具合の状況を貼り付けてください"
           [value]="analyzeForm.controls.notes.value()"
           (input)="analyzeForm.controls.notes.setValue($any($event.target).value)"
         ></textarea>
       </label>
-      <div class="flex flex-col gap-4">
+      <div class="flex h-full flex-col gap-4">
         <div class="space-y-3 rounded-2xl border border-dashed border-subtle px-4 py-4">
           <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
             ゴールの決め方
@@ -60,7 +60,7 @@
         </div>
         @if (isAutoObjectiveEnabled()) {
           <div
-            class="min-h-[180px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-xs text-slate-600 dark:text-slate-300"
+            class="min-h-[260px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-xs text-slate-600 dark:text-slate-300"
           >
             <p class="text-sm font-semibold text-on-surface">AIが推定したゴール候補</p>
             <p class="mt-1 leading-relaxed">{{ autoObjectivePreview() }}</p>
@@ -69,12 +69,12 @@
             </p>
           </div>
         } @else {
-          <label class="flex flex-col gap-2">
+          <label class="flex flex-1 flex-col gap-2">
             <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
               >ゴール</span
             >
             <textarea
-              class="min-h-[180px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+              class="min-h-[260px] flex-1 rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
               placeholder="例: 新規登録フローの離脱率を20%改善する"
               [value]="analyzeForm.controls.objective.value()"
               (input)="analyzeForm.controls.objective.setValue($any($event.target).value)"
