@@ -28,6 +28,7 @@
           <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
             メールアドレス
             <input
+              name="email"
               type="email"
               autocomplete="email"
               [value]="loginForm.controls.email.value()"
@@ -40,6 +41,7 @@
           <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
             パスワード
             <input
+              name="password"
               type="password"
               autocomplete="current-password"
               [value]="loginForm.controls.password.value()"
@@ -90,42 +92,18 @@
           </div>
         }
 
-        <form class="mt-6 flex flex-col gap-5" (submit)="onRegisterSubmit($event)">
-          <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
-            メールアドレス
-            <input
-              type="email"
-              autocomplete="email"
-              [value]="registerForm.controls.email.value()"
-              (input)="onRegisterEmailInput($event)"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              placeholder="you@example.com"
-            />
-          </label>
-
-          <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
-            パスワード
-            <input
-              type="password"
-              autocomplete="new-password"
-              [value]="registerForm.controls.password.value()"
-              (input)="onRegisterPasswordInput($event)"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              placeholder="8文字以上のパスワード"
-            />
-          </label>
-
-          <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
-            パスワード（確認用）
-            <input
-              type="password"
-              autocomplete="new-password"
-              [value]="registerForm.controls.confirmPassword.value()"
-              (input)="onRegisterConfirmInput($event)"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              placeholder="パスワードを再入力"
-            />
-          </label>
+        <label class="mt-6 block text-sm font-medium text-slate-600 dark:text-slate-300">
+          メールアドレス
+          <input
+            name="request-email"
+            type="email"
+            autocomplete="email"
+            [value]="requestForm.controls.email.value()"
+            (input)="onRequestEmailInput($event)"
+            class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            placeholder="you@example.com"
+          />
+        </label>
 
           <button
             type="submit"
