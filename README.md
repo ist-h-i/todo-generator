@@ -108,6 +108,8 @@ Workspace-ready settings for [Model Context Protocol](https://modelcontextprotoc
 checked into the repository so compatible tools can register servers immediately via the
 `.modelcontext.json` manifest. Any MCP-aware client (including Codex and Claude Code) can read this
 file to discover the Git and filesystem servers hosted at the workspace root.
+- `.codex/config.json` remains available for Codex’s built-in workspace discovery so existing users
+  continue to get automatic registration when opening the repo.
 
 Each configuration registers two servers:
 
