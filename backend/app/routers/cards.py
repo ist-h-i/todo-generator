@@ -16,7 +16,7 @@ from ..utils.activity import record_activity
 
 DAILY_CARD_CREATION_LIMIT = 25
 _DAILY_CARD_LIMIT_MESSAGE = (
-    "Daily card creation limit reached. Please try again tomorrow."
+    f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached."
 )
 
 
