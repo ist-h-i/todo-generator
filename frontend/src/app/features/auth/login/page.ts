@@ -30,8 +30,19 @@ export class LoginPage {
   public readonly infoMessage = signal<string | null>(null);
   public readonly loginNotice = signal<string | null>(null);
 
-  public readonly pending = computed(() => this.auth.pending());
+  public readonly pending = this.auth.pending;
   public readonly error = computed(() => this.auth.error());
+  public readonly isLoginFormValid = computed(() => {
+    const value = this.loginForm.value();
+    return value.email.trim().length > 0 && value.password.length > 0;
+  });
+  public readonly canSubmitLogin = computed(
+    () => this.isLoginFormValid() && !this.pending(),
+  );
+  public readonly canSubmitRequestEmail = computed(() => {
+    const email = this.requestForm.controls.email.value().trim();
+    return email.length > 0 && !this.pending();
+  });
 
   public constructor() {
     effect(() => {
@@ -52,14 +63,18 @@ export class LoginPage {
     this.infoMessage.set(null);
     this.loginNotice.set(null);
 
-    const credentials = this.loginForm.value();
-    const email = credentials.email.trim();
-    const password = credentials.password;
+    if (this.pending()) {
+      return;
+    }
 
-    if (!email || !password) {
+    if (!this.isLoginFormValid()) {
       this.loginNotice.set('メールアドレスとパスワードを入力してください。');
       return;
     }
+
+    const credentials = this.loginForm.value();
+    const email = credentials.email.trim();
+    const password = credentials.password;
 
     const success = await this.auth.login(email, password);
     if (success) {
@@ -81,6 +96,10 @@ export class LoginPage {
     this.infoMessage.set(null);
     this.loginNotice.set(null);
 
+    if (this.pending()) {
+      return;
+    }
+
     const email = this.requestForm.value().email.trim();
     if (!email) {
       this.infoMessage.set('メールアドレスを入力してください。');
@@ -97,6 +116,10 @@ export class LoginPage {
   public async onRequestPasswordReset(): Promise<void> {
     this.infoMessage.set(null);
     this.loginNotice.set(null);
+
+    if (this.pending()) {
+      return;
+    }
 
     const email = this.requestForm.value().email.trim();
     if (!email) {
