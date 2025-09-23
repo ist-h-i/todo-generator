@@ -1,9 +1,9 @@
 <section class="space-y-10">
   <header class="space-y-2">
-    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Analytics</p>
-    <h2 class="text-2xl font-semibold text-on-surface">ワークスペースの指標</h2>
+    <p class="text-xs uppercase tracking-[0.3em] text-slate-400">分析ダッシュボード</p>
+    <h2 class="text-2xl font-semibold text-on-surface">ワークスペース全体の指標</h2>
     <p class="text-sm text-slate-500 dark:text-slate-400">
-      完了率やポイント配分に加えて、指摘の傾向と根本原因、改善活動の実績を一括で把握できます。
+      完了率やポイント配分に加え、指摘の傾向や原因、改善活動の進捗までひと目で確認できます。
     </p>
   </header>
 
@@ -13,23 +13,23 @@
         <p class="text-xs uppercase tracking-[0.3em] text-slate-400">進捗率</p>
         <p class="mt-3 text-3xl font-semibold">{{ summary.progressRatio }}%</p>
         <p class="text-sm text-slate-500">
-          完了カード {{ summary.doneCards }}/{{ summary.totalCards }}
+          完了したカード {{ summary.doneCards }}/{{ summary.totalCards }}
         </p>
       </article>
       <article class="surface-panel px-6 py-6">
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">カード数</p>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">カード総数</p>
         <p class="mt-3 text-3xl font-semibold">{{ summary.totalCards }}</p>
-        <p class="text-sm text-slate-500">アクティブラベル {{ summary.activeLabels }}</p>
+        <p class="text-sm text-slate-500">利用中のラベル {{ summary.activeLabels }}</p>
       </article>
       <article class="surface-panel px-6 py-6">
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">ポイント完了</p>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">完了ポイント</p>
         <p class="mt-3 text-3xl font-semibold">{{ pointSummary().done }}</p>
-        <p class="text-sm text-slate-500">残 {{ pointSummary().remaining }}</p>
+        <p class="text-sm text-slate-500">残り {{ pointSummary().remaining }}</p>
       </article>
       <article class="surface-panel px-6 py-6">
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">総ポイント</p>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">総ポイント数</p>
         <p class="mt-3 text-3xl font-semibold">{{ pointSummary().total }}</p>
-        <p class="text-sm text-slate-500">スプリント負荷の目安に活用</p>
+        <p class="text-sm text-slate-500">スプリント負荷の目安として活用できます</p>
       </article>
     </div>
   }
@@ -37,7 +37,7 @@
   <div class="grid gap-4 lg:grid-cols-2">
     <section class="surface-panel space-y-4 px-6 py-6">
       <header class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-on-surface">ステータス別件数</h3>
+        <h3 class="text-lg font-semibold text-on-surface">ステータス別の件数</h3>
         <span class="text-xs text-slate-500">{{ statusBreakdown().length }} ステージ</span>
       </header>
       <ul class="space-y-3">
@@ -53,7 +53,7 @@
 
     <section class="surface-panel space-y-4 px-6 py-6">
       <header class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-on-surface">ラベル別件数</h3>
+        <h3 class="text-lg font-semibold text-on-surface">ラベル別の件数</h3>
         <span class="text-xs text-slate-500">{{ labelBreakdown().length }} ラベル</span>
       </header>
       <ul class="space-y-3">
@@ -72,9 +72,9 @@
     <header class="space-y-2">
       <div class="flex items-center justify-between gap-4">
         <div>
-          <h3 class="text-lg font-semibold text-on-surface">指摘トレンド分析</h3>
+          <h3 class="text-lg font-semibold text-on-surface">指摘トレンドの分析</h3>
           <p class="text-xs text-slate-500">
-            期間を切り替えて、どのような指摘やエラーが多いのか把握できます。
+            期間を切り替えて、どの指摘やエラーが多いかを確認できます。
           </p>
         </div>
         <span class="text-xs text-slate-500">{{ snapshots().length }} スナップショット</span>
@@ -130,7 +130,7 @@
       <div class="space-y-4">
         @if (activeSnapshot(); as snapshot) {
           <div class="rounded-2xl border border-subtle p-4">
-            <h4 class="text-sm font-semibold text-on-surface">期間サマリー</h4>
+            <h4 class="text-sm font-semibold text-on-surface">この期間のサマリー</h4>
             <p class="mt-2 text-xs text-slate-500">{{ snapshot.summary }}</p>
             <ul class="mt-4 space-y-2 text-sm text-on-surface">
               @for (metric of snapshot.metrics; track metric.label) {
@@ -150,7 +150,7 @@
           </div>
         } @else {
           <p class="rounded-2xl border border-dashed border-subtle p-4 text-sm text-slate-500">
-            スナップショットが選択されていません。
+            スナップショットが選択されていません。上の一覧から選んでください。
           </p>
         }
       </div>
@@ -159,28 +159,28 @@
 
   <section class="surface-panel space-y-6 px-6 py-6">
     <header class="space-y-2">
-      <h3 class="text-lg font-semibold text-on-surface">なぜなぜ分析の結果</h3>
+      <h3 class="text-lg font-semibold text-on-surface">なぜなぜ分析の結果一覧</h3>
       <p class="text-xs text-slate-500">
-        AIが生成した各階層の原因を表示します。率直な指摘も曖昧にせず明示します。
+        AIが推定した各階層の原因を表示します。率直な指摘もあいまいにせずに示します。
       </p>
     </header>
     <div class="grid gap-4 md:grid-cols-3">
       @for (layer of causeLayers(); track layer.depth) {
         <article class="cause-column">
-          <h4 class="text-sm font-semibold text-on-surface">第{{ layer.depth }}階層</h4>
+          <h4 class="text-sm font-semibold text-on-surface">第{{ layer.depth }}層</h4>
           <ul class="mt-3 space-y-3">
             @for (node of layer.nodes; track node.id) {
               <li class="cause-card">
                 <p class="text-sm font-semibold text-on-surface">{{ node.statement }}</p>
                 <p class="text-xs text-slate-500">
-                  確信度 {{ node.confidence * 100 | number: '1.0-0' }}% · 状態 {{ node.state }}
+                  確信度 {{ node.confidence * 100 | number: '1.0-0' }}% · 状況 {{ node.state }}
                 </p>
                 <p class="text-xs text-slate-500">
-                  推奨メトリクス: {{ node.recommendedMetrics.join(', ') || '未設定' }}
+                  推奨指標: {{ node.recommendedMetrics.join(', ') || '未設定' }}
                 </p>
                 @if (node.tone === 'direct') {
                   <p class="text-xs font-semibold text-rose-500">
-                    率直な指摘: 感情に配慮しつつも事実を明示します。
+                    率直な指摘: 感情に配慮しながら事実をはっきり伝えています。
                   </p>
                 }
               </li>
@@ -194,9 +194,9 @@
   <section class="surface-panel space-y-6 px-6 py-6">
     <header class="flex items-center justify-between">
       <div>
-        <h3 class="text-lg font-semibold text-on-surface">ネクストアクション</h3>
+        <h3 class="text-lg font-semibold text-on-surface">次のアクション</h3>
         <p class="text-xs text-slate-500">
-          原因ごとの推奨アクションをワンクリックでタスク化できます。
+          原因ごとの推奨アクションをワンクリックでタスクにできます。
         </p>
       </div>
       <span class="text-xs text-slate-500">{{ actionPlan().length }} 件</span>
@@ -209,11 +209,11 @@
               <p class="text-sm font-semibold text-on-surface">{{ action.title }}</p>
               <p class="text-xs text-slate-500">{{ action.summary }}</p>
               <p class="text-xs text-slate-500">
-                担当: {{ action.ownerRole }} · 努力 {{ action.effort }} · 影響度
+                担当: {{ action.ownerRole }} · 工数 {{ action.effort }} · 影響度
                 {{ action.impactScore }}
               </p>
               <p class="text-xs text-slate-500">
-                期限目安 {{ action.dueInDays }} 日 · 推奨ラベル {{ action.labelIds.join(', ') }}
+                期限の目安 {{ action.dueInDays }} 日 · 推奨ラベル {{ action.labelIds.join(', ') }}
               </p>
             </div>
             <span
@@ -231,10 +231,10 @@
               [disabled]="action.status === 'converted'"
               (click)="convertAction(action.id)"
             >
-              {{ action.status === 'converted' ? '起票済み' : 'ワンクリックでタスク化' }}
+              {{ action.status === 'converted' ? '作成済み' : 'ワンクリックでタスク化' }}
             </button>
             @if (action.createdCardId) {
-              <span class="text-xs text-slate-500">カード ID: {{ action.createdCardId }}</span>
+              <span class="text-xs text-slate-500">カードID: {{ action.createdCardId }}</span>
             }
           </div>
         </li>
@@ -255,15 +255,15 @@
         <article class="metric-card">
           <p class="text-xs uppercase tracking-[0.2em] text-slate-400">フィードバック件数</p>
           <p class="mt-3 text-3xl font-semibold">{{ overview.totalFeedback }}</p>
-          <p class="text-xs text-slate-500">ヒアリングやインシデントの総数</p>
+          <p class="text-xs text-slate-500">ヒアリングとインシデントの総数</p>
         </article>
         <article class="metric-card">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-400">タスク化済み提案</p>
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-400">タスク化した提案</p>
           <p class="mt-3 text-3xl font-semibold">{{ overview.convertedActions }}</p>
-          <p class="text-xs text-slate-500">残り {{ overview.pendingActions }} 件レビュー待ち</p>
+          <p class="text-xs text-slate-500">残り {{ overview.pendingActions }} 件がレビュー待ち</p>
         </article>
         <article class="metric-card">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-400">イニシアチブ</p>
+          <p class="text-xs uppercase tracking-[0.2em] text-slate-400">改善イニシアチブ</p>
           <p class="mt-3 text-3xl font-semibold">{{ overview.completedInitiatives }}</p>
           <p class="text-xs text-slate-500">進行中 {{ overview.activeInitiatives }} 件</p>
         </article>
@@ -271,7 +271,7 @@
     }
 
     <div class="space-y-3">
-      <h3 class="text-sm font-semibold text-on-surface">改善活動の実績</h3>
+      <h3 class="text-sm font-semibold text-on-surface">改善活動の進捗</h3>
       <div class="grid gap-4 lg:grid-cols-2">
         @for (initiative of initiatives(); track initiative.id) {
           <article class="initiative-card">
@@ -279,7 +279,7 @@
               <div class="space-y-1">
                 <p class="text-sm font-semibold text-on-surface">{{ initiative.name }}</p>
                 <p class="text-xs text-slate-500">
-                  オーナー {{ initiative.owner }} · ステータス {{ initiative.status }}
+                  担当者 {{ initiative.owner }} · ステータス {{ initiative.status }}
                 </p>
                 <p class="text-xs text-slate-500">目標: {{ initiative.targetMetric }}</p>
                 <p class="text-xs text-slate-500">{{ initiative.summary }}</p>
@@ -304,11 +304,13 @@
 
   <section class="surface-panel space-y-4 px-6 py-6">
     <header class="space-y-1">
-      <h3 class="text-lg font-semibold text-on-surface">レポート生成</h3>
-      <p class="text-xs text-slate-500">指示文を入力すると、改善活動の報告書形式でまとめます。</p>
+      <h3 class="text-lg font-semibold text-on-surface">レポート作成</h3>
+      <p class="text-xs text-slate-500">指示文を入力すると、改善活動を報告書形式でまとめます。</p>
     </header>
     <div class="space-y-3">
-      <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">指示</label>
+      <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
+        >指示内容</label
+      >
       <textarea
         class="w-full rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm text-on-surface"
         rows="3"
@@ -321,7 +323,7 @@
           class="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white"
           (click)="generateReport()"
         >
-          レポートを再生成
+          レポートを再作成
         </button>
       </div>
       <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
