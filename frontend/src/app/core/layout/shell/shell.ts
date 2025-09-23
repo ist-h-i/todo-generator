@@ -88,7 +88,7 @@ export class Shell {
     const links = [
       { path: '/board', label: 'ボード' },
       { path: '/input', label: 'タスク起票' },
-      { path: '/analytics', label: 'アナリティクス' },
+      { path: '/analytics', label: '分析' },
     ];
 
     if (this.isAdmin()) {
