@@ -82,33 +82,21 @@ export class Shell {
     }
   });
 
-  private readonly syncHelpDialogScrollLock = effect(() => {
-    const body = this.document?.body;
+  public readonly isAdmin = this.auth.isAdmin;
 
-    if (!body) {
-      return;
+  public readonly navigationLinks = computed(() => {
+    const links = [
+      { path: '/board', label: 'ボード' },
+      { path: '/input', label: 'インプット解析' },
+      { path: '/analytics', label: 'アナリティクス' },
+    ];
+
+    if (this.isAdmin()) {
+      links.push({ path: '/settings', label: 'ワークスペース設定' });
     }
 
-    if (this.helpDialogVisible()) {
-      const previous = body.style.overflow;
-      body.style.setProperty('overflow', 'hidden');
-
-      return () => {
-        body.style.overflow = previous;
-      };
-    }
-
-    body.style.removeProperty('overflow');
-
-    return;
+    return links;
   });
-
-  public readonly links = [
-    { path: '/board', label: 'ボード' },
-    { path: '/input', label: 'インプット解析' },
-    { path: '/analytics', label: 'アナリティクス' },
-    { path: '/settings', label: 'ワークスペース設定' },
-  ] as const;
 
   public readonly year = new Date().getFullYear();
   public readonly user = this.auth.user;
@@ -128,6 +116,10 @@ export class Shell {
   public readonly logout = (): void => {
     this.auth.logout();
     void this.router.navigateByUrl('/login');
+  };
+
+  public readonly openSettings = (): void => {
+    void this.router.navigateByUrl('/settings');
   };
 
   public constructor() {

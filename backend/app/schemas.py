@@ -18,6 +18,7 @@ class ChecklistItem(BaseModel):
 class UserRead(BaseModel):
     id: str
     email: EmailStr
+    is_admin: bool
     created_at: datetime
     updated_at: datetime
 

@@ -28,6 +28,7 @@ export class AuthService {
   public readonly error = computed(() => this.errorStore());
   public readonly pending = computed(() => this.pendingStore());
   public readonly isAuthenticated = computed(() => this.userStore() !== null);
+  public readonly isAdmin = computed(() => this.userStore()?.is_admin === true);
   public readonly initialized = computed(() => this.initializedStore());
 
   public async ensureInitialized(): Promise<void> {
