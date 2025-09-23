@@ -46,50 +46,80 @@
         </div>
       </header>
       <section
-        class="flex min-w-0 flex-col gap-4 rounded-3xl border border-subtle bg-surface px-6 py-5 shadow-soft lg:flex-row lg:items-center lg:justify-between"
+        class="board-toolbar rounded-3xl border border-subtle bg-surface px-6 py-6 shadow-soft"
       >
-        <label
-          class="flex w-full min-w-0 items-center gap-3 text-sm text-slate-600 dark:text-slate-300"
-        >
-          <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">検索</span>
-          <input
-            type="search"
-            class="w-full min-w-0 rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
-            placeholder="キーワードでカードを検索"
-            [value]="searchForm.controls.search.value()"
-            (input)="updateSearch($any($event.target).value)"
-          />
-        </label>
-        <div class="flex min-w-0 flex-col gap-3 text-xs">
-          <div class="flex flex-wrap items-center gap-2 text-slate-500">
-            <button
-              type="button"
-              class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-              [class.surface-primary-muted]="groupingSignal() === 'status'"
-              (click)="selectGrouping('status')"
+        <div class="board-toolbar__grid">
+          <label
+            class="board-toolbar__search text-sm text-slate-600 dark:text-slate-300"
+          >
+            <span
+              class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+              >検索</span
             >
-              ステータス別
-            </button>
+            <div class="board-toolbar__search-field">
+              <svg
+                class="board-toolbar__search-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="m21 21-4.35-4.35M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                />
+              </svg>
+              <input
+                type="search"
+                class="board-toolbar__search-control"
+                placeholder="キーワードでカードを検索"
+                [value]="searchForm.controls.search.value()"
+                (input)="updateSearch($any($event.target).value)"
+              />
+            </div>
+          </label>
+          <div class="board-toolbar__actions text-xs text-slate-500">
+            <div class="board-toolbar__view">
+              <span
+                class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+                >ビュー</span
+              >
+              <div class="board-toolbar__view-buttons">
+                <button
+                  type="button"
+                  class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+                  [class.surface-primary-muted]="groupingSignal() === 'status'"
+                  (click)="selectGrouping('status')"
+                >
+                  ステータス別
+                </button>
+                <button
+                  type="button"
+                  class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+                  [class.surface-primary-muted]="groupingSignal() === 'label'"
+                  (click)="selectGrouping('label')"
+                >
+                  ラベル別
+                </button>
+              </div>
+            </div>
             <button
               type="button"
-              class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-              [class.surface-primary-muted]="groupingSignal() === 'label'"
-              (click)="selectGrouping('label')"
-            >
-              ラベル別
-            </button>
-            <button
-              type="button"
-              class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+              class="board-toolbar__clear surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
               (click)="clearFilters()"
             >
               フィルターをクリア
             </button>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-              >クイック</span
-            >
+        </div>
+        <div class="board-toolbar__quick text-xs text-slate-500">
+          <span
+            class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+            >クイック</span
+          >
+          <div class="board-toolbar__quick-actions">
             @for (filter of quickFilters; track filter.id) {
               <button
                 type="button"
