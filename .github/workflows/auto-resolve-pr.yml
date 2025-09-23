@@ -92,13 +92,22 @@ jobs:
           set -e
           ran_tests=false
 
+          chrome_path=$(command -v chromium-browser || command -v chromium || command -v google-chrome || true)
+          if [ -n "$chrome_path" ]; then
+            export CHROME_BIN="$chrome_path"
+          fi
+
           if [ -f package.json ]; then
             ran_tests=true
             npm ci
             if [ -f karma.conf.js ] || [ -f karma.conf.cjs ]; then
               npx karma start --single-run --browsers=ChromeHeadless
             else
-              npm test
+              if node -e "const pkg=require('./package.json'); const script=(pkg && pkg.scripts && pkg.scripts.test) || ''; process.exit(script.includes('ng test') ? 0 : 1);"; then
+                npm test -- --watch=false --browsers=ChromeHeadless
+              else
+                npm test
+              fi
             fi
           fi
 
@@ -113,7 +122,11 @@ jobs:
             if [ -f karma.conf.js ] || [ -f karma.conf.cjs ]; then
               npx karma start --single-run --browsers=ChromeHeadless
             else
-              npm test
+              if node -e "const pkg=require('./package.json'); const script=(pkg && pkg.scripts && pkg.scripts.test) || ''; process.exit(script.includes('ng test') ? 0 : 1);"; then
+                npm test -- --watch=false --browsers=ChromeHeadless
+              else
+                npm test
+              fi
             fi
             popd > /dev/null
           fi
