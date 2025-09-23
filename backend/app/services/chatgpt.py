@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 class ChatGPTError(RuntimeError):
     """Base exception for ChatGPT integration errors."""
 
+class ChatGPTError(RuntimeError):
+    """Base exception for ChatGPT integration errors."""
 
 class ChatGPTConfigurationError(ChatGPTError):
     """Raised when required configuration for ChatGPT is missing."""
