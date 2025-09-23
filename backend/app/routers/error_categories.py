@@ -16,12 +16,8 @@ def list_error_categories(db: Session = Depends(get_db)) -> List[models.ErrorCat
     return db.query(models.ErrorCategory).order_by(models.ErrorCategory.name).all()
 
 
-@router.post(
-    "/", response_model=schemas.ErrorCategoryRead, status_code=status.HTTP_201_CREATED
-)
-def create_error_category(
-    payload: schemas.ErrorCategoryCreate, db: Session = Depends(get_db)
-) -> models.ErrorCategory:
+@router.post("/", response_model=schemas.ErrorCategoryRead, status_code=status.HTTP_201_CREATED)
+def create_error_category(payload: schemas.ErrorCategoryCreate, db: Session = Depends(get_db)) -> models.ErrorCategory:
     category = models.ErrorCategory(
         name=payload.name,
         description=payload.description,
@@ -34,9 +30,7 @@ def create_error_category(
 
 
 @router.get("/{category_id}", response_model=schemas.ErrorCategoryRead)
-def get_error_category(
-    category_id: str, db: Session = Depends(get_db)
-) -> models.ErrorCategory:
+def get_error_category(category_id: str, db: Session = Depends(get_db)) -> models.ErrorCategory:
     category = db.get(models.ErrorCategory, category_id)
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")

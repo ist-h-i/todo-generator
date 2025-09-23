@@ -8,9 +8,10 @@ continuous-improvement reports.
 
 ## Key Capabilities
 
-- **AI-assisted capture** – The `/analysis` endpoint wraps a deterministic ChatGPT stub that
-  converts multi-paragraph input into titled cards, suggested labels, priorities, due date
-  hints, and starter subtasks ready for human review.
+- **AI-assisted capture** – The `/analysis` endpoint now calls the ChatGPT Responses API to
+  turn multi-paragraph input into titled cards, suggested labels, priorities, due date hints,
+  and starter subtasks ready for human review. Structured outputs ensure the response matches
+  the backend schema.
 - **Rich task management** – REST endpoints for cards, subtasks, statuses, labels, saved
   filters, and board layouts power the drag-and-drop workspace board, inline editing, and
   comment/activity history surfaces in the frontend.
@@ -85,6 +86,7 @@ additional settings through environment variables defined in `backend/app/config
 - `DATABASE_URL` – SQLAlchemy connection string (default `sqlite:///./todo.db`)
 - `DEBUG` – Enable FastAPI debug mode (default `false`)
 - `CHATGPT_MODEL` – Logical model name surfaced by the analysis endpoint
+- `OPENAI_API_KEY` – Secret used by the backend to authenticate ChatGPT requests
 - `ALLOWED_ORIGINS` – Comma-separated list of frontend origins permitted for CORS (default `http://localhost:4200`)
 
 ## Running Tests & Quality Checks
@@ -155,8 +157,8 @@ your own fork or deployment.
 - Swagger UI: <http://localhost:8000/docs>
 - Activity logging helpers in `backend/app/utils/activity.py` automatically capture meaningful
   changes to cards, subtasks, and analytics artefacts.
-- The analysis stub in `backend/app/services/chatgpt.py` keeps local development deterministic
-  while mimicking the shape of a real ChatGPT integration.
+- The analysis service in `backend/app/services/chatgpt.py` connects directly to ChatGPT using
+  an OpenAI API key and enforces structured JSON responses for predictable integrations.
 
 ## Further Reading
 

@@ -3,7 +3,6 @@ import { CanActivateChildFn, CanActivateFn, Router, UrlTree } from '@angular/rou
 
 import { AuthService } from './auth.service';
 
-
 const resolveAuthState = async (): Promise<boolean | UrlTree> => {
   const auth = inject(AuthService);
   const router = inject(Router);

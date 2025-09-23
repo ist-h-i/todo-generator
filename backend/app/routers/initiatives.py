@@ -13,9 +13,7 @@ router = APIRouter(prefix="/initiatives", tags=["initiatives"])
 
 
 def _initiative_query(db: Session):
-    return db.query(models.ImprovementInitiative).options(
-        selectinload(models.ImprovementInitiative.progress_logs)
-    )
+    return db.query(models.ImprovementInitiative).options(selectinload(models.ImprovementInitiative.progress_logs))
 
 
 @router.get("/", response_model=List[schemas.ImprovementInitiativeRead])
@@ -32,12 +30,8 @@ def list_initiatives(
     return query.order_by(models.ImprovementInitiative.created_at.desc()).all()
 
 
-@router.post(
-    "/", response_model=schemas.ImprovementInitiativeRead, status_code=status.HTTP_201_CREATED
-)
-def create_initiative(
-    payload: schemas.InitiativeCreate, db: Session = Depends(get_db)
-) -> models.ImprovementInitiative:
+@router.post("/", response_model=schemas.ImprovementInitiativeRead, status_code=status.HTTP_201_CREATED)
+def create_initiative(payload: schemas.InitiativeCreate, db: Session = Depends(get_db)) -> models.ImprovementInitiative:
     initiative = models.ImprovementInitiative(
         name=payload.name,
         description=payload.description,
@@ -54,9 +48,7 @@ def create_initiative(
 
 
 @router.get("/{initiative_id}", response_model=schemas.ImprovementInitiativeRead)
-def get_initiative(
-    initiative_id: str, db: Session = Depends(get_db)
-) -> models.ImprovementInitiative:
+def get_initiative(initiative_id: str, db: Session = Depends(get_db)) -> models.ImprovementInitiative:
     initiative = _initiative_query(db).filter(models.ImprovementInitiative.id == initiative_id).first()
     if not initiative:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
@@ -109,12 +101,8 @@ def add_progress_log(
     return log
 
 
-@router.get(
-    "/{initiative_id}/progress", response_model=List[schemas.InitiativeProgressLogRead]
-)
-def list_progress_logs(
-    initiative_id: str, db: Session = Depends(get_db)
-) -> List[models.InitiativeProgressLog]:
+@router.get("/{initiative_id}/progress", response_model=List[schemas.InitiativeProgressLogRead])
+def list_progress_logs(initiative_id: str, db: Session = Depends(get_db)) -> List[models.InitiativeProgressLog]:
     initiative = db.get(models.ImprovementInitiative, initiative_id)
     if not initiative:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
@@ -127,12 +115,8 @@ def list_progress_logs(
     )
 
 
-@router.get(
-    "/{initiative_id}/cards", response_model=List[schemas.CardRead]
-)
-def list_initiative_cards(
-    initiative_id: str, db: Session = Depends(get_db)
-) -> List[models.Card]:
+@router.get("/{initiative_id}/cards", response_model=List[schemas.CardRead])
+def list_initiative_cards(initiative_id: str, db: Session = Depends(get_db)) -> List[models.Card]:
     initiative = db.get(models.ImprovementInitiative, initiative_id)
     if not initiative:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")

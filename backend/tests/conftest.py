@@ -16,12 +16,23 @@ from app.database import Base, get_db
 from app.main import app
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, future=True
-)
-TestingSessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine, future=True
-)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, future=True)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
+
+
+@pytest.fixture()
+def email_factory() -> Callable[[], str]:
+    counter = itertools.count()
+
+    def _factory() -> str:
+        return f"user-{next(counter)}@example.com"
+
+    return _factory
+
+
+@pytest.fixture()
+def email(email_factory: Callable[[], str]) -> str:
+    return email_factory()
 
 
 @pytest.fixture()
@@ -57,5 +68,3 @@ def client() -> Generator[TestClient, None, None]:
         yield test_client
 
     Base.metadata.drop_all(bind=engine)
-
-

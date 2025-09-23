@@ -5,9 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { buildApiUrl } from '@core/api/api.config';
 import { AuthenticatedUser, TokenResponse } from '@core/models';
 
-
 const STORAGE_KEY = 'todo-generator/auth-token';
-
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -60,7 +58,7 @@ export class AuthService {
       this.setSession(response.access_token, response.user);
       return true;
     } catch (error) {
-      this.errorStore.set(this.extractErrorMessage(error));
+      this.errorStore.set(this.extractErrorMessage(error, 'login'));
       return false;
     } finally {
       this.pendingStore.set(false);
@@ -81,7 +79,7 @@ export class AuthService {
       this.setSession(response.access_token, response.user);
       return true;
     } catch (error) {
-      this.errorStore.set(this.extractErrorMessage(error));
+      this.errorStore.set(this.extractErrorMessage(error, 'register'));
       return false;
     } finally {
       this.pendingStore.set(false);
@@ -97,9 +95,7 @@ export class AuthService {
 
     this.tokenStore.set(storedToken);
     try {
-      const user = await firstValueFrom(
-        this.http.get<AuthenticatedUser>(buildApiUrl('/auth/me')),
-      );
+      const user = await firstValueFrom(this.http.get<AuthenticatedUser>(buildApiUrl('/auth/me')));
       this.userStore.set(user);
     } catch {
       this.clearSession();
@@ -144,17 +140,176 @@ export class AuthService {
     }
   }
 
-  private extractErrorMessage(error: unknown): string {
-    if (error instanceof HttpErrorResponse) {
-      if (typeof error.error === 'string' && error.error.trim().length > 0) {
-        return error.error;
+  private extractErrorMessage(
+    error: unknown,
+    context: 'login' | 'register' | 'general' = 'general',
+  ): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return this.getFallbackMessage(context);
+    }
+
+    const status = error.status;
+    const detailMessage = this.extractDetailMessage(error.error);
+
+    if (status === 0) {
+      return 'サーバーに接続できません。ネットワーク環境を確認してから再度お試しください。';
+    }
+
+    if (status === 408) {
+      return '通信がタイムアウトしました。ネットワーク環境を確認してから再度お試しください。';
+    }
+
+    if (status === 429) {
+      return '短時間にアクセスが集中しています。しばらく時間をおいてから再度お試しください。';
+    }
+
+    if (status >= 500) {
+      return 'サーバーで問題が発生しました。しばらく待ってから再度お試しください。';
+    }
+
+    if (context === 'login') {
+      if (status === 401) {
+        return 'メールアドレスまたはパスワードが正しくありません。入力内容を確認して再度お試しください。';
       }
 
-      if (error.error && typeof error.error.detail === 'string') {
-        return error.error.detail;
+      if (status === 403) {
+        return 'アカウントにアクセスできません。権限を確認のうえ管理者にお問い合わせください。';
+      }
+
+      if (status === 404) {
+        return 'ログインサービスに接続できません。時間をおいてから再度お試しください。';
+      }
+
+      if (status === 400 || status === 422) {
+        const validationMessage = this.buildLoginValidationMessage(error.error);
+        if (validationMessage) {
+          return validationMessage;
+        }
+
+        if (detailMessage) {
+          return detailMessage;
+        }
+
+        return '入力内容に誤りがあります。メールアドレスとパスワードを確認してください。';
       }
     }
 
-    return '予期しないエラーが発生しました。もう一度お試しください。';
+    if (context === 'register' && (status === 400 || status === 422)) {
+      if (detailMessage?.toLowerCase().includes('already exists')) {
+        return 'このメールアドレスはすでに登録されています。ログインするか別のメールアドレスをお試しください。';
+      }
+
+      if (detailMessage) {
+        return detailMessage;
+      }
+
+      return '入力内容に誤りがあります。内容を確認して再度お試しください。';
+    }
+
+    if (detailMessage) {
+      return detailMessage;
+    }
+
+    return this.getFallbackMessage(context);
+  }
+
+  private extractDetailMessage(errorBody: unknown): string | null {
+    if (typeof errorBody === 'string') {
+      const trimmed = errorBody.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    }
+
+    if (errorBody && typeof errorBody === 'object') {
+      const detail = (errorBody as { detail?: unknown }).detail;
+      if (typeof detail === 'string') {
+        const trimmed = detail.trim();
+        return trimmed.length > 0 ? trimmed : null;
+      }
+
+      if (Array.isArray(detail)) {
+        for (const entry of detail) {
+          if (entry && typeof entry === 'object') {
+            const message = (entry as Record<string, unknown>)['msg'];
+            if (typeof message === 'string' && message.trim().length > 0) {
+              return message;
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private buildLoginValidationMessage(errorBody: unknown): string | null {
+    if (!errorBody || typeof errorBody !== 'object') {
+      return null;
+    }
+
+    const detail = (errorBody as { detail?: unknown }).detail;
+    if (!Array.isArray(detail)) {
+      return null;
+    }
+
+    const entries = detail.filter(
+      (entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object',
+    );
+
+    const emailError = entries.find((entry) => this.detailIncludesField(entry['loc'], 'email'));
+    if (emailError) {
+      const message = typeof emailError['msg'] === 'string' ? emailError['msg'] : null;
+      if (message) {
+        if (message.includes('valid email')) {
+          return 'メールアドレスの形式が正しくありません。正しいメールアドレスを入力してください。';
+        }
+
+        if (message.includes('field required')) {
+          return 'メールアドレスが入力されていません。メールアドレスを入力してください。';
+        }
+
+        return `メールアドレスの入力内容に誤りがあります（${message}）。確認してください。`;
+      }
+    }
+
+    const passwordError = entries.find((entry) => this.detailIncludesField(entry['loc'], 'password'));
+    if (passwordError) {
+      const message = typeof passwordError['msg'] === 'string' ? passwordError['msg'] : null;
+      if (message) {
+        if (message.includes('field required')) {
+          return 'パスワードが入力されていません。パスワードを入力してください。';
+        }
+
+        return `パスワードの入力内容に誤りがあります（${message}）。確認してください。`;
+      }
+    }
+
+    const genericMessage = entries
+      .map((entry) => (typeof entry['msg'] === 'string' ? entry['msg'] : null))
+      .find((msg): msg is string => !!msg && msg.trim().length > 0);
+
+    if (genericMessage) {
+      return `入力内容に誤りがあります（${genericMessage}）。内容を確認して再度お試しください。`;
+    }
+
+    return null;
+  }
+
+  private detailIncludesField(loc: unknown, field: string): boolean {
+    if (!Array.isArray(loc)) {
+      return false;
+    }
+
+    return loc.some((part) => typeof part === 'string' && part.toLowerCase() === field.toLowerCase());
+  }
+
+  private getFallbackMessage(context: 'login' | 'register' | 'general'): string {
+    switch (context) {
+      case 'login':
+        return 'ログインに失敗しました。時間をおいて再度お試しください。';
+      case 'register':
+        return 'アカウントの作成に失敗しました。時間をおいて再度お試しください。';
+      default:
+        return '予期しないエラーが発生しました。もう一度お試しください。';
+    }
   }
 }
