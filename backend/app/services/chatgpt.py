@@ -154,7 +154,7 @@ class ChatGPTClient:
         )
 
         content = self._extract_content(response)
-        data = json.loads(content)
+        data = self._parse_json_payload(content)
         if not isinstance(data, dict):
             raise ChatGPTError("ChatGPT response must be a JSON object.")
         return data
@@ -167,6 +167,7 @@ class ChatGPTClient:
             "type": "json_schema",
             "json_schema": {
                 "name": "analysis_response",
+                "strict": True,
                 "schema": schema,
             },
         }
@@ -213,6 +214,37 @@ class ChatGPTClient:
                 return first_message.content
 
         raise ChatGPTError("ChatGPT response did not contain any text output.")
+
+    def _parse_json_payload(self, content: str) -> Any:
+        """Decode ChatGPT output into Python objects.
+
+        The Responses API should honour the supplied JSON schema, but older
+        models occasionally wrap valid payloads in fenced code blocks. Try a
+        best-effort cleanup before bubbling the decoding error to the caller.
+        """
+
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            cleaned = self._strip_code_fences(content)
+            if cleaned == content:
+                raise
+            return json.loads(cleaned)
+
+    def _strip_code_fences(self, text: str) -> str:
+        """Remove Markdown-style code fences from a JSON string."""
+
+        stripped = text.strip()
+        if not (stripped.startswith("```") and stripped.endswith("```")):
+            return stripped
+
+        inner = stripped[3:-3].strip()
+        if "\n" in inner:
+            first_line, rest = inner.split("\n", 1)
+            marker = first_line.strip().lower()
+            if marker in {"", "json", "jsonc", "javascript"}:
+                return rest.strip()
+        return inner
 
     def _parse_card(self, data: Any, original_text: str) -> Optional[AnalysisCard]:
         if not isinstance(data, dict):
