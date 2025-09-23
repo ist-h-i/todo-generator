@@ -22,7 +22,7 @@ export class AuthService {
   private readonly bootstrap: Promise<void>;
 
   public constructor() {
-    this.bootstrap = this.restoreSession();
+    this.bootstrap = Promise.resolve().then(() => this.restoreSession());
   }
 
   public readonly user = computed(() => this.userStore());
