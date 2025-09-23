@@ -193,6 +193,11 @@
                       "
                       [class.board-card--compact]="isCardResolved(card)"
                       [class.board-card--active]="isActiveCard(card.id)"
+                      (click)="openCard(card.id)"
+                      (keydown)="handleCardKeydown($event, card.id)"
+                      tabindex="0"
+                      role="button"
+                      [attr.aria-pressed]="isActiveCard(card.id)"
                     >
                       <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0 space-y-2">
@@ -211,13 +216,6 @@
                             </p>
                           }
                         </div>
-                        <button
-                          type="button"
-                          class="surface-pill focus-ring px-3 py-1 text-xs font-semibold text-slate-500"
-                          (click)="openCard(card.id)"
-                        >
-                          詳細
-                        </button>
                       </div>
                       <div class="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
                         <span class="board-badge" [style.color]="statusColor(card.statusId)">
@@ -245,7 +243,7 @@
                               <button
                                 type="button"
                                 class="surface-pill focus-ring px-3 py-1"
-                                (click)="moveCard(card.id, status.id)"
+                                (click)="moveCard(card.id, status.id); $event.stopPropagation()"
                               >
                                 {{ status.name }}
                               </button>

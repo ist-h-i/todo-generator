@@ -82,9 +82,15 @@
   position: relative;
   border-width: 1px;
   overflow: hidden;
+  cursor: pointer;
   transition:
     transform 150ms ease,
     box-shadow 150ms ease;
+}
+
+.board-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .board-card:hover {
