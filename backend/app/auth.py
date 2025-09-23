@@ -5,6 +5,7 @@ import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import unicodedata
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -24,7 +25,8 @@ def _utcnow() -> datetime:
 
 
 def normalize_email(email: str) -> str:
-    return email.strip().lower()
+    normalized = unicodedata.normalize("NFKC", email)
+    return normalized.strip().casefold()
 
 def hash_password(password: str) -> str:
     salt_bytes = secrets.token_bytes(16)

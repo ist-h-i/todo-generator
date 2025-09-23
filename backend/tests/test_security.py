@@ -1,5 +1,6 @@
 import pytest
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.testclient import TestClient
 
 from app.config import Settings, settings
 from app.main import app
@@ -30,3 +31,24 @@ def test_settings_split_comma_separated_origins() -> None:
         "http://a.example",
         "http://b.example",
     ]
+
+
+def test_email_login_flow_accepts_user_input_variations(client: TestClient) -> None:
+    email_input = " Ｔｅｓｔ.User+1@Example.Com "
+    password = "SecurePass123!"
+
+    register_response = client.post(
+        "/auth/register",
+        json={"email": email_input, "password": password},
+    )
+    assert register_response.status_code == 201, register_response.text
+    register_payload = register_response.json()
+    assert register_payload["user"]["email"] == "test.user+1@example.com"
+
+    login_response = client.post(
+        "/auth/login",
+        json={"email": email_input, "password": password},
+    )
+    assert login_response.status_code == 200, login_response.text
+    login_payload = login_response.json()
+    assert login_payload["user"]["email"] == "test.user+1@example.com"
