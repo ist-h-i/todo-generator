@@ -190,8 +190,16 @@ class ChatGPTClient:
             for item in response.output:  # type: ignore[attr-defined]
                 for chunk in getattr(item, "content", []) or []:
                     text = getattr(chunk, "text", None)
-                    if text:
+                    if not text:
+                        continue
+
+                    if isinstance(text, str):
                         fragments.append(text)
+                        continue
+
+                    value = getattr(text, "value", None)
+                    if value is not None:
+                        fragments.append(value)
             if fragments:
                 return "".join(fragments)
 
