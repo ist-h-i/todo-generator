@@ -10,18 +10,34 @@
           <h1 class="text-2xl font-semibold">ワークスペース</h1>
         </div>
       </div>
-      <nav class="flex flex-wrap items-center gap-2 text-sm">
-        @for (link of links; track link.path) {
-          <a
-            [routerLink]="link.path"
-            routerLinkActive="surface-primary-muted text-accent-strong"
-            [routerLinkActiveOptions]="{ exact: true }"
-            class="focus-ring surface-pill px-4 py-2 text-sm font-medium text-slate-600 hover:text-accent-strong dark:text-slate-300"
-          >
-            {{ link.label }}
-          </a>
-        }
-      </nav>
+      <div class="flex flex-col items-start gap-3 text-sm sm:flex-row sm:items-center sm:gap-4">
+        <nav class="flex flex-wrap items-center gap-2 text-sm">
+          @for (link of links; track link.path) {
+            <a
+              [routerLink]="link.path"
+              routerLinkActive="surface-primary-muted text-accent-strong"
+              [routerLinkActiveOptions]="{ exact: true }"
+              class="focus-ring surface-pill px-4 py-2 text-sm font-medium text-slate-600 hover:text-accent-strong dark:text-slate-300"
+            >
+              {{ link.label }}
+            </a>
+          }
+        </nav>
+        <div class="flex items-center gap-3 text-xs sm:text-sm">
+          @if (user(); as currentUser) {
+            <span class="rounded-full bg-surface px-3 py-1 font-medium text-slate-500 dark:text-slate-300">
+              {{ currentUser.email }}
+            </span>
+            <button
+              type="button"
+              (click)="logout()"
+              class="focus-ring surface-pill px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:text-accent-strong dark:text-slate-300"
+            >
+              ログアウト
+            </button>
+          }
+        </div>
+      </div>
     </div>
   </header>
 

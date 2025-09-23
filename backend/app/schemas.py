@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, EmailStr, Field, root_validator
 
 
 # Shared schema components
@@ -12,6 +12,39 @@ class ChecklistItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     label: str
     done: bool = False
+
+
+class UserRead(BaseModel):
+    id: str
+    email: EmailStr
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class AuthCredentials(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class RegistrationRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    user: UserRead
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 class LabelBase(BaseModel):
@@ -182,6 +215,7 @@ class CardUpdate(BaseModel):
 
 class CardRead(CardBase):
     id: str
+    owner_id: str
     created_at: datetime
     updated_at: datetime
     labels: List[LabelRead] = Field(default_factory=list)
@@ -189,6 +223,7 @@ class CardRead(CardBase):
     status: Optional[StatusRead] = None
     error_category: Optional[ErrorCategoryRead] = None
     initiative: Optional["ImprovementInitiativeRead"] = None
+    owner: Optional[UserRead] = None
 
     class Config:
         orm_mode = True

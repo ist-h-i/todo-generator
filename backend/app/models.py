@@ -43,6 +43,34 @@ class TimestampMixin:
     )
 
 
+class User(Base, TimestampMixin):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    cards: Mapped[list["Card"]] = relationship(
+        "Card", back_populates="owner", cascade="all, delete-orphan"
+    )
+    tokens: Mapped[list["SessionToken"]] = relationship(
+        "SessionToken", back_populates="user", cascade="all, delete-orphan"
+    )
+
+
+class SessionToken(Base, TimestampMixin):
+    __tablename__ = "session_tokens"
+
+    token: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped[User] = relationship("User", back_populates="tokens")
+
+
 class Card(Base, TimestampMixin):
     __tablename__ = "cards"
 
@@ -69,6 +97,9 @@ class Card(Base, TimestampMixin):
     )
     ai_similarity_vector_id: Mapped[str | None] = mapped_column(String)
     analytics_notes: Mapped[str | None] = mapped_column(Text)
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     labels: Mapped[list[Label]] = relationship(
         "Label",
@@ -95,6 +126,7 @@ class Card(Base, TimestampMixin):
     originating_suggestion: Mapped[Optional["SuggestedAction"]] = relationship(
         "SuggestedAction", back_populates="created_card", uselist=False
     )
+    owner: Mapped[User] = relationship("User", back_populates="cards")
 
 
 class Subtask(Base, TimestampMixin):

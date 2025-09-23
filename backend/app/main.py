@@ -8,6 +8,7 @@ from .routers import (
     activity,
     analytics,
     analysis,
+    auth,
     cards,
     comments,
     error_categories,
@@ -38,6 +39,7 @@ app.add_middleware(
 
 app.include_router(analysis.router)
 app.include_router(analytics.router)
+app.include_router(auth.router)
 app.include_router(cards.router)
 app.include_router(labels.router)
 app.include_router(statuses.router)
