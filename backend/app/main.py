@@ -8,8 +8,8 @@ from .database import Base, engine
 from .migrations import run_startup_migrations
 from .routers import (
     activity,
-    analytics,
     analysis,
+    analytics,
     auth,
     cards,
     comments,

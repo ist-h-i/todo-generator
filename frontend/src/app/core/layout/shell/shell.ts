@@ -1,8 +1,17 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '@core/auth/auth.service';
+import { HelpDialogComponent } from './help-dialog';
 
 type ThemePreference = 'light' | 'dark' | 'system';
 
@@ -12,7 +21,7 @@ type ThemePreference = 'light' | 'dark' | 'system';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, HelpDialogComponent],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +32,7 @@ export class Shell {
   private readonly document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
   private readonly themeStorageKey = 'todo-generator:theme-preference';
+  private readonly helpDialogVisible = signal(false);
 
   private readonly themeLabels: Record<ThemePreference, string> = {
     light: 'ライトモード',
@@ -41,11 +51,15 @@ export class Shell {
 
   public readonly themePreference = computed(() => this.theme());
   public readonly themeDisplayLabel = computed(() => this.themeLabels[this.themePreference()]);
-  public readonly themeNextLabel = computed(() => this.themeLabels[this.nextTheme(this.themePreference())]);
+  public readonly themeNextLabel = computed(
+    () => this.themeLabels[this.nextTheme(this.themePreference())],
+  );
   public readonly isDark = computed(() => this.effectiveTheme() === 'dark');
   public readonly themeToggleAriaLabel = computed(
-    () => `テーマ設定。現在は${this.themeDisplayLabel()}。クリックすると${this.themeNextLabel()}に切り替わります。`
+    () =>
+      `テーマ設定。現在は${this.themeDisplayLabel()}。クリックすると${this.themeNextLabel()}に切り替わります。`,
   );
+  public readonly isHelpDialogOpen = computed(() => this.helpDialogVisible());
 
   private readonly syncTheme = effect(() => {
     const preference = this.theme();
@@ -89,6 +103,14 @@ export class Shell {
 
   public toggleTheme(): void {
     this.theme.update((mode) => this.nextTheme(mode));
+  }
+
+  public openHelp(): void {
+    this.helpDialogVisible.set(true);
+  }
+
+  public closeHelp(): void {
+    this.helpDialogVisible.set(false);
   }
 
   public readonly logout = (): void => {

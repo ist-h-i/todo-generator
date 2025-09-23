@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, List
+from typing import ClassVar, Iterable, List
 
 from ..config import settings
 from ..schemas import AnalysisCard, AnalysisRequest, AnalysisResponse, AnalysisSubtask
@@ -16,7 +16,7 @@ class KeywordMapping:
 class ChatGPTClient:
     """Deterministic stub that emulates ChatGPT summarisation."""
 
-    DEFAULT_LABELS: List[KeywordMapping] = [
+    DEFAULT_LABELS: ClassVar[List[KeywordMapping]] = [
         KeywordMapping("bug", "bug"),
         KeywordMapping("fix", "maintenance"),
         KeywordMapping("feature", "feature"),

@@ -7,12 +7,11 @@ from .. import models, schemas
 from ..auth import (
     create_session_token,
     get_current_user,
+    get_email_lookup_candidates,
     hash_password,
-    normalize_email,
     verify_password,
 )
 from ..database import get_db
-
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -26,8 +25,12 @@ def register(
     payload: schemas.RegistrationRequest,
     db: Session = Depends(get_db),
 ) -> schemas.TokenResponse:
-    email = normalize_email(payload.email)
-    existing = db.query(models.User).filter(models.User.email == email).first()
+    email_candidates = get_email_lookup_candidates(payload.email)
+    existing = (
+        db.query(models.User)
+        .filter(models.User.email.in_(email_candidates))
+        .first()
+    )
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -53,9 +56,19 @@ def login(
     payload: schemas.AuthCredentials,
     db: Session = Depends(get_db),
 ) -> schemas.TokenResponse:
-    email = normalize_email(payload.email)
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if not user or not verify_password(payload.password, user.password_hash):
+    email_candidates = get_email_lookup_candidates(payload.email)
+    user: models.User | None = None
+    for candidate in email_candidates:
+        candidate_user = (
+            db.query(models.User).filter(models.User.email == candidate).first()
+        )
+        if candidate_user and verify_password(
+            payload.password, candidate_user.password_hash
+        ):
+            user = candidate_user
+            break
+
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",

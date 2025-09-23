@@ -19,6 +19,11 @@ This FastAPI application implements the backend described in the project require
    pip install -r backend/requirements.txt
    ```
 
+   For local development (formatting and linting), install the additional tooling bundle:
+   ```bash
+   pip install -r backend/requirements-dev.txt
+   ```
+
 2. **Run database migrations (optional)**
 
    The database schema is created automatically on application startup. Alembic is included in the dependencies for future migrations.
@@ -36,6 +41,12 @@ This FastAPI application implements the backend described in the project require
 5. **Run tests**
    ```bash
    pytest backend/tests
+   ```
+
+6. **Check code style**
+   ```bash
+   ruff check backend
+   black --check backend/app backend/tests
    ```
 
 ## Configuration

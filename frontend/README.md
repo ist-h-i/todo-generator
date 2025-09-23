@@ -22,11 +22,14 @@ The application is served at `http://localhost:4200/` with hot reload enabled.
 
 ### Essential Scripts
 
-| Command           | Description                                   |
-|-------------------|-----------------------------------------------|
-| `npm start`       | Start the dev server with HMR                 |
-| `npm run build`   | Produce a production build in `dist/`         |
-| `npm test`        | Execute Karma unit tests (no suites defined)  |
+| Command               | Description                                        |
+|-----------------------|----------------------------------------------------|
+| `npm start`           | Start the dev server with HMR                      |
+| `npm run build`       | Produce a production build in `dist/`              |
+| `npm test`            | Execute Karma unit tests (no suites defined)       |
+| `npm run lint`        | Check TypeScript sources with ESLint               |
+| `npm run format:check` | Verify that Prettier formatting matches the rules |
+| `npm run format:write` | Apply Prettier formatting updates in place        |
 
 ## Project Structure Highlights
 
