@@ -1,41 +1,40 @@
 <div class="flex min-h-screen flex-col bg-surface">
   <header class="shell-header">
     <div
-      class="shell-header__content mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8 lg:flex-row lg:items-center lg:justify-between"
+      class="shell-header__content mx-auto flex max-w-6xl flex-col gap-4 px-5 py-6 lg:flex-row lg:items-center lg:justify-between"
     >
-      <div class="flex w-full flex-col gap-6 lg:flex-row lg:items-center lg:gap-12">
-        <div class="flex items-center gap-4">
+      <div class="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
+        <div class="shell-brand flex min-w-0 flex-col items-start gap-1.5">
           <span
-            class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent-strong text-lg font-semibold text-on-surface-inverse shadow-strong"
+            class="shell-brand__mark flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-accent to-accent-strong text-base font-semibold text-on-surface-inverse shadow-strong"
           >
             TG
           </span>
-          <div>
-            <p class="text-xs uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">
-              Todo Generator
-            </p>
-            <p class="mt-1 text-base font-medium text-slate-500 dark:text-slate-400">
-              AI がサポートするプロダクティビティハブ
-            </p>
-          </div>
+          <p
+            class="shell-brand__name w-full truncate text-[0.7rem] font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400"
+          >
+            Todo Generator
+          </p>
         </div>
 
-        <nav class="shell-nav" aria-label="主要ナビゲーション">
-          @for (link of navigationLinks(); track link.path) {
-            <a
-              [routerLink]="link.path"
-              routerLinkActive="shell-nav__link--active"
-              [routerLinkActiveOptions]="{ exact: true }"
-              class="shell-nav__link focus-ring"
-            >
-              {{ link.label }}
-            </a>
-          }
-        </nav>
+        <div class="shell-nav-wrapper flex flex-1 items-center justify-start overflow-hidden">
+          <nav class="shell-nav" aria-label="主要ナビゲーション">
+            @for (link of navigationLinks(); track link.path) {
+              <a
+                [routerLink]="link.path"
+                routerLinkActive="shell-nav__link--active"
+                [routerLinkActiveOptions]="{ exact: true }"
+                class="shell-nav__link focus-ring"
+              >
+                {{ link.label }}
+              </a>
+            }
+          </nav>
+        </div>
       </div>
 
       <div
-        class="flex flex-col items-stretch gap-3 text-sm sm:flex-row sm:items-center sm:justify-end sm:gap-4"
+        class="shell-actions flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:flex-nowrap sm:justify-end"
       >
         <button
           type="button"
@@ -49,7 +48,7 @@
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            class="h-5 w-5"
+            class="h-4 w-4"
             fill="none"
             stroke="currentColor"
             stroke-width="1.8"
@@ -74,7 +73,7 @@
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                class="h-5 w-5"
+                class="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.8"
@@ -86,7 +85,7 @@
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                class="h-5 w-5"
+                class="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.8"
@@ -101,7 +100,7 @@
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                class="h-5 w-5"
+                class="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.8"
@@ -113,9 +112,6 @@
                 />
               </svg>
             }
-          </span>
-          <span class="shell-quick-action__label">
-            {{ 'テーマ: ' + themeDisplayLabel() + '（次: ' + themeNextLabel() + '）' }}
           </span>
         </button>
 
@@ -130,7 +126,7 @@
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                class="h-5 w-5"
+                class="h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.8"
@@ -143,7 +139,6 @@
                 <circle cx="12" cy="12" r="2.25" />
               </svg>
             </span>
-            <span class="shell-icon-action__label">設定</span>
           </button>
         }
 
@@ -152,35 +147,14 @@
             {{ currentUser.email }}
           </span>
           <button type="button" class="shell-primary-action focus-ring" (click)="logout()">
-            <span class="shell-primary-action__icon">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M18 12H9m0 0 3 3m-3-3 3-3"
-                />
-              </svg>
-            </span>
-            <span>ログアウト</span>
+            ログアウト
           </button>
         }
       </div>
     </div>
   </header>
 
-  <main class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-6 py-10">
+  <main class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
     <section class="flex-1">
       <router-outlet />
     </section>
@@ -188,7 +162,7 @@
 
   <footer class="border-t border-subtle bg-surface-strong">
     <div
-      class="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-6 text-xs text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between"
+      class="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-5 text-xs text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between"
     >
       <p>© {{ year }} Todo Generator</p>
       <p>Angular 20 Signal Architecture / ChatGPT モック統合</p>

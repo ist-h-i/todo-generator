@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  font-size: 80%;
   --surface: #f8fafc;
   --surface-strong: #e2e8f0;
   --surface-card: #ffffff;
@@ -21,6 +22,7 @@
 }
 
 :root.dark {
+  font-size: 80%;
   --surface: #0f172a;
   --surface-strong: #1e293b;
   --surface-card: #1e293b;
