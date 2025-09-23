@@ -33,146 +33,163 @@
         </div>
       </div>
 
-      <div
-        class="shell-actions flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:flex-nowrap sm:justify-end"
-      >
-        <button
-          type="button"
-          class="shell-help-button focus-ring"
-          (click)="openHelp()"
-          aria-haspopup="dialog"
-          [attr.aria-expanded]="isHelpDialogOpen()"
-          [attr.aria-controls]="isHelpDialogOpen() ? 'help-dialog' : null"
-          aria-label="Todo Generator の使い方を開く"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            class="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 18h.01M9.09 9a3 3 0 0 1 5.83 1.11c0 2-3 3-3 3"
-            />
-            <circle cx="12" cy="12" r="9" />
-          </svg>
-        </button>
-
-        <button
-          type="button"
-          class="shell-quick-action focus-ring"
-          (click)="toggleTheme()"
-          [attr.aria-label]="themeToggleAriaLabel()"
-        >
-          <span class="shell-quick-action__icon">
-            @if (themePreference() === 'system') {
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              >
-                <rect x="3" y="4" width="18" height="13" rx="2" />
-                <path stroke-linecap="round" d="M8 21h8m-4-4v4" />
-              </svg>
-            } @else if (isDark()) {
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79Z"
-                />
-              </svg>
-            } @else {
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              >
-                <circle cx="12" cy="12" r="4" />
-                <path
-                  stroke-linecap="round"
-                  d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95l-1.414 1.414m0-12.728 1.414 1.414m10.9 10.9 1.414 1.414"
-                />
-              </svg>
-            }
-          </span>
-        </button>
-
-        @if (isAdmin()) {
+      <div class="shell-actions">
+        <div class="shell-actions__controls">
           <button
             type="button"
-            class="shell-icon-action focus-ring"
-            (click)="openSettings()"
-            aria-label="ワークスペース設定を開く"
+            class="shell-help-button focus-ring"
+            (click)="openHelp()"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="isHelpDialogOpen()"
+            [attr.aria-controls]="isHelpDialogOpen() ? 'help-dialog' : null"
+            aria-label="Todo Generator の使い方を開く"
           >
-            <span class="shell-icon-action__icon">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="m10.325 4.317 1.276-2.223a1 1 0 0 1 1.798 0l1.275 2.223a1 1 0 0 0 .748.517l2.487.362a1 1 0 0 1 .555 1.695l-1.799 1.754a1 1 0 0 0-.287.885l.425 2.472a1 1 0 0 1-1.451 1.054l-2.222-1.167a1 1 0 0 0-.934 0l-2.223 1.167a1 1 0 0 1-1.45-1.054l.424-2.472a1 1 0 0 0-.287-.885L5.83 6.891a1 1 0 0 1 .555-1.695l2.487-.362a1 1 0 0 0 .748-.517Z"
-                />
-                <circle cx="12" cy="12" r="2.25" />
-              </svg>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 18h.01M9.09 9a3 3 0 0 1 5.83 1.11c0 2-3 3-3 3"
+              />
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            class="shell-quick-action focus-ring"
+            (click)="toggleTheme()"
+            [attr.aria-label]="themeToggleAriaLabel()"
+          >
+            <span class="shell-quick-action__icon">
+              @if (themePreference() === 'system') {
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <rect x="3" y="4" width="18" height="13" rx="2" />
+                  <path stroke-linecap="round" d="M8 21h8m-4-4v4" />
+                </svg>
+              } @else if (isDark()) {
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79Z"
+                  />
+                </svg>
+              } @else {
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <circle cx="12" cy="12" r="4" />
+                  <path
+                    stroke-linecap="round"
+                    d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364-6.364-1.414 1.414M7.05 16.95l-1.414 1.414m0-12.728 1.414 1.414m10.9 10.9 1.414 1.414"
+                  />
+                </svg>
+              }
             </span>
           </button>
-        }
+
+          @if (isAdmin()) {
+            <button
+              type="button"
+              class="shell-icon-action focus-ring"
+              (click)="openSettings()"
+              aria-label="ワークスペース設定を開く"
+            >
+              <span class="shell-icon-action__icon">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m10.325 4.317 1.276-2.223a1 1 0 0 1 1.798 0l1.275 2.223a1 1 0 0 0 .748.517l2.487.362a1 1 0 0 1 .555 1.695l-1.799 1.754a1 1 0 0 0-.287.885l.425 2.472a1 1 0 0 1-1.451 1.054l-2.222-1.167a1 1 0 0 0-.934 0l-2.223 1.167a1 1 0 0 1-1.45-1.054l.424-2.472a1 1 0 0 0-.287-.885L5.83 6.891a1 1 0 0 1 .555-1.695l2.487-.362a1 1 0 0 0 .748-.517Z"
+                  />
+                  <circle cx="12" cy="12" r="2.25" />
+                </svg>
+              </span>
+            </button>
+          }
+
+          @if (user()) {
+            <button
+              type="button"
+              class="shell-icon-action focus-ring"
+              (click)="logout()"
+              aria-label="ログアウト"
+              title="ログアウト"
+            >
+              <span class="shell-icon-action__icon">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  class="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 9l3 3m0 0-3 3m3-3H3"
+                  />
+                </svg>
+              </span>
+            </button>
+          }
+        </div>
 
         @if (user(); as currentUser) {
-          <span class="shell-user" [attr.title]="currentUser.email">
-            <span class="shell-user__name">
-              {{ currentUser.email }}
-            </span>
-          </span>
-          <button
-            type="button"
-            class="shell-icon-action focus-ring"
-            (click)="logout()"
-            aria-label="ログアウト"
-            title="ログアウト"
-          >
-            <span class="shell-icon-action__icon">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              >
+          <div class="shell-user" [attr.title]="currentUser.email">
+            <span class="shell-user__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15"
+                  d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0"
                 />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9l3 3m0 0-3 3m3-3H3" />
               </svg>
             </span>
-          </button>
+            <span class="shell-user__details">
+              <span class="shell-user__label">ログイン中</span>
+              <span class="shell-user__email">{{ currentUser.email }}</span>
+            </span>
+          </div>
         }
       </div>
     </div>

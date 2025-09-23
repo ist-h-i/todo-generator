@@ -1096,10 +1096,7 @@ export class WorkspaceStore {
     } satisfies BoardPreferences;
   }
 
-  private loadPreferences(
-    userId: string | null,
-    settings: WorkspaceSettings,
-  ): BoardPreferences {
+  private loadPreferences(userId: string | null, settings: WorkspaceSettings): BoardPreferences {
     const defaults = this.buildDefaultPreferences();
     if (!userId || !this.storage) {
       return defaults;
@@ -1206,10 +1203,7 @@ export class WorkspaceStore {
     });
   }
 
-  private sanitizePreferences(
-    raw: unknown,
-    settings: WorkspaceSettings,
-  ): BoardPreferences {
+  private sanitizePreferences(raw: unknown, settings: WorkspaceSettings): BoardPreferences {
     const defaults = this.buildDefaultPreferences();
     if (!raw || typeof raw !== 'object') {
       return defaults;
@@ -1247,18 +1241,13 @@ export class WorkspaceStore {
     } satisfies BoardFilters;
   }
 
-  private sanitizeFilterIds(
-    value: unknown,
-    allowed: ReadonlySet<string>,
-  ): readonly string[] {
+  private sanitizeFilterIds(value: unknown, allowed: ReadonlySet<string>): readonly string[] {
     if (!Array.isArray(value)) {
       return [];
     }
 
     return unique(
-      value.filter(
-        (entry): entry is string => typeof entry === 'string' && allowed.has(entry),
-      ),
+      value.filter((entry): entry is string => typeof entry === 'string' && allowed.has(entry)),
     );
   }
 
