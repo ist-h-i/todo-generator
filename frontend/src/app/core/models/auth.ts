@@ -1,6 +1,7 @@
 export interface AuthenticatedUser {
   readonly id: string;
   readonly email: string;
+  readonly is_admin: boolean;
   readonly created_at: string;
   readonly updated_at: string;
 }
