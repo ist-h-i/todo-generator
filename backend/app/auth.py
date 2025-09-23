@@ -24,9 +24,23 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _normalize_email_variants(email: str) -> tuple[str, str]:
+    normalized = unicodedata.normalize("NFKC", email).strip()
+    canonical = normalized.casefold()
+    legacy = normalized.lower()
+    return canonical, legacy
+
+
 def normalize_email(email: str) -> str:
-    normalized = unicodedata.normalize("NFKC", email)
-    return normalized.strip().casefold()
+    canonical, _ = _normalize_email_variants(email)
+    return canonical
+
+
+def get_email_lookup_candidates(email: str) -> tuple[str, ...]:
+    canonical, legacy = _normalize_email_variants(email)
+    if canonical == legacy:
+        return (canonical,)
+    return (canonical, legacy)
 
 def hash_password(password: str) -> str:
     salt_bytes = secrets.token_bytes(16)
@@ -99,6 +113,7 @@ def get_current_user(
 __all__ = [
     "create_session_token",
     "get_current_user",
+    "get_email_lookup_candidates",
     "hash_password",
     "normalize_email",
     "verify_password",

@@ -2,7 +2,10 @@ import pytest
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.testclient import TestClient
 
+from app import models
+from app.auth import hash_password
 from app.config import Settings, settings
+from app.database import get_db
 from app.main import app
 
 
@@ -52,3 +55,27 @@ def test_email_login_flow_accepts_user_input_variations(client: TestClient) -> N
     assert login_response.status_code == 200, login_response.text
     login_payload = login_response.json()
     assert login_payload["user"]["email"] == "test.user+1@example.com"
+
+
+def test_login_allows_legacy_normalized_emails(client: TestClient) -> None:
+    login_input = "Straße@Example.com"
+    stored_email = login_input.strip().lower()
+    password = "SecurePass123!"
+
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    try:
+        user = models.User(email=stored_email, password_hash=hash_password(password))
+        db.add(user)
+        db.commit()
+    finally:
+        db_gen.close()
+
+    login_response = client.post(
+        "/auth/login",
+        json={"email": login_input, "password": password},
+    )
+    assert login_response.status_code == 200, login_response.text
+    login_payload = login_response.json()
+    assert login_payload["user"]["email"] == stored_email
