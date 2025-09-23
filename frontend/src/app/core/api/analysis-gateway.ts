@@ -183,7 +183,8 @@ export class AnalysisGateway {
           .filter((name): name is string => Boolean(name)),
       ),
     );
-    const labelSummary = labelNames.length > 0 ? labelNames.join('・') : template?.name ?? '対象領域';
+    const labelSummary =
+      labelNames.length > 0 ? labelNames.join('・') : (template?.name ?? '対象領域');
     const orientation = autoObjective ? 'AIが提案したゴール' : '提供されたゴール';
 
     const tasks: string[] = [];

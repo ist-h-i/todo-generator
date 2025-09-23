@@ -1,4 +1,13 @@
-import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EventEmitter, HostListener, Output, ViewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Output,
+  ViewChild,
+} from '@angular/core';
 
 interface GuideItem {
   readonly title: string;
@@ -58,19 +67,23 @@ export class HelpDialogComponent implements AfterViewInit {
   public readonly faqs: readonly FaqItem[] = [
     {
       question: 'AI の提案結果は編集できますか？',
-      answer: 'はい。タスク起票画面で提案されたタイトルや詳細、ストーリーポイントを直接修正し、納得した内容のみをボードに公開できます。',
+      answer:
+        'はい。タスク起票画面で提案されたタイトルや詳細、ストーリーポイントを直接修正し、納得した内容のみをボードに公開できます。',
     },
     {
       question: 'カードの履歴はどこで確認できますか？',
-      answer: 'ボード上のカードを開くと詳細ドロワーに移動履歴やコメントが時系列で表示され、変更内容を追跡できます。',
+      answer:
+        'ボード上のカードを開くと詳細ドロワーに移動履歴やコメントが時系列で表示され、変更内容を追跡できます。',
     },
     {
       question: 'ダークモードを固定することはできますか？',
-      answer: 'ヘッダーのテーマ切替ボタンからライト・ダーク・システム設定を切り替えられます。選択内容はブラウザに保存されるため、次回以降も同じモードで表示されます。',
+      answer:
+        'ヘッダーのテーマ切替ボタンからライト・ダーク・システム設定を切り替えられます。選択内容はブラウザに保存されるため、次回以降も同じモードで表示されます。',
     },
     {
       question: 'ワークスペース設定の変更はいつ反映されますか？',
-      answer: '設定を保存すると即座に全ユーザーへ反映され、新しいステータスやラベルをすぐに利用できます。',
+      answer:
+        '設定を保存すると即座に全ユーザーへ反映され、新しいステータスやラベルをすぐに利用できます。',
     },
   ];
 

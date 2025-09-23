@@ -81,7 +81,11 @@
   background: rgba(255, 255, 255, 0.85);
   color: rgba(30, 41, 59, 0.7);
   box-shadow: 0 16px 44px -30px rgba(37, 99, 235, 0.5);
-  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, background-color 150ms ease;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease;
 }
 
 .help-dialog__close:hover {
@@ -121,7 +125,9 @@
   border-radius: 1.25rem;
   border: 1px solid rgba(148, 163, 184, 0.26);
   background: rgba(255, 255, 255, 0.9);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 20px 40px -32px rgba(15, 23, 42, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 20px 40px -32px rgba(15, 23, 42, 0.45);
   overflow: hidden;
 }
 
@@ -193,7 +199,9 @@
   letter-spacing: 0.02em;
   box-shadow: 0 22px 48px -28px rgba(37, 99, 235, 0.55);
   cursor: pointer;
-  transition: transform 150ms ease, box-shadow 150ms ease;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .help-dialog__primary:hover {
@@ -243,7 +251,9 @@
 :host-context(.dark) .help-dialog__card {
   border-color: rgba(148, 163, 184, 0.32);
   background: rgba(15, 23, 42, 0.86);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 20px 40px -32px rgba(2, 6, 23, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 40px -32px rgba(2, 6, 23, 0.8);
 }
 
 :host-context(.dark) .help-dialog__faq-item {
