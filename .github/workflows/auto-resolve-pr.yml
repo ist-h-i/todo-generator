@@ -157,9 +157,26 @@ jobs:
         run: |
           set -e
 
+          existing_pr_number=""
+          existing_pr_url=""
+
           if [ -n "${EXISTING_PR_NUMBER}" ]; then
-            pr_url="${EXISTING_PR_URL:-https://github.com/${GITHUB_REPOSITORY}/pull/${EXISTING_PR_NUMBER}}"
-            echo "Pull request already exists: ${pr_url}"
+            existing_pr_number="${EXISTING_PR_NUMBER}"
+            existing_pr_url="${EXISTING_PR_URL:-https://github.com/${GITHUB_REPOSITORY}/pull/${EXISTING_PR_NUMBER}}"
+          else
+            existing_pr_info="$(gh pr view --head "${{ github.head_ref }}" --json number,url --template '{{.number}} {{.url}}' 2>/dev/null || true)"
+
+            if [ -n "${existing_pr_info}" ]; then
+              IFS=' ' read -r existing_pr_number existing_pr_url <<< "${existing_pr_info}"
+            fi
+          fi
+
+          if [ -n "${existing_pr_url}" ]; then
+            if [ -n "${existing_pr_number}" ]; then
+              echo "Pull request already exists (#${existing_pr_number}): ${existing_pr_url}"
+            else
+              echo "Pull request already exists: ${existing_pr_url}"
+            fi
             exit 0
           fi
 
