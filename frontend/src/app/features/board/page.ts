@@ -128,7 +128,9 @@ export class BoardPage {
     return lookup;
   });
 
-  public readonly templateVisibilityByIdSignal = computed<ReadonlyMap<string, TemplateFieldVisibility>>(() => {
+  public readonly templateVisibilityByIdSignal = computed<
+    ReadonlyMap<string, TemplateFieldVisibility>
+  >(() => {
     const lookup = new Map<string, TemplateFieldVisibility>();
     for (const template of this.templatesSignal()) {
       lookup.set(template.id, template.fieldVisibility);
@@ -215,9 +217,7 @@ export class BoardPage {
       return 'なし';
     }
 
-    return active
-      .map((id) => QUICK_FILTER_LABEL_LOOKUP.get(id) ?? id)
-      .join(', ');
+    return active.map((id) => QUICK_FILTER_LABEL_LOOKUP.get(id) ?? id).join(', ');
   });
 
   /**
@@ -375,11 +375,7 @@ export class BoardPage {
   public readonly isLabelApplied = (card: Card, labelId: string): boolean =>
     card.labelIds.includes(labelId);
 
-  public readonly handleLabelToggle = (
-    card: Card,
-    labelId: string,
-    checked: boolean,
-  ): void => {
+  public readonly handleLabelToggle = (card: Card, labelId: string, checked: boolean): void => {
     const labels = new Set(card.labelIds);
     if (checked) {
       labels.add(labelId);

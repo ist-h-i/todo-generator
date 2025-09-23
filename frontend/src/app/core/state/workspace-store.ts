@@ -180,8 +180,14 @@ export class WorkspaceStore {
   private readonly groupingSignal = signal<BoardGrouping>('label');
   private readonly filtersSignal = signal<BoardFilters>({ ...INITIAL_FILTERS });
   private readonly selectedCardIdSignal = signal<string | null>(null);
-  private readonly templateConfidenceThresholds = computed(() =>
-    new Map(this.settingsSignal().templates.map((template) => [template.id, template.confidenceThreshold])),
+  private readonly templateConfidenceThresholds = computed(
+    () =>
+      new Map(
+        this.settingsSignal().templates.map((template) => [
+          template.id,
+          template.confidenceThreshold,
+        ]),
+      ),
   );
 
   public readonly settings = computed(() => this.settingsSignal());
@@ -210,7 +216,7 @@ export class WorkspaceStore {
         : undefined;
 
     return proposal.confidence >= (threshold ?? DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD);
-  }
+  };
 
   public readonly summary = computed<WorkspaceSummary>(() => {
     const cards = this.cardsSignal();
@@ -410,9 +416,10 @@ export class WorkspaceStore {
         : undefined;
 
       const statusId = proposal.suggestedStatusId || template?.defaultStatusId || defaultStatus;
-      const labelIds = proposal.suggestedLabelIds.length > 0
-        ? [...proposal.suggestedLabelIds]
-        : template
+      const labelIds =
+        proposal.suggestedLabelIds.length > 0
+          ? [...proposal.suggestedLabelIds]
+          : template
             ? [...template.defaultLabelIds]
             : [defaultLabel];
 
@@ -534,9 +541,10 @@ export class WorkspaceStore {
   private readonly buildCardFromPayload = (payload: CardSuggestionPayload): Card => {
     const settings = this.settingsSignal();
     const statusId = payload.statusId ?? settings.defaultStatusId;
-    const labelIds = payload.labelIds && payload.labelIds.length > 0
-      ? [...payload.labelIds]
-      : [settings.labels[0]?.id ?? 'general'];
+    const labelIds =
+      payload.labelIds && payload.labelIds.length > 0
+        ? [...payload.labelIds]
+        : [settings.labels[0]?.id ?? 'general'];
 
     return {
       id: createId(),
@@ -550,9 +558,7 @@ export class WorkspaceStore {
       assignee: payload.assignee ?? settings.defaultAssignee,
       dueDate: payload.dueDate,
       confidence: payload.confidence,
-      subtasks: payload.subtasks
-        ? payload.subtasks.map((subtask) => ({ ...subtask }))
-        : [],
+      subtasks: payload.subtasks ? payload.subtasks.map((subtask) => ({ ...subtask })) : [],
       comments: [],
       activities: [],
       originSuggestionId: payload.originSuggestionId,
@@ -619,9 +625,11 @@ export class WorkspaceStore {
    *
    * @param payload - Status name and lifecycle category.
    */
-  public readonly addStatus = (
-    payload: { name: string; category: 'todo' | 'in-progress' | 'done'; color: string },
-  ): void => {
+  public readonly addStatus = (payload: {
+    name: string;
+    category: 'todo' | 'in-progress' | 'done';
+    color: string;
+  }): void => {
     this.settingsSignal.update((settings) => {
       const currentOrders = settings.statuses.map((status) => status.order);
       const nextOrder = currentOrders.length === 0 ? 1 : Math.max(...currentOrders) + 1;

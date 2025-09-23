@@ -26,9 +26,7 @@ def get_board_layout(
 
 
 @router.put("/", response_model=schemas.UserPreferenceRead)
-def update_board_layout(
-    payload: schemas.BoardLayoutUpdate, db: Session = Depends(get_db)
-) -> models.UserPreference:
+def update_board_layout(payload: schemas.BoardLayoutUpdate, db: Session = Depends(get_db)) -> models.UserPreference:
     preference = db.get(models.UserPreference, payload.user_id)
     if not preference:
         preference = models.UserPreference(user_id=payload.user_id)

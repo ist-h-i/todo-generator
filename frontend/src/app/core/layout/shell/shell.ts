@@ -1,5 +1,13 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '@core/auth/auth.service';
@@ -41,10 +49,13 @@ export class Shell {
 
   public readonly themePreference = computed(() => this.theme());
   public readonly themeDisplayLabel = computed(() => this.themeLabels[this.themePreference()]);
-  public readonly themeNextLabel = computed(() => this.themeLabels[this.nextTheme(this.themePreference())]);
+  public readonly themeNextLabel = computed(
+    () => this.themeLabels[this.nextTheme(this.themePreference())],
+  );
   public readonly isDark = computed(() => this.effectiveTheme() === 'dark');
   public readonly themeToggleAriaLabel = computed(
-    () => `テーマ設定。現在は${this.themeDisplayLabel()}。クリックすると${this.themeNextLabel()}に切り替わります。`
+    () =>
+      `テーマ設定。現在は${this.themeDisplayLabel()}。クリックすると${this.themeNextLabel()}に切り替わります。`,
   );
 
   private readonly syncTheme = effect(() => {

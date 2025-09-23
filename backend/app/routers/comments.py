@@ -14,9 +14,7 @@ router = APIRouter(prefix="/comments", tags=["comments"])
 
 
 @router.get("/", response_model=List[schemas.CommentRead])
-def list_comments(
-    card_id: Optional[str] = Query(default=None), db: Session = Depends(get_db)
-) -> List[models.Comment]:
+def list_comments(card_id: Optional[str] = Query(default=None), db: Session = Depends(get_db)) -> List[models.Comment]:
     query = db.query(models.Comment)
     if card_id:
         query = query.filter(models.Comment.card_id == card_id)
@@ -24,9 +22,7 @@ def list_comments(
 
 
 @router.post("/", response_model=schemas.CommentRead, status_code=status.HTTP_201_CREATED)
-def create_comment(
-    payload: schemas.CommentCreate, db: Session = Depends(get_db)
-) -> models.Comment:
+def create_comment(payload: schemas.CommentCreate, db: Session = Depends(get_db)) -> models.Comment:
     card = db.get(models.Card, payload.card_id)
     if not card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")

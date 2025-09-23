@@ -5,7 +5,6 @@ import { API_BASE_URL } from '@core/api/api.config';
 
 import { AuthService } from './auth.service';
 
-
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const token = auth.token();

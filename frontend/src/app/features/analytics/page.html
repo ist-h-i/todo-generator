@@ -12,7 +12,9 @@
       <article class="surface-panel px-6 py-6">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-400">進捗率</p>
         <p class="mt-3 text-3xl font-semibold">{{ summary.progressRatio }}%</p>
-        <p class="text-sm text-slate-500">完了カード {{ summary.doneCards }}/{{ summary.totalCards }}</p>
+        <p class="text-sm text-slate-500">
+          完了カード {{ summary.doneCards }}/{{ summary.totalCards }}
+        </p>
       </article>
       <article class="surface-panel px-6 py-6">
         <p class="text-xs uppercase tracking-[0.3em] text-slate-400">カード数</p>
@@ -86,7 +88,9 @@
             (click)="selectSnapshot(snapshot.id)"
           >
             <span class="text-sm font-medium text-on-surface">{{ snapshot.title }}</span>
-            <span class="text-[11px] text-slate-500">{{ snapshot.periodStart }}〜{{ snapshot.periodEnd }}</span>
+            <span class="text-[11px] text-slate-500"
+              >{{ snapshot.periodStart }}〜{{ snapshot.periodEnd }}</span
+            >
           </button>
         }
       </div>
@@ -130,7 +134,9 @@
             <p class="mt-2 text-xs text-slate-500">{{ snapshot.summary }}</p>
             <ul class="mt-4 space-y-2 text-sm text-on-surface">
               @for (metric of snapshot.metrics; track metric.label) {
-                <li class="flex items-center justify-between gap-4 rounded-xl bg-surface-strong px-3 py-2">
+                <li
+                  class="flex items-center justify-between gap-4 rounded-xl bg-surface-strong px-3 py-2"
+                >
                   <span>{{ metric.label }}</span>
                   <span class="text-right text-sm font-semibold">
                     {{ metric.value }}
@@ -167,13 +173,15 @@
               <li class="cause-card">
                 <p class="text-sm font-semibold text-on-surface">{{ node.statement }}</p>
                 <p class="text-xs text-slate-500">
-                  確信度 {{ (node.confidence * 100) | number: '1.0-0' }}% · 状態 {{ node.state }}
+                  確信度 {{ node.confidence * 100 | number: '1.0-0' }}% · 状態 {{ node.state }}
                 </p>
                 <p class="text-xs text-slate-500">
                   推奨メトリクス: {{ node.recommendedMetrics.join(', ') || '未設定' }}
                 </p>
                 @if (node.tone === 'direct') {
-                  <p class="text-xs font-semibold text-rose-500">率直な指摘: 感情に配慮しつつも事実を明示します。</p>
+                  <p class="text-xs font-semibold text-rose-500">
+                    率直な指摘: 感情に配慮しつつも事実を明示します。
+                  </p>
                 }
               </li>
             }
@@ -187,7 +195,9 @@
     <header class="flex items-center justify-between">
       <div>
         <h3 class="text-lg font-semibold text-on-surface">ネクストアクション</h3>
-        <p class="text-xs text-slate-500">原因ごとの推奨アクションをワンクリックでタスク化できます。</p>
+        <p class="text-xs text-slate-500">
+          原因ごとの推奨アクションをワンクリックでタスク化できます。
+        </p>
       </div>
       <span class="text-xs text-slate-500">{{ actionPlan().length }} 件</span>
     </header>
@@ -199,7 +209,8 @@
               <p class="text-sm font-semibold text-on-surface">{{ action.title }}</p>
               <p class="text-xs text-slate-500">{{ action.summary }}</p>
               <p class="text-xs text-slate-500">
-                担当: {{ action.ownerRole }} · 努力 {{ action.effort }} · 影響度 {{ action.impactScore }}
+                担当: {{ action.ownerRole }} · 努力 {{ action.effort }} · 影響度
+                {{ action.impactScore }}
               </p>
               <p class="text-xs text-slate-500">
                 期限目安 {{ action.dueInDays }} 日 · 推奨ラベル {{ action.labelIds.join(', ') }}
@@ -237,7 +248,7 @@
         <article class="metric-card">
           <p class="text-xs uppercase tracking-[0.2em] text-slate-400">再発率</p>
           <p class="mt-3 text-3xl font-semibold">
-            {{ (overview.recurrenceRate * 100) | number: '1.0-0' }}%
+            {{ overview.recurrenceRate * 100 | number: '1.0-0' }}%
           </p>
           <p class="text-xs text-slate-500">前期比 {{ formatChange(overview.recurrenceDelta) }}</p>
         </article>
@@ -273,7 +284,9 @@
                 <p class="text-xs text-slate-500">目標: {{ initiative.targetMetric }}</p>
                 <p class="text-xs text-slate-500">{{ initiative.summary }}</p>
               </div>
-              <span class="health-pill" [attr.data-health]="initiative.health">{{ initiative.health }}</span>
+              <span class="health-pill" [attr.data-health]="initiative.health">{{
+                initiative.health
+              }}</span>
             </div>
             <ul class="mt-3 space-y-2 text-xs text-slate-500">
               @for (log of initiative.progress; track log.id) {
@@ -311,13 +324,10 @@
           レポートを再生成
         </button>
       </div>
-      <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">プレビュー</label>
-      <textarea
-        class="report-preview"
-        rows="10"
-        readonly
-        [value]="reportPreview()"
-      ></textarea>
+      <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
+        >プレビュー</label
+      >
+      <textarea class="report-preview" rows="10" readonly [value]="reportPreview()"></textarea>
     </div>
   </section>
 </section>

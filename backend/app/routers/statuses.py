@@ -16,12 +16,8 @@ def list_statuses(db: Session = Depends(get_db)) -> List[models.Status]:
     return db.query(models.Status).order_by(models.Status.order, models.Status.name).all()
 
 
-@router.post(
-    "/", response_model=schemas.StatusRead, status_code=status.HTTP_201_CREATED
-)
-def create_status(
-    payload: schemas.StatusCreate, db: Session = Depends(get_db)
-) -> models.Status:
+@router.post("/", response_model=schemas.StatusRead, status_code=status.HTTP_201_CREATED)
+def create_status(payload: schemas.StatusCreate, db: Session = Depends(get_db)) -> models.Status:
     status_model = models.Status(**payload.dict())
     db.add(status_model)
     db.commit()
@@ -30,9 +26,7 @@ def create_status(
 
 
 @router.put("/{status_id}", response_model=schemas.StatusRead)
-def update_status(
-    status_id: str, payload: schemas.StatusUpdate, db: Session = Depends(get_db)
-) -> models.Status:
+def update_status(status_id: str, payload: schemas.StatusUpdate, db: Session = Depends(get_db)) -> models.Status:
     status_model = db.get(models.Status, status_id)
     if not status_model:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Status not found")

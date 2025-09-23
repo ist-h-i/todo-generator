@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, selectinload
@@ -58,9 +58,7 @@ def _format_analysis(analysis: models.RootCauseAnalysis | None) -> str:
     if nodes:
         lines.append("Key contributing causes:")
         for node in nodes[1:6]:
-            lines.append(
-                f"- {node.statement} (confidence {node.confidence or 0:.0%}, status {node.state})"
-            )
+            lines.append(f"- {node.statement} (confidence {node.confidence or 0:.0%}, status {node.state})")
     if analysis.suggestions:
         lines.append("Recommended actions:")
         for suggestion in analysis.suggestions[:5]:
@@ -101,9 +99,7 @@ def list_templates(db: Session = Depends(get_db)) -> List[models.ReportTemplate]
     response_model=schemas.ReportTemplateRead,
     status_code=status.HTTP_201_CREATED,
 )
-def create_template(
-    payload: schemas.ReportTemplateCreate, db: Session = Depends(get_db)
-) -> models.ReportTemplate:
+def create_template(payload: schemas.ReportTemplateCreate, db: Session = Depends(get_db)) -> models.ReportTemplate:
     template = models.ReportTemplate(
         name=payload.name,
         audience=payload.audience,
@@ -177,9 +173,7 @@ def get_report(report_id: str, db: Session = Depends(get_db)) -> models.Generate
     response_model=schemas.ReportGenerateResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def generate_report(
-    payload: schemas.ReportGenerateRequest, db: Session = Depends(get_db)
-) -> models.GeneratedReport:
+def generate_report(payload: schemas.ReportGenerateRequest, db: Session = Depends(get_db)) -> models.GeneratedReport:
     template = None
     if payload.template_id:
         template = db.get(models.ReportTemplate, payload.template_id)

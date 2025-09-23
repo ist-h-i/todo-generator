@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .models import SessionToken, User
 
-
 _PBKDF2_ITERATIONS = 120_000
 _TOKEN_TTL_HOURS = 24
 _AUTH_SCHEME = HTTPBearer(auto_error=False)
@@ -26,11 +25,10 @@ def _utcnow() -> datetime:
 def normalize_email(email: str) -> str:
     return email.strip().lower()
 
+
 def hash_password(password: str) -> str:
     salt_bytes = secrets.token_bytes(16)
-    derived = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt_bytes, _PBKDF2_ITERATIONS
-    )
+    derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt_bytes, _PBKDF2_ITERATIONS)
     return f"{salt_bytes.hex()}${derived.hex()}"
 
 
@@ -41,9 +39,7 @@ def verify_password(password: str, encoded: str) -> bool:
         return False
 
     salt = bytes.fromhex(salt_hex)
-    derived = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt, _PBKDF2_ITERATIONS
-    ).hex()
+    derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, _PBKDF2_ITERATIONS).hex()
     return hmac.compare_digest(derived, digest_hex)
 
 
