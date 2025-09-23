@@ -87,7 +87,7 @@ export class Shell {
   public readonly navigationLinks = computed(() => {
     const links = [
       { path: '/board', label: 'ボード' },
-      { path: '/input', label: 'インプット解析' },
+      { path: '/input', label: 'タスク起票' },
       { path: '/analytics', label: 'アナリティクス' },
     ];
 
