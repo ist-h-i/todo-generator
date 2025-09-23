@@ -20,7 +20,17 @@
               <span>{{ status.name }}</span>
               <span class="text-xs text-slate-500">{{ status.category }}</span>
             </div>
-            <span class="text-xs text-slate-500">表示順 {{ status.order }}</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-slate-500">表示順 {{ status.order }}</span>
+              <button
+                type="button"
+                class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="statusCount() <= 1"
+                (click)="removeStatus(status.id)"
+              >
+                削除
+              </button>
+            </div>
           </li>
         }
       </ul>
@@ -106,7 +116,16 @@
               <span class="h-3 w-3 rounded-full" [style.backgroundColor]="label.color"></span>
               <span>{{ label.name }}</span>
             </div>
-            <span class="text-xs text-slate-500">{{ label.id }}</span>
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+              <span>{{ label.id }}</span>
+              <button
+                type="button"
+                class="surface-pill focus-ring px-3 py-1 font-semibold uppercase tracking-[0.2em] text-red-500"
+                (click)="removeLabel(label.id)"
+              >
+                削除
+              </button>
+            </div>
           </li>
         }
       </ul>
