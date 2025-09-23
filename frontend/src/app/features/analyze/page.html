@@ -1,10 +1,10 @@
 <section class="space-y-10">
   <form class="surface-panel space-y-6 px-8 py-8" (submit)="handleSubmit($event)">
     <header class="space-y-2">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400">ChatGPT Analyzer</p>
-      <h2 class="text-2xl font-semibold text-on-surface">入力テキストを解析</h2>
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400">AI Task Creator</p>
+      <h2 class="text-2xl font-semibold text-on-surface">メモからタスクを起票</h2>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        作業メモやアイデアを貼り付けると、ChatGPT がカード候補とサブタスクを提案します。
+        作業メモやアイデアを貼り付けると、AI がカード案とサブタスクを提案します。内容を確認し、必要なものだけボードへ追加しましょう。
       </p>
     </header>
 
@@ -20,9 +20,9 @@
       </label>
       <div class="flex flex-col gap-4">
         <div class="space-y-3 rounded-2xl border border-dashed border-subtle px-4 py-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ゴール設定</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ゴールの決め方</p>
           <p class="text-[11px] text-slate-400 dark:text-slate-500">
-            解析結果で目指すゴールをどのように決めるか選択してください。
+            タスク案を作成するときのゴールの決め方を選んでください。
           </p>
           <label class="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
             <input
@@ -35,7 +35,7 @@
             <span class="space-y-1">
               <span class="block font-semibold text-on-surface">AIにおまかせ</span>
               <span class="block text-xs text-slate-500 dark:text-slate-400">
-                ノートの内容から ChatGPT がおすすめのゴールを自動設定します。
+                ノートの内容から AI がおすすめのゴールを自動設定します。
               </span>
             </span>
           </label>
@@ -50,7 +50,7 @@
             <span class="space-y-1">
               <span class="block font-semibold text-on-surface">自分で指定</span>
               <span class="block text-xs text-slate-500 dark:text-slate-400">
-                ゴールを詳しく入力して ChatGPT に具体的な提案を依頼します。
+                ゴールを詳しく入力して AI に具体的な提案を依頼します。
               </span>
             </span>
           </label>
@@ -59,10 +59,10 @@
           <div
             class="min-h-[180px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-xs text-slate-600 dark:text-slate-300"
           >
-            <p class="text-sm font-semibold text-on-surface">AIおすすめのゴール候補</p>
+            <p class="text-sm font-semibold text-on-surface">AIが推定したゴール候補</p>
             <p class="mt-1 leading-relaxed">{{ autoObjectivePreview() }}</p>
             <p class="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
-              解析を実行すると、このゴールを前提に提案が生成されます。
+              提案を作成すると、このゴールを前提にカード案が作成されます。
             </p>
           </div>
         } @else {
@@ -78,8 +78,7 @@
             ></textarea>
           </label>
           <p class="text-[11px] text-slate-400 dark:text-slate-500">
-            ゴールは ChatGPT
-            が提案を組み立てる際の到達点になります。できるだけ具体的に記載してください。
+            ゴールは AI がタスク案を組み立てる際の到達点になります。できるだけ具体的に記載してください。
           </p>
         }
       </div>
@@ -90,7 +89,7 @@
         type="submit"
         class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold"
       >
-        解析を実行
+        タスク案を作成
       </button>
       <button
         type="button"
@@ -105,21 +104,21 @@
   <section class="space-y-4">
     <header class="flex items-center justify-between">
       <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Proposals</p>
-        <h3 class="text-xl font-semibold text-on-surface">ChatGPT の提案結果</h3>
+        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">AI Suggestions</p>
+        <h3 class="text-xl font-semibold text-on-surface">AI が作成したタスク案</h3>
       </div>
       <button
         type="button"
         class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
         (click)="resetForm()"
       >
-        クリア
+        結果をクリア
       </button>
     </header>
 
     @if (analysisResource.status() === 'loading') {
       <div class="surface-panel animate-pulse space-y-3 px-6 py-6 text-sm text-slate-500">
-        ChatGPT が提案を作成しています...
+        AI がタスク案を準備しています...
       </div>
     }
 
@@ -127,7 +126,7 @@
       <div
         class="surface-panel border-red-300 bg-red-50 px-6 py-6 text-sm text-red-700 dark:border-red-500 dark:bg-red-950/40 dark:text-red-200"
       >
-        解析中にエラーが発生しました。内容を確認して再度お試しください。
+        タスク起票の処理中にエラーが発生しました。内容を確認してからもう一度お試しください。
       </div>
     }
 
@@ -167,7 +166,7 @@
                 class="surface-primary focus-ring mt-auto self-start rounded-full px-5 py-2 text-sm font-semibold"
                 (click)="publishProposals([proposal])"
               >
-                この提案をカード化
+                この案をカードに追加
               </button>
             </article>
           }
@@ -178,17 +177,17 @@
             class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold"
             (click)="publishProposals(eligibleProposals())"
           >
-            すべての提案をボードに追加
+            すべての案をボードに追加
           </button>
         </div>
       } @else {
         <div class="surface-panel px-6 py-6 text-sm text-slate-500 dark:text-slate-400">
-          おすすめ度のしきい値を下回るテンプレートの提案は表示されません。設定を調整して再度お試しください。
+          おすすめ度のしきい値より低い案は表示されません。設定を見直して再度お試しください。
         </div>
       }
     } @else {
       <div class="surface-panel px-6 py-6 text-sm text-slate-500 dark:text-slate-400">
-        提案結果はまだありません。ノートを入力して解析を実行してください。
+        まだ提案がありません。ノートを入力してタスク起票を実行してください。
       </div>
     }
   </section>

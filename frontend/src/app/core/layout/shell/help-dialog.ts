@@ -33,11 +33,11 @@ export class HelpDialogComponent implements AfterViewInit {
       alt: 'カンバン形式でカードが並んだボード画面のイラスト',
     },
     {
-      title: 'インプット解析',
+      title: 'タスク起票',
       description:
-        'メモや要望を貼り付けると、AI がタスク候補やストーリーポイントを提案します。内容をレビューし、必要に応じて編集してからボードに公開しましょう。',
+        'メモや要望を貼り付けると、AI がタスク案やストーリーポイントの目安を提案します。内容を確認し、必要な分だけ編集してからボードに追加しましょう。',
       image: 'help/input.svg',
-      alt: 'テキスト解析とAI提案のプレビューを表示する画面のイラスト',
+      alt: 'AI の提案プレビューが表示されたタスク起票画面のイラスト',
     },
     {
       title: 'アナリティクス',
@@ -58,7 +58,7 @@ export class HelpDialogComponent implements AfterViewInit {
   public readonly faqs: readonly FaqItem[] = [
     {
       question: 'AI の提案結果は編集できますか？',
-      answer: 'はい。インプット解析画面で提案されたタイトルや詳細、ストーリーポイントを直接修正し、納得した内容のみをボードに公開できます。',
+      answer: 'はい。タスク起票画面で提案されたタイトルや詳細、ストーリーポイントを直接修正し、納得した内容のみをボードに公開できます。',
     },
     {
       question: 'カードの履歴はどこで確認できますか？',
