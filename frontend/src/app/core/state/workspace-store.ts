@@ -6,6 +6,7 @@ import {
   BoardColumnView,
   BoardFilters,
   BoardGrouping,
+  BoardQuickFilter,
   Card,
   Label,
   Status,
@@ -19,6 +20,7 @@ import {
 import { createId } from '@core/utils/create-id';
 
 const STORAGE_NAMESPACE = 'todo-generator/workspace-settings';
+const PREFERENCES_STORAGE_NAMESPACE = 'todo-generator/workspace-preferences';
 
 const cloneStatus = (status: Status): Status => ({
   id: status.id,
@@ -57,6 +59,34 @@ const cloneSettings = (settings: WorkspaceSettings): WorkspaceSettings => ({
 const clampConfidence = (value: number): number => Math.min(Math.max(value, 0), 1);
 
 const unique = <T>(values: readonly T[]): T[] => Array.from(new Set(values));
+
+const cloneFilters = (filters: BoardFilters): BoardFilters => ({
+  search: filters.search,
+  labelIds: [...filters.labelIds],
+  statusIds: [...filters.statusIds],
+  quickFilters: [...filters.quickFilters],
+});
+
+const arraysEqual = <T>(left: readonly T[], right: readonly T[]): boolean =>
+  left.length === right.length && left.every((value, index) => value === right[index]);
+
+const filtersEqual = (left: BoardFilters, right: BoardFilters): boolean =>
+  left.search === right.search &&
+  arraysEqual(left.labelIds, right.labelIds) &&
+  arraysEqual(left.statusIds, right.statusIds) &&
+  arraysEqual(left.quickFilters, right.quickFilters);
+
+const DEFAULT_GROUPING: BoardGrouping = 'label';
+
+const QUICK_FILTER_VALUES: readonly BoardQuickFilter[] = [
+  'myAssignments',
+  'dueSoon',
+  'recentlyCreated',
+  'highPriority',
+  'noAssignee',
+];
+
+const QUICK_FILTER_LOOKUP = new Set<BoardQuickFilter>(QUICK_FILTER_VALUES);
 
 const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 0.5;
 
@@ -99,6 +129,23 @@ type RawTemplateFieldVisibility = {
   showDueDate?: unknown;
   showAssignee?: unknown;
   showConfidence?: unknown;
+};
+
+interface BoardPreferences {
+  readonly grouping: BoardGrouping;
+  readonly filters: BoardFilters;
+}
+
+type RawBoardFilters = {
+  search?: unknown;
+  labelIds?: unknown;
+  statusIds?: unknown;
+  quickFilters?: unknown;
+};
+
+type RawBoardPreferences = {
+  grouping?: unknown;
+  filters?: unknown;
 };
 
 const INITIAL_LABELS: Label[] = [
@@ -214,7 +261,7 @@ export class WorkspaceStore {
 
   private readonly settingsSignal = signal<WorkspaceSettings>(cloneSettings(INITIAL_SETTINGS));
   private readonly cardsSignal = signal<readonly Card[]>(INITIAL_CARDS);
-  private readonly groupingSignal = signal<BoardGrouping>('label');
+  private readonly groupingSignal = signal<BoardGrouping>(DEFAULT_GROUPING);
   private readonly filtersSignal = signal<BoardFilters>({ ...INITIAL_FILTERS });
   private readonly selectedCardIdSignal = signal<string | null>(null);
   private readonly templateConfidenceThresholds = computed(
@@ -232,7 +279,10 @@ export class WorkspaceStore {
       () => {
         const userId = this.activeUserId();
         const settings = this.loadSettings(userId);
+        const preferences = this.loadPreferences(userId, settings);
         this.settingsSignal.set(settings);
+        this.groupingSignal.set(preferences.grouping);
+        this.filtersSignal.set(preferences.filters);
         this.reconcileCardsForSettings(settings);
         this.reconcileFiltersForSettings(settings);
       },
@@ -413,7 +463,12 @@ export class WorkspaceStore {
    * @param grouping - New grouping strategy.
    */
   public readonly setGrouping = (grouping: BoardGrouping): void => {
+    if (this.groupingSignal() === grouping) {
+      return;
+    }
+
     this.groupingSignal.set(grouping);
+    this.persistPreferencesState(this.filtersSignal(), grouping);
   };
 
   /**
@@ -422,14 +477,33 @@ export class WorkspaceStore {
    * @param filters - Next filter patch.
    */
   public readonly updateFilters = (filters: Partial<BoardFilters>): void => {
-    this.filtersSignal.update((current) => ({ ...current, ...filters }));
+    let nextFilters: BoardFilters | null = null;
+
+    this.filtersSignal.update((current) => {
+      const merged = { ...current, ...filters };
+      const sanitized = this.sanitizeFilters(merged, this.settingsSignal());
+      if (filtersEqual(current, sanitized)) {
+        return current;
+      }
+      nextFilters = sanitized;
+      return sanitized;
+    });
+
+    if (nextFilters) {
+      this.persistPreferencesState(nextFilters, this.groupingSignal());
+    }
   };
 
   /**
    * Clears the current board filters.
    */
   public readonly resetFilters = (): void => {
-    this.filtersSignal.set({ ...INITIAL_FILTERS });
+    const defaults = this.sanitizeFilters(INITIAL_FILTERS, this.settingsSignal());
+    if (filtersEqual(this.filtersSignal(), defaults)) {
+      return;
+    }
+    this.filtersSignal.set(defaults);
+    this.persistPreferencesState(defaults, this.groupingSignal());
   };
 
   /**
@@ -723,10 +797,9 @@ export class WorkspaceStore {
       ),
     );
 
-    this.filtersSignal.update((filters) => ({
-      ...filters,
-      labelIds: filters.labelIds.filter((id) => id !== labelId),
-    }));
+    this.updateFilters({
+      labelIds: this.filtersSignal().labelIds.filter((id) => id !== labelId),
+    });
 
     return true;
   };
@@ -820,10 +893,9 @@ export class WorkspaceStore {
       cards.map((card) => (card.statusId === statusId ? { ...card, statusId: fallback } : card)),
     );
 
-    this.filtersSignal.update((filters) => ({
-      ...filters,
-      statusIds: filters.statusIds.filter((id) => id !== statusId),
-    }));
+    this.updateFilters({
+      statusIds: this.filtersSignal().statusIds.filter((id) => id !== statusId),
+    });
 
     return fallback;
   };
@@ -980,26 +1052,21 @@ export class WorkspaceStore {
   }
 
   private reconcileFiltersForSettings(settings: WorkspaceSettings): void {
-    const allowedStatusIds = new Set(settings.statuses.map((status) => status.id));
-    const allowedLabelIds = new Set(settings.labels.map((label) => label.id));
+    let nextFilters: BoardFilters | null = null;
 
     this.filtersSignal.update((filters) => {
-      const statusIds = filters.statusIds.filter((id) => allowedStatusIds.has(id));
-      const labelIds = filters.labelIds.filter((id) => allowedLabelIds.has(id));
-
-      if (
-        statusIds.length === filters.statusIds.length &&
-        labelIds.length === filters.labelIds.length
-      ) {
+      const sanitized = this.sanitizeFilters(filters, settings);
+      if (filtersEqual(filters, sanitized)) {
         return filters;
       }
 
-      return {
-        ...filters,
-        statusIds,
-        labelIds,
-      } satisfies BoardFilters;
+      nextFilters = sanitized;
+      return sanitized;
     });
+
+    if (nextFilters) {
+      this.persistPreferencesState(nextFilters, this.groupingSignal());
+    }
   }
 
   private resolveStorage(): Storage | null {
@@ -1016,6 +1083,48 @@ export class WorkspaceStore {
 
   private buildStorageKey(userId: string): string {
     return `${STORAGE_NAMESPACE}/${userId}`;
+  }
+
+  private buildPreferencesKey(userId: string): string {
+    return `${PREFERENCES_STORAGE_NAMESPACE}/${userId}`;
+  }
+
+  private buildDefaultPreferences(): BoardPreferences {
+    return {
+      grouping: DEFAULT_GROUPING,
+      filters: cloneFilters(INITIAL_FILTERS),
+    } satisfies BoardPreferences;
+  }
+
+  private loadPreferences(
+    userId: string | null,
+    settings: WorkspaceSettings,
+  ): BoardPreferences {
+    const defaults = this.buildDefaultPreferences();
+    if (!userId || !this.storage) {
+      return defaults;
+    }
+
+    const key = this.buildPreferencesKey(userId);
+    const stored = this.storage.getItem(key);
+
+    if (!stored) {
+      this.persistPreferencesForUser(userId, defaults);
+      return defaults;
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      const sanitized = this.sanitizePreferences(parsed, settings);
+      this.persistPreferencesForUser(userId, sanitized);
+      return {
+        grouping: sanitized.grouping,
+        filters: cloneFilters(sanitized.filters),
+      } satisfies BoardPreferences;
+    } catch {
+      this.persistPreferencesForUser(userId, defaults);
+      return defaults;
+    }
   }
 
   private loadSettings(userId: string | null): WorkspaceSettings {
@@ -1063,6 +1172,107 @@ export class WorkspaceStore {
     } catch {
       // Swallow storage exceptions to avoid breaking UX on quota issues.
     }
+  }
+
+  private persistPreferences(preferences: BoardPreferences): void {
+    const userId = this.activeUserId();
+    if (!userId) {
+      return;
+    }
+
+    this.persistPreferencesForUser(userId, preferences);
+  }
+
+  private persistPreferencesForUser(userId: string, preferences: BoardPreferences): void {
+    if (!this.storage) {
+      return;
+    }
+
+    try {
+      const payload: BoardPreferences = {
+        grouping: preferences.grouping,
+        filters: cloneFilters(preferences.filters),
+      };
+      this.storage.setItem(this.buildPreferencesKey(userId), JSON.stringify(payload));
+    } catch {
+      // Swallow storage exceptions to avoid breaking UX on quota issues.
+    }
+  }
+
+  private persistPreferencesState(filters: BoardFilters, grouping: BoardGrouping): void {
+    this.persistPreferences({
+      grouping,
+      filters: cloneFilters(filters),
+    });
+  }
+
+  private sanitizePreferences(
+    raw: unknown,
+    settings: WorkspaceSettings,
+  ): BoardPreferences {
+    const defaults = this.buildDefaultPreferences();
+    if (!raw || typeof raw !== 'object') {
+      return defaults;
+    }
+
+    const record = raw as RawBoardPreferences;
+    const grouping =
+      record.grouping === 'status' || record.grouping === 'label'
+        ? (record.grouping as BoardGrouping)
+        : defaults.grouping;
+    const filters = this.sanitizeFilters(record.filters, settings);
+
+    return { grouping, filters } satisfies BoardPreferences;
+  }
+
+  private sanitizeFilters(value: unknown, settings: WorkspaceSettings): BoardFilters {
+    const defaults = cloneFilters(INITIAL_FILTERS);
+    if (!value || typeof value !== 'object') {
+      return defaults;
+    }
+
+    const record = value as RawBoardFilters;
+    const search = typeof record.search === 'string' ? record.search : defaults.search;
+    const allowedStatusIds = new Set(settings.statuses.map((status) => status.id));
+    const allowedLabelIds = new Set(settings.labels.map((label) => label.id));
+    const statusIds = this.sanitizeFilterIds(record.statusIds, allowedStatusIds);
+    const labelIds = this.sanitizeFilterIds(record.labelIds, allowedLabelIds);
+    const quickFilters = this.sanitizeQuickFilters(record.quickFilters);
+
+    return {
+      search,
+      statusIds,
+      labelIds,
+      quickFilters,
+    } satisfies BoardFilters;
+  }
+
+  private sanitizeFilterIds(
+    value: unknown,
+    allowed: ReadonlySet<string>,
+  ): readonly string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return unique(
+      value.filter(
+        (entry): entry is string => typeof entry === 'string' && allowed.has(entry),
+      ),
+    );
+  }
+
+  private sanitizeQuickFilters(value: unknown): readonly BoardQuickFilter[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return unique(
+      value.filter(
+        (entry): entry is BoardQuickFilter =>
+          typeof entry === 'string' && QUICK_FILTER_LOOKUP.has(entry as BoardQuickFilter),
+      ),
+    );
   }
 
   private sanitizeSettings(raw: unknown): WorkspaceSettings {
