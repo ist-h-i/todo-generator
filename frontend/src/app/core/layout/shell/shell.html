@@ -41,11 +41,22 @@
           type="button"
           class="shell-quick-action focus-ring"
           (click)="toggleTheme()"
-          [attr.aria-pressed]="isDark()"
           [attr.aria-label]="themeToggleAriaLabel()"
         >
           <span class="shell-quick-action__icon">
-            @if (isDark()) {
+            @if (themePreference() === 'system') {
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                class="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <rect x="3" y="4" width="18" height="13" rx="2" />
+                <path stroke-linecap="round" d="M8 21h8m-4-4v4" />
+              </svg>
+            } @else if (isDark()) {
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
@@ -78,7 +89,7 @@
             }
           </span>
           <span class="shell-quick-action__label">
-            {{ isDark() ? 'ライトモードに切替' : 'ダークモードに切替' }}
+            {{ 'テーマ: ' + themeDisplayLabel() + '（次: ' + themeNextLabel() + '）' }}
           </span>
         </button>
 
