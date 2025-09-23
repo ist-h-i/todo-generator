@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Iterable, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, or_
+from sqlalchemy import func, insert, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from .. import models, schemas
@@ -13,21 +14,100 @@ from ..auth import get_current_user
 from ..database import get_db
 from ..utils.activity import record_activity
 
+DAILY_CARD_CREATION_LIMIT = 5
+_DAILY_CARD_LIMIT_MESSAGE = (
+    "Daily card creation limit reached. Please try again tomorrow."
+)
+
+
+def _reserve_daily_card_quota(db: Session, *, owner_id: str, quota_day: date) -> None:
+    quota_cls = models.DailyCardQuota
+
+    def _try_increment() -> bool:
+        result = db.execute(
+            update(quota_cls)
+            .where(
+                quota_cls.owner_id == owner_id,
+                quota_cls.quota_date == quota_day,
+                quota_cls.created_count < DAILY_CARD_CREATION_LIMIT,
+            )
+            .values(created_count=quota_cls.created_count + 1)
+        )
+        return bool(result.rowcount)
+
+    if _try_increment():
+        return
+
+    dialect_name = db.bind.dialect.name if db.bind else ""
+    if dialect_name == "sqlite":
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+        insert_stmt = (
+            sqlite_insert(quota_cls)
+            .values(owner_id=owner_id, quota_date=quota_day, created_count=1)
+            .on_conflict_do_nothing(
+                index_elements=[quota_cls.owner_id, quota_cls.quota_date]
+            )
+        )
+    elif dialect_name == "postgresql":
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+        insert_stmt = (
+            pg_insert(quota_cls)
+            .values(owner_id=owner_id, quota_date=quota_day, created_count=1)
+            .on_conflict_do_nothing(
+                index_elements=[quota_cls.owner_id, quota_cls.quota_date]
+            )
+        )
+    else:
+        insert_stmt = insert(quota_cls).values(
+            owner_id=owner_id,
+            quota_date=quota_day,
+            created_count=1,
+        )
+
+    try:
+        insert_result = db.execute(insert_stmt)
+    except IntegrityError:
+        db.rollback()
+    else:
+        if insert_result.rowcount:
+            return
+
+    if _try_increment():
+        return
+
+    existing_count = db.execute(
+        select(quota_cls.created_count).where(
+            quota_cls.owner_id == owner_id,
+            quota_cls.quota_date == quota_day,
+        )
+    ).scalar_one_or_none()
+
+    if existing_count is None or existing_count < DAILY_CARD_CREATION_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to reserve daily card quota.",
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=_DAILY_CARD_LIMIT_MESSAGE,
+    )
+
+
 router = APIRouter(prefix="/cards", tags=["cards"])
 
 DAILY_CARD_CREATION_LIMIT = 25
 
 
 def _card_query(db: Session, *, owner_id: Optional[str] = None):
-    query = (
-        db.query(models.Card)
-        .options(
-            selectinload(models.Card.subtasks),
-            selectinload(models.Card.labels),
-            joinedload(models.Card.status),
-            joinedload(models.Card.error_category),
-            joinedload(models.Card.initiative),
-        )
+    query = db.query(models.Card).options(
+        selectinload(models.Card.subtasks),
+        selectinload(models.Card.labels),
+        joinedload(models.Card.status),
+        joinedload(models.Card.error_category),
+        joinedload(models.Card.initiative),
     )
 
     if owner_id:
@@ -193,11 +273,7 @@ def list_cards(
 
     if assignees:
         wanted = set(assignees)
-        cards = [
-            card
-            for card in cards
-            if wanted.intersection(set(card.assignees or []))
-        ]
+        cards = [card for card in cards if wanted.intersection(set(card.assignees or []))]
 
     return cards
 
@@ -248,11 +324,7 @@ def create_card(
     )
 
     if payload.label_ids:
-        labels = (
-            db.query(models.Label)
-            .filter(models.Label.id.in_(payload.label_ids))
-            .all()
-        )
+        labels = db.query(models.Label).filter(models.Label.id.in_(payload.label_ids)).all()
         card.labels = labels
 
     for subtask_data in payload.subtasks:
@@ -340,12 +412,7 @@ def list_subtasks(
     if not card or card.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
-    return (
-        db.query(models.Subtask)
-        .filter(models.Subtask.card_id == card_id)
-        .order_by(models.Subtask.created_at)
-        .all()
-    )
+    return db.query(models.Subtask).filter(models.Subtask.card_id == card_id).order_by(models.Subtask.created_at).all()
 
 
 @router.post(
@@ -493,12 +560,7 @@ def get_similar_items(
     if not base_card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
-    candidates = (
-        _card_query(db)
-        .filter(models.Card.id != card_id)
-        .order_by(models.Card.created_at.desc())
-        .all()
-    )
+    candidates = _card_query(db).filter(models.Card.id != card_id).order_by(models.Card.created_at.desc()).all()
     items = _build_similar_items(base_card, candidates)
     return schemas.SimilarItemsResponse(items=items[:limit])
 

@@ -1,0 +1,40 @@
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["backend/app", "backend/tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "N",  # pep8-naming
+    "C4", # flake8-comprehensions
+    "S",  # flake8-bandit security rules
+    "RUF", # Ruff specific rules
+]
+ignore = [
+    "B008",  # allow function calls in default arguments for FastAPI dependencies
+    "N805",  # allow Pydantic validators to use `cls` as the first argument
+]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/**/*.py" = ["S101"]
+"backend/app/database.py" = ["E402"]
+"backend/tests/conftest.py" = ["E402"]
+"backend/tests/test_cards.py" = ["S105"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

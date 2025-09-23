@@ -7,8 +7,8 @@ from .config import settings
 from .database import Base, engine
 from .routers import (
     activity,
-    analytics,
     analysis,
+    analytics,
     auth,
     cards,
     comments,

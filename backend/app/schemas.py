@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 from uuid import uuid4
+import unicodedata
 
-from pydantic import BaseModel, EmailStr, Field, root_validator
+from pydantic import BaseModel, EmailStr, Field, root_validator, validator
 
 
 # Shared schema components
@@ -24,14 +25,33 @@ class UserRead(BaseModel):
         orm_mode = True
 
 
+def _normalize_email_input(value: str | EmailStr) -> str:
+    normalized = unicodedata.normalize("NFKC", str(value))
+    return normalized.strip()
+
+
 class AuthCredentials(BaseModel):
     email: EmailStr
     password: str
+
+    @validator("email", pre=True)
+    def normalize_email_field(cls, value: EmailStr | str) -> str:
+        if value is None:
+            return value
+
+        return _normalize_email_input(value)
 
 
 class RegistrationRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+
+    @validator("email", pre=True)
+    def normalize_email_field(cls, value: EmailStr | str) -> str:
+        if value is None:
+            return value
+
+        return _normalize_email_input(value)
 
 
 class TokenResponse(BaseModel):

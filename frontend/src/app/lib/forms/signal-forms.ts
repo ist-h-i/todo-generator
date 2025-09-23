@@ -43,10 +43,9 @@ const buildControl = <T>(initialValue: T): SignalControl<T> => {
 export const createSignalForm = <T extends Record<string, unknown>>(
   initialValue: T,
 ): SignalForm<T> => {
-  const controlEntries = Object.entries(initialValue).map(([key, value]) => [
-    key,
-    buildControl(value as T[keyof T]),
-  ] as const);
+  const controlEntries = Object.entries(initialValue).map(
+    ([key, value]) => [key, buildControl(value as T[keyof T])] as const,
+  );
 
   const controls = Object.fromEntries(controlEntries) as unknown as {
     [K in keyof T]: SignalControl<T[K]>;
@@ -54,10 +53,7 @@ export const createSignalForm = <T extends Record<string, unknown>>(
 
   const valueSignal = computed(() => {
     const snapshot = {} as T;
-    for (const entry of Object.entries(controls) as [
-      keyof T,
-      SignalControl<T[keyof T]>,
-    ][]) {
+    for (const entry of Object.entries(controls) as [keyof T, SignalControl<T[keyof T]>][]) {
       const [key, control] = entry;
       snapshot[key] = control.value() as T[keyof T];
     }
@@ -75,18 +71,17 @@ export const createSignalForm = <T extends Record<string, unknown>>(
 
   const reset = (value?: T): void => {
     const target = value ?? initialValue;
-    for (const entry of Object.entries(controls) as [
-      keyof T,
-      SignalControl<T[keyof T]>,
-    ][]) {
+    for (const entry of Object.entries(controls) as [keyof T, SignalControl<T[keyof T]>][]) {
       const [key, control] = entry;
       control.setValue(target[key]);
     }
   };
 
-  const submit = (handler: (value: T) => void): VoidFunction => () => {
-    handler(valueSignal());
-  };
+  const submit =
+    (handler: (value: T) => void): VoidFunction =>
+    () => {
+      handler(valueSignal());
+    };
 
   return {
     controls,

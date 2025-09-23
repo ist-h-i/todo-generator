@@ -104,9 +104,7 @@ export class SettingsPage {
       return;
     }
 
-    const normalized = Number.isFinite(value.confidenceThreshold)
-      ? value.confidenceThreshold
-      : 0.5;
+    const normalized = Number.isFinite(value.confidenceThreshold) ? value.confidenceThreshold : 0.5;
     const threshold = Math.min(Math.max(normalized, 0), 1);
     this.workspace.addTemplate({
       name: value.name.trim(),
@@ -190,9 +188,7 @@ export class SettingsPage {
       return;
     }
 
-    const normalized = Number.isFinite(value.confidenceThreshold)
-      ? value.confidenceThreshold
-      : 0.5;
+    const normalized = Number.isFinite(value.confidenceThreshold) ? value.confidenceThreshold : 0.5;
     const threshold = Math.min(Math.max(normalized, 0), 1);
     this.workspace.updateTemplate(templateId, {
       name: value.name.trim(),
@@ -228,11 +224,7 @@ export class SettingsPage {
   }
 
   public readonly toggleCreateTemplateLabel = (labelId: string, checked: boolean): void => {
-    this.updateDefaultLabelSelection(
-      this.templateForm.controls.defaultLabelIds,
-      labelId,
-      checked,
-    );
+    this.updateDefaultLabelSelection(this.templateForm.controls.defaultLabelIds, labelId, checked);
   };
 
   public readonly toggleEditTemplateLabel = (labelId: string, checked: boolean): void => {

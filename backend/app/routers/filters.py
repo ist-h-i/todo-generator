@@ -25,12 +25,8 @@ def list_filters(
     return query.order_by(models.SavedFilter.created_at.desc()).all()
 
 
-@router.post(
-    "/", response_model=schemas.SavedFilterRead, status_code=status.HTTP_201_CREATED
-)
-def create_filter(
-    payload: schemas.SavedFilterCreate, db: Session = Depends(get_db)
-) -> models.SavedFilter:
+@router.post("/", response_model=schemas.SavedFilterRead, status_code=status.HTTP_201_CREATED)
+def create_filter(payload: schemas.SavedFilterCreate, db: Session = Depends(get_db)) -> models.SavedFilter:
     saved_filter = models.SavedFilter(
         name=payload.name,
         definition=payload.definition,

@@ -35,7 +35,9 @@
   border: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, rgba(148, 163, 184, 0.12), rgba(148, 163, 184, 0.24));
   box-shadow: var(--shadow-soft);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .board-column header {
@@ -80,7 +82,9 @@
   position: relative;
   border-width: 1px;
   overflow: hidden;
-  transition: transform 150ms ease, box-shadow 150ms ease;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .board-card:hover {

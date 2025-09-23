@@ -5,6 +5,7 @@ import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import unicodedata
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -12,7 +13,6 @@ from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import SessionToken, User
-
 
 _PBKDF2_ITERATIONS = 120_000
 _TOKEN_TTL_HOURS = 24
@@ -23,14 +23,28 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _normalize_email_variants(email: str) -> tuple[str, str]:
+    normalized = unicodedata.normalize("NFKC", email).strip()
+    canonical = normalized.casefold()
+    legacy = normalized.lower()
+    return canonical, legacy
+
+
 def normalize_email(email: str) -> str:
-    return email.strip().lower()
+    canonical, _ = _normalize_email_variants(email)
+    return canonical
+
+
+def get_email_lookup_candidates(email: str) -> tuple[str, ...]:
+    canonical, legacy = _normalize_email_variants(email)
+    if canonical == legacy:
+        return (canonical,)
+    return (canonical, legacy)
+
 
 def hash_password(password: str) -> str:
     salt_bytes = secrets.token_bytes(16)
-    derived = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt_bytes, _PBKDF2_ITERATIONS
-    )
+    derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt_bytes, _PBKDF2_ITERATIONS)
     return f"{salt_bytes.hex()}${derived.hex()}"
 
 
@@ -41,9 +55,7 @@ def verify_password(password: str, encoded: str) -> bool:
         return False
 
     salt = bytes.fromhex(salt_hex)
-    derived = hashlib.pbkdf2_hmac(
-        "sha256", password.encode("utf-8"), salt, _PBKDF2_ITERATIONS
-    ).hex()
+    derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, _PBKDF2_ITERATIONS).hex()
     return hmac.compare_digest(derived, digest_hex)
 
 
@@ -97,6 +109,7 @@ def get_current_user(
 __all__ = [
     "create_session_token",
     "get_current_user",
+    "get_email_lookup_candidates",
     "hash_password",
     "normalize_email",
     "verify_password",
