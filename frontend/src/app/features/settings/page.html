@@ -27,6 +27,7 @@
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="status-name">ステータス名</label>
           <input
             id="status-name"
+            type="text"
             class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
             placeholder="例: QA Review"
             [value]="statusForm.controls.name.value()"
@@ -82,6 +83,7 @@
           <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500" for="label-name">ラベル名</label>
           <input
             id="label-name"
+            type="text"
             class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
             placeholder="例: DevOps"
             [value]="labelForm.controls.name.value()"
@@ -179,6 +181,7 @@
         >
         <input
           id="template-name"
+          type="text"
           class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
           placeholder="例: スプリント改善"
           [value]="templateForm.controls.name.value()"

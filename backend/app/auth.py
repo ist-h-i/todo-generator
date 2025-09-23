@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
-import string
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -26,12 +25,6 @@ def _utcnow() -> datetime:
 
 def normalize_email(email: str) -> str:
     return email.strip().lower()
-
-
-def generate_password(length: int = 12) -> str:
-    alphabet = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(length))
-
 
 def hash_password(password: str) -> str:
     salt_bytes = secrets.token_bytes(16)
@@ -103,7 +96,6 @@ def get_current_user(
 
 __all__ = [
     "create_session_token",
-    "generate_password",
     "get_current_user",
     "hash_password",
     "normalize_email",

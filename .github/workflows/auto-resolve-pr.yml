@@ -41,10 +41,23 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Chromium
+      - name: Ensure Chrome for headless tests
         run: |
+          set -euo pipefail
+
+          for candidate in google-chrome google-chrome-stable; do
+            if command -v "$candidate" >/dev/null 2>&1 && "$candidate" --version >/dev/null 2>&1; then
+              echo "$("$candidate" --version) already installed."
+              exit 0
+            fi
+          done
+
+          tmp_dir=$(mktemp -d)
+          trap 'rm -rf "$tmp_dir"' EXIT
+
+          curl -fsSL -o "$tmp_dir/google-chrome.deb" https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo apt-get update
-          sudo apt-get install -y chromium-browser
+          sudo apt-get install -y "$tmp_dir/google-chrome.deb"
 
       - name: Install MCP servers
         run: |
@@ -89,18 +102,42 @@ jobs:
 
       - name: Run tests
         run: |
+          set -e
+          ran_tests=false
+
+          chrome_candidates="google-chrome google-chrome-stable chromium chromium-browser chrome-headless-shell"
+          for candidate in $chrome_candidates; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              if "$candidate" --version >/dev/null 2>&1 || "$candidate" --product-version >/dev/null 2>&1; then
+                export CHROME_BIN="$(command -v "$candidate")"
+                break
+              fi
+            fi
+          done
+
+          if [ -n "${CHROME_BIN:-}" ]; then
+            echo "Using Chrome binary: $CHROME_BIN"
+          else
+            echo "No Chrome binary detected in PATH."
+          fi
+
           if [ -f package.json ]; then
+            ran_tests=true
             npm ci
             if [ -f karma.conf.js ] || [ -f karma.conf.cjs ]; then
               npx karma start --single-run --browsers=ChromeHeadless
             else
-              npm test
+              if node -e "const pkg=require('./package.json'); const script=(pkg && pkg.scripts && pkg.scripts.test) || ''; process.exit(script.includes('ng test') ? 0 : 1);"; then
+                npm test -- --watch=false --browsers=ChromeHeadless
+              else
+                npm test
+              fi
             fi
-          elif [ -f pytest.ini ] || [ -f conftest.py ] || [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-            pytest
-          elif [ -f frontend/package.json ]; then
-            cd frontend
+          fi
+
+          if [ -f frontend/package.json ]; then
+            ran_tests=true
+            pushd frontend > /dev/null
             if [ -f package-lock.json ]; then
               npm ci
             else
@@ -109,9 +146,32 @@ jobs:
             if [ -f karma.conf.js ] || [ -f karma.conf.cjs ]; then
               npx karma start --single-run --browsers=ChromeHeadless
             else
-              npm test
+              if node -e "const pkg=require('./package.json'); const script=(pkg && pkg.scripts && pkg.scripts.test) || ''; process.exit(script.includes('ng test') ? 0 : 1);"; then
+                npm test -- --watch=false --browsers=ChromeHeadless
+              else
+                npm test
+              fi
             fi
-          else
+            popd > /dev/null
+          fi
+
+          if [ -f pytest.ini ] || [ -f conftest.py ] || [ -f requirements.txt ]; then
+            ran_tests=true
+            if [ -f requirements.txt ]; then
+              pip install -r requirements.txt
+            fi
+            pytest
+          fi
+
+          if [ -f backend/requirements.txt ]; then
+            ran_tests=true
+            pip install -r backend/requirements.txt
+            pushd backend > /dev/null
+            pytest
+            popd > /dev/null
+          fi
+
+          if [ "$ran_tests" = false ]; then
             echo "No test framework detected, skipping."
           fi
 
@@ -129,7 +189,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXISTING_PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXISTING_PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
+          set -e
+
+          existing_pr_number=""
+          existing_pr_url=""
+
+          if [ -n "${EXISTING_PR_NUMBER}" ]; then
+            existing_pr_number="${EXISTING_PR_NUMBER}"
+            existing_pr_url="${EXISTING_PR_URL:-https://github.com/${GITHUB_REPOSITORY}/pull/${EXISTING_PR_NUMBER}}"
+          else
+            existing_pr_info="$(gh pr view --head "${{ github.head_ref }}" --json number,url --template '{{.number}} {{.url}}' 2>/dev/null || true)"
+
+            if [ -n "${existing_pr_info}" ]; then
+              IFS=' ' read -r existing_pr_number existing_pr_url <<< "${existing_pr_info}"
+            fi
+          fi
+
+          if [ -n "${existing_pr_url}" ]; then
+            if [ -n "${existing_pr_number}" ]; then
+              echo "Pull request already exists (#${existing_pr_number}): ${existing_pr_url}"
+            else
+              echo "Pull request already exists: ${existing_pr_url}"
+            fi
+            exit 0
+          fi
+
           gh pr create \
             --base main \
             --head ${{ github.head_ref }} \
