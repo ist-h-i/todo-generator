@@ -25,12 +25,8 @@ def list_activity(
     return query.order_by(desc(models.ActivityLog.created_at)).limit(limit).all()
 
 
-@router.post(
-    "/", response_model=schemas.ActivityLogRead, status_code=status.HTTP_201_CREATED
-)
-def create_activity(
-    payload: schemas.ActivityCreate, db: Session = Depends(get_db)
-) -> models.ActivityLog:
+@router.post("/", response_model=schemas.ActivityLogRead, status_code=status.HTTP_201_CREATED)
+def create_activity(payload: schemas.ActivityCreate, db: Session = Depends(get_db)) -> models.ActivityLog:
     log = record_activity(
         db,
         action=payload.action,

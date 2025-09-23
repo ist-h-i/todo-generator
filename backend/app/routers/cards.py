@@ -17,15 +17,12 @@ router = APIRouter(prefix="/cards", tags=["cards"])
 
 
 def _card_query(db: Session, *, owner_id: Optional[str] = None):
-    query = (
-        db.query(models.Card)
-        .options(
-            selectinload(models.Card.subtasks),
-            selectinload(models.Card.labels),
-            joinedload(models.Card.status),
-            joinedload(models.Card.error_category),
-            joinedload(models.Card.initiative),
-        )
+    query = db.query(models.Card).options(
+        selectinload(models.Card.subtasks),
+        selectinload(models.Card.labels),
+        joinedload(models.Card.status),
+        joinedload(models.Card.error_category),
+        joinedload(models.Card.initiative),
     )
 
     if owner_id:
@@ -191,11 +188,7 @@ def list_cards(
 
     if assignees:
         wanted = set(assignees)
-        cards = [
-            card
-            for card in cards
-            if wanted.intersection(set(card.assignees or []))
-        ]
+        cards = [card for card in cards if wanted.intersection(set(card.assignees or []))]
 
     return cards
 
@@ -228,11 +221,7 @@ def create_card(
     )
 
     if payload.label_ids:
-        labels = (
-            db.query(models.Label)
-            .filter(models.Label.id.in_(payload.label_ids))
-            .all()
-        )
+        labels = db.query(models.Label).filter(models.Label.id.in_(payload.label_ids)).all()
         card.labels = labels
 
     for subtask_data in payload.subtasks:
@@ -320,12 +309,7 @@ def list_subtasks(
     if not card or card.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
-    return (
-        db.query(models.Subtask)
-        .filter(models.Subtask.card_id == card_id)
-        .order_by(models.Subtask.created_at)
-        .all()
-    )
+    return db.query(models.Subtask).filter(models.Subtask.card_id == card_id).order_by(models.Subtask.created_at).all()
 
 
 @router.post(
@@ -473,12 +457,7 @@ def get_similar_items(
     if not base_card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
-    candidates = (
-        _card_query(db)
-        .filter(models.Card.id != card_id)
-        .order_by(models.Card.created_at.desc())
-        .all()
-    )
+    candidates = _card_query(db).filter(models.Card.id != card_id).order_by(models.Card.created_at.desc()).all()
     items = _build_similar_items(base_card, candidates)
     return schemas.SimilarItemsResponse(items=items[:limit])
 

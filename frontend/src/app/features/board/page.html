@@ -4,7 +4,9 @@
       <section class="surface-panel flex flex-col gap-6 px-6 py-8">
         <div>
           <p class="text-xs uppercase tracking-[0.3em] text-slate-400">進捗状況</p>
-          <p class="mt-2 text-xl font-semibold text-on-surface">{{ summary.progressRatio }}% 完了</p>
+          <p class="mt-2 text-xl font-semibold text-on-surface">
+            {{ summary.progressRatio }}% 完了
+          </p>
         </div>
         <div class="space-y-3">
           <div class="flex items-center justify-between text-sm text-slate-500">
@@ -21,7 +23,10 @@
           </div>
         </div>
         <div class="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-800">
-          <div class="h-2 rounded-full bg-accent transition-all" [style.width.%]="summary.progressRatio"></div>
+          <div
+            class="h-2 rounded-full bg-accent transition-all"
+            [style.width.%]="summary.progressRatio"
+          ></div>
         </div>
       </section>
     }
@@ -43,7 +48,9 @@
       <section
         class="flex min-w-0 flex-col gap-4 rounded-3xl border border-subtle bg-surface px-6 py-5 shadow-soft lg:flex-row lg:items-center lg:justify-between"
       >
-        <label class="flex w-full min-w-0 items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+        <label
+          class="flex w-full min-w-0 items-center gap-3 text-sm text-slate-600 dark:text-slate-300"
+        >
           <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">検索</span>
           <input
             type="search"
@@ -80,7 +87,9 @@
             </button>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">クイック</span>
+            <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+              >クイック</span
+            >
             @for (filter of quickFilters; track filter.id) {
               <button
                 type="button"
@@ -106,7 +115,9 @@
     <section class="space-y-4">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h3 class="text-lg font-semibold text-on-surface">タスク一覧</h3>
-        <span class="text-xs text-slate-500">完了またはNonIssueのサブタスクのみのタスクは簡易表示になります。</span>
+        <span class="text-xs text-slate-500"
+          >完了またはNonIssueのサブタスクのみのタスクは簡易表示になります。</span
+        >
       </div>
       <div class="board-columns" cdkDropListGroup>
         @for (column of columnsSignal(); track column.id) {
@@ -120,14 +131,22 @@
             <header class="flex items-center justify-between">
               <div>
                 <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ column.id }}</p>
-                <h3 class="text-lg font-semibold" [style.color]="columnAccent(column)">{{ column.title }}</h3>
+                <h3 class="text-lg font-semibold" [style.color]="columnAccent(column)">
+                  {{ column.title }}
+                </h3>
               </div>
-              <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">{{ column.count }} 件</span>
+              <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500"
+                >{{ column.count }} 件</span
+              >
             </header>
             <div class="board-card-list">
               @if (column.cards.length === 0) {
                 <p class="board-empty text-sm">
-                  カードがありません。{{ groupingSignal() === 'status' ? 'ここにカードをドラッグすると移動できます。' : '' }}
+                  カードがありません。{{
+                    groupingSignal() === 'status'
+                      ? 'ここにカードをドラッグすると移動できます。'
+                      : ''
+                  }}
                 </p>
               } @else {
                 @for (cardId of column.cards; track cardId) {
@@ -139,16 +158,22 @@
                       [cdkDragDisabled]="groupingSignal() !== 'status'"
                       [style.borderColor]="statusColor(card.statusId) + '33'"
                       [style.background]="
-                        'linear-gradient(180deg, ' + statusColor(card.statusId) + '14 0%, var(--surface) 65%)'
+                        'linear-gradient(180deg, ' +
+                        statusColor(card.statusId) +
+                        '14 0%, var(--surface) 65%)'
                       "
                       [class.board-card--compact]="isCardResolved(card)"
                       [class.board-card--active]="isActiveCard(card.id)"
                     >
                       <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0 space-y-2">
-                          <h4 class="break-words text-base font-semibold text-on-surface">{{ card.title }}</h4>
+                          <h4 class="break-words text-base font-semibold text-on-surface">
+                            {{ card.title }}
+                          </h4>
                           @if (!isCardResolved(card)) {
-                            <p class="break-words text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            <p
+                              class="break-words text-sm leading-6 text-slate-600 dark:text-slate-300"
+                            >
                               {{ card.summary }}
                             </p>
                           } @else {
@@ -180,7 +205,9 @@
                             <span>担当: {{ card.assignee }}</span>
                           }
                           @if (card.confidence) {
-                            <span>AIおすすめ度: {{ (card.confidence * 100) | number: '1.0-0' }}%</span>
+                            <span
+                              >AIおすすめ度: {{ card.confidence * 100 | number: '1.0-0' }}%</span
+                            >
                           }
                         </div>
                         @if (groupingSignal() !== 'status') {
@@ -213,7 +240,9 @@
           <h3 class="text-lg font-semibold text-on-surface">サブタスク一覧</h3>
           <p class="text-xs text-slate-500">ステータスごとに並び替え、個別に管理します。</p>
         </div>
-        <div class="rounded-3xl border border-subtle bg-surface px-4 py-2 text-xs text-slate-500 shadow-soft">
+        <div
+          class="rounded-3xl border border-subtle bg-surface px-4 py-2 text-xs text-slate-500 shadow-soft"
+        >
           ドラッグ＆ドロップでステータスを更新できます。
         </div>
       </div>
@@ -228,7 +257,9 @@
             <header class="flex items-center justify-between">
               <div>
                 <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ column.id }}</p>
-                <h3 class="text-lg font-semibold" [style.color]="column.accent">{{ column.title }}</h3>
+                <h3 class="text-lg font-semibold" [style.color]="column.accent">
+                  {{ column.title }}
+                </h3>
               </div>
               <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">
                 {{ column.subtasks.length }} 件
@@ -251,16 +282,24 @@
                     [class.subtask-card--compact]="subtask.isCompact"
                   >
                     <div class="flex items-start justify-between gap-2">
-                      <h4 class="min-w-0 break-words text-sm font-semibold text-on-surface">{{ subtask.title }}</h4>
-                      <span class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      <h4 class="min-w-0 break-words text-sm font-semibold text-on-surface">
+                        {{ subtask.title }}
+                      </h4>
+                      <span
+                        class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500"
+                      >
                         {{ column.title }}
                       </span>
                     </div>
                     <p class="text-xs text-slate-500">
                       親タスク:
-                      <span class="break-words font-medium text-on-surface">{{ subtask.parentTitle }}</span>
+                      <span class="break-words font-medium text-on-surface">{{
+                        subtask.parentTitle
+                      }}</span>
                     </p>
-                    <div class="subtask-card-labels flex flex-wrap gap-2 text-[11px] text-slate-500">
+                    <div
+                      class="subtask-card-labels flex flex-wrap gap-2 text-[11px] text-slate-500"
+                    >
                       @for (labelId of subtask.parentLabels; track labelId) {
                         <span class="subtask-badge">{{ labelName(labelId) }}</span>
                       }
@@ -276,7 +315,11 @@
                       </div>
                     } @else {
                       <p class="subtask-card-compact-note text-xs text-slate-500">
-                        {{ subtask.status === 'non-issue' ? 'NonIssue として対応済み' : '完了済みのサブタスク' }}
+                        {{
+                          subtask.status === 'non-issue'
+                            ? 'NonIssue として対応済み'
+                            : '完了済みのサブタスク'
+                        }}
                       </p>
                     }
                   </article>
@@ -293,16 +336,24 @@
         <div class="min-w-0 space-y-4">
           <div class="flex items-center justify-between">
             <h3 class="text-xl font-semibold text-on-surface">{{ active.title }}</h3>
-            <button type="button" class="surface-pill focus-ring px-4 py-2 text-xs font-semibold" (click)="openCard(null)">
+            <button
+              type="button"
+              class="surface-pill focus-ring px-4 py-2 text-xs font-semibold"
+              (click)="openCard(null)"
+            >
               閉じる
             </button>
           </div>
-          <p class="break-words text-sm leading-6 text-slate-600 dark:text-slate-300">{{ active.summary }}</p>
+          <p class="break-words text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {{ active.summary }}
+          </p>
           <div class="space-y-2">
             <p class="text-xs uppercase tracking-[0.3em] text-slate-400">サブタスク</p>
             <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-300">
               @for (task of active.subtasks; track task.id) {
-                <li class="flex items-center justify-between rounded-2xl border border-subtle bg-surface px-4 py-3">
+                <li
+                  class="flex items-center justify-between rounded-2xl border border-subtle bg-surface px-4 py-3"
+                >
                   <span class="break-words">{{ task.title }}</span>
                   <span class="text-xs text-slate-500">{{ task.status }}</span>
                 </li>
@@ -354,14 +405,18 @@
             </button>
           </form>
           @if (active.comments.length === 0) {
-            <p class="rounded-2xl border border-dashed border-subtle px-4 py-6 text-sm text-slate-500">
+            <p
+              class="rounded-2xl border border-dashed border-subtle px-4 py-6 text-sm text-slate-500"
+            >
               コメントはまだありません。
             </p>
           } @else {
             <ul class="space-y-3 text-sm text-slate-600 dark:text-slate-300">
               @for (comment of active.comments; track comment.id) {
                 <li class="space-y-2 rounded-2xl border border-subtle bg-surface px-4 py-3">
-                  <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                  <div
+                    class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500"
+                  >
                     <span class="text-sm font-semibold text-on-surface">
                       担当: {{ comment.author }}
                     </span>

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Iterable, List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, selectinload
@@ -17,12 +17,9 @@ def _snapshot_query(db: Session):
 
 
 def _analysis_query(db: Session):
-    return (
-        db.query(models.RootCauseAnalysis)
-        .options(
-            selectinload(models.RootCauseAnalysis.nodes),
-            selectinload(models.RootCauseAnalysis.suggestions),
-        )
+    return db.query(models.RootCauseAnalysis).options(
+        selectinload(models.RootCauseAnalysis.nodes),
+        selectinload(models.RootCauseAnalysis.suggestions),
     )
 
 
@@ -83,12 +80,8 @@ def _resolve_target(
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target not found")
 
 
-def _next_version(
-    db: Session, target_type: str, target_id: Optional[str]
-) -> int:
-    query = db.query(models.RootCauseAnalysis.version).filter(
-        models.RootCauseAnalysis.target_type == target_type
-    )
+def _next_version(db: Session, target_type: str, target_id: Optional[str]) -> int:
+    query = db.query(models.RootCauseAnalysis.version).filter(models.RootCauseAnalysis.target_type == target_type)
     if target_id:
         query = query.filter(models.RootCauseAnalysis.target_id == target_id)
     latest = query.order_by(models.RootCauseAnalysis.version.desc()).first()
@@ -181,8 +174,10 @@ def _hydrate_from_snapshot(
     context_metrics = snapshot.metrics or {}
     top_errors = _safe_list(context_metrics.get("top_errors"))
 
-    root_statement = payload.focus_question or snapshot.narrative or (
-        f"Why are issues recurring between {snapshot.period_start:%Y-%m-%d} and {snapshot.period_end:%Y-%m-%d}?"
+    root_statement = (
+        payload.focus_question
+        or snapshot.narrative
+        or (f"Why are issues recurring between {snapshot.period_start:%Y-%m-%d} and {snapshot.period_end:%Y-%m-%d}?")
     )
     root_node = models.RootCauseNode(
         analysis_id=analysis.id,
@@ -251,9 +246,7 @@ def _hydrate_from_snapshot(
             )
         )
 
-    analysis.summary = (
-        f"Identified {created_children or 1} contributing causes for snapshot {snapshot.id}."
-    )
+    analysis.summary = f"Identified {created_children or 1} contributing causes for snapshot {snapshot.id}."
 
 
 def _hydrate_from_card(
@@ -262,9 +255,7 @@ def _hydrate_from_card(
     card: models.Card,
     payload: schemas.WhyWhyRequest,
 ) -> None:
-    root_statement = payload.focus_question or (
-        f"Why does '{card.title}' continue to surface as an issue?"
-    )
+    root_statement = payload.focus_question or (f"Why does '{card.title}' continue to surface as an issue?")
     root_node = models.RootCauseNode(
         analysis_id=analysis.id,
         depth=0,
@@ -278,17 +269,9 @@ def _hydrate_from_card(
 
     summary_sentences = []
     if card.summary:
-        summary_sentences = [
-            sentence.strip()
-            for sentence in card.summary.split(".")
-            if sentence.strip()
-        ]
+        summary_sentences = [sentence.strip() for sentence in card.summary.split(".") if sentence.strip()]
     if not summary_sentences and card.description:
-        summary_sentences = [
-            sentence.strip()
-            for sentence in card.description.split(".")
-            if sentence.strip()
-        ]
+        summary_sentences = [sentence.strip() for sentence in card.description.split(".") if sentence.strip()]
 
     context = payload.context or {}
     related_tasks = _safe_list(context.get("recent_tasks"))
@@ -296,14 +279,10 @@ def _hydrate_from_card(
     child_sources: List[str] = summary_sentences[:3]
     for task in related_tasks[:3]:
         if isinstance(task, dict) and task.get("title"):
-            child_sources.append(
-                f"Related work '{task['title']}' indicates {task.get('summary') or 'follow-up gaps'}"
-            )
+            child_sources.append(f"Related work '{task['title']}' indicates {task.get('summary') or 'follow-up gaps'}")
 
     if not child_sources:
-        child_sources = [
-            "Root cause unknown – schedule dedicated discovery session with stakeholders."
-        ]
+        child_sources = ["Root cause unknown - schedule dedicated discovery session with stakeholders."]
 
     for source in child_sources:
         node = models.RootCauseNode(
@@ -318,9 +297,7 @@ def _hydrate_from_card(
         db.add(node)
         db.flush()
 
-        description = (
-            "Partner with the owning team to validate the cause and capture measurable success criteria."
-        )
+        description = "Partner with the owning team to validate the cause and capture measurable success criteria."
         db.add(
             models.SuggestedAction(
                 analysis_id=analysis.id,
@@ -335,9 +312,7 @@ def _hydrate_from_card(
             )
         )
 
-    analysis.summary = (
-        f"Generated hypotheses for '{card.title}' with {len(child_sources)} follow-up recommendations."
-    )
+    analysis.summary = f"Generated hypotheses for '{card.title}' with {len(child_sources)} follow-up recommendations."
 
 
 @router.post(
@@ -377,15 +352,9 @@ def trigger_why_why(
     return schemas.WhyWhyTriggerResponse(analysis_id=analysis.id, status=analysis.status)
 
 
-@router.get(
-    "/why-why/{analysis_id}", response_model=schemas.RootCauseAnalysisRead
-)
+@router.get("/why-why/{analysis_id}", response_model=schemas.RootCauseAnalysisRead)
 def get_why_why(analysis_id: str, db: Session = Depends(get_db)) -> models.RootCauseAnalysis:
-    analysis = (
-        _analysis_query(db)
-        .filter(models.RootCauseAnalysis.id == analysis_id)
-        .first()
-    )
+    analysis = _analysis_query(db).filter(models.RootCauseAnalysis.id == analysis_id).first()
     if not analysis:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
 

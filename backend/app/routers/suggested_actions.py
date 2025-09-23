@@ -30,9 +30,7 @@ def list_suggested_actions(
 
 
 @router.get("/{action_id}", response_model=schemas.SuggestedActionRead)
-def get_suggested_action(
-    action_id: str, db: Session = Depends(get_db)
-) -> models.SuggestedAction:
+def get_suggested_action(action_id: str, db: Session = Depends(get_db)) -> models.SuggestedAction:
     suggestion = db.get(models.SuggestedAction, action_id)
     if not suggestion:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Suggestion not found")
@@ -95,11 +93,7 @@ def convert_suggested_action(
     )
 
     if payload.label_ids:
-        labels = (
-            db.query(models.Label)
-            .filter(models.Label.id.in_(payload.label_ids))
-            .all()
-        )
+        labels = db.query(models.Label).filter(models.Label.id.in_(payload.label_ids)).all()
         card.labels = labels
 
     if not card.custom_fields:

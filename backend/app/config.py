@@ -6,9 +6,7 @@ from pydantic import BaseSettings, Field, validator
 class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
 
-    database_url: str = Field(
-        default="sqlite:///./todo.db", env="DATABASE_URL"
-    )
+    database_url: str = Field(default="sqlite:///./todo.db", env="DATABASE_URL")
     debug: bool = Field(default=False, env="DEBUG")
     chatgpt_model: str = Field(default="gpt-4o-mini", env="CHATGPT_MODEL")
     chatgpt_api_key: str | None = Field(default=None, env="OPENAI_API_KEY")
@@ -28,9 +26,7 @@ class Settings(BaseSettings):
             parsed = value
 
         if parsed and any(origin == "*" for origin in parsed):
-            raise ValueError(
-                "Wildcard origins are not permitted when credentials are allowed."
-            )
+            raise ValueError("Wildcard origins are not permitted when credentials are allowed.")
 
         return parsed
 

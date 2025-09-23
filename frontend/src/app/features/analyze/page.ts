@@ -42,9 +42,7 @@ export class AnalyzePage {
     return result.proposals.filter((proposal) => this.workspace.isProposalEligible(proposal));
   });
 
-  public readonly hasEligibleProposals = computed(
-    () => this.eligibleProposals().length > 0,
-  );
+  public readonly hasEligibleProposals = computed(() => this.eligibleProposals().length > 0);
 
   public readonly hasResult = computed(() => this.analysisResource.value() !== null);
 
@@ -70,9 +68,7 @@ export class AnalyzePage {
     this.requestSignal.set({
       autoObjective: value.autoObjective,
       notes: trimmedNotes,
-      objective: value.autoObjective
-        ? this.resolveAutoObjective(trimmedNotes)
-        : manualObjective,
+      objective: value.autoObjective ? this.resolveAutoObjective(trimmedNotes) : manualObjective,
     });
   });
 

@@ -17,9 +17,7 @@ def list_labels(db: Session = Depends(get_db)) -> List[models.Label]:
 
 
 @router.post("/", response_model=schemas.LabelRead, status_code=status.HTTP_201_CREATED)
-def create_label(
-    payload: schemas.LabelCreate, db: Session = Depends(get_db)
-) -> models.Label:
+def create_label(payload: schemas.LabelCreate, db: Session = Depends(get_db)) -> models.Label:
     label = models.Label(**payload.dict())
     db.add(label)
     db.commit()
@@ -28,9 +26,7 @@ def create_label(
 
 
 @router.put("/{label_id}", response_model=schemas.LabelRead)
-def update_label(
-    label_id: str, payload: schemas.LabelUpdate, db: Session = Depends(get_db)
-) -> models.Label:
+def update_label(label_id: str, payload: schemas.LabelUpdate, db: Session = Depends(get_db)) -> models.Label:
     label = db.get(models.Label, label_id)
     if not label:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
