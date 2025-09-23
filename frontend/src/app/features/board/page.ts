@@ -199,6 +199,19 @@ export class BoardPage {
 
   public readonly searchForm = createSignalForm({ search: '' });
 
+  private readonly syncSearchFormEffect = effect(
+    () => {
+      const search = this.filtersSignal().search;
+      const currentValue = this.searchForm.controls.search.value();
+      if (currentValue === search) {
+        return;
+      }
+
+      this.searchForm.controls.search.setValue(search);
+    },
+    { allowSignalWrites: true },
+  );
+
   public readonly commentForm = createSignalForm({
     author: '',
     message: '',
