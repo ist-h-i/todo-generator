@@ -5,6 +5,8 @@
 :root {
   --surface: #f8fafc;
   --surface-strong: #e2e8f0;
+  --surface-card: #ffffff;
+  --surface-card-muted: #f1f5f9;
   --on-surface: #0f172a;
   --surface-inverse: #0f172a;
   --on-surface-inverse: #f8fafc;
@@ -12,6 +14,7 @@
   --accent-strong: #1d4ed8;
   --accent-muted: #dbeafe;
   --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-card: rgba(15, 23, 42, 0.14);
   --shadow-soft: 0 12px 24px rgba(15, 23, 42, 0.08);
   --shadow-strong: 0 18px 36px rgba(15, 23, 42, 0.12);
   color-scheme: light;
@@ -20,6 +23,8 @@
 :root.dark {
   --surface: #0f172a;
   --surface-strong: #1e293b;
+  --surface-card: #1e293b;
+  --surface-card-muted: #111c2f;
   --on-surface: #e2e8f0;
   --surface-inverse: #e2e8f0;
   --on-surface-inverse: #0f172a;
@@ -27,6 +32,7 @@
   --accent-strong: #3b82f6;
   --accent-muted: rgba(96, 165, 250, 0.16);
   --border-subtle: rgba(226, 232, 240, 0.12);
+  --border-card: rgba(226, 232, 240, 0.28);
   --shadow-soft: 0 12px 24px rgba(15, 23, 42, 0.32);
   --shadow-strong: 0 18px 36px rgba(15, 23, 42, 0.36);
   color-scheme: dark;
@@ -97,8 +103,9 @@ a:hover {
 
 .surface-card {
   border-radius: 1.5rem;
-  border: 1px solid var(--border-subtle);
-  background-color: var(--surface);
+  border: 1px solid var(--border-card);
+  background-color: var(--surface-card);
+  background-image: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
   box-shadow: var(--shadow-soft);
 }
 
