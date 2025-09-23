@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import Base, engine
+from .migrations import run_startup_migrations
 from .routers import (
     activity,
     analytics,
@@ -22,6 +23,7 @@ from .routers import (
     suggested_actions,
 )
 
+run_startup_migrations(engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
