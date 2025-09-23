@@ -1,21 +1,26 @@
 <div class="auth-wrapper">
   <div class="auth-container">
-    <div class="grid gap-10 lg:grid-cols-[2fr,1fr]">
-      <section class="surface-panel login-panel px-8 py-10">
-        <h2 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">ワークスペースにサインイン</h2>
-        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          Todo Generator のカード管理ボードへアクセスするには、登録済みのメールアドレスとパスワードを入力してください。
+    <div class="auth-grid grid gap-10 lg:grid-cols-2">
+      <section
+        class="surface-panel login-panel px-8 py-10"
+        aria-labelledby="login-heading"
+      >
+        <div class="panel-header">
+          <span class="panel-badge">ログイン</span>
+          <h2
+            id="login-heading"
+            class="panel-title text-2xl font-semibold text-slate-800 dark:text-slate-100"
+          >
+            登録済みの方はこちら
+          </h2>
+        </div>
+        <p class="panel-subtitle mt-2 text-sm text-slate-500 dark:text-slate-400">
+          既にワークスペースへ招待されている場合は、メールアドレスとパスワードを入力してサインインしてください。
         </p>
 
         @if (loginNotice(); as notice) {
-          <div class="alert notice">
+          <div class="alert error" role="alert" aria-live="polite">
             {{ notice }}
-          </div>
-        }
-
-        @if (error(); as errorMessage) {
-          <div class="alert error">
-            {{ errorMessage }}
           </div>
         }
 
@@ -55,20 +60,35 @@
           </button>
         </form>
 
-        <p class="mt-6 text-xs text-slate-400 dark:text-slate-500">
-          セキュリティのため、初期パスワードでログイン後は設定ページからパスワードを変更してください。
+        <p id="login-guidance" class="mt-6 text-xs text-slate-400 dark:text-slate-500">
+          セキュリティのため、共有端末ではログイン後に必ずサインアウトしてください。
         </p>
       </section>
 
-      <section class="surface-panel request-panel px-8 py-8">
-        <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100">初期パスワードを取得</h3>
-        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          新規登録またはパスワード再発行では、入力いただいたメールアドレス宛に初期パスワードを送信します。
+      <section
+        class="surface-panel register-panel px-8 py-10"
+        aria-labelledby="register-heading"
+      >
+        <div class="panel-header">
+          <span class="panel-badge accent">新規登録</span>
+          <h3
+            id="register-heading"
+            class="panel-title text-xl font-semibold text-slate-800 dark:text-slate-100"
+          >
+            アカウントを作成
+          </h3>
+        </div>
+        <p class="panel-subtitle mt-2 text-sm text-slate-500 dark:text-slate-400">
+          初めて利用する方は、メールアドレスと希望のパスワードを入力してアカウントを作成してください。登録後は自動的にボードへ移動します。
         </p>
+        <ul class="register-hints mt-4 space-y-2 text-xs text-slate-500 dark:text-slate-400">
+          <li>パスワードは8文字以上で設定してください。</li>
+          <li>確認用パスワードも同じ内容を入力してください。</li>
+        </ul>
 
-        @if (infoMessage(); as info) {
-          <div class="alert success">
-            {{ info }}
+        @if (registerNotice(); as registerMessage) {
+          <div class="alert error" role="alert" aria-live="polite">
+            {{ registerMessage }}
           </div>
         }
 
@@ -85,24 +105,14 @@
           />
         </label>
 
-        <div class="mt-5 flex flex-col gap-3">
           <button
-            type="button"
-            class="focus-ring inline-flex items-center justify-center rounded-xl border border-accent px-4 py-2 text-sm font-semibold text-accent transition hover:border-accent-strong hover:text-accent-strong disabled:cursor-not-allowed disabled:border-slate-400 disabled:text-slate-400"
-            [disabled]="!canSubmitRequestEmail()"
-            (click)="onRequestRegistration()"
+            type="submit"
+            class="focus-ring mt-2 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-400"
+            [disabled]="!canSubmitRegistration()"
           >
-            新規登録メールを送信
+            アカウントを作成
           </button>
-          <button
-            type="button"
-            class="focus-ring inline-flex items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-800 disabled:cursor-not-allowed disabled:border-slate-400 disabled:text-slate-400 dark:border-slate-600 dark:text-slate-200 dark:hover:text-slate-100"
-            [disabled]="!canSubmitRequestEmail()"
-            (click)="onRequestPasswordReset()"
-          >
-            パスワード再発行メールを送信
-          </button>
-        </div>
+        </form>
       </section>
     </div>
   </div>

@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 import { buildApiUrl } from '@core/api/api.config';
-import { AuthenticatedUser, MessageResponse, TokenResponse } from '@core/models';
+import { AuthenticatedUser, TokenResponse } from '@core/models';
 
 
 const STORAGE_KEY = 'todo-generator/auth-token';
@@ -66,35 +66,22 @@ export class AuthService {
     }
   }
 
-  public async requestRegistration(email: string): Promise<string | null> {
+  public async register(email: string, password: string): Promise<boolean> {
     this.pendingStore.set(true);
     this.errorStore.set(null);
 
     try {
       const response = await firstValueFrom(
-        this.http.post<MessageResponse>(buildApiUrl('/auth/register'), { email }),
+        this.http.post<TokenResponse>(buildApiUrl('/auth/register'), {
+          email,
+          password,
+        }),
       );
-      return response.message;
+      this.setSession(response.access_token, response.user);
+      return true;
     } catch (error) {
       this.errorStore.set(this.extractErrorMessage(error));
-      return null;
-    } finally {
-      this.pendingStore.set(false);
-    }
-  }
-
-  public async requestPasswordReset(email: string): Promise<string | null> {
-    this.pendingStore.set(true);
-    this.errorStore.set(null);
-
-    try {
-      const response = await firstValueFrom(
-        this.http.post<MessageResponse>(buildApiUrl('/auth/password-reset'), { email }),
-      );
-      return response.message;
-    } catch (error) {
-      this.errorStore.set(this.extractErrorMessage(error));
-      return null;
+      return false;
     } finally {
       this.pendingStore.set(false);
     }
