@@ -14,7 +14,7 @@ from ..auth import get_current_user
 from ..database import get_db
 from ..utils.activity import record_activity
 
-DAILY_CARD_CREATION_LIMIT = 5
+DAILY_CARD_CREATION_LIMIT = 25
 _DAILY_CARD_LIMIT_MESSAGE = (
     "Daily card creation limit reached. Please try again tomorrow."
 )
@@ -97,8 +97,6 @@ def _reserve_daily_card_quota(db: Session, *, owner_id: str, quota_day: date) ->
 
 
 router = APIRouter(prefix="/cards", tags=["cards"])
-
-DAILY_CARD_CREATION_LIMIT = 25
 
 
 def _card_query(db: Session, *, owner_id: Optional[str] = None):

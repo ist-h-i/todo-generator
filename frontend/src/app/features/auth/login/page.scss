@@ -113,6 +113,19 @@
   border: 1px solid rgba(34, 197, 94, 0.35);
 }
 
+.field-error {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgb(185, 28, 28);
+}
+
+.input-invalid {
+  border-color: rgba(248, 113, 113, 0.6);
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35);
+}
+
 :host-context(.dark) {
   background:
     radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
@@ -151,4 +164,13 @@
   background: rgba(34, 197, 94, 0.2);
   color: rgba(187, 247, 208, 0.95);
   border-color: rgba(34, 197, 94, 0.35);
+}
+
+:host-context(.dark) .field-error {
+  color: rgba(254, 226, 226, 0.92);
+}
+
+:host-context(.dark) .input-invalid {
+  border-color: rgba(248, 113, 113, 0.55);
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.3);
 }
