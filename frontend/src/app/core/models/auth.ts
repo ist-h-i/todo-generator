@@ -10,7 +10,3 @@ export interface TokenResponse {
   readonly token_type: 'bearer';
   readonly user: AuthenticatedUser;
 }
-
-export interface MessageResponse {
-  readonly message: string;
-}

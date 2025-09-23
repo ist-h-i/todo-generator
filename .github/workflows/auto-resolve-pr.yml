@@ -41,10 +41,23 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Chromium
+      - name: Ensure Chrome for headless tests
         run: |
+          set -euo pipefail
+
+          for candidate in google-chrome google-chrome-stable; do
+            if command -v "$candidate" >/dev/null 2>&1 && "$candidate" --version >/dev/null 2>&1; then
+              echo "$("$candidate" --version) already installed."
+              exit 0
+            fi
+          done
+
+          tmp_dir=$(mktemp -d)
+          trap 'rm -rf "$tmp_dir"' EXIT
+
+          curl -fsSL -o "$tmp_dir/google-chrome.deb" https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo apt-get update
-          sudo apt-get install -y chromium-browser
+          sudo apt-get install -y "$tmp_dir/google-chrome.deb"
 
       - name: Install MCP servers
         run: |
@@ -92,13 +105,33 @@ jobs:
           set -e
           ran_tests=false
 
+          chrome_candidates="google-chrome google-chrome-stable chromium chromium-browser chrome-headless-shell"
+          for candidate in $chrome_candidates; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              if "$candidate" --version >/dev/null 2>&1 || "$candidate" --product-version >/dev/null 2>&1; then
+                export CHROME_BIN="$(command -v "$candidate")"
+                break
+              fi
+            fi
+          done
+
+          if [ -n "${CHROME_BIN:-}" ]; then
+            echo "Using Chrome binary: $CHROME_BIN"
+          else
+            echo "No Chrome binary detected in PATH."
+          fi
+
           if [ -f package.json ]; then
             ran_tests=true
             npm ci
             if [ -f karma.conf.js ] || [ -f karma.conf.cjs ]; then
               npx karma start --single-run --browsers=ChromeHeadless
             else
-              npm test
+              if node -e "const pkg=require('./package.json'); const script=(pkg && pkg.scripts && pkg.scripts.test) || ''; process.exit(script.includes('ng test') ? 0 : 1);"; then
+                npm test -- --watch=false --browsers=ChromeHeadless
+              else
+                npm test
+              fi
             fi
           fi
 
@@ -113,7 +146,11 @@ jobs:
             if [ -f karma.conf.js ] || [ -f karma.conf.cjs ]; then
               npx karma start --single-run --browsers=ChromeHeadless
             else
-              npm test
+              if node -e "const pkg=require('./package.json'); const script=(pkg && pkg.scripts && pkg.scripts.test) || ''; process.exit(script.includes('ng test') ? 0 : 1);"; then
+                npm test -- --watch=false --browsers=ChromeHeadless
+              else
+                npm test
+              fi
             fi
             popd > /dev/null
           fi

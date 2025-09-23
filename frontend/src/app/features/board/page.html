@@ -46,6 +46,7 @@
         <label class="flex w-full min-w-0 items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
           <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">検索</span>
           <input
+            type="search"
             class="w-full min-w-0 rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
             placeholder="キーワードでカードを検索"
             [value]="searchForm.controls.search.value()"
@@ -322,6 +323,7 @@
                 >担当者</label
               >
               <input
+                type="text"
                 id="comment-author"
                 class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
                 placeholder="例: 田中太郎"
