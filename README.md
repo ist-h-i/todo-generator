@@ -85,6 +85,7 @@ additional settings through environment variables defined in `backend/app/config
 - `DATABASE_URL` – SQLAlchemy connection string (default `sqlite:///./todo.db`)
 - `DEBUG` – Enable FastAPI debug mode (default `false`)
 - `CHATGPT_MODEL` – Logical model name surfaced by the analysis endpoint
+- `ALLOWED_ORIGINS` – Comma-separated list of frontend origins permitted for CORS (default `http://localhost:4200`)
 
 ## Running Tests & Quality Checks
 
