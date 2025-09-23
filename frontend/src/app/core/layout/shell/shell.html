@@ -1,7 +1,7 @@
 <div class="flex min-h-screen flex-col bg-surface">
   <header class="shell-header">
     <div
-      class="shell-header__content mx-auto flex max-w-6xl flex-col gap-4 px-5 py-6 lg:flex-row lg:items-center lg:justify-between"
+      class="shell-header__content shell-container flex flex-col gap-4 py-6 lg:flex-row lg:items-center lg:justify-between"
     >
       <div class="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
         <div class="shell-brand flex min-w-0 flex-col items-start gap-1.5">
@@ -154,7 +154,7 @@
     </div>
   </header>
 
-  <main class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-8">
+  <main class="shell-container flex flex-1 flex-col gap-6 py-8">
     <section class="flex-1">
       <router-outlet />
     </section>
@@ -162,7 +162,7 @@
 
   <footer class="border-t border-subtle bg-surface-strong">
     <div
-      class="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-5 text-xs text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between"
+      class="shell-container flex flex-col gap-2 py-5 text-xs text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between"
     >
       <p>© {{ year }} Todo Generator</p>
       <p>Angular 20 Signal Architecture / ChatGPT モック統合</p>
