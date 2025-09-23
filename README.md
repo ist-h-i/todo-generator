@@ -101,6 +101,52 @@ npm test
 
 The frontend also supports `npm run build` to produce a production bundle under `dist/`.
 
+## MCP Server Integration
+
+Workspace-ready settings for [Model Context Protocol](https://modelcontextprotocol.io/) clients are
+checked into the repository so compatible tools can register servers immediately via the
+`.modelcontext.json` manifest. Any MCP-aware client (including Codex and Claude Code) can read this
+file to discover the Git and filesystem servers hosted at the workspace root.
+
+Each configuration registers two servers:
+
+- A Git MCP server launched through `uvx mcp-server-git --repository ${workspaceFolder}` so agents
+  can inspect commit history, branches, and diffs without additional setup.
+- A filesystem MCP server launched through
+  `npx @modelcontextprotocol/server-filesystem ${workspaceFolder}` to expose project files.
+
+Setup checklist:
+
+1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/) so the `uvx` command is on
+   your PATH.
+2. Ensure Node.js/npm are installed locally (required for the `npx` command).
+3. Install the helper tooling that the automated workflow relies on when running locally:
+   ```bash
+   npm install eslint retire
+   pip install flake8 bandit pytest
+   ```
+4. Open the repository in your MCP-compatible client. The tool will detect the configuration file it
+   understands and start both MCP servers automatically. For other MCP-compatible tools, copy the same
+   JSON into the location their documentation specifies.
+
+## Automated Conflict Resolution Workflow
+
+Pull requests benefit from an automated Codex-assisted resolution flow defined in
+`.github/workflows/auto-resolve-pr.yml`. The workflow:
+
+1. Sets up Node.js and Python toolchains, installs the Git/filesystem MCP servers, and provisions
+   linting, security, and testing dependencies.
+2. Executes `scripts/auto_resolve_conflicts.py`, which asks Codex to resolve merge conflicts, stages
+   the results, and reruns project tests (backend pytest and frontend npm suites) for up to three
+   attempts when failures occur.
+3. Runs lint (`eslint` or `flake8`) and security scans (`retire` or `bandit`), followed by the
+   appropriate test runner to double-check the final state.
+4. Commits, pushes, and (if successful) opens a pull request update using the provided
+   `OPENAI_API_KEY` and `GITHUB_TOKEN` secrets.
+
+Store the required OpenAI and GitHub credentials as repository secrets to enable the automation in
+your own fork or deployment.
+
 ## API & Tooling Highlights
 
 - Swagger UI: <http://localhost:8000/docs>
