@@ -60,6 +60,47 @@ const unique = <T>(values: readonly T[]): T[] => Array.from(new Set(values));
 
 const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 0.5;
 
+type RawWorkspaceSettings = {
+  statuses?: unknown;
+  labels?: unknown;
+  templates?: unknown;
+  storyPointScale?: unknown;
+  defaultStatusId?: unknown;
+  defaultAssignee?: unknown;
+  timezone?: unknown;
+};
+
+type RawStatusRecord = {
+  id?: unknown;
+  name?: unknown;
+  category?: unknown;
+  order?: unknown;
+  color?: unknown;
+};
+
+type RawLabelRecord = {
+  id?: unknown;
+  name?: unknown;
+  color?: unknown;
+};
+
+type RawTemplateRecord = {
+  id?: unknown;
+  name?: unknown;
+  description?: unknown;
+  defaultStatusId?: unknown;
+  defaultLabelIds?: unknown;
+  confidenceThreshold?: unknown;
+  fieldVisibility?: unknown;
+};
+
+type RawTemplateFieldVisibility = {
+  showStoryPoints?: unknown;
+  showDueDate?: unknown;
+  showAssignee?: unknown;
+  showConfidence?: unknown;
+};
+
 const INITIAL_LABELS: Label[] = [
   { id: 'frontend', name: 'フロントエンド', color: '#38bdf8' },
   { id: 'backend', name: 'バックエンド', color: '#a855f7' },
@@ -1086,7 +1127,7 @@ export class WorkspaceStore {
       return defaults;
     }
 
-    const data = raw as Record<string, unknown>;
+    const data = raw as RawWorkspaceSettings;
     const statuses = this.sanitizeStatuses(data.statuses);
     const labels = this.sanitizeLabels(data.labels);
     const primaryStatus = statuses.reduce<Status | null>(
@@ -1138,7 +1179,7 @@ export class WorkspaceStore {
       return null;
     }
 
-    const record = value as Record<string, unknown>;
+    const record = value as RawStatusRecord;
     const id = typeof record.id === 'string' ? record.id : null;
     const name = typeof record.name === 'string' ? record.name : null;
     const category =
@@ -1171,7 +1212,7 @@ export class WorkspaceStore {
       return null;
     }
 
-    const record = value as Record<string, unknown>;
+    const record = value as RawLabelRecord;
     const id = typeof record.id === 'string' ? record.id : null;
     const name = typeof record.name === 'string' ? record.name : null;
     const color = typeof record.color === 'string' ? record.color : null;
@@ -1213,7 +1254,7 @@ export class WorkspaceStore {
       return null;
     }
 
-    const record = value as Record<string, unknown>;
+    const record = value as RawTemplateRecord;
     const id = typeof record.id === 'string' ? record.id : null;
     const name = typeof record.name === 'string' ? record.name : null;
 
@@ -1256,7 +1297,7 @@ export class WorkspaceStore {
       return { ...DEFAULT_TEMPLATE_FIELDS };
     }
 
-    const record = value as Record<string, unknown>;
+    const record = value as RawTemplateFieldVisibility;
     const toBoolean = (input: unknown, fallback: boolean): boolean =>
       typeof input === 'boolean' ? input : fallback;
 
