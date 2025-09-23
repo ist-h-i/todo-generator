@@ -52,7 +52,8 @@ def create_label(client: TestClient, headers: dict[str, str]) -> str:
 
 
 def test_create_card_with_subtasks(client: TestClient) -> None:
-    headers = register_and_login(client, "owner@example.com")
+    email = "owner@example.com"
+    headers = register_and_login(client, email)
     status_id = create_status(client, headers)
     label_id = create_label(client, headers)
 
@@ -91,7 +92,8 @@ def test_create_card_with_subtasks(client: TestClient) -> None:
 
 
 def test_subtask_crud_flow(client: TestClient) -> None:
-    headers = register_and_login(client, "subtasks@example.com")
+    email = "subtasks@example.com"
+    headers = register_and_login(client, email)
     status_id = create_status(client, headers)
     card_response = client.post(
         "/cards",
@@ -154,7 +156,8 @@ def test_analysis_endpoint(client: TestClient) -> None:
 
 
 def test_card_creation_daily_limit(client: TestClient) -> None:
-    headers = register_and_login(client, "limit@example.com")
+    email = "limit@example.com"
+    headers = register_and_login(client, email)
     status_id = create_status(client, headers)
 
     for index in range(DAILY_CARD_CREATION_LIMIT):
@@ -179,7 +182,8 @@ def test_card_creation_daily_limit(client: TestClient) -> None:
 
 
 def test_cards_are_scoped_to_current_user(client: TestClient) -> None:
-    owner_headers = register_and_login(client, "alice@example.com")
+    owner_email = "alice@example.com"
+    owner_headers = register_and_login(client, owner_email)
     status_id = create_status(client, owner_headers)
     create_response = client.post(
         "/cards",
@@ -189,7 +193,8 @@ def test_cards_are_scoped_to_current_user(client: TestClient) -> None:
     assert create_response.status_code == 201
     card_id = create_response.json()["id"]
 
-    other_headers = register_and_login(client, "bob@example.com")
+    other_email = "bob@example.com"
+    other_headers = register_and_login(client, other_email)
     list_other = client.get("/cards", headers=other_headers)
     assert list_other.status_code == 200
     assert list_other.json() == []
@@ -203,7 +208,8 @@ def test_cards_are_scoped_to_current_user(client: TestClient) -> None:
 
 
 def test_card_creation_daily_limit(client: TestClient) -> None:
-    headers = register_and_login(client, "limit@example.com")
+    email = "limit@example.com"
+    headers = register_and_login(client, email)
     status_id = create_status(client, headers)
 
     for index in range(DAILY_CARD_CREATION_LIMIT):
@@ -222,5 +228,5 @@ def test_card_creation_daily_limit(client: TestClient) -> None:
     assert limit_response.status_code == 429
     assert (
         limit_response.json()["detail"]
-        == "Daily card creation limit reached. Please try again tomorrow."
+        == f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached."
     )

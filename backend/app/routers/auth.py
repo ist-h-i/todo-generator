@@ -8,6 +8,7 @@ from ..auth import (
     create_session_token,
     get_current_user,
     get_email_lookup_candidates,
+    normalize_email,
     hash_password,
     verify_password,
 )
@@ -25,7 +26,9 @@ def register(
     payload: schemas.RegistrationRequest,
     db: Session = Depends(get_db),
 ) -> schemas.TokenResponse:
-    email_candidates = get_email_lookup_candidates(payload.email)
+    payload_data = payload.model_dump()
+    raw_email = str(payload_data.pop("email"))
+    email_candidates = get_email_lookup_candidates(raw_email)
     existing = (
         db.query(models.User)
         .filter(models.User.email.in_(email_candidates))
@@ -38,11 +41,15 @@ def register(
         )
 
     is_first_user = db.query(models.User).count() == 0
-    user = models.User(
-        email=email,
-        password_hash=hash_password(payload.password),
-        is_admin=is_first_user,
-    )
+    password = payload_data.pop("password")
+    normalized_email = normalize_email(raw_email)
+    user_values = {
+        **payload_data,
+        "email": normalized_email,
+        "password_hash": hash_password(password),
+        "is_admin": is_first_user,
+    }
+    user = models.User(**user_values)
     db.add(user)
     db.flush()
     token_value = create_session_token(db, user)
