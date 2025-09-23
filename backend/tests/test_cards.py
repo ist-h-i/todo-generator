@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.routers.cards import DAILY_CARD_CREATION_LIMIT
+from app.config import settings
 
 DEFAULT_PASSWORD = "Register123!"
 
@@ -141,11 +141,15 @@ def test_analysis_endpoint(client: TestClient) -> None:
             "max_cards": 2,
         },
     )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["model"]
-    assert len(data["proposals"]) >= 1
-    assert data["proposals"][0]["title"]
+
+    if settings.chatgpt_api_key:
+        assert response.status_code == 200
+        data = response.json()
+        assert data["model"]
+        assert len(data["proposals"]) >= 1
+        assert data["proposals"][0]["title"]
+    else:
+        assert response.status_code == 503
 
 
 def test_cards_are_scoped_to_current_user(client: TestClient) -> None:

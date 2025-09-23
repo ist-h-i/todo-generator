@@ -9,7 +9,10 @@ class Settings(BaseSettings):
     database_url: str = Field(default="sqlite:///./todo.db", env="DATABASE_URL")
     debug: bool = Field(default=False, env="DEBUG")
     chatgpt_model: str = Field(default="gpt-4o-mini", env="CHATGPT_MODEL")
-    allowed_origins: list[str] = Field(default_factory=lambda: ["http://localhost:4200"], env="ALLOWED_ORIGINS")
+    chatgpt_api_key: str | None = Field(default=None, env="OPENAI_API_KEY")
+    allowed_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:4200"], env="ALLOWED_ORIGINS"
+    )
 
     @validator("allowed_origins", pre=True)
     def split_allowed_origins(cls, value: Any) -> list[str]:
