@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '@core/auth/auth.service';
+import { HelpDialogComponent } from './help-dialog';
 
 type ThemePreference = 'light' | 'dark' | 'system';
 
@@ -12,7 +13,7 @@ type ThemePreference = 'light' | 'dark' | 'system';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, HelpDialogComponent],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +24,7 @@ export class Shell {
   private readonly document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
   private readonly themeStorageKey = 'todo-generator:theme-preference';
+  private readonly helpDialogVisible = signal(false);
 
   private readonly themeLabels: Record<ThemePreference, string> = {
     light: 'ライトモード',
@@ -46,6 +48,7 @@ export class Shell {
   public readonly themeToggleAriaLabel = computed(
     () => `テーマ設定。現在は${this.themeDisplayLabel()}。クリックすると${this.themeNextLabel()}に切り替わります。`
   );
+  public readonly isHelpDialogOpen = computed(() => this.helpDialogVisible());
 
   private readonly syncTheme = effect(() => {
     const preference = this.theme();
@@ -68,6 +71,27 @@ export class Shell {
     }
   });
 
+  private readonly syncHelpDialogScrollLock = effect(() => {
+    const body = this.document?.body;
+
+    if (!body) {
+      return;
+    }
+
+    if (this.helpDialogVisible()) {
+      const previous = body.style.overflow;
+      body.style.setProperty('overflow', 'hidden');
+
+      return () => {
+        body.style.overflow = previous;
+      };
+    }
+
+    body.style.removeProperty('overflow');
+
+    return;
+  });
+
   public readonly links = [
     { path: '/board', label: 'ボード' },
     { path: '/input', label: 'インプット解析' },
@@ -80,6 +104,14 @@ export class Shell {
 
   public toggleTheme(): void {
     this.theme.update((mode) => this.nextTheme(mode));
+  }
+
+  public openHelp(): void {
+    this.helpDialogVisible.set(true);
+  }
+
+  public closeHelp(): void {
+    this.helpDialogVisible.set(false);
   }
 
   public readonly logout = (): void => {
