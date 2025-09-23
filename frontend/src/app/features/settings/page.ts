@@ -27,6 +27,7 @@ export class SettingsPage {
     }
     return map;
   });
+  public readonly statusCount = computed(() => this.settingsSignal().statuses.length);
 
   public readonly labelForm = createSignalForm({ name: '', color: '#38bdf8' });
   public readonly statusForm = createSignalForm({
@@ -245,5 +246,49 @@ export class SettingsPage {
     if (this.editingTemplateId() === templateId) {
       this.cancelTemplateEdit();
     }
+  };
+
+  /**
+   * Removes a status from the workspace configuration and updates dependent forms.
+   *
+   * @param statusId - Identifier of the status to remove.
+   */
+  public readonly removeStatus = (statusId: string): void => {
+    const fallback = this.workspace.removeStatus(statusId);
+    if (!fallback) {
+      return;
+    }
+
+    const statuses = this.settingsSignal().statuses;
+    const fallbackId =
+      statuses.find((status) => status.id === fallback)?.id ?? (statuses[0]?.id ?? fallback);
+
+    const ensureValidStatus = (control: SignalControl<string>): void => {
+      if (!statuses.some((status) => status.id === control.value())) {
+        control.setValue(fallbackId);
+      }
+    };
+
+    ensureValidStatus(this.templateForm.controls.defaultStatusId);
+    ensureValidStatus(this.templateEditForm.controls.defaultStatusId);
+  };
+
+  /**
+   * Removes a label from the workspace and prunes form selections.
+   *
+   * @param labelId - Identifier of the label to delete.
+   */
+  public readonly removeLabel = (labelId: string): void => {
+    const removed = this.workspace.removeLabel(labelId);
+    if (!removed) {
+      return;
+    }
+
+    const pruneSelection = (control: SignalControl<readonly string[]>): void => {
+      control.updateValue((current) => current.filter((id) => id !== labelId));
+    };
+
+    pruneSelection(this.templateForm.controls.defaultLabelIds);
+    pruneSelection(this.templateEditForm.controls.defaultLabelIds);
   };
 }
