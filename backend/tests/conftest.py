@@ -1,6 +1,7 @@
+import itertools
 import sys
 from pathlib import Path
-from typing import Generator
+from typing import Callable, Generator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,6 +18,21 @@ from app.main import app
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, future=True)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
+
+
+@pytest.fixture()
+def email_factory() -> Callable[[], str]:
+    counter = itertools.count()
+
+    def _factory() -> str:
+        return f"user-{next(counter)}@example.com"
+
+    return _factory
+
+
+@pytest.fixture()
+def email(email_factory: Callable[[], str]) -> str:
+    return email_factory()
 
 
 @pytest.fixture()
