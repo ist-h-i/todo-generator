@@ -23,6 +23,7 @@
           <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
             メールアドレス
             <input
+              name="email"
               type="email"
               autocomplete="email"
               [value]="loginForm.controls.email.value()"
@@ -35,6 +36,7 @@
           <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
             パスワード
             <input
+              name="password"
               type="password"
               autocomplete="current-password"
               [value]="loginForm.controls.password.value()"
@@ -73,6 +75,7 @@
         <label class="mt-6 block text-sm font-medium text-slate-600 dark:text-slate-300">
           メールアドレス
           <input
+            name="request-email"
             type="email"
             autocomplete="email"
             [value]="requestForm.controls.email.value()"
