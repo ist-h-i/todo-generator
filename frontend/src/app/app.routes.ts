@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { adminGuard } from '@core/auth/admin.guard';
 import { authChildGuard, authGuard } from '@core/auth/auth.guard';
 
 /**
@@ -35,6 +36,7 @@ export const appRoutes: Routes = [
       },
       {
         path: 'settings',
+        canActivate: [adminGuard],
         loadComponent: () => import('@features/settings/page').then((mod) => mod.SettingsPage),
       },
       {
