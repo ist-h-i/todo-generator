@@ -5,9 +5,7 @@ from fastapi.testclient import TestClient
 DEFAULT_PASSWORD = "Register123!"
 
 
-def register_and_login(
-    client: TestClient, email: str, password: str = DEFAULT_PASSWORD
-) -> dict[str, str]:
+def register_and_login(client: TestClient, email: str, password: str = DEFAULT_PASSWORD) -> dict[str, str]:
     response = client.post(
         "/auth/register",
         json={"email": email, "password": password},

@@ -27,11 +27,19 @@ const DEFAULT_SNAPSHOT_ID = CONTINUOUS_IMPROVEMENT_SNAPSHOTS[0]?.id ?? '';
 export class ContinuousImprovementStore {
   private readonly workspace = inject(WorkspaceStore);
 
-  private readonly snapshotsSignal = signal<readonly AnalyticsSnapshot[]>(CONTINUOUS_IMPROVEMENT_SNAPSHOTS);
-  private readonly analysesSignal = signal<readonly RootCauseAnalysis[]>(CONTINUOUS_IMPROVEMENT_ANALYSES);
-  private readonly initiativesSignal = signal<readonly ImprovementInitiative[]>(CONTINUOUS_IMPROVEMENT_INITIATIVES);
+  private readonly snapshotsSignal = signal<readonly AnalyticsSnapshot[]>(
+    CONTINUOUS_IMPROVEMENT_SNAPSHOTS,
+  );
+  private readonly analysesSignal = signal<readonly RootCauseAnalysis[]>(
+    CONTINUOUS_IMPROVEMENT_ANALYSES,
+  );
+  private readonly initiativesSignal = signal<readonly ImprovementInitiative[]>(
+    CONTINUOUS_IMPROVEMENT_INITIATIVES,
+  );
   private readonly selectedSnapshotIdSignal = signal<string>(DEFAULT_SNAPSHOT_ID);
-  private readonly reportInstructionSignal = signal<string>('役員向けに最新の指摘と改善状況をまとめてください。');
+  private readonly reportInstructionSignal = signal<string>(
+    '役員向けに最新の指摘と改善状況をまとめてください。',
+  );
   private readonly reportPreviewSignal = signal<string>('');
 
   public readonly snapshots = computed(() => this.snapshotsSignal());
@@ -183,11 +191,9 @@ export class ContinuousImprovementStore {
                 ...initiative,
                 progress: [
                   ...initiative.progress,
-                  this.buildProgressEntry(
-                    'タスク起票',
-                    `${target.title} をカード化 (${card.id})`,
-                    { impactScore: target.impactScore },
-                  ),
+                  this.buildProgressEntry('タスク起票', `${target.title} をカード化 (${card.id})`, {
+                    impactScore: target.impactScore,
+                  }),
                 ],
               }
             : initiative,
@@ -228,16 +234,14 @@ export class ContinuousImprovementStore {
       }
     };
 
-    return analysis.suggestions
-      .slice()
-      .sort((a, b) => {
-        const statusDiff = order(a.status) - order(b.status);
-        if (statusDiff !== 0) {
-          return statusDiff;
-        }
+    return analysis.suggestions.slice().sort((a, b) => {
+      const statusDiff = order(a.status) - order(b.status);
+      if (statusDiff !== 0) {
+        return statusDiff;
+      }
 
-        return b.impactScore - a.impactScore;
-      });
+      return b.impactScore - a.impactScore;
+    });
   };
 
   private readonly computeDueDate = (days: number): string | undefined => {
@@ -293,12 +297,12 @@ export class ContinuousImprovementStore {
         action.status === 'converted'
           ? 'タスク化済'
           : action.status === 'in-progress'
-          ? '実行中'
-          : '提案中';
+            ? '実行中'
+            : '提案中';
 
       return `- ${action.title}【${statusLabel}】 影響度 ${action.impactScore} / 努力 ${action.effort} / 期限 ${
         action.dueInDays
-      }日`; 
+      }日`;
     });
 
     const initiativeLines = initiatives.map((initiative) => {
@@ -333,7 +337,9 @@ export class ContinuousImprovementStore {
       ...(actionLines.length > 0 ? actionLines : ['- 提案されたアクションは未登録です。']),
       '',
       '■ 改善活動の実績',
-      ...(initiativeLines.length > 0 ? initiativeLines : ['- イニシアチブの記録がまだありません。']),
+      ...(initiativeLines.length > 0
+        ? initiativeLines
+        : ['- イニシアチブの記録がまだありません。']),
       '',
       '■ KPI サマリー',
       `- 再発率: ${Math.round(overview.recurrenceRate * 100)}% (${this.formatDelta(
@@ -354,7 +360,11 @@ export class ContinuousImprovementStore {
 
   private readonly resolveReportHeading = (instruction: string): string => {
     const lower = instruction.toLowerCase();
-    if (lower.includes('exec') || instruction.includes('役員') || instruction.includes('エグゼクティブ')) {
+    if (
+      lower.includes('exec') ||
+      instruction.includes('役員') ||
+      instruction.includes('エグゼクティブ')
+    ) {
       return 'エグゼクティブサマリー';
     }
 
@@ -371,11 +381,19 @@ export class ContinuousImprovementStore {
 
   private readonly resolveToneLabel = (instruction: string): string => {
     const lower = instruction.toLowerCase();
-    if (lower.includes('celebrate') || instruction.includes('ポジティブ') || instruction.includes('称賛')) {
+    if (
+      lower.includes('celebrate') ||
+      instruction.includes('ポジティブ') ||
+      instruction.includes('称賛')
+    ) {
       return 'ポジティブ';
     }
 
-    if (lower.includes('exec') || instruction.includes('役員') || instruction.includes('エグゼクティブ')) {
+    if (
+      lower.includes('exec') ||
+      instruction.includes('役員') ||
+      instruction.includes('エグゼクティブ')
+    ) {
       return 'エグゼクティブ向け';
     }
 

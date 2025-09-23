@@ -8,9 +8,7 @@ import sys
 from types import ModuleType
 from typing import FrozenSet
 
-_ALLOWED_TYPINGONLY_NAMES: FrozenSet[str] = frozenset(
-    {"__firstlineno__", "__static_attributes__"}
-)
+_ALLOWED_TYPINGONLY_NAMES: FrozenSet[str] = frozenset({"__firstlineno__", "__static_attributes__"})
 _PATCH_ATTRIBUTE = "_todo_generator_py313_patch"
 
 
@@ -31,14 +29,11 @@ def _patch_langhelpers(module: ModuleType) -> None:
     def _patched_init_subclass(cls) -> None:  # type: ignore[override]
         if typing_only_cls in cls.__bases__:
             remaining = {
-                name
-                for name in cls.__dict__
-                if name not in _ALLOWED_TYPINGONLY_NAMES and not dunders_match(name)
+                name for name in cls.__dict__ if name not in _ALLOWED_TYPINGONLY_NAMES and not dunders_match(name)
             }
             if remaining:
                 raise AssertionError(
-                    f"Class {cls} directly inherits TypingOnly but has "
-                    f"additional attributes {remaining}."
+                    f"Class {cls} directly inherits TypingOnly but has " f"additional attributes {remaining}."
                 )
 
         original_init_subclass_func(cls)

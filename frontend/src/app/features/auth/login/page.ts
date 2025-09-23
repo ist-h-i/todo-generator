@@ -12,9 +12,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '@core/auth/auth.service';
 import { createSignalForm } from '@lib/forms/signal-forms';
 
-
 const MIN_PASSWORD_LENGTH = 8;
-
 
 @Component({
   selector: 'app-login-page',
@@ -55,9 +53,7 @@ export class LoginPage {
       password === confirmPassword
     );
   });
-  public readonly canSubmitLogin = computed(
-    () => this.isLoginFormValid() && !this.pending(),
-  );
+  public readonly canSubmitLogin = computed(() => this.isLoginFormValid() && !this.pending());
   public readonly canSubmitRegistration = computed(
     () => this.isRegisterFormValid() && !this.pending(),
   );

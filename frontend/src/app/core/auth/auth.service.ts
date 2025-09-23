@@ -5,9 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { buildApiUrl } from '@core/api/api.config';
 import { AuthenticatedUser, TokenResponse } from '@core/models';
 
-
 const STORAGE_KEY = 'todo-generator/auth-token';
-
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -96,9 +94,7 @@ export class AuthService {
 
     this.tokenStore.set(storedToken);
     try {
-      const user = await firstValueFrom(
-        this.http.get<AuthenticatedUser>(buildApiUrl('/auth/me')),
-      );
+      const user = await firstValueFrom(this.http.get<AuthenticatedUser>(buildApiUrl('/auth/me')));
       this.userStore.set(user);
     } catch {
       this.clearSession();

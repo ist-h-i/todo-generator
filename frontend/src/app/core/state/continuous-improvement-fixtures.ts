@@ -1,8 +1,4 @@
-import {
-  AnalyticsSnapshot,
-  ImprovementInitiative,
-  RootCauseAnalysis,
-} from '@core/models';
+import { AnalyticsSnapshot, ImprovementInitiative, RootCauseAnalysis } from '@core/models';
 
 export const CONTINUOUS_IMPROVEMENT_SNAPSHOTS: readonly AnalyticsSnapshot[] = [
   {
@@ -171,7 +167,8 @@ export const CONTINUOUS_IMPROVEMENT_ANALYSES: readonly RootCauseAnalysis[] = [
         nodeId: 'node-1b',
         title: '監視閾値のチューニングワークショップ',
         summary: '過去データを分析し閾値を調整する。',
-        description: 'QAとSREでワークショップを開催し通知レベルと自動エスカレーションを設計します。',
+        description:
+          'QAとSREでワークショップを開催し通知レベルと自動エスカレーションを設計します。',
         status: 'pending',
         effort: 'low',
         impactScore: 3,
