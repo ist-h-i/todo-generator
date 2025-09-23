@@ -13,6 +13,7 @@ import { AuthService } from '@core/auth/auth.service';
 import { createSignalForm } from '@lib/forms/signal-forms';
 
 const MIN_PASSWORD_LENGTH = 8;
+const HOME_ROUTE = '/';
 
 @Component({
   selector: 'app-login-page',
@@ -42,7 +43,7 @@ export class LoginPage {
   });
   public readonly isRegisterFormValid = computed(() => {
     const value = this.registerForm.value();
-    const email = value.email.trim();
+    const email = this.sanitizeEmail(value.email);
     const password = value.password;
     const confirmPassword = value.confirmPassword;
 
@@ -65,7 +66,7 @@ export class LoginPage {
       }
 
       if (this.auth.isAuthenticated()) {
-        void this.router.navigateByUrl('/board');
+        void this.router.navigateByUrl(HOME_ROUTE);
       }
     });
 
@@ -86,12 +87,12 @@ export class LoginPage {
     }
 
     const credentials = this.loginForm.value();
-    const email = credentials.email.trim();
+    const email = this.sanitizeEmail(credentials.email);
     const password = credentials.password;
 
     const success = await this.auth.login(email, password);
     if (success) {
-      await this.router.navigateByUrl('/board');
+      await this.router.navigateByUrl(HOME_ROUTE);
       return;
     }
 
@@ -118,7 +119,7 @@ export class LoginPage {
     }
 
     const value = this.registerForm.value();
-    const email = value.email.trim();
+    const email = this.sanitizeEmail(value.email);
     const password = value.password;
     const confirmPassword = value.confirmPassword;
 
@@ -139,7 +140,7 @@ export class LoginPage {
 
     const success = await this.auth.register(email, password);
     if (success) {
-      await this.router.navigateByUrl('/board');
+      await this.router.navigateByUrl(HOME_ROUTE);
       return;
     }
 
@@ -165,5 +166,9 @@ export class LoginPage {
   private resetNotices(): void {
     this.loginNotice.set(null);
     this.registerNotice.set(null);
+  }
+
+  private sanitizeEmail(value: string): string {
+    return value.normalize('NFKC').trim().toLowerCase();
   }
 }

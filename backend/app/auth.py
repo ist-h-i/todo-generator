@@ -5,6 +5,7 @@ import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import unicodedata
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -22,8 +23,23 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _normalize_email_variants(email: str) -> tuple[str, str]:
+    normalized = unicodedata.normalize("NFKC", email).strip()
+    canonical = normalized.casefold()
+    legacy = normalized.lower()
+    return canonical, legacy
+
+
 def normalize_email(email: str) -> str:
-    return email.strip().lower()
+    canonical, _ = _normalize_email_variants(email)
+    return canonical
+
+
+def get_email_lookup_candidates(email: str) -> tuple[str, ...]:
+    canonical, legacy = _normalize_email_variants(email)
+    if canonical == legacy:
+        return (canonical,)
+    return (canonical, legacy)
 
 
 def hash_password(password: str) -> str:
@@ -93,6 +109,7 @@ def get_current_user(
 __all__ = [
     "create_session_token",
     "get_current_user",
+    "get_email_lookup_candidates",
     "hash_password",
     "normalize_email",
     "verify_password",
