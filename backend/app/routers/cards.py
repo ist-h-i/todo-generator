@@ -299,7 +299,7 @@ def create_card(
     if created_count >= DAILY_CARD_CREATION_LIMIT:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached.",
+            detail=_DAILY_CARD_LIMIT_MESSAGE,
         )
 
     card = models.Card(

@@ -9,6 +9,7 @@ from ..auth import (
     get_current_user,
     get_email_lookup_candidates,
     hash_password,
+    normalize_email,
     verify_password,
 )
 from ..database import get_db
@@ -39,7 +40,7 @@ def register(
 
     is_first_user = db.query(models.User).count() == 0
     user = models.User(
-        email=email,
+        email=normalize_email(payload.email),
         password_hash=hash_password(payload.password),
         is_admin=is_first_user,
     )
