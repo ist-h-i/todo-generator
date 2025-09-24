@@ -23,7 +23,6 @@ const DEFAULT_HISTORY_LIMIT = 12;
   standalone: true,
   imports: [CommonModule],
   templateUrl: './page.html',
-  styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileEvaluationsPage {

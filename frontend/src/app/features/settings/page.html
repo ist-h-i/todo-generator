@@ -1,225 +1,211 @@
-<section class="space-y-10">
+<section class="app-page settings-page">
   <app-page-header
     eyebrow="Workspace Settings"
     title="ワークスペース設定"
     description="ステータスやラベル、テンプレートを更新してチームの運用に合わせましょう。"
   ></app-page-header>
 
-  <div class="grid gap-6 lg:grid-cols-2">
-    <section class="surface-panel space-y-6 px-8 py-8">
-      <h3 class="text-lg font-semibold text-on-surface">ステータス設定</h3>
-      <ul class="space-y-3">
+  <div class="page-grid page-grid--two settings-page__grid">
+    <section class="page-section settings-panel">
+      <header class="page-section__header">
+        <h3 class="page-section__title">ステータス設定</h3>
+        <p class="page-section__subtitle">
+          ステータスの順序やカテゴリーを管理し、ボードの列と一致させましょう。
+        </p>
+      </header>
+
+      <ul class="page-list settings-status-list">
         @for (status of settingsSignal().statuses; track status.id) {
-          <li
-            class="flex items-center justify-between rounded-2xl border border-subtle px-4 py-3 text-sm text-on-surface"
-          >
-            <div class="flex items-center gap-3">
-              <span class="h-3 w-3 rounded-full" [style.backgroundColor]="status.color"></span>
-              <span>{{ status.name }}</span>
-              <span class="text-xs text-slate-500">{{ status.category }}</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-500">表示順 {{ status.order }}</span>
-              <button
-                type="button"
-                class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
-                [disabled]="statusCount() <= 1"
-                (click)="removeStatus(status.id)"
-              >
-                削除
-              </button>
+          <li class="page-list__item settings-status">
+            <div class="page-list__heading settings-status__header">
+              <div class="settings-status__meta">
+                <span class="settings-status__swatch" [style.backgroundColor]="status.color"></span>
+                <span class="page-list__title">{{ status.name }}</span>
+                <span class="settings-status__category">{{ status.category }}</span>
+              </div>
+              <div class="settings-status__actions">
+                <span class="settings-status__order">表示順 {{ status.order }}</span>
+                <button
+                  type="button"
+                  class="button button--ghost button--pill"
+                  [disabled]="statusCount() <= 1"
+                  (click)="removeStatus(status.id)"
+                >
+                  削除
+                </button>
+              </div>
             </div>
           </li>
         }
       </ul>
-      <form
-        class="grid gap-4 rounded-2xl border border-dashed border-subtle px-6 py-6"
-        (submit)="saveStatus($event)"
-      >
-        <div class="grid gap-2">
-          <label
-            class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-            for="status-name"
-            >ステータス名</label
-          >
-          <input
-            id="status-name"
-            type="text"
-            class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
-            placeholder="例: QA Review"
-            [value]="statusForm.controls.name.value()"
-            (input)="statusForm.controls.name.setValue($any($event.target).value)"
-          />
+
+      <form class="page-form settings-form" (submit)="saveStatus($event)">
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label" for="status-name">ステータス名</span>
+            <input
+              id="status-name"
+              type="text"
+              class="form-control"
+              placeholder="例: QA Review"
+              [value]="statusForm.controls.name.value()"
+              (input)="statusForm.controls.name.setValue($any($event.target).value)"
+            />
+          </label>
+          <label class="form-field settings-color-field">
+            <span class="form-field__label" for="status-color">表示色</span>
+            <input
+              id="status-color"
+              type="color"
+              class="form-control settings-color-picker"
+              [value]="statusForm.controls.color.value()"
+              (input)="statusForm.controls.color.setValue($any($event.target).value)"
+            />
+          </label>
         </div>
-        <div class="grid gap-2">
-          <label
-            class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-            for="status-color"
-            >表示色</label
-          >
-          <input
-            id="status-color"
-            type="color"
-            class="h-12 w-20 rounded-2xl border border-subtle bg-surface focus-ring"
-            [value]="statusForm.controls.color.value()"
-            (input)="statusForm.controls.color.setValue($any($event.target).value)"
-          />
-        </div>
-        <div class="grid gap-2">
-          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-            >カテゴリー</label
-          >
-          <div class="flex flex-wrap gap-2 text-xs">
+        <div class="form-field form-field--full">
+          <span class="form-field__label">カテゴリー</span>
+          <div class="settings-chip-group">
             <button
               type="button"
-              class="surface-pill focus-ring px-4 py-2"
+              class="button button--ghost button--pill"
               (click)="statusForm.controls.category.setValue('todo')"
             >
               TODO
             </button>
             <button
               type="button"
-              class="surface-pill focus-ring px-4 py-2"
+              class="button button--ghost button--pill"
               (click)="statusForm.controls.category.setValue('in-progress')"
             >
               IN PROGRESS
             </button>
             <button
               type="button"
-              class="surface-pill focus-ring px-4 py-2"
+              class="button button--ghost button--pill"
               (click)="statusForm.controls.category.setValue('done')"
             >
               DONE
             </button>
           </div>
-          <p class="text-xs text-slate-500">現在: {{ statusForm.controls.category.value() }}</p>
+          <p class="form-note">現在: {{ statusForm.controls.category.value() }}</p>
         </div>
-        <button
-          type="submit"
-          class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold"
-        >
-          ステータスを追加
-        </button>
+        <div class="form-actions">
+          <button type="submit" class="button button--primary">ステータスを追加</button>
+        </div>
       </form>
     </section>
 
-    <section class="surface-panel space-y-6 px-8 py-8">
-      <h3 class="text-lg font-semibold text-on-surface">ラベル設定</h3>
-      <ul class="space-y-3">
+    <section class="page-section settings-panel">
+      <header class="page-section__header">
+        <h3 class="page-section__title">ラベル設定</h3>
+        <p class="page-section__subtitle">カードに付与する分類ラベルを整理します。</p>
+      </header>
+
+      <ul class="page-list settings-label-list">
         @for (label of settingsSignal().labels; track label.id) {
-          <li
-            class="flex items-center justify-between rounded-2xl border border-subtle px-4 py-3 text-sm text-on-surface"
-          >
-            <div class="flex items-center gap-3">
-              <span class="h-3 w-3 rounded-full" [style.backgroundColor]="label.color"></span>
-              <span>{{ label.name }}</span>
-            </div>
-            <div class="flex items-center gap-2 text-xs text-slate-500">
-              <span>{{ label.id }}</span>
-              <button
-                type="button"
-                class="surface-pill focus-ring px-3 py-1 font-semibold uppercase tracking-[0.2em] text-red-500"
-                (click)="removeLabel(label.id)"
-              >
-                削除
-              </button>
+          <li class="page-list__item settings-label">
+            <div class="page-list__heading settings-label__header">
+              <div class="settings-label__meta">
+                <span class="settings-label__swatch" [style.backgroundColor]="label.color"></span>
+                <span class="page-list__title">{{ label.name }}</span>
+              </div>
+              <div class="settings-label__actions">
+                <span class="settings-label__id">{{ label.id }}</span>
+                <button
+                  type="button"
+                  class="button button--ghost button--pill"
+                  (click)="removeLabel(label.id)"
+                >
+                  削除
+                </button>
+              </div>
             </div>
           </li>
         }
       </ul>
-      <form
-        class="grid gap-4 rounded-2xl border border-dashed border-subtle px-6 py-6"
-        (submit)="saveLabel($event)"
-      >
-        <div class="grid gap-2">
-          <label
-            class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-            for="label-name"
-            >ラベル名</label
-          >
-          <input
-            id="label-name"
-            type="text"
-            class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
-            placeholder="例: DevOps"
-            [value]="labelForm.controls.name.value()"
-            (input)="labelForm.controls.name.setValue($any($event.target).value)"
-          />
+
+      <form class="page-form settings-form" (submit)="saveLabel($event)">
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label" for="label-name">ラベル名</span>
+            <input
+              id="label-name"
+              type="text"
+              class="form-control"
+              placeholder="例: DevOps"
+              [value]="labelForm.controls.name.value()"
+              (input)="labelForm.controls.name.setValue($any($event.target).value)"
+            />
+          </label>
+          <label class="form-field settings-color-field">
+            <span class="form-field__label" for="label-color">表示色</span>
+            <input
+              id="label-color"
+              type="color"
+              class="form-control settings-color-picker"
+              [value]="labelForm.controls.color.value()"
+              (input)="labelForm.controls.color.setValue($any($event.target).value)"
+            />
+          </label>
         </div>
-        <div class="grid gap-2">
-          <label
-            class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-            for="label-color"
-            >表示色</label
-          >
-          <input
-            id="label-color"
-            type="color"
-            class="h-12 w-20 rounded-2xl border border-subtle bg-surface focus-ring"
-            [value]="labelForm.controls.color.value()"
-            (input)="labelForm.controls.color.setValue($any($event.target).value)"
-          />
+        <div class="form-actions">
+          <button type="submit" class="button button--primary">ラベルを追加</button>
         </div>
-        <button
-          type="submit"
-          class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold"
-        >
-          ラベルを追加
-        </button>
       </form>
     </section>
   </div>
 
-  <section class="surface-panel space-y-6 px-8 py-8">
-    <div class="space-y-2">
-      <h3 class="text-lg font-semibold text-on-surface">テンプレート</h3>
-      <p class="text-sm text-slate-500 dark:text-slate-400">
-        AI 提案から生成されるカードの初期ステータスや表示フィールドをテンプレートとして管理します。
+  <section class="page-section settings-panel">
+    <header class="page-section__header">
+      <h3 class="page-section__title">テンプレート</h3>
+      <p class="page-section__subtitle">
+        AI 提案から生成されるカードの初期設定をテンプレートとして管理します。
       </p>
-    </div>
-    <ul class="space-y-4">
+    </header>
+
+    <ul class="page-list settings-template-list">
       @for (template of settingsSignal().templates; track template.id) {
-        <li class="surface-card space-y-4 px-5 py-5">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div class="space-y-1">
-              <div class="flex flex-wrap items-center gap-2">
-                <h4 class="text-base font-semibold text-on-surface">{{ template.name }}</h4>
-                <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">{{
-                  template.id
-                }}</span>
-              </div>
-              <p class="text-sm text-slate-600 dark:text-slate-300">
-                {{ template.description || '説明は設定されていません。' }}
-              </p>
+        <li class="page-list__item settings-template">
+          <div class="settings-template__header">
+            <div class="settings-template__identity">
+              <h4 class="settings-template__title">{{ template.name }}</h4>
+              <span class="page-badge">{{ template.id }}</span>
             </div>
-            <div class="flex gap-2 text-xs">
+            <div class="settings-template__actions">
               <button
                 type="button"
-                class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+                class="button button--ghost button--pill"
                 (click)="openTemplateEditor(template)"
               >
                 編集
               </button>
               <button
                 type="button"
-                class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-red-500"
+                class="button button--danger button--pill"
                 (click)="removeTemplate(template.id)"
               >
                 削除
               </button>
             </div>
           </div>
-          <div class="flex flex-wrap gap-2 text-xs text-slate-500">
-            <span class="surface-pill px-3 py-1"
+
+          <p class="settings-template__description">
+            {{ template.description || '説明は設定されていません。' }}
+          </p>
+
+          <div class="settings-template__meta">
+            <span class="page-badge page-badge--accent"
               >初期ステータス: {{ template.defaultStatusId }}</span
             >
-            <span class="surface-pill px-3 py-1">
-              おすすめ度しきい値: {{ template.confidenceThreshold * 100 | number: '1.0-0' }}%
-            </span>
+            <span class="page-badge"
+              >おすすめ度しきい値: {{ template.confidenceThreshold * 100 | number: '1.0-0' }}%</span
+            >
           </div>
-          <div class="space-y-1 text-xs text-slate-500">
-            <p class="font-semibold text-on-surface">初期ラベル</p>
-            <div class="flex flex-wrap gap-2">
+
+          <div class="settings-template__labels">
+            <p class="settings-template__labels-title">初期ラベル</p>
+            <div class="settings-template__labels-list">
               @if (template.defaultLabelIds.length > 0) {
                 @for (labelId of template.defaultLabelIds; track labelId) {
                   <span class="surface-pill px-3 py-1">
@@ -231,95 +217,75 @@
               }
             </div>
           </div>
-          <p class="text-sm text-slate-600 dark:text-slate-300">{{ template.description }}</p>
-          <p class="text-xs text-slate-500">初期ステータス: {{ template.defaultStatusId }}</p>
-          <p class="text-xs text-slate-500">
-            初期ラベル: {{ template.defaultLabelIds.join(', ') }}
-          </p>
-          <p class="text-xs text-slate-500">
-            最小おすすめ度: {{ template.confidenceThreshold * 100 | number: '1.0-0' }}%
-          </p>
         </li>
       }
     </ul>
-    <form
-      class="grid gap-4 rounded-2xl border border-dashed border-subtle px-6 py-6"
-      (submit)="saveTemplatePreset($event)"
-    >
-      <h4 class="text-base font-semibold text-on-surface">テンプレートを追加</h4>
-      <div class="grid gap-2">
-        <label
-          class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-          for="template-name"
-          >テンプレート名</label
-        >
-        <input
-          id="template-name"
-          type="text"
-          class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
-          placeholder="例: スプリント改善"
-          [value]="templateForm.controls.name.value()"
-          (input)="templateForm.controls.name.setValue($any($event.target).value)"
-        />
+
+    <form class="page-form settings-form" (submit)="saveTemplatePreset($event)">
+      <h4 class="settings-form__title">テンプレートを追加</h4>
+
+      <div class="form-grid form-grid--two">
+        <label class="form-field form-field--full">
+          <span class="form-field__label" for="template-name">テンプレート名</span>
+          <input
+            id="template-name"
+            type="text"
+            class="form-control"
+            placeholder="例: スプリント改善"
+            [value]="templateForm.controls.name.value()"
+            (input)="templateForm.controls.name.setValue($any($event.target).value)"
+          />
+        </label>
+
+        <label class="form-field form-field--full">
+          <span class="form-field__label" for="template-description">説明</span>
+          <textarea
+            id="template-description"
+            class="form-control form-control--textarea"
+            placeholder="テンプレートの利用シーンを記載してください"
+            [value]="templateForm.controls.description.value()"
+            (input)="templateForm.controls.description.setValue($any($event.target).value)"
+          ></textarea>
+        </label>
+
+        <label class="form-field">
+          <span class="form-field__label" for="template-status">初期ステータス</span>
+          <select
+            id="template-status"
+            class="form-control"
+            [value]="templateForm.controls.defaultStatusId.value()"
+            (change)="templateForm.controls.defaultStatusId.setValue($any($event.target).value)"
+          >
+            @for (status of settingsSignal().statuses; track status.id) {
+              <option [value]="status.id">{{ status.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span class="form-field__label" for="template-threshold">おすすめ度しきい値</span>
+          <input
+            id="template-threshold"
+            type="number"
+            min="0"
+            max="1"
+            step="0.05"
+            class="form-control"
+            [value]="templateForm.controls.confidenceThreshold.value()"
+            (input)="
+              templateForm.controls.confidenceThreshold.setValue($any($event.target).valueAsNumber)
+            "
+          />
+        </label>
       </div>
-      <div class="grid gap-2">
-        <label
-          class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-          for="template-description"
-          >説明</label
-        >
-        <textarea
-          id="template-description"
-          class="min-h-[80px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
-          placeholder="テンプレートの利用シーンを記載してください"
-          [value]="templateForm.controls.description.value()"
-          (input)="templateForm.controls.description.setValue($any($event.target).value)"
-        ></textarea>
-      </div>
-      <div class="grid gap-2">
-        <label
-          class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-          for="template-status"
-          >初期ステータス</label
-        >
-        <select
-          id="template-status"
-          class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
-          [value]="templateForm.controls.defaultStatusId.value()"
-          (change)="templateForm.controls.defaultStatusId.setValue($any($event.target).value)"
-        >
-          @for (status of settingsSignal().statuses; track status.id) {
-            <option [value]="status.id">{{ status.name }}</option>
-          }
-        </select>
-      </div>
-      <div class="grid gap-2">
-        <label
-          class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-          for="template-threshold"
-          >おすすめ度しきい値</label
-        >
-        <input
-          id="template-threshold"
-          type="number"
-          min="0"
-          max="1"
-          step="0.05"
-          class="rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
-          [value]="templateForm.controls.confidenceThreshold.value()"
-          (input)="
-            templateForm.controls.confidenceThreshold.setValue($any($event.target).valueAsNumber)
-          "
-        />
-      </div>
-      <div class="space-y-2">
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">初期ラベル</p>
-        <div class="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-300">
+
+      <div class="form-field form-field--full">
+        <span class="form-field__label">初期ラベル</span>
+        <div class="settings-checkbox-group">
           @for (label of settingsSignal().labels; track label.id) {
-            <label class="flex items-center gap-2">
+            <label class="settings-checkbox">
               <input
                 type="checkbox"
-                class="h-4 w-4 text-accent focus-ring"
                 [checked]="templateForm.controls.defaultLabelIds.value().includes(label.id)"
                 (change)="toggleCreateTemplateLabel(label.id, $any($event.target).checked)"
               />
@@ -327,46 +293,41 @@
             </label>
           }
           @if (settingsSignal().labels.length === 0) {
-            <span class="text-xs text-slate-400">ラベルが未設定です</span>
+            <span class="settings-checkbox__empty">ラベルが未設定です</span>
           }
         </div>
       </div>
-      <div class="space-y-2">
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-          表示フィールド
-        </p>
-        <div class="flex flex-wrap gap-3 text-sm text-slate-600 dark:text-slate-300">
-          <label class="flex items-center gap-2">
+
+      <div class="form-field form-field--full">
+        <span class="form-field__label">表示フィールド</span>
+        <div class="settings-checkbox-group">
+          <label class="settings-checkbox">
             <input
               type="checkbox"
-              class="h-4 w-4 text-accent focus-ring"
               [checked]="templateForm.controls.showStoryPoints.value()"
               (change)="templateForm.controls.showStoryPoints.setValue($any($event.target).checked)"
             />
             <span>ストーリーポイント</span>
           </label>
-          <label class="flex items-center gap-2">
+          <label class="settings-checkbox">
             <input
               type="checkbox"
-              class="h-4 w-4 text-accent focus-ring"
               [checked]="templateForm.controls.showDueDate.value()"
               (change)="templateForm.controls.showDueDate.setValue($any($event.target).checked)"
             />
             <span>期限</span>
           </label>
-          <label class="flex items-center gap-2">
+          <label class="settings-checkbox">
             <input
               type="checkbox"
-              class="h-4 w-4 text-accent focus-ring"
               [checked]="templateForm.controls.showAssignee.value()"
               (change)="templateForm.controls.showAssignee.setValue($any($event.target).checked)"
             />
             <span>担当</span>
           </label>
-          <label class="flex items-center gap-2">
+          <label class="settings-checkbox">
             <input
               type="checkbox"
-              class="h-4 w-4 text-accent focus-ring"
               [checked]="templateForm.controls.showConfidence.value()"
               (change)="templateForm.controls.showConfidence.setValue($any($event.target).checked)"
             />
@@ -374,12 +335,10 @@
           </label>
         </div>
       </div>
-      <button
-        type="submit"
-        class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold"
-      >
-        テンプレートを追加
-      </button>
+
+      <div class="form-actions">
+        <button type="submit" class="button button--primary">テンプレートを追加</button>
+      </div>
     </form>
   </section>
 </section>

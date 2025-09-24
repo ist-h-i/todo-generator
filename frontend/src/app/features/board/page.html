@@ -1,5 +1,5 @@
-<section class="grid min-h-full gap-10 lg:grid-rows-[auto_1fr]">
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
+<section class="app-page board-page">
+  <div class="board-page__overview">
     @if (summarySignal(); as summary) {
       <section class="surface-panel flex flex-col gap-6 px-6 py-8">
         <div>
@@ -156,7 +156,7 @@
     </div>
   </div>
 
-  <div class="flex min-h-0 flex-col gap-8">
+  <div class="board-page__subtasks">
     <section class="space-y-4">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h3 class="text-lg font-semibold text-on-surface">タスク一覧</h3>

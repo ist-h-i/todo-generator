@@ -29,7 +29,6 @@ type AdminTab = 'competencies' | 'evaluations' | 'users' | 'settings';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './page.html',
-  styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminPage {

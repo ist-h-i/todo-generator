@@ -1,50 +1,51 @@
-<div class="auth-wrapper">
-  <div class="auth-container">
-    <div class="auth-grid grid gap-10 lg:grid-cols-2">
-      <section class="surface-panel login-panel px-8 py-10" aria-labelledby="login-heading">
-        <div class="panel-header">
-          <span class="panel-badge">ログイン</span>
-          <h2
-            id="login-heading"
-            class="panel-title text-2xl font-semibold text-slate-800 dark:text-slate-100"
-          >
-            登録済みの方はこちら
-          </h2>
+<section class="app-page auth-page">
+  <div class="auth-page__container">
+    <div class="auth-page__grid">
+      <section
+        class="surface-panel page-panel auth-card auth-card--login"
+        aria-labelledby="login-heading"
+      >
+        <div class="auth-card__header">
+          <span class="auth-card__badge">ログイン</span>
+          <h2 id="login-heading" class="auth-card__title">登録済みの方はこちら</h2>
         </div>
-        <p class="panel-subtitle mt-2 text-sm text-slate-500 dark:text-slate-400">
+        <p class="auth-card__subtitle">
           既にワークスペースへ招待されている場合は、メールアドレスとパスワードを入力してサインインしてください。
         </p>
 
         @if (loginNotice(); as notice) {
-          <div class="alert error" role="alert" aria-live="polite">
-            {{ notice }}
-          </div>
+          <div class="app-alert app-alert--error" role="alert" aria-live="polite">{{ notice }}</div>
         }
 
-        <form class="mt-6 flex flex-col gap-5" (submit)="onLoginSubmit($event)">
-          <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
-            メールアドレス
+        <form class="auth-form" (submit)="onLoginSubmit($event)">
+          <div class="form-field">
+            <label class="form-field__label" for="login-email">メールアドレス</label>
             <input
+              id="login-email"
               name="email"
               type="email"
               autocomplete="email"
+              class="form-control"
+              [class.form-control--invalid]="loginEmailError()"
               [value]="loginForm.controls.email.value()"
               (input)="onLoginEmailInput($event)"
-              [class.input-invalid]="loginEmailError()"
               [attr.aria-invalid]="loginEmailError() ? 'true' : null"
               [attr.aria-describedby]="loginEmailError() ? 'login-email-error' : null"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="you@example.com"
             />
             @if (loginEmailError(); as emailError) {
-              <p id="login-email-error" class="field-error" aria-live="polite">
+              <p
+                id="login-email-error"
+                class="form-feedback form-feedback--error"
+                aria-live="polite"
+              >
                 {{ emailError }}
               </p>
             }
-          </label>
+          </div>
 
-          <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
-            パスワード
+          <div class="form-field">
+            <label class="form-field__label" for="login-password">パスワード</label>
             <input
               id="login-password"
               name="password"
@@ -52,24 +53,28 @@
               autocomplete="current-password"
               autocapitalize="off"
               spellcheck="false"
+              class="form-control"
+              [class.form-control--invalid]="loginPasswordError()"
               [value]="loginForm.controls.password.value()"
               (input)="onLoginPasswordInput($event)"
-              [class.input-invalid]="loginPasswordError()"
               [attr.aria-invalid]="loginPasswordError() ? 'true' : null"
               [attr.aria-describedby]="loginPasswordError() ? 'login-password-error' : null"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="パスワード"
             />
             @if (loginPasswordError(); as passwordError) {
-              <p id="login-password-error" class="field-error" aria-live="polite">
+              <p
+                id="login-password-error"
+                class="form-feedback form-feedback--error"
+                aria-live="polite"
+              >
                 {{ passwordError }}
               </p>
             }
-          </label>
+          </div>
 
           <button
             type="submit"
-            class="focus-ring mt-2 inline-flex items-center justify-center rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-slate-400"
+            class="auth-button focus-ring bg-accent px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-accent/30 hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-slate-400"
             [disabled]="!canSubmitLogin()"
           >
             サインイン
@@ -77,54 +82,57 @@
         </form>
       </section>
 
-      <section class="surface-panel register-panel px-8 py-10" aria-labelledby="register-heading">
-        <div class="panel-header">
-          <span class="panel-badge accent">新規登録</span>
-          <h3
-            id="register-heading"
-            class="panel-title text-xl font-semibold text-slate-800 dark:text-slate-100"
-          >
-            アカウントを作成
-          </h3>
+      <section
+        class="surface-panel page-panel auth-card auth-card--register"
+        aria-labelledby="register-heading"
+      >
+        <div class="auth-card__header">
+          <span class="auth-card__badge auth-card__badge--accent">新規登録</span>
+          <h3 id="register-heading" class="auth-card__title">アカウントを作成</h3>
         </div>
-        <p class="panel-subtitle mt-2 text-sm text-slate-500 dark:text-slate-400">
+        <p class="auth-card__subtitle">
           初めて利用する方は、メールアドレスと希望のパスワードを入力してアカウントを作成してください。登録後は自動的にホーム画面へ移動します。
         </p>
-        <ul class="register-hints mt-4 space-y-2 text-xs text-slate-500 dark:text-slate-400">
+        <ul class="auth-card__hints">
           <li>パスワードは8文字以上で設定してください。</li>
           <li>確認用パスワードも同じ内容を入力してください。</li>
         </ul>
 
         @if (registerNotice(); as registerMessage) {
-          <div class="alert error" role="alert" aria-live="polite">
+          <div class="app-alert app-alert--error" role="alert" aria-live="polite">
             {{ registerMessage }}
           </div>
         }
 
-        <form class="mt-6 flex flex-col gap-5" (submit)="onRegisterSubmit($event)">
-          <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
-            メールアドレス
+        <form class="auth-form" (submit)="onRegisterSubmit($event)">
+          <div class="form-field">
+            <label class="form-field__label" for="register-email">メールアドレス</label>
             <input
+              id="register-email"
               name="register-email"
               type="email"
               autocomplete="email"
+              class="form-control"
+              [class.form-control--invalid]="registerEmailError()"
               [value]="registerForm.controls.email.value()"
               (input)="onRegisterEmailInput($event)"
-              [class.input-invalid]="registerEmailError()"
               [attr.aria-invalid]="registerEmailError() ? 'true' : null"
               [attr.aria-describedby]="registerEmailError() ? 'register-email-error' : null"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="you@example.com"
             />
             @if (registerEmailError(); as emailError) {
-              <p id="register-email-error" class="field-error" aria-live="polite">
+              <p
+                id="register-email-error"
+                class="form-feedback form-feedback--error"
+                aria-live="polite"
+              >
                 {{ emailError }}
               </p>
             }
-          </label>
+          </div>
 
-          <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
-            パスワード
+          <div class="form-field">
+            <label class="form-field__label" for="register-password">パスワード</label>
             <input
               id="register-password"
               name="new-password"
@@ -132,23 +140,29 @@
               autocomplete="new-password"
               autocapitalize="off"
               spellcheck="false"
+              class="form-control"
+              [class.form-control--invalid]="registerPasswordError()"
               [value]="registerForm.controls.password.value()"
               (input)="onRegisterPasswordInput($event)"
-              [class.input-invalid]="registerPasswordError()"
               [attr.aria-invalid]="registerPasswordError() ? 'true' : null"
               [attr.aria-describedby]="registerPasswordError() ? 'register-password-error' : null"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="8文字以上で入力"
             />
             @if (registerPasswordError(); as passwordError) {
-              <p id="register-password-error" class="field-error" aria-live="polite">
+              <p
+                id="register-password-error"
+                class="form-feedback form-feedback--error"
+                aria-live="polite"
+              >
                 {{ passwordError }}
               </p>
             }
-          </label>
+          </div>
 
-          <label class="block text-sm font-medium text-slate-600 dark:text-slate-300">
-            パスワード（確認）
+          <div class="form-field">
+            <label class="form-field__label" for="register-confirm-password"
+              >パスワード（確認）</label
+            >
             <input
               id="register-confirm-password"
               name="confirm-password"
@@ -156,24 +170,28 @@
               autocomplete="new-password"
               autocapitalize="off"
               spellcheck="false"
+              class="form-control"
+              [class.form-control--invalid]="registerConfirmError()"
               [value]="registerForm.controls.confirmPassword.value()"
               (input)="onRegisterConfirmInput($event)"
-              [class.input-invalid]="registerConfirmError()"
               [attr.aria-invalid]="registerConfirmError() ? 'true' : null"
               [attr.aria-describedby]="registerConfirmError() ? 'register-confirm-error' : null"
-              class="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               placeholder="確認のため再入力"
             />
             @if (registerConfirmError(); as confirmError) {
-              <p id="register-confirm-error" class="field-error" aria-live="polite">
+              <p
+                id="register-confirm-error"
+                class="form-feedback form-feedback--error"
+                aria-live="polite"
+              >
                 {{ confirmError }}
               </p>
             }
-          </label>
+          </div>
 
           <button
             type="submit"
-            class="focus-ring mt-2 inline-flex items-center justify-center rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-400"
+            class="auth-button focus-ring bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-400"
             [disabled]="!canSubmitRegistration()"
           >
             アカウントを作成
@@ -182,4 +200,4 @@
       </section>
     </div>
   </div>
-</div>
+</section>

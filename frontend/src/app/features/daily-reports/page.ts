@@ -18,7 +18,6 @@ import { DailyReportDetail, DailyReportCreateRequest } from '@core/models';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './page.html',
-  styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DailyReportsPage {

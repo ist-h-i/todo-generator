@@ -123,7 +123,6 @@ const RESOLVED_SUBTASK_STATUSES = new Set<SubtaskStatus>(['done', 'non-issue']);
   standalone: true,
   imports: [CommonModule, DragDropModule, RouterLink],
   templateUrl: './page.html',
-  styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BoardPage {
