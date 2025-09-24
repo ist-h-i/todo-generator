@@ -20,15 +20,12 @@ def _initiative_query(db: Session):
 @router.get("/", response_model=List[schemas.ImprovementInitiativeRead])
 def list_initiatives(
     status_filter: Optional[str] = Query(default=None),
-    owner: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> List[models.ImprovementInitiative]:
     query = _initiative_query(db).filter(models.ImprovementInitiative.owner_id == current_user.id)
     if status_filter:
         query = query.filter(models.ImprovementInitiative.status == status_filter)
-    if owner:
-        query = query.filter(models.ImprovementInitiative.owner == owner)
     return query.order_by(models.ImprovementInitiative.created_at.desc()).all()
 
 
@@ -41,7 +38,6 @@ def create_initiative(
     initiative = models.ImprovementInitiative(
         name=payload.name,
         description=payload.description,
-        owner=payload.owner,
         start_date=payload.start_date,
         target_metrics=payload.target_metrics,
         status=payload.status,
@@ -91,7 +87,10 @@ def update_initiative(
     if not initiative:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
 
-    for key, value in payload.model_dump(exclude_unset=True).items():
+    update_data = payload.model_dump(exclude_unset=True)
+    update_data.pop("owner", None)
+
+    for key, value in update_data.items():
         setattr(initiative, key, value)
 
     db.add(initiative)
