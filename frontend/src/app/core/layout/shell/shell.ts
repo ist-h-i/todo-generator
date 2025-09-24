@@ -23,7 +23,13 @@ type ThemePreference = 'light' | 'dark' | 'system';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, HelpDialogComponent, ProfileDialogComponent],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    HelpDialogComponent,
+    ProfileDialogComponent,
+  ],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -97,12 +103,12 @@ export class Shell {
       { path: '/input', label: 'タスク起票' },
       { path: '/daily-reports', label: '日報解析' },
       { path: '/analytics', label: '分析' },
-      { path: '/profile/evaluations', label: 'コンピテンシー評価' },
-      { path: '/settings', label: 'ワークスペース設定' },
+      { path: '/profile/evaluations', label: 'コンピテンシー' },
+      { path: '/settings', label: '設定' },
     ];
 
     if (this.isAdmin()) {
-      links.push({ path: '/admin', label: '管理コンソール' });
+      links.push({ path: '/admin', label: '管理' });
     }
 
     return links;
