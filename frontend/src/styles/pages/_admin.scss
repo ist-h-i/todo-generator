@@ -1,13 +1,15 @@
 app-admin-page {
   display: block;
-  padding: clamp(1.5rem, 2vw, 2.5rem) 0 4rem;
   color: var(--text-primary);
+  padding: var(--page-padding-block-start) 0 var(--page-padding-block-end);
+  --panel-padding: clamp(1.5rem, 2.4vw, 2rem);
+  --page-content-gap: clamp(1.75rem, 2vw, 2.5rem);
 }
 
 app-admin-page .admin-page {
   display: flex;
   flex-direction: column;
-  gap: clamp(1.75rem, 2vw, 2.5rem);
+  gap: var(--page-content-gap);
 }
 
 app-admin-page .admin-header {
@@ -16,7 +18,7 @@ app-admin-page .admin-header {
   flex-direction: column;
   gap: 0.75rem;
   padding: clamp(1.75rem, 3vw, 2.5rem);
-  border-radius: 1.75rem;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
   background: linear-gradient(
     135deg,
@@ -152,8 +154,8 @@ app-admin-page .admin-section {
   display: flex;
   flex-direction: column;
   gap: clamp(1.1rem, 1.6vw, 1.5rem);
-  padding: clamp(1.5rem, 2.4vw, 2rem);
-  border-radius: 1.75rem;
+  padding: var(--panel-padding);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
   box-shadow: var(--shadow-soft);
@@ -447,7 +449,7 @@ app-admin-page .admin-evaluations__items strong {
 }
 
 app-admin-page .admin-table__wrapper {
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   overflow: hidden;
   background: color-mix(in srgb, var(--surface-card) 85%, transparent);

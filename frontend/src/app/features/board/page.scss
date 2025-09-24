@@ -1,6 +1,6 @@
 :host {
   display: block;
-  padding: 1.5rem 0 4rem;
+  padding: var(--page-padding-block-start) 0 var(--page-padding-block-end);
 }
 
 .board-columns {
@@ -31,7 +31,7 @@
   min-width: min(20rem, 100%);
   max-width: min(24rem, 100%);
   padding: 1.5rem;
-  border-radius: 1.75rem;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, var(--neutral-surface), var(--neutral-surface-strong));
   box-shadow: var(--shadow-soft);
@@ -68,7 +68,7 @@
 }
 
 .board-empty {
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   border: 2px dashed var(--neutral-border-strong);
   padding: 2rem 1.5rem;
   text-align: center;
@@ -156,7 +156,7 @@
 }
 
 .cdk-drag-preview {
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-strong);
 }
 

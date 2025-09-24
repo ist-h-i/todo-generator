@@ -61,6 +61,13 @@
   --border-overlay-strong: color-mix(in srgb, var(--text-tertiary) 32%, transparent);
   --shadow-soft: 0 12px 28px color-mix(in srgb, var(--surface-inverse) 6%, transparent);
   --shadow-strong: 0 18px 42px color-mix(in srgb, var(--surface-inverse) 9%, transparent);
+  --radius-lg: 1.5rem;
+  --radius-xl: 1.75rem;
+  --page-padding-block-start: clamp(1.5rem, 2vw, 2.5rem);
+  --page-padding-block-end: 4rem;
+  --page-content-gap: clamp(1.5rem, 3vw, 2.5rem);
+  --panel-padding: clamp(1.5rem, 2vw, 2.2rem);
+  --panel-gap: clamp(1.25rem, 2vw, 1.75rem);
   color-scheme: light;
 }
 
@@ -198,14 +205,14 @@ a:hover {
 }
 
 .surface-card {
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-card);
   background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
   box-shadow: var(--shadow-soft);
 }
 
 .surface-panel {
-  border-radius: 1.75rem;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, var(--neutral-surface), var(--neutral-surface-strong));
   box-shadow: var(--shadow-soft);
