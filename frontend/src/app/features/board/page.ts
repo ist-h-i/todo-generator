@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@a
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { RouterLink } from '@angular/router';
+import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
 import {
@@ -121,7 +122,7 @@ const RESOLVED_SUBTASK_STATUSES = new Set<SubtaskStatus>(['done', 'non-issue']);
 @Component({
   selector: 'app-board-page',
   standalone: true,
-  imports: [CommonModule, DragDropModule, RouterLink],
+  imports: [CommonModule, DragDropModule, RouterLink, PageHeaderComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -603,6 +604,30 @@ export class BoardPage {
     }
 
     return this.templateVisibilityByIdSignal().get(card.templateId) ?? DEFAULT_TEMPLATE_FIELDS;
+  };
+
+  public readonly templateFieldLabels = (card: Card): readonly string[] => {
+    if (!card.templateId) {
+      return [];
+    }
+
+    const visibility = this.cardFieldVisibility(card);
+    const fields: string[] = [];
+
+    if (visibility.showStoryPoints) {
+      fields.push('ストーリーポイント');
+    }
+    if (visibility.showDueDate) {
+      fields.push('期限日');
+    }
+    if (visibility.showAssignee) {
+      fields.push('担当者');
+    }
+    if (visibility.showConfidence) {
+      fields.push('AIおすすめ度');
+    }
+
+    return fields;
   };
 
   public readonly columnAccent = (column: BoardColumnView): string => column.accent;
