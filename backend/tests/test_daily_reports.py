@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 
 from fastapi.testclient import TestClient
 
+from app import models, schemas
 from app.main import app
-from app import schemas
 from app.services.chatgpt import get_chatgpt_client
+
+from backend.tests.conftest import TestingSessionLocal
 
 DEFAULT_PASSWORD = "Register123!"
 
@@ -133,4 +135,34 @@ def test_submit_with_auto_ticket_disabled_returns_proposals(client: TestClient) 
     cards_response = client.get("/cards", headers=headers)
     assert cards_response.status_code == 200
     assert cards_response.json() == []
+
+
+def test_daily_report_submission_uses_submission_day_for_quota(client: TestClient) -> None:
+    headers = register_and_login(client, "quota@example.com")
+
+    report_date = date(2000, 1, 1)
+    create_response = client.post(
+        "/daily-reports",
+        json=_daily_report_payload(report_date),
+        headers=headers,
+    )
+    assert create_response.status_code == 201, create_response.text
+    report_id = create_response.json()["id"]
+
+    app.dependency_overrides[get_chatgpt_client] = lambda: StubChatGPT()
+    try:
+        submit_response = client.post(f"/daily-reports/{report_id}/submit", headers=headers)
+    finally:
+        app.dependency_overrides.pop(get_chatgpt_client, None)
+
+    assert submit_response.status_code == 200, submit_response.text
+
+    today = datetime.now(timezone.utc).date()
+    with TestingSessionLocal() as session:
+        user = session.query(models.User).filter_by(email="quota@example.com").one()
+        quotas = session.query(models.DailyCardQuota).filter_by(owner_id=user.id).all()
+
+    assert len(quotas) == 1
+    assert quotas[0].quota_date == today
+    assert quotas[0].quota_date != report_date
 

@@ -405,6 +405,7 @@ class DailyReportService:
     ) -> list[models.Card]:
         created_cards: list[models.Card] = []
         now = datetime.now(timezone.utc)
+        submission_day = now.date()
         for proposal in proposals:
             card = models.Card(
                 title=proposal.title,
@@ -435,7 +436,7 @@ class DailyReportService:
             reserve_daily_card_quota(
                 db=self.db,
                 owner_id=report.owner_id,
-                quota_day=report.report_date,
+                quota_day=submission_day,
             )
 
             self.db.add(card)
