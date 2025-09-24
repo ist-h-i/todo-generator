@@ -5,7 +5,8 @@ import logging
 from copy import deepcopy
 from typing import Any, ClassVar, List, Optional, Sequence
 
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 try:  # pragma: no cover - optional dependency wrapper
     from openai import OpenAI, OpenAIError
@@ -16,7 +17,9 @@ except ModuleNotFoundError:  # pragma: no cover - executed when SDK missing
         """Fallback error raised when the OpenAI SDK is unavailable."""
 
 
+from .. import models
 from ..config import settings
+from ..database import get_db
 from ..schemas import (
     AnalysisCard,
     AnalysisRequest,
@@ -24,6 +27,7 @@ from ..schemas import (
     AnalysisSubtask,
     UserProfile,
 )
+from ..utils.secrets import get_secret_cipher
 
 logger = logging.getLogger(__name__)
 
@@ -110,12 +114,10 @@ class ChatGPTClient:
         api_key: str | None = None,
     ) -> None:
         self.model = model or settings.chatgpt_model
-        self.api_key = api_key or settings.chatgpt_api_key
+        self.api_key = api_key
 
         if not self.api_key:
-            raise ChatGPTConfigurationError(
-                "ChatGPT API key is not configured. Set OPENAI_API_KEY environment variable."
-            )
+            raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
 
         if OpenAI is None:
             raise ChatGPTConfigurationError(
@@ -367,9 +369,35 @@ class ChatGPTClient:
         return text
 
 
-def get_chatgpt_client() -> ChatGPTClient:
+def _load_chatgpt_api_key(db: Session, provider: str = "openai") -> str:
+    credential = (
+        db.query(models.ApiCredential)
+        .filter(
+            models.ApiCredential.provider == provider,
+            models.ApiCredential.is_active.is_(True),
+        )
+        .first()
+    )
+    if not credential:
+        raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
+
+    cipher = get_secret_cipher()
     try:
-        return ChatGPTClient()
+        secret = cipher.decrypt(credential.encrypted_secret)
+    except Exception as exc:  # pragma: no cover - defensive path
+        logger.exception("Failed to decrypt API credential for provider '%s'", provider)
+        raise ChatGPTConfigurationError("Failed to decrypt ChatGPT API key.") from exc
+
+    if not secret:
+        raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
+
+    return secret
+
+
+def get_chatgpt_client(db: Session = Depends(get_db)) -> ChatGPTClient:
+    try:
+        api_key = _load_chatgpt_api_key(db)
+        return ChatGPTClient(api_key=api_key)
     except ChatGPTConfigurationError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
