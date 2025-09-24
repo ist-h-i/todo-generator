@@ -57,6 +57,27 @@ const QUICK_FILTER_LABEL_LOOKUP = new Map(
   QUICK_FILTER_OPTIONS.map((option) => [option.id, option.label] as const),
 );
 
+interface CardPriorityOption {
+  readonly id: Card['priority'];
+  readonly label: string;
+}
+
+interface CardFormState {
+  readonly title: string;
+  readonly summary: string;
+  readonly statusId: string;
+  readonly assignee: string;
+  readonly storyPoints: string;
+  readonly priority: Card['priority'];
+}
+
+const CARD_PRIORITIES: readonly CardPriorityOption[] = [
+  { id: 'low', label: '低' },
+  { id: 'medium', label: '中' },
+  { id: 'high', label: '高' },
+  { id: 'urgent', label: '緊急' },
+];
+
 type SubtaskStatus = Subtask['status'];
 
 interface SubtaskStatusMeta {
@@ -120,6 +141,7 @@ export class BoardPage {
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
   public readonly templatesSignal = computed(() => this.workspace.settings().templates);
   public readonly quickFilters = QUICK_FILTER_OPTIONS;
+  public readonly cardPriorities = CARD_PRIORITIES;
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();
@@ -200,6 +222,22 @@ export class BoardPage {
 
   public readonly searchForm = createSignalForm({ search: '' });
 
+  public readonly cardForm = createSignalForm({
+    title: '',
+    summary: '',
+    statusId: '',
+    assignee: '',
+    storyPoints: '',
+    priority: 'medium' as Card['priority'],
+  });
+
+  public readonly newSubtaskForm = createSignalForm({
+    title: '',
+    assignee: '',
+    estimateHours: '',
+    status: 'todo' as SubtaskStatus,
+  });
+
   private readonly syncSearchFormEffect = effect(
     () => {
       const search = this.filtersSignal().search;
@@ -218,12 +256,32 @@ export class BoardPage {
     message: '',
   });
 
+  private lastCardFormBaseline: CardFormState | null = null;
   private lastSelectedCardId: string | null = null;
+
+  private areCardFormStatesEqual(left: CardFormState, right: CardFormState): boolean {
+    return (
+      left.title === right.title &&
+      left.summary === right.summary &&
+      left.statusId === right.statusId &&
+      left.assignee === right.assignee &&
+      left.storyPoints === right.storyPoints &&
+      left.priority === right.priority
+    );
+  }
+
+  public readonly isCardFormValid = (): boolean => {
+    const snapshot = this.cardForm.value();
+    return snapshot.title.trim().length > 0 && snapshot.statusId.trim().length > 0;
+  };
 
   public readonly isCommentFormValid = (): boolean => {
     const snapshot = this.commentForm.value();
     return snapshot.author.trim().length > 0 && snapshot.message.trim().length > 0;
   };
+
+  public readonly isNewSubtaskFormValid = (): boolean =>
+    this.newSubtaskForm.controls.title.value().trim().length > 0;
 
   public readonly quickFilterSummarySignal = computed(() => {
     const active = this.filtersSignal().quickFilters;
@@ -324,19 +382,106 @@ export class BoardPage {
 
   public readonly selectedCardSignal = this.workspace.selectedCard;
 
-  private readonly resetCommentFormEffect = effect(() => {
+  private readonly syncSelectedCardFormsEffect = effect(
+    () => {
+      const active = this.selectedCardSignal();
+      const formSnapshot = this.cardForm.value();
+
+      if (!active) {
+        const statuses = this.statusesSignal();
+        const fallback: CardFormState = {
+          title: '',
+          summary: '',
+          statusId: statuses[0]?.id ?? '',
+          assignee: '',
+          storyPoints: '',
+          priority: 'medium',
+        };
+
+        if (!this.areCardFormStatesEqual(formSnapshot, fallback)) {
+          this.cardForm.reset(fallback);
+        }
+        this.lastCardFormBaseline = fallback;
+        this.commentForm.reset({ author: '', message: '' });
+        this.newSubtaskForm.reset({ title: '', assignee: '', estimateHours: '', status: 'todo' });
+        this.lastSelectedCardId = null;
+        return;
+      }
+
+      const baseline: CardFormState = {
+        title: active.title,
+        summary: active.summary,
+        statusId: active.statusId,
+        assignee: active.assignee ?? '',
+        storyPoints: active.storyPoints.toString(),
+        priority: active.priority,
+      };
+
+      let baselineChanged = true;
+      let hasUnsavedChanges = false;
+
+      if (this.lastCardFormBaseline) {
+        baselineChanged = !this.areCardFormStatesEqual(baseline, this.lastCardFormBaseline);
+        hasUnsavedChanges = !this.areCardFormStatesEqual(formSnapshot, this.lastCardFormBaseline);
+      }
+
+      const selectedCardChanged = this.lastSelectedCardId !== active.id;
+
+      if (selectedCardChanged || (!hasUnsavedChanges && baselineChanged)) {
+        this.cardForm.reset(baseline);
+        this.lastCardFormBaseline = baseline;
+      } else if (baselineChanged && this.areCardFormStatesEqual(formSnapshot, baseline)) {
+        this.lastCardFormBaseline = baseline;
+      } else if (!this.lastCardFormBaseline) {
+        this.lastCardFormBaseline = baseline;
+      }
+
+      if (selectedCardChanged) {
+        this.commentForm.reset({
+          author: active.assignee ?? '',
+          message: '',
+        });
+        this.newSubtaskForm.reset({
+          title: '',
+          assignee: '',
+          estimateHours: '',
+          status: 'todo',
+        });
+      }
+
+      this.lastSelectedCardId = active.id;
+    },
+    { allowSignalWrites: true },
+  );
+
+  public readonly saveCardDetails = (event: Event): void => {
+    event.preventDefault();
+
     const active = this.selectedCardSignal();
-    const nextId = active?.id ?? null;
-    if (nextId === this.lastSelectedCardId) {
+    if (!active || !this.isCardFormValid()) {
       return;
     }
 
-    this.lastSelectedCardId = nextId;
-    this.commentForm.reset({
-      author: active?.assignee ?? '',
-      message: '',
+    const snapshot = this.cardForm.value();
+    const title = snapshot.title.trim();
+    const summary = snapshot.summary.trim();
+    const statusId = snapshot.statusId.trim();
+    const assignee = snapshot.assignee.trim();
+    const storyPointsInput = snapshot.storyPoints.trim();
+    const parsedStoryPoints = storyPointsInput.length > 0 ? Number(storyPointsInput) : undefined;
+
+    this.workspace.updateCardDetails(active.id, {
+      title,
+      summary,
+      statusId,
+      priority: snapshot.priority,
+      assignee: assignee.length > 0 ? assignee : undefined,
+      storyPoints:
+        parsedStoryPoints !== undefined && Number.isFinite(parsedStoryPoints)
+          ? parsedStoryPoints
+          : undefined,
     });
-  });
+  };
 
   public readonly saveComment = (event: Event): void => {
     event.preventDefault();
@@ -355,6 +500,93 @@ export class BoardPage {
     this.commentForm.reset({
       author,
       message: '',
+    });
+  };
+
+  public readonly removeComment = (cardId: string, commentId: string): void => {
+    this.workspace.removeComment(cardId, commentId);
+  };
+
+  public readonly updateSubtaskTitle = (cardId: string, subtaskId: string, value: string): void => {
+    const title = value.trim();
+    if (!title) {
+      return;
+    }
+
+    this.workspace.updateSubtaskDetails(cardId, subtaskId, { title });
+  };
+
+  public readonly updateSubtaskAssignee = (
+    cardId: string,
+    subtaskId: string,
+    value: string,
+  ): void => {
+    const assignee = value.trim();
+    this.workspace.updateSubtaskDetails(cardId, subtaskId, {
+      assignee: assignee.length > 0 ? assignee : undefined,
+    });
+  };
+
+  public readonly updateSubtaskEstimate = (
+    cardId: string,
+    subtaskId: string,
+    value: string,
+  ): void => {
+    const raw = value.trim();
+    if (!raw) {
+      this.workspace.updateSubtaskDetails(cardId, subtaskId, { estimateHours: undefined });
+      return;
+    }
+
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) {
+      return;
+    }
+
+    this.workspace.updateSubtaskDetails(cardId, subtaskId, { estimateHours: parsed });
+  };
+
+  public readonly changeSubtaskStatus = (
+    cardId: string,
+    subtaskId: string,
+    status: SubtaskStatus,
+  ): void => {
+    this.workspace.updateSubtaskStatus(cardId, subtaskId, status);
+  };
+
+  public readonly deleteSubtask = (cardId: string, subtaskId: string): void => {
+    this.workspace.removeSubtask(cardId, subtaskId);
+  };
+
+  public readonly addSubtask = (event: Event): void => {
+    event.preventDefault();
+
+    const active = this.selectedCardSignal();
+    if (!active || !this.isNewSubtaskFormValid()) {
+      return;
+    }
+
+    const snapshot = this.newSubtaskForm.value();
+    const title = snapshot.title.trim();
+    const assignee = snapshot.assignee.trim();
+    const rawEstimate = snapshot.estimateHours.trim();
+    const parsedEstimate = rawEstimate.length > 0 ? Number(rawEstimate) : undefined;
+
+    this.workspace.addSubtask(active.id, {
+      title,
+      status: snapshot.status,
+      assignee: assignee.length > 0 ? assignee : undefined,
+      estimateHours:
+        parsedEstimate !== undefined && Number.isFinite(parsedEstimate)
+          ? parsedEstimate
+          : undefined,
+    });
+
+    this.newSubtaskForm.reset({
+      title: '',
+      assignee: '',
+      estimateHours: '',
+      status: snapshot.status,
     });
   };
 
