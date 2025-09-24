@@ -12,6 +12,7 @@ from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
 from ..services.card_limits import DAILY_CARD_CREATION_LIMIT, reserve_daily_card_quota
+from ..utils.quotas import get_card_daily_limit
 from ..utils.activity import record_activity
 
 _DAILY_CARD_LIMIT_MESSAGE = (
