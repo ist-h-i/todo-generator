@@ -11,6 +11,8 @@ import {
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '@core/auth/auth.service';
+import { ProfileDialogComponent } from '@core/profile/profile-dialog';
+import { UserProfile } from '@core/profile/profile.models';
 import { HelpDialogComponent } from './help-dialog';
 
 type ThemePreference = 'light' | 'dark' | 'system';
@@ -21,7 +23,7 @@ type ThemePreference = 'light' | 'dark' | 'system';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, HelpDialogComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, HelpDialogComponent, ProfileDialogComponent],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +35,9 @@ export class Shell {
   private readonly destroyRef = inject(DestroyRef);
   private readonly themeStorageKey = 'todo-generator:theme-preference';
   private readonly helpDialogVisible = signal(false);
+  private readonly profileDialogVisible = signal(false);
+  private readonly profileToastStore = signal<string | null>(null);
+  private toastTimeoutHandle: number | null = null;
 
   private readonly themeLabels: Record<ThemePreference, string> = {
     light: 'ライトモード',
@@ -60,6 +65,8 @@ export class Shell {
       `テーマ設定。現在は${this.themeDisplayLabel()}。クリックすると${this.themeNextLabel()}に切り替わります。`,
   );
   public readonly isHelpDialogOpen = computed(() => this.helpDialogVisible());
+  public readonly isProfileDialogOpen = computed(() => this.profileDialogVisible());
+  public readonly profileToastMessage = computed(() => this.profileToastStore());
 
   private readonly syncTheme = effect(() => {
     const preference = this.theme();
@@ -90,10 +97,11 @@ export class Shell {
       { path: '/input', label: 'タスク起票' },
       { path: '/daily-reports', label: '日報解析' },
       { path: '/analytics', label: '分析' },
+      { path: '/settings', label: 'ワークスペース設定' },
     ];
 
     if (this.isAdmin()) {
-      links.push({ path: '/settings', label: 'ワークスペース設定' });
+      links.push({ path: '/admin', label: '管理コンソール' });
     }
 
     return links;
@@ -101,6 +109,20 @@ export class Shell {
 
   public readonly year = new Date().getFullYear();
   public readonly user = this.auth.user;
+
+  public openProfile(): void {
+    this.profileDialogVisible.set(true);
+  }
+
+  public closeProfile(): void {
+    this.profileDialogVisible.set(false);
+  }
+
+  public onProfileSaved(profile: UserProfile): void {
+    this.auth.applyUserProfile(profile);
+    this.closeProfile();
+    this.showProfileToast('プロフィールを更新しました。');
+  }
 
   public toggleTheme(): void {
     this.theme.update((mode) => this.nextTheme(mode));
@@ -119,12 +141,11 @@ export class Shell {
     void this.router.navigateByUrl('/login');
   };
 
-  public readonly openSettings = (): void => {
-    void this.router.navigateByUrl('/settings');
-  };
-
   public constructor() {
     this.setupSystemThemeListener();
+    this.destroyRef.onDestroy(() => {
+      this.clearToastTimer();
+    });
   }
 
   private resolveInitialTheme(): ThemePreference {
@@ -195,5 +216,30 @@ export class Shell {
     }
 
     return this.themeCycle[(index + 1) % this.themeCycle.length];
+  }
+
+  private showProfileToast(message: string): void {
+    this.profileToastStore.set(message);
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    this.clearToastTimer();
+    this.toastTimeoutHandle = window.setTimeout(() => {
+      this.profileToastStore.set(null);
+      this.toastTimeoutHandle = null;
+    }, 4000);
+  }
+
+  private clearToastTimer(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (this.toastTimeoutHandle !== null) {
+      window.clearTimeout(this.toastTimeoutHandle);
+      this.toastTimeoutHandle = null;
+    }
   }
 }

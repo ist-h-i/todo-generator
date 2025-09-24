@@ -5,8 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Iterable, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from sqlalchemy import func, insert, or_, select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from .. import models, schemas
@@ -251,10 +250,11 @@ def create_card(
         .scalar()
     ) or 0
 
-    if created_count >= DAILY_CARD_CREATION_LIMIT:
+    card_limit = get_card_daily_limit(db, current_user.id)
+    if card_limit > 0 and created_count >= card_limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=_DAILY_CARD_LIMIT_MESSAGE,
+            detail=f"Daily card creation limit of {card_limit} reached.",
         )
 
     reserve_daily_card_quota(

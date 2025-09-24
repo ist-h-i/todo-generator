@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from copy import deepcopy
-from typing import Any, List, Optional, Sequence
+from typing import Any, ClassVar, List, Optional, Sequence
 
 from fastapi import HTTPException, status
 
@@ -15,12 +15,14 @@ except ModuleNotFoundError:  # pragma: no cover - executed when SDK missing
     class OpenAIError(Exception):
         """Fallback error raised when the OpenAI SDK is unavailable."""
 
+
 from ..config import settings
 from ..schemas import (
     AnalysisCard,
     AnalysisRequest,
     AnalysisResponse,
     AnalysisSubtask,
+    UserProfile,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,8 +31,6 @@ logger = logging.getLogger(__name__)
 class ChatGPTError(RuntimeError):
     """Base exception for ChatGPT integration errors."""
 
-class ChatGPTError(RuntimeError):
-    """Base exception for ChatGPT integration errors."""
 
 class ChatGPTConfigurationError(ChatGPTError):
     """Raised when required configuration for ChatGPT is missing."""
@@ -39,7 +39,7 @@ class ChatGPTConfigurationError(ChatGPTError):
 class ChatGPTClient:
     """Real ChatGPT client that transforms notes into structured proposals."""
 
-    _BASE_RESPONSE_SCHEMA: dict[str, Any] = {
+    _BASE_RESPONSE_SCHEMA: ClassVar[dict[str, Any]] = {
         "type": "object",
         "additionalProperties": False,
         "properties": {
@@ -93,13 +93,15 @@ class ChatGPTClient:
         "required": ["proposals"],
     }
 
-    _SYSTEM_PROMPT = (
+    _SYSTEM_PROMPT: ClassVar[str] = (
         "You are Todo Generator's analysis assistant."
         " Extract actionable work items from free-form product notes and respond"
         " using the requested JSON schema. Each proposal must contain a concise"
         " title, a summary that elaborates on the goal, optional labels,"
         " priority, due date guidance in days, and subtasks that describe"
         " concrete steps. Use the same language as the user whenever possible."
+        " When available, tailor goals and subtasks to the engineer profile"
+        " metadata provided in the request."
     )
 
     def __init__(
@@ -122,13 +124,18 @@ class ChatGPTClient:
 
         self._client = OpenAI(api_key=self.api_key)
 
-    def analyze(self, request: AnalysisRequest) -> AnalysisResponse:
+    def analyze(
+        self,
+        request: AnalysisRequest,
+        *,
+        user_profile: UserProfile | None = None,
+    ) -> AnalysisResponse:
         text = request.text.strip()
         if not text:
             return AnalysisResponse(model=self.model, proposals=[])
 
         try:
-            payload = self._request_analysis(text, request.max_cards)
+            payload = self._request_analysis(text, request.max_cards, user_profile)
         except OpenAIError as exc:
             logger.exception("ChatGPT request failed")
             raise ChatGPTError("ChatGPT request failed.") from exc
@@ -137,16 +144,10 @@ class ChatGPTClient:
             raise ChatGPTError("ChatGPT returned an invalid response.") from exc
 
         raw_proposals = payload.get("proposals", [])
-        if not isinstance(raw_proposals, Sequence) or isinstance(
-            raw_proposals, (str, bytes)
-        ):
+        if not isinstance(raw_proposals, Sequence) or isinstance(raw_proposals, (str, bytes)):
             raw_proposals = []
 
-        proposals = [
-            card
-            for card in (self._parse_card(item, text) for item in raw_proposals)
-            if card is not None
-        ]
+        proposals = [card for card in (self._parse_card(item, text) for item in raw_proposals) if card is not None]
 
         if not proposals:
             proposals.append(self._fallback_card(text))
@@ -154,9 +155,14 @@ class ChatGPTClient:
         model_name = payload.get("model") if isinstance(payload, dict) else None
         return AnalysisResponse(model=model_name or self.model, proposals=proposals[: request.max_cards])
 
-    def _request_analysis(self, text: str, max_cards: int) -> dict[str, Any]:
+    def _request_analysis(
+        self,
+        text: str,
+        max_cards: int,
+        user_profile: UserProfile | None = None,
+    ) -> dict[str, Any]:
         response_format = self._build_response_format(max_cards)
-        user_prompt = self._build_user_prompt(text, max_cards)
+        user_prompt = self._build_user_prompt(text, max_cards, user_profile)
 
         response = self._client.responses.create(
             model=self.model,
@@ -188,18 +194,49 @@ class ChatGPTClient:
             },
         }
 
-    def _build_user_prompt(self, text: str, max_cards: int) -> str:
+    def _build_user_prompt(
+        self,
+        text: str,
+        max_cards: int,
+        user_profile: UserProfile | None = None,
+    ) -> str:
         guidance = (
             "Analyse the following notes and propose at most {max_cards} actionable cards. "
             "Summaries should be outcome focused. Provide due_in_days only when the text "
             "contains explicit or strongly implied timing. When unsure, omit optional fields."
         )
-        return (
-            guidance.format(max_cards=max_cards)
-            + "\n\n"
-            + "Notes:\n"
-            + text
-        )
+        sections = [guidance.format(max_cards=max_cards)]
+        profile_metadata = self._build_profile_metadata(user_profile)
+        if profile_metadata:
+            sections.append("Engineer profile:\n" + profile_metadata)
+        sections.append("Notes:\n" + text)
+        return "\n\n".join(sections)
+
+    def _build_profile_metadata(self, profile: UserProfile | None) -> str:
+        if profile is None:
+            return ""
+
+        metadata: dict[str, Any] = {
+            "user_id": profile.id,
+            "email": profile.email,
+            "display_name": profile.nickname or profile.email,
+        }
+
+        if profile.experience_years is not None:
+            metadata["experience_years"] = profile.experience_years
+        if profile.roles:
+            metadata["roles"] = profile.roles
+        if profile.bio:
+            metadata["bio"] = profile.bio
+        if profile.location:
+            metadata["location"] = profile.location
+        if profile.portfolio_url:
+            metadata["portfolio_url"] = profile.portfolio_url
+
+        if getattr(profile, "updated_at", None):
+            metadata["profile_last_updated"] = profile.updated_at.isoformat()
+
+        return json.dumps(metadata, ensure_ascii=False, indent=2)
 
     def _extract_content(self, response: Any) -> str:
         if getattr(response, "output", None):
@@ -274,16 +311,10 @@ class ChatGPTClient:
         labels = self._string_list(data.get("labels"))
         due_in_days = self._to_optional_int(data.get("due_in_days"))
         raw_subtasks = data.get("subtasks", [])
-        if not isinstance(raw_subtasks, Sequence) or isinstance(
-            raw_subtasks, (str, bytes)
-        ):
+        if not isinstance(raw_subtasks, Sequence) or isinstance(raw_subtasks, (str, bytes)):
             raw_subtasks = []
 
-        subtasks = [
-            subtask
-            for subtask in (self._parse_subtask(item) for item in raw_subtasks)
-            if subtask is not None
-        ]
+        subtasks = [subtask for subtask in (self._parse_subtask(item) for item in raw_subtasks) if subtask is not None]
 
         return AnalysisCard(
             title=title,

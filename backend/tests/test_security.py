@@ -47,6 +47,7 @@ def test_email_login_flow_accepts_user_input_variations(client: TestClient) -> N
     assert register_response.status_code == 201, register_response.text
     register_payload = register_response.json()
     assert register_payload["user"]["email"] == "test.user+1@example.com"
+    assert register_payload["user"]["is_admin"] is True
 
     login_response = client.post(
         "/auth/login",
@@ -55,6 +56,33 @@ def test_email_login_flow_accepts_user_input_variations(client: TestClient) -> N
     assert login_response.status_code == 200, login_response.text
     login_payload = login_response.json()
     assert login_payload["user"]["email"] == "test.user+1@example.com"
+    assert login_payload["user"]["is_admin"] is True
+
+
+def test_second_registered_user_is_not_admin(client: TestClient) -> None:
+    password = "SecurePass123!"
+
+    first_register_response = client.post(
+        "/auth/register",
+        json={"email": "owner@example.com", "password": password},
+    )
+    assert first_register_response.status_code == 201, first_register_response.text
+    assert first_register_response.json()["user"]["is_admin"] is True
+
+    second_register_response = client.post(
+        "/auth/register",
+        json={"email": "member@example.com", "password": password},
+    )
+    assert second_register_response.status_code == 201, second_register_response.text
+    second_register_payload = second_register_response.json()
+    assert second_register_payload["user"]["is_admin"] is False
+
+    login_response = client.post(
+        "/auth/login",
+        json={"email": "member@example.com", "password": password},
+    )
+    assert login_response.status_code == 200, login_response.text
+    assert login_response.json()["user"]["is_admin"] is False
 
 
 def test_login_allows_legacy_normalized_emails(client: TestClient) -> None:

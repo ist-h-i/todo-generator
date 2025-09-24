@@ -14,6 +14,7 @@ from ..auth import (
     verify_password,
 )
 from ..database import get_db
+from ..services.profile import build_user_profile
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -65,7 +66,8 @@ def register(
     token_value = create_session_token(db, user)
     db.commit()
     db.refresh(user)
-    return schemas.TokenResponse(access_token=token_value, user=user)
+    profile = build_user_profile(user)
+    return schemas.TokenResponse(access_token=token_value, user=profile)
 
 
 @router.post("/login", response_model=schemas.TokenResponse)
@@ -94,11 +96,12 @@ def login(
     db.query(models.SessionToken).filter(models.SessionToken.user_id == user.id).delete()
     token_value = create_session_token(db, user)
     db.commit()
-    return schemas.TokenResponse(access_token=token_value, user=user)
+    profile = build_user_profile(user)
+    return schemas.TokenResponse(access_token=token_value, user=profile)
 
 
-@router.get("/me", response_model=schemas.UserRead)
+@router.get("/me", response_model=schemas.UserProfile)
 def read_current_user(
     current_user: models.User = Depends(get_current_user),
-) -> models.User:
-    return current_user
+) -> schemas.UserProfile:
+    return build_user_profile(current_user)
