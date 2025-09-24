@@ -31,6 +31,11 @@ export const appRoutes: Routes = [
         loadComponent: () => import('@features/analyze/page').then((mod) => mod.AnalyzePage),
       },
       {
+        path: 'daily-reports',
+        loadComponent: () =>
+          import('@features/daily-reports/page').then((mod) => mod.DailyReportsPage),
+      },
+      {
         path: 'analytics',
         loadComponent: () => import('@features/analytics/page').then((mod) => mod.AnalyticsPage),
       },

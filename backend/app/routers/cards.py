@@ -11,28 +11,12 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..services.card_limits import DAILY_CARD_CREATION_LIMIT, reserve_daily_card_quota
 from ..utils.activity import record_activity
-from ..utils.quotas import get_card_daily_limit, reserve_daily_quota
 
-
-def _reserve_daily_card_quota(db: Session, *, owner_id: str, quota_day: date) -> None:
-    limit = get_card_daily_limit(db, owner_id)
-    if limit <= 0:
-        return
-
-    reserved = reserve_daily_quota(
-        db,
-        owner_id=owner_id,
-        quota_day=quota_day,
-        limit=limit,
-        quota_model=models.DailyCardQuota,
-        counter_field="created_count",
-    )
-    if not reserved:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Daily card creation limit of {limit} reached.",
-        )
+_DAILY_CARD_LIMIT_MESSAGE = (
+    f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached."
+)
 
 
 router = APIRouter(prefix="/cards", tags=["cards"])
@@ -273,7 +257,11 @@ def create_card(
             detail=f"Daily card creation limit of {card_limit} reached.",
         )
 
-    _reserve_daily_card_quota(db, owner_id=current_user.id, quota_day=now.date())
+    reserve_daily_card_quota(
+        db=db,
+        owner_id=current_user.id,
+        quota_day=now.date(),
+    )
 
     if payload.status_id:
         _ensure_owned_status(db, status_id=payload.status_id, owner_id=current_user.id)

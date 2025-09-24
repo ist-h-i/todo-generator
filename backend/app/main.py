@@ -14,6 +14,7 @@ from .routers import (
     analytics,
     auth,
     cards,
+    daily_reports,
     comments,
     competencies,
     competency_evaluations,
@@ -49,6 +50,7 @@ app.include_router(analysis.router)
 app.include_router(analytics.router)
 app.include_router(auth.router)
 app.include_router(cards.router)
+app.include_router(daily_reports.router)
 app.include_router(labels.router)
 app.include_router(statuses.router)
 app.include_router(preferences.router)
