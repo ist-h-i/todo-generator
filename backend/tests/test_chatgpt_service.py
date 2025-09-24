@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
 
+from app.schemas import UserProfile
 from app.services.chatgpt import ChatGPTClient, ChatGPTError
 
 
@@ -23,9 +25,7 @@ def test_build_response_format_sets_strict_and_max_items() -> None:
     json_schema = result["json_schema"]
     assert json_schema["name"] == "analysis_response"
     assert json_schema["strict"] is True
-    assert (
-        json_schema["schema"]["properties"]["proposals"]["maxItems"] == 4
-    )
+    assert json_schema["schema"]["properties"]["proposals"]["maxItems"] == 4
 
 
 def test_build_response_format_is_idempotent() -> None:
@@ -34,31 +34,19 @@ def test_build_response_format_is_idempotent() -> None:
     first = ChatGPTClient._build_response_format(client, 1)
     second = ChatGPTClient._build_response_format(client, 6)
 
-    assert (
-        first["json_schema"]["schema"]["properties"]["proposals"]["maxItems"]
-        == 1
-    )
-    assert (
-        second["json_schema"]["schema"]["properties"]["proposals"]["maxItems"]
-        == 6
-    )
+    assert first["json_schema"]["schema"]["properties"]["proposals"]["maxItems"] == 1
+    assert second["json_schema"]["schema"]["properties"]["proposals"]["maxItems"] == 6
 
 
 def test_extract_content_reads_text_values() -> None:
     client = _make_client()
     response = SimpleNamespace(
-        output=[
-            SimpleNamespace(
-                content=[
-                    SimpleNamespace(text=SimpleNamespace(value="{\"ok\": true}"))
-                ]
-            )
-        ]
+        output=[SimpleNamespace(content=[SimpleNamespace(text=SimpleNamespace(value='{"ok": true}'))])]
     )
 
     content = ChatGPTClient._extract_content(client, response)
 
-    assert content == "{\"ok\": true}"
+    assert content == '{"ok": true}'
 
 
 def test_extract_content_requires_text() -> None:
@@ -71,7 +59,7 @@ def test_extract_content_requires_text() -> None:
 
 def test_parse_json_payload_strips_code_fences() -> None:
     client = _make_client()
-    payload = "```json\n{\"proposals\": []}\n```"
+    payload = '```json\n{"proposals": []}\n```'
 
     parsed = ChatGPTClient._parse_json_payload(client, payload)
 
@@ -94,11 +82,7 @@ def test_request_analysis_enriches_model_from_response() -> None:
         recorded.update(kwargs)
         return SimpleNamespace(
             model="gpt-test",
-            output=[
-                SimpleNamespace(
-                    content=[SimpleNamespace(text="{\"proposals\": []}")]
-                )
-            ],
+            output=[SimpleNamespace(content=[SimpleNamespace(text='{"proposals": []}')])],
         )
 
     client._client = SimpleNamespace(responses=SimpleNamespace(create=fake_create))  # type: ignore[attr-defined]
@@ -108,3 +92,33 @@ def test_request_analysis_enriches_model_from_response() -> None:
     assert data == {"model": "gpt-test", "proposals": []}
     assert recorded["instructions"] == ChatGPTClient._SYSTEM_PROMPT
     assert "Analyse Notes" in recorded["input"]
+
+
+def test_build_user_prompt_includes_profile_metadata() -> None:
+    client = _make_client()
+    now = datetime.now(timezone.utc)
+    profile = UserProfile(
+        id="user-123",
+        email="dev@example.com",
+        is_admin=False,
+        created_at=now,
+        updated_at=now,
+        nickname="Dev",
+        experience_years=6,
+        roles=["backend", "ml"],
+        bio="Builds resilient APIs.",
+        location="Tokyo",
+        portfolio_url="https://dev.example.com",
+    )
+
+    prompt = ChatGPTClient._build_user_prompt(
+        client,
+        "Investigate login failures",
+        3,
+        profile,
+    )
+
+    assert "Engineer profile:" in prompt
+    assert '"experience_years": 6' in prompt
+    assert "backend" in prompt
+    assert "Investigate login failures" in prompt
