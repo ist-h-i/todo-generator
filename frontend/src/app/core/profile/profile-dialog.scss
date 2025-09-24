@@ -352,6 +352,13 @@
   background: rgba(255, 255, 255, 0.78);
 }
 
+.profile-dialog__role-category-header,
+.profile-dialog__role-child-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .profile-dialog__role-category-title {
   margin: 0;
   font-size: 0.98rem;
@@ -359,10 +366,46 @@
   color: rgba(30, 41, 59, 0.9);
 }
 
+.profile-dialog__role-category-actions {
+  display: inline-flex;
+  align-items: center;
+}
+
+.profile-dialog__role-category-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: rgba(37, 99, 235, 0.9);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.profile-dialog__role-category-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(241, 245, 249, 0.9);
+  color: rgba(30, 41, 59, 0.75);
+  margin-left: 0.5rem;
+}
+
+.profile-dialog__role-category-toggle svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
 .profile-dialog__role-children {
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
+  margin-top: 0.75rem;
 }
 
 .profile-dialog__role-child {
@@ -515,9 +558,25 @@
   height: 0.65rem;
 }
 
+.profile-dialog__role-category--collapsed .profile-dialog__role-category-toggle svg,
+.profile-dialog__role-child--collapsed .profile-dialog__role-category-toggle svg {
+  transform: rotate(-90deg);
+}
+
 :host-context(.dark) .profile-dialog__role-category {
   border-color: rgba(148, 163, 184, 0.32);
   background: rgba(30, 41, 59, 0.72);
+}
+
+:host-context(.dark) .profile-dialog__role-category-count {
+  background: rgba(37, 99, 235, 0.32);
+  color: rgba(191, 219, 254, 0.92);
+}
+
+:host-context(.dark) .profile-dialog__role-category-toggle {
+  border-color: rgba(148, 163, 184, 0.4);
+  background: rgba(30, 41, 59, 0.88);
+  color: rgba(226, 232, 240, 0.85);
 }
 
 :host-context(.dark) .profile-dialog__role-category-title {
