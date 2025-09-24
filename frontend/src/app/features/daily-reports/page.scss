@@ -209,6 +209,11 @@ form {
   color: color-mix(in srgb, #15803d 90%, var(--text-primary));
 }
 
+
+.sidebar {
+  gap: 1.1rem;
+}
+
 .sidebar section {
   display: flex;
   flex-direction: column;
@@ -222,83 +227,14 @@ form {
   color: var(--text-primary);
 }
 
-.report-list ul {
-  list-style: none;
+.retention-note {
   margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.report-list .empty {
-  margin: 0;
-  color: var(--text-muted);
-}
-
-.report-list button {
-  width: 100%;
-  border: 1px solid var(--border-card);
-  border-radius: 1.25rem;
-  padding: 0.85rem 1.1rem;
-  background: var(--surface-card-muted);
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
-  gap: 0.75rem;
-  align-items: center;
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  transition:
-    transform 150ms ease,
-    box-shadow 150ms ease,
-    border-color 150ms ease,
-    background-color 150ms ease;
-}
-
-.report-list button:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-soft);
-}
-
-.report-list button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-}
-
-.report-list button.active {
-  border-color: color-mix(in srgb, var(--accent) 60%, var(--border-card));
-  background: color-mix(in srgb, var(--accent) 16%, var(--surface-card));
-  box-shadow: var(--shadow-strong);
-}
-
-.report-list .date {
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.report-list .status {
-  font-size: 0.75rem;
-  padding: 0.25rem 0.65rem;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  color: var(--accent-strong);
-  font-weight: 600;
-}
-
-.report-list .summary {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.report-list .count {
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  padding: 0.75rem 1rem;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: color-mix(in srgb, var(--accent-strong) 85%, var(--text-secondary));
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
 .report-detail {
@@ -451,6 +387,34 @@ form {
   color: var(--text-muted);
 }
 
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card-muted);
+  padding: clamp(1rem, 1.6vw, 1.35rem);
+}
+
+.empty-state h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.empty-state .hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 1080px) {
   .daily-report-page {
     grid-template-columns: minmax(0, 1fr);
@@ -467,14 +431,7 @@ form {
     padding: 1.25rem;
   }
 
-  .report-list button {
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-    gap: 0.5rem;
-  }
-
-  .report-list .status,
-  .report-list .count {
-    justify-self: flex-start;
+  .retention-note {
+    font-size: 0.8rem;
   }
 }

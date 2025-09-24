@@ -11,11 +11,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 import { DailyReportsGateway } from '@core/api/daily-reports-gateway';
-import {
-  DailyReportDetail,
-  DailyReportListItem,
-  DailyReportCreateRequest,
-} from '@core/models';
+import { DailyReportDetail, DailyReportCreateRequest } from '@core/models';
 
 @Component({
   selector: 'app-daily-reports-page',
@@ -32,8 +28,7 @@ export class DailyReportsPage {
   private readonly pendingState = signal(false);
   private readonly errorState = signal<string | null>(null);
   private readonly successState = signal<string | null>(null);
-  private readonly reportsState = signal<readonly DailyReportListItem[]>([]);
-  private readonly selectedDetail = signal<DailyReportDetail | null>(null);
+  private readonly detailState = signal<DailyReportDetail | null>(null);
 
   public readonly form = this.fb.group({
     report_date: [this.todayString(), Validators.required],
@@ -44,18 +39,11 @@ export class DailyReportsPage {
   public readonly pending = computed(() => this.pendingState());
   public readonly error = computed(() => this.errorState());
   public readonly successMessage = computed(() => this.successState());
-  public readonly reports = computed(() => this.reportsState());
-  public readonly detail = computed(() => this.selectedDetail());
-
-  public constructor() {
-    void this.refreshReports();
-  }
+  public readonly detail = computed(() => this.detailState());
 
   public get sections(): FormArray<FormGroup> {
     return this.form.get('sections') as FormArray<FormGroup>;
   }
-
-  public trackByReport = (_: number, item: DailyReportListItem): string => item.id;
 
   public addSection(): void {
     this.sections.push(this.createSectionGroup());
@@ -87,40 +75,9 @@ export class DailyReportsPage {
     try {
       const created = await firstValueFrom(this.gateway.createReport(payload));
       const detail = await firstValueFrom(this.gateway.submitReport(created.id));
-      this.selectedDetail.set(detail);
+      this.detailState.set(detail);
       this.successState.set('AI 解析が完了しました。提案されたタスクを確認してください。');
-      this.updateReportsCollection(detail);
       this.resetForm();
-    } catch (error) {
-      this.errorState.set(this.extractErrorMessage(error));
-    } finally {
-      this.pendingState.set(false);
-    }
-  }
-
-  public async openReport(reportId: string): Promise<void> {
-    if (this.pending()) {
-      return;
-    }
-    this.pendingState.set(true);
-    this.errorState.set(null);
-    this.successState.set(null);
-    try {
-      const detail = await firstValueFrom(this.gateway.getReport(reportId));
-      this.selectedDetail.set(detail);
-    } catch (error) {
-      this.errorState.set(this.extractErrorMessage(error));
-    } finally {
-      this.pendingState.set(false);
-    }
-  }
-
-  private async refreshReports(): Promise<void> {
-    this.pendingState.set(true);
-    this.errorState.set(null);
-    try {
-      const reports = await firstValueFrom(this.gateway.listReports());
-      this.reportsState.set(reports);
     } catch (error) {
       this.errorState.set(this.extractErrorMessage(error));
     } finally {
@@ -174,25 +131,6 @@ export class DailyReportsPage {
       report_date: this.todayString(),
       tags: '',
     });
-  }
-
-  private updateReportsCollection(detail: DailyReportDetail): void {
-    const summary = detail.sections[0]?.body ?? '';
-    const item: DailyReportListItem = {
-      id: detail.id,
-      report_date: detail.report_date,
-      status: detail.status,
-      shift_type: detail.shift_type,
-      tags: detail.tags,
-      auto_ticket_enabled: detail.auto_ticket_enabled,
-      created_at: detail.created_at,
-      updated_at: detail.updated_at,
-      card_count: detail.cards.length,
-      proposal_count: detail.pending_proposals.length,
-      summary,
-    };
-    const filtered = this.reportsState().filter((report) => report.id !== detail.id);
-    this.reportsState.set([item, ...filtered]);
   }
 
   private extractErrorMessage(error: unknown): string {

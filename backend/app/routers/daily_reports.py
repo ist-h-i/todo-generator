@@ -88,10 +88,9 @@ def submit_daily_report(
     report = service.get_report(report_id=report_id, owner_id=current_user.id, include_details=True)
     if report.status == schemas.DailyReportStatus.PROCESSING.value:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Report is already processing.")
-    service.submit_report(report)
+    result = service.submit_report(report)
     db.commit()
-    refreshed = service.get_report(report_id=report.id, owner_id=current_user.id, include_details=True)
-    return service.to_detail(refreshed)
+    return result.detail
 
 
 @router.post("/{report_id}/retry", response_model=schemas.DailyReportDetail)
@@ -103,16 +102,12 @@ def retry_daily_report(
 ) -> schemas.DailyReportDetail:
     service = DailyReportService(db, analyzer=analyzer)
     report = service.get_report(report_id=report_id, owner_id=current_user.id, include_details=True)
-    if report.status not in {
-        schemas.DailyReportStatus.FAILED.value,
-        schemas.DailyReportStatus.COMPLETED.value,
-    }:
+    if report.status != schemas.DailyReportStatus.FAILED.value:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Retry is only available for failed or completed reports.",
+            detail="Retry is only available for failed reports.",
         )
-    service.submit_report(report)
+    result = service.submit_report(report)
     db.commit()
-    refreshed = service.get_report(report_id=report.id, owner_id=current_user.id, include_details=True)
-    return service.to_detail(refreshed)
+    return result.detail
 
