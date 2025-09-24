@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 import json
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -35,7 +36,15 @@ _MISSING_PILLOW_MESSAGE = "画像処理ライブラリ(Pillow)がインストー
 
 
 def build_user_profile(user: models.User) -> schemas.UserProfile:
-    return schemas.UserProfile.model_validate(user)
+    profile = schemas.UserProfile.model_validate(user)
+
+    if user.avatar_image and user.avatar_mime_type:
+        encoded = base64.b64encode(user.avatar_image).decode()
+        profile.avatar_url = f"data:{user.avatar_mime_type};base64,{encoded}"
+    else:
+        profile.avatar_url = None
+
+    return profile
 
 
 def _import_pillow() -> _PillowModules:

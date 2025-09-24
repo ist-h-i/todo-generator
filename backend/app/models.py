@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import uuid4
@@ -83,6 +82,15 @@ class User(Base, TimestampMixin):
     daily_reports: Mapped[list["DailyReport"]] = relationship(
         "DailyReport", back_populates="owner", cascade="all, delete-orphan"
     )
+    daily_evaluation_quotas: Mapped[list["DailyEvaluationQuota"]] = relationship(
+        "DailyEvaluationQuota", back_populates="owner", cascade="all, delete-orphan"
+    )
+    quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
+        "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+    api_credentials: Mapped[list["ApiCredential"]] = relationship(
+        "ApiCredential", back_populates="created_by_user", cascade="all, delete-orphan"
+    )
     competency_evaluations: Mapped[list["CompetencyEvaluation"]] = relationship(
         "CompetencyEvaluation", back_populates="user", cascade="all, delete-orphan"
     )
@@ -149,21 +157,6 @@ class Card(Base, TimestampMixin):
     daily_report_links: Mapped[list["DailyReportCardLink"]] = relationship(
         "DailyReportCardLink", back_populates="card", cascade="all, delete-orphan"
     )
-
-
-class CompetencyEvaluation(Base, TimestampMixin):
-    __tablename__ = "competency_evaluations"
-
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    user_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    competency_area: Mapped[str | None] = mapped_column(String)
-    evaluation_date: Mapped[date | None] = mapped_column(Date)
-    score: Mapped[float | None] = mapped_column(Float)
-    notes: Mapped[str | None] = mapped_column(Text)
-
-    user: Mapped[User] = relationship("User", back_populates="competency_evaluations")
 
 
 class DailyCardQuota(Base):
