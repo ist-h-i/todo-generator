@@ -1,42 +1,50 @@
 <section class="app-page board-page">
+  <app-page-header
+    eyebrow="Workspace Board"
+    title="カード管理ボード"
+    description="ステータスやラベルでタスクを俯瞰し、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。"
+  >
+    <div appPageHeaderActions class="board-page__header-actions">
+      <span class="page-badge">{{ filtersSignal().search || '検索なし' }}</span>
+      <span class="page-badge">タスク: {{ groupingLabelSignal() }}</span>
+      <span class="page-badge">サブタスク: ステータス別</span>
+      <span class="page-badge">クイック: {{ quickFilterSummarySignal() }}</span>
+    </div>
+  </app-page-header>
+
   <div class="board-page__overview">
     @if (summarySignal(); as summary) {
-      <section class="surface-panel flex flex-col gap-6 px-6 py-8">
-        <div>
-          <p class="text-xs uppercase tracking-[0.3em] text-slate-400">進捗状況</p>
-          <p class="mt-2 text-xl font-semibold text-on-surface">
-            {{ summary.progressRatio }}% 完了
-          </p>
-        </div>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between text-sm text-slate-500">
+      <section class="surface-panel page-panel board-summary">
+        <header class="board-summary__header">
+          <p class="board-summary__eyebrow">進捗状況</p>
+          <p class="board-summary__progress">{{ summary.progressRatio }}% 完了</p>
+        </header>
+        <ul class="board-summary__metrics">
+          <li>
             <span>完了カード</span>
-            <span class="font-semibold text-on-surface">{{ summary.doneCards }}</span>
-          </div>
-          <div class="flex items-center justify-between text-sm text-slate-500">
+            <strong>{{ summary.doneCards }}</strong>
+          </li>
+          <li>
             <span>総カード数</span>
-            <span class="font-semibold text-on-surface">{{ summary.totalCards }}</span>
-          </div>
-          <div class="flex items-center justify-between text-sm text-slate-500">
+            <strong>{{ summary.totalCards }}</strong>
+          </li>
+          <li>
             <span>アクティブラベル</span>
-            <span class="font-semibold text-on-surface">{{ summary.activeLabels }}</span>
-          </div>
-        </div>
-        <div class="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-800">
-          <div
-            class="h-2 rounded-full bg-accent transition-all"
-            [style.width.%]="summary.progressRatio"
-          ></div>
+            <strong>{{ summary.activeLabels }}</strong>
+          </li>
+        </ul>
+        <div class="board-summary__progress-bar" role="presentation">
+          <div class="board-summary__progress-value" [style.width.%]="summary.progressRatio"></div>
         </div>
         <a
           routerLink="/profile/evaluations"
-          class="focus-ring inline-flex items-center justify-center gap-2 self-start rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-accent shadow-soft transition hover:bg-accent-muted hover:text-accent-strong dark:bg-slate-900/60"
+          class="button button--secondary button--pill board-summary__link"
         >
           最新のコンピテンシー判定を確認
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            class="h-4 w-4"
+            class="board-summary__link-icon"
             fill="none"
             stroke="currentColor"
             stroke-width="1.8"
@@ -47,37 +55,16 @@
       </section>
     }
     <div class="flex h-full min-w-0 flex-col gap-4">
-      <header class="space-y-3">
-        <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div class="min-w-0">
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">Workspace Board</p>
-            <h2 class="text-2xl font-semibold text-on-surface">カード管理ボード</h2>
-          </div>
-          <div class="flex flex-wrap gap-2 text-xs text-slate-500">
-            <span class="surface-pill px-3 py-1">{{ filtersSignal().search || '検索なし' }}</span>
-            <span class="surface-pill px-3 py-1">タスク: {{ groupingLabelSignal() }}</span>
-            <span class="surface-pill px-3 py-1">サブタスク: ステータス別</span>
-            <span class="surface-pill px-3 py-1">クイック: {{ quickFilterSummarySignal() }}</span>
-          </div>
-        </div>
-      </header>
-      <section
-        class="grid min-w-0 gap-6 rounded-3xl border border-subtle bg-surface px-6 py-6 shadow-soft lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-start"
-      >
-        <div class="flex min-w-0 flex-col gap-5">
-          <label class="flex min-w-0 flex-col gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <span
-              class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400"
-              >検索</span
-            >
-            <div class="relative">
-              <span
-                class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400 dark:text-slate-500"
-                aria-hidden="true"
-              >
+      <section class="surface-panel page-panel board-filters">
+        <div class="board-filters__grid page-grid page-grid--two">
+          <div class="board-filters__column">
+            <label class="form-field board-filters__field">
+              <span class="form-field__label">検索</span>
+              <div class="board-filters__search">
                 <svg
-                  class="h-4 w-4"
+                  aria-hidden="true"
                   viewBox="0 0 24 24"
+                  class="board-filters__search-icon"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
@@ -87,58 +74,65 @@
                   <circle cx="11" cy="11" r="7" />
                   <path d="M20 20L16.5 16.5" />
                 </svg>
-              </span>
-              <input
-                type="search"
-                class="w-full min-w-0 rounded-2xl border border-subtle bg-surface px-4 py-3 pl-11 text-sm focus-ring"
-                placeholder="キーワードでカードを検索"
-                [value]="searchForm.controls.search.value()"
-                (input)="updateSearch($any($event.target).value)"
-              />
-            </div>
-          </label>
-          <div class="flex flex-col gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <span class="text-xs font-semibold uppercase tracking-[0.2em]">表示形式</span>
-            <div class="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400"
-                [class.surface-primary-muted]="groupingSignal() === 'status'"
-                (click)="selectGrouping('status')"
-              >
-                ステータス別
-              </button>
-              <button
-                type="button"
-                class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400"
-                [class.surface-primary-muted]="groupingSignal() === 'label'"
-                (click)="selectGrouping('label')"
-              >
-                ラベル別
-              </button>
+                <input
+                  type="search"
+                  class="form-control board-filters__search-input"
+                  placeholder="キーワードでカードを検索"
+                  [value]="searchForm.controls.search.value()"
+                  (input)="updateSearch($any($event.target).value)"
+                />
+              </div>
+            </label>
+            <div class="board-filters__grouping">
+              <span class="board-filters__grouping-label">表示形式</span>
+              <div class="board-filters__grouping-actions">
+                <button
+                  type="button"
+                  class="button button--pill"
+                  [ngClass]="{
+                    'button--secondary': groupingSignal() === 'status',
+                    'button--ghost': groupingSignal() !== 'status',
+                  }"
+                  [attr.aria-pressed]="groupingSignal() === 'status'"
+                  (click)="selectGrouping('status')"
+                >
+                  ステータス別
+                </button>
+                <button
+                  type="button"
+                  class="button button--pill"
+                  [ngClass]="{
+                    'button--secondary': groupingSignal() === 'label',
+                    'button--ghost': groupingSignal() !== 'label',
+                  }"
+                  [attr.aria-pressed]="groupingSignal() === 'label'"
+                  (click)="selectGrouping('label')"
+                >
+                  ラベル別
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="flex min-w-0 flex-col gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="text-xs font-semibold uppercase tracking-[0.2em]">クイックフィルター</span>
-            <button
-              type="button"
-              class="surface-pill focus-ring px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400"
-              (click)="clearFilters()"
-            >
-              フィルターをクリア
-            </button>
-          </div>
-          <div
-            class="rounded-2xl border border-dashed border-subtle bg-surface-strong px-4 py-3 dark:bg-slate-900/40"
-          >
-            <div class="flex flex-wrap items-center gap-2">
+          <div class="board-filters__column">
+            <div class="board-filters__quick-header">
+              <span class="board-filters__quick-label">クイックフィルター</span>
+              <button
+                type="button"
+                class="button button--ghost button--pill"
+                (click)="clearFilters()"
+              >
+                フィルターをクリア
+              </button>
+            </div>
+            <div class="board-filters__quick-list">
               @for (filter of quickFilters; track filter.id) {
                 <button
                   type="button"
-                  class="surface-pill focus-ring px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-300"
-                  [class.surface-primary-muted]="isQuickFilterActive(filter.id)"
+                  class="button button--pill"
+                  [ngClass]="{
+                    'button--secondary': isQuickFilterActive(filter.id),
+                    'button--ghost': !isQuickFilterActive(filter.id),
+                  }"
                   [attr.aria-pressed]="isQuickFilterActive(filter.id)"
                   [title]="filter.description"
                   (click)="toggleQuickFilter(filter.id)"
@@ -150,20 +144,23 @@
           </div>
         </div>
       </section>
-      <p class="rounded-3xl bg-accent-muted px-6 py-4 text-sm text-accent-strong shadow-soft">
+      <p class="page-empty board-page__hint">
         タスクはラベルやステータスで切り替えながら管理でき、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。選択したタスクに紐づくサブタスクはハイライト表示されます。
       </p>
     </div>
   </div>
 
   <div class="board-page__subtasks">
-    <section class="space-y-4">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h3 class="text-lg font-semibold text-on-surface">タスク一覧</h3>
-        <span class="text-xs text-slate-500"
-          >完了またはNonIssueのサブタスクのみのタスクは簡易表示になります。</span
-        >
-      </div>
+    <section class="board-page__task-board">
+      <header class="board-page__task-header">
+        <div>
+          <p class="board-page__task-eyebrow">Task Library</p>
+          <h3 class="board-page__task-title">タスク一覧</h3>
+        </div>
+        <p class="board-page__task-description">
+          完了またはNonIssueのサブタスクのみのタスクは簡易表示になります。
+        </p>
+      </header>
       <div class="board-columns" cdkDropListGroup>
         @for (column of columnsSignal(); track column.id) {
           <section
@@ -173,16 +170,14 @@
             [cdkDropListDisabled]="groupingSignal() !== 'status'"
             (cdkDropListDropped)="handleDrop(column.id, $event)"
           >
-            <header class="flex items-center justify-between">
+            <header class="board-column__header">
               <div>
-                <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ column.id }}</p>
-                <h3 class="text-lg font-semibold" [style.color]="columnAccent(column)">
+                <p class="board-column__eyebrow">{{ column.id }}</p>
+                <h3 class="board-column__title" [style.color]="columnAccent(column)">
                   {{ column.title }}
                 </h3>
               </div>
-              <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500"
-                >{{ column.count }} 件</span
-              >
+              <span class="page-badge">{{ column.count }} 件</span>
             </header>
             <div class="board-card-list">
               @if (column.cards.length === 0) {
@@ -261,7 +256,7 @@
                           @for (status of statusesSignal(); track status.id) {
                             <button
                               type="button"
-                              class="surface-pill focus-ring px-3 py-1"
+                              class="button button--ghost button--pill"
                               (click)="moveCard(card.id, status.id)"
                             >
                               {{ status.name }}
@@ -279,18 +274,15 @@
       </div>
     </section>
 
-    <section class="space-y-4">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <section class="board-page__subtask-board">
+      <header class="board-page__task-header board-page__task-header--subtasks">
         <div>
-          <h3 class="text-lg font-semibold text-on-surface">サブタスク一覧</h3>
-          <p class="text-xs text-slate-500">ステータスごとに並び替え、個別に管理します。</p>
+          <p class="board-page__task-eyebrow">Subtasks</p>
+          <h3 class="board-page__task-title">サブタスク一覧</h3>
+          <p class="board-page__task-description">ステータスごとに並び替え、個別に管理します。</p>
         </div>
-        <div
-          class="rounded-3xl border border-subtle bg-surface px-4 py-2 text-xs text-slate-500 shadow-soft"
-        >
-          ドラッグ＆ドロップでステータスを更新できます。
-        </div>
-      </div>
+        <p class="board-page__task-hint">ドラッグ＆ドロップでステータスを更新できます。</p>
+      </header>
       <div class="board-columns subtask-columns" cdkDropListGroup>
         @for (column of subtaskColumnsSignal(); track column.id) {
           <section
@@ -299,16 +291,14 @@
             [cdkDropListData]="column.subtasks"
             (cdkDropListDropped)="handleSubtaskDrop(column.id, $event)"
           >
-            <header class="flex items-center justify-between">
+            <header class="board-column__header">
               <div>
-                <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ column.id }}</p>
-                <h3 class="text-lg font-semibold" [style.color]="column.accent">
+                <p class="board-column__eyebrow">{{ column.id }}</p>
+                <h3 class="board-column__title" [style.color]="column.accent">
                   {{ column.title }}
                 </h3>
               </div>
-              <span class="surface-pill px-3 py-1 text-xs font-semibold text-slate-500">
-                {{ column.subtasks.length }} 件
-              </span>
+              <span class="page-badge">{{ column.subtasks.length }} 件</span>
             </header>
             <div class="board-card-list">
               @if (column.subtasks.length === 0) {
