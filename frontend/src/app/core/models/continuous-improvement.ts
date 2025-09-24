@@ -47,6 +47,7 @@ export interface RootCauseNode {
   readonly evidence: readonly string[];
   readonly recommendedMetrics: readonly string[];
   readonly tone: RootCauseTone;
+  readonly toneMessage?: string;
 }
 
 export interface RootCauseLayer {

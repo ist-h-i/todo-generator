@@ -148,6 +148,17 @@ type RawBoardPreferences = {
   filters?: unknown;
 };
 
+type CardDetailUpdate = Partial<
+  Pick<Card, 'title' | 'summary' | 'statusId' | 'priority' | 'assignee' | 'storyPoints'>
+>;
+
+type SubtaskDetailUpdate = Partial<Omit<Subtask, 'id'>>;
+
+type Mutable<T> = { -readonly [P in keyof T]: T[P] };
+
+type MutableCard = Mutable<Card>;
+type MutableSubtask = Mutable<Subtask>;
+
 const INITIAL_LABELS: Label[] = [
   { id: 'frontend', name: 'フロントエンド', color: '#38bdf8' },
   { id: 'backend', name: 'バックエンド', color: '#a855f7' },
@@ -358,9 +369,7 @@ export class WorkspaceStore {
 
             let nextSubtasks = card.subtasks;
             if (
-              card.subtasks.some(
-                (subtask) => subtask.assignee && aliasValues.has(subtask.assignee),
-              )
+              card.subtasks.some((subtask) => subtask.assignee && aliasValues.has(subtask.assignee))
             ) {
               nextSubtasks = card.subtasks.map((subtask) =>
                 subtask.assignee && aliasValues.has(subtask.assignee)
@@ -746,6 +755,257 @@ export class WorkspaceStore {
             }
           : card,
       ),
+    );
+  };
+
+  /**
+   * Updates core card metadata such as title, summary, priority, and assignment.
+   *
+   * @param cardId - Identifier of the card to mutate.
+   * @param changes - Subset of fields to update.
+   */
+  public readonly updateCardDetails = (cardId: string, changes: CardDetailUpdate): void => {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        let mutated = false;
+        const next: MutableCard = { ...card };
+
+        if ('title' in changes && changes.title !== undefined) {
+          const title = changes.title.trim();
+          if (title && title !== card.title) {
+            next.title = title;
+            mutated = true;
+          }
+        }
+
+        if ('summary' in changes && changes.summary !== undefined) {
+          const summary = changes.summary.trim();
+          if (summary !== card.summary) {
+            next.summary = summary;
+            mutated = true;
+          }
+        }
+
+        if ('statusId' in changes && changes.statusId && changes.statusId !== card.statusId) {
+          next.statusId = changes.statusId;
+          mutated = true;
+        }
+
+        if ('priority' in changes && changes.priority && changes.priority !== card.priority) {
+          next.priority = changes.priority;
+          mutated = true;
+        }
+
+        if ('assignee' in changes) {
+          const normalized = changes.assignee?.trim();
+          const assignee = normalized && normalized.length > 0 ? normalized : undefined;
+          if (assignee !== card.assignee) {
+            next.assignee = assignee;
+            mutated = true;
+          }
+        }
+
+        if ('storyPoints' in changes && changes.storyPoints !== undefined) {
+          const storyPoints = Number.isFinite(changes.storyPoints)
+            ? Math.max(0, changes.storyPoints)
+            : card.storyPoints;
+          if (storyPoints !== card.storyPoints) {
+            next.storyPoints = storyPoints;
+            mutated = true;
+          }
+        }
+
+        return mutated ? (next as Card) : card;
+      }),
+    );
+  };
+
+  /**
+   * Removes a comment from the specified card.
+   *
+   * @param cardId - Identifier of the card owning the comment.
+   * @param commentId - Identifier of the comment to delete.
+   */
+  public readonly removeComment = (cardId: string, commentId: string): void => {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        const comments = card.comments.filter((comment) => comment.id !== commentId);
+        if (comments.length === card.comments.length) {
+          return card;
+        }
+
+        return {
+          ...card,
+          comments,
+        } satisfies Card;
+      }),
+    );
+  };
+
+  /**
+   * Appends a new subtask to the specified card.
+   *
+   * @param cardId - Identifier of the parent card.
+   * @param payload - Attributes describing the new subtask.
+   */
+  public readonly addSubtask = (
+    cardId: string,
+    payload: {
+      title: string;
+      status?: Subtask['status'];
+      assignee?: string;
+      estimateHours?: number;
+    },
+  ): void => {
+    const title = payload.title.trim();
+    if (!title) {
+      return;
+    }
+
+    const normalizedAssignee = payload.assignee?.trim();
+    const assignee =
+      normalizedAssignee && normalizedAssignee.length > 0 ? normalizedAssignee : undefined;
+    const estimate =
+      payload.estimateHours !== undefined && Number.isFinite(payload.estimateHours)
+        ? Math.max(0, payload.estimateHours)
+        : undefined;
+
+    const subtask: Subtask = {
+      id: createId(),
+      title,
+      status: payload.status ?? 'todo',
+      assignee,
+      estimateHours: estimate,
+    };
+
+    this.cardsSignal.update((cards) =>
+      cards.map((card) =>
+        card.id === cardId
+          ? ({
+              ...card,
+              subtasks: [...card.subtasks, subtask],
+            } satisfies Card)
+          : card,
+      ),
+    );
+  };
+
+  /**
+   * Updates fields on an existing subtask.
+   *
+   * @param cardId - Identifier of the parent card.
+   * @param subtaskId - Identifier of the subtask to mutate.
+   * @param changes - Fields that should be updated.
+   */
+  public readonly updateSubtaskDetails = (
+    cardId: string,
+    subtaskId: string,
+    changes: SubtaskDetailUpdate,
+  ): void => {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        let mutated = false;
+        const subtasks = card.subtasks.map((subtask) => {
+          if (subtask.id !== subtaskId) {
+            return subtask;
+          }
+
+          let subtaskMutated = false;
+          const next: MutableSubtask = { ...subtask };
+
+          if ('title' in changes && changes.title !== undefined) {
+            const title = changes.title.trim();
+            if (title && title !== subtask.title) {
+              next.title = title;
+              subtaskMutated = true;
+            }
+          }
+
+          if ('assignee' in changes) {
+            const normalized = changes.assignee?.trim();
+            const assignee = normalized && normalized.length > 0 ? normalized : undefined;
+            if (assignee !== subtask.assignee) {
+              next.assignee = assignee;
+              subtaskMutated = true;
+            }
+          }
+
+          if ('estimateHours' in changes) {
+            const raw = changes.estimateHours;
+            let estimate: number | undefined;
+            if (raw === undefined) {
+              estimate = undefined;
+            } else if (Number.isFinite(raw)) {
+              estimate = Math.max(0, raw);
+            } else {
+              estimate = subtask.estimateHours;
+            }
+            if (estimate !== subtask.estimateHours) {
+              next.estimateHours = estimate;
+              subtaskMutated = true;
+            }
+          }
+
+          if ('status' in changes && changes.status && changes.status !== subtask.status) {
+            next.status = changes.status;
+            subtaskMutated = true;
+          }
+
+          if (subtaskMutated) {
+            mutated = true;
+            return next as Subtask;
+          }
+
+          return subtask;
+        });
+
+        if (!mutated) {
+          return card;
+        }
+
+        return {
+          ...card,
+          subtasks,
+        } satisfies Card;
+      }),
+    );
+  };
+
+  /**
+   * Deletes a subtask from the specified card.
+   *
+   * @param cardId - Identifier of the parent card.
+   * @param subtaskId - Identifier of the subtask to remove.
+   */
+  public readonly removeSubtask = (cardId: string, subtaskId: string): void => {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        const subtasks = card.subtasks.filter((subtask) => subtask.id !== subtaskId);
+        if (subtasks.length === card.subtasks.length) {
+          return card;
+        }
+
+        return {
+          ...card,
+          subtasks,
+        } satisfies Card;
+      }),
     );
   };
 

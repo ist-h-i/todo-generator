@@ -16,7 +16,7 @@
         <p class="help-dialog__eyebrow">ガイドとサポート</p>
         <h2 class="help-dialog__title" id="help-dialog-title">Todo Generator ヘルプセンター</h2>
         <p class="help-dialog__description" id="help-dialog-description">
-          主要な画面の使い方と、よくある質問への回答をまとめています。
+          代表的なユースケース、主要な画面の使い方、よくある質問への回答をまとめています。
         </p>
       </div>
       <button
@@ -37,6 +37,26 @@
         </svg>
       </button>
     </header>
+
+    <section class="help-dialog__section">
+      <h3 class="help-dialog__section-title">基本的なユースケース</h3>
+      <p class="help-dialog__section-lead">
+        何から始めればよいか迷ったときは、下記のシナリオを参考に全体の流れを把握してください。
+      </p>
+      <div class="help-dialog__usecases">
+        @for (useCase of useCases; track useCase.title) {
+          <article class="help-dialog__usecase-card">
+            <h4 class="help-dialog__usecase-title">{{ useCase.title }}</h4>
+            <p class="help-dialog__usecase-summary">{{ useCase.summary }}</p>
+            <ul class="help-dialog__usecase-steps">
+              @for (step of useCase.steps; track step) {
+                <li>{{ step }}</li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+    </section>
 
     <section class="help-dialog__section">
       <h3 class="help-dialog__section-title">各画面の使い方</h3>
