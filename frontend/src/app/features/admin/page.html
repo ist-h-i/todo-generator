@@ -1,54 +1,62 @@
 <section class="app-page admin-page">
-  <header class="admin-header">
-    <h1 class="admin-title">管理コンソール</h1>
-    <p class="admin-description">
+  <header class="page-hero">
+    <h1 class="page-title">管理コンソール</h1>
+    <p class="page-subtitle">
       コンピテンシー設定・判定・ユーザ権限・API キーをまとめて管理できます。
     </p>
   </header>
 
   @if (error(); as message) {
-    <div class="admin-alert admin-alert--error" role="alert">
+    <div class="app-alert app-alert--error" role="alert">
       <span>{{ message }}</span>
-      <button type="button" class="admin-alert__close" (click)="clearError()">閉じる</button>
+      <button type="button" class="button button--ghost button--pill" (click)="clearError()">
+        閉じる
+      </button>
     </div>
   }
 
   @if (feedback(); as message) {
-    <div class="admin-alert admin-alert--success" role="status">
+    <div class="app-alert app-alert--success" role="status">
       <span>{{ message }}</span>
-      <button type="button" class="admin-alert__close" (click)="resetFeedback()">閉じる</button>
+      <button type="button" class="button button--ghost button--pill" (click)="resetFeedback()">
+        閉じる
+      </button>
     </div>
   }
 
-  <nav class="admin-tabs" aria-label="管理メニュー">
+  <nav class="page-tabs" aria-label="管理メニュー">
     <button
       type="button"
-      class="admin-tabs__button"
-      [class.admin-tabs__button--active]="activeTab() === 'competencies'"
+      class="page-tab"
+      [class.page-tab--active]="activeTab() === 'competencies'"
+      [attr.aria-pressed]="activeTab() === 'competencies'"
       (click)="setActiveTab('competencies')"
     >
       コンピテンシー
     </button>
     <button
       type="button"
-      class="admin-tabs__button"
-      [class.admin-tabs__button--active]="activeTab() === 'evaluations'"
+      class="page-tab"
+      [class.page-tab--active]="activeTab() === 'evaluations'"
+      [attr.aria-pressed]="activeTab() === 'evaluations'"
       (click)="setActiveTab('evaluations')"
     >
       判定と履歴
     </button>
     <button
       type="button"
-      class="admin-tabs__button"
-      [class.admin-tabs__button--active]="activeTab() === 'users'"
+      class="page-tab"
+      [class.page-tab--active]="activeTab() === 'users'"
+      [attr.aria-pressed]="activeTab() === 'users'"
       (click)="setActiveTab('users')"
     >
       ユーザ管理
     </button>
     <button
       type="button"
-      class="admin-tabs__button"
-      [class.admin-tabs__button--active]="activeTab() === 'settings'"
+      class="page-tab"
+      [class.page-tab--active]="activeTab() === 'settings'"
+      [attr.aria-pressed]="activeTab() === 'settings'"
       (click)="setActiveTab('settings')"
     >
       API・日次上限
@@ -56,27 +64,27 @@
   </nav>
 
   @if (activeTab() === 'competencies') {
-    <section class="admin-section">
-      <header class="admin-section__header">
-        <h2>登録済みコンピテンシー</h2>
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">登録済みコンピテンシー</h2>
       </header>
 
       @if (competencies().length === 0) {
-        <p class="admin-empty">
+        <p class="page-empty">
           まだコンピテンシーが登録されていません。右側のフォームから追加できます。
         </p>
       } @else {
-        <ul class="admin-list">
+        <ul class="page-list">
           @for (competency of competencies(); track competency.id) {
-            <li class="admin-list__item">
-              <div class="admin-list__heading">
+            <li class="page-list__item">
+              <div class="page-list__heading">
                 <div>
-                  <strong class="admin-list__title">{{ competency.name }}</strong>
-                  <span class="admin-badge">
+                  <strong class="page-list__title">{{ competency.name }}</strong>
+                  <span class="page-badge page-badge--accent">
                     {{ competency.level === 'junior' ? '初級 (3段階)' : '中級 (5段階)' }}
                   </span>
                 </div>
-                <label class="admin-toggle">
+                <label class="form-toggle">
                   <input
                     type="checkbox"
                     [checked]="competency.is_active"
@@ -86,10 +94,10 @@
                   <span>有効</span>
                 </label>
               </div>
-              <p class="admin-list__description">
+              <p class="page-list__description">
                 {{ competency.description || '説明は登録されていません。' }}
               </p>
-              <div class="admin-list__meta">
+              <div class="page-list__meta">
                 <span>評価項目: {{ competency.criteria.length }}件</span>
                 <span>最終更新: {{ competency.updated_at | date: 'medium' }}</span>
               </div>
@@ -99,29 +107,31 @@
       }
     </section>
 
-    <section class="admin-section">
-      <header class="admin-section__header">
-        <h2>コンピテンシーを登録</h2>
-        <p class="admin-section__subtitle">
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">コンピテンシーを登録</h2>
+        <p class="page-section__subtitle">
           名称・レベル・評価項目を設定して AI 判定対象を作成します。
         </p>
       </header>
 
-      <form class="admin-form" (submit)="createCompetency($event)">
-        <div class="admin-form__grid">
-          <label class="admin-field">
-            <span>名称</span>
+      <form class="page-form" (submit)="createCompetency($event)">
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label">名称</span>
             <input
               type="text"
+              class="form-control"
               name="competency-name"
               [ngModel]="newCompetency().name"
               (ngModelChange)="updateNewCompetencyField('name', $event)"
               required
             />
           </label>
-          <label class="admin-field">
-            <span>レベル</span>
+          <label class="form-field">
+            <span class="form-field__label">レベル</span>
             <select
+              class="form-control"
               name="competency-level"
               [ngModel]="newCompetency().level"
               (ngModelChange)="updateNewCompetencyField('level', $event)"
@@ -130,9 +140,10 @@
               <option value="intermediate">中級 (5段階)</option>
             </select>
           </label>
-          <label class="admin-field admin-field--full">
-            <span>説明</span>
+          <label class="form-field form-field--full">
+            <span class="form-field__label">説明</span>
             <textarea
+              class="form-control form-control--textarea"
               name="competency-description"
               rows="3"
               [ngModel]="newCompetency().description"
@@ -142,7 +153,7 @@
           </label>
         </div>
 
-        <label class="admin-toggle">
+        <label class="form-toggle">
           <input
             type="checkbox"
             [checked]="newCompetency().is_active ?? true"
@@ -154,27 +165,33 @@
         <div class="admin-criteria">
           <div class="admin-criteria__header">
             <h3>評価項目</h3>
-            <button type="button" class="admin-button admin-button--ghost" (click)="addCriterion()">
+            <button
+              type="button"
+              class="button button--secondary button--pill"
+              (click)="addCriterion()"
+            >
               + 評価項目を追加
             </button>
           </div>
 
           @for (criterion of newCompetency().criteria; track $index) {
             <div class="admin-criteria__row">
-              <label class="admin-field">
-                <span>項目名</span>
+              <label class="form-field">
+                <span class="form-field__label">項目名</span>
                 <input
                   type="text"
+                  class="form-control"
                   [attr.name]="'criterion-' + $index + '-title'"
                   [ngModel]="criterion.title"
                   (ngModelChange)="updateCriterionField($index, 'title', $event)"
                   placeholder="例: 問題発見力"
                 />
               </label>
-              <label class="admin-field admin-field--full">
-                <span>説明</span>
+              <label class="form-field form-field--full">
+                <span class="form-field__label">説明</span>
                 <textarea
                   rows="2"
+                  class="form-control form-control--textarea"
                   [attr.name]="'criterion-' + $index + '-description'"
                   [ngModel]="criterion.description"
                   (ngModelChange)="updateCriterionField($index, 'description', $event)"
@@ -183,7 +200,7 @@
               </label>
               <button
                 type="button"
-                class="admin-button admin-button--ghost"
+                class="button button--ghost button--pill"
                 (click)="removeCriterion($index)"
                 [disabled]="newCompetency().criteria.length === 1"
                 aria-label="評価項目を削除"
@@ -194,7 +211,7 @@
           }
         </div>
 
-        <button type="submit" class="admin-button admin-button--primary" [disabled]="loading()">
+        <button type="submit" class="button button--primary" [disabled]="loading()">
           コンピテンシーを登録
         </button>
       </form>
@@ -202,68 +219,88 @@
   }
 
   @if (activeTab() === 'evaluations') {
-    <section class="admin-section">
-      <header class="admin-section__header">
-        <h2>手動判定</h2>
-        <p class="admin-section__subtitle">
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">手動判定</h2>
+        <p class="page-section__subtitle">
           対象ユーザとコンピテンシーを選択し、AI 判定を即時実行します。
         </p>
       </header>
 
-      <form class="admin-form" (submit)="triggerEvaluation($event)">
-        <div class="admin-form__grid">
-          <label class="admin-field">
-            <span>対象ユーザ</span>
-            <select [(ngModel)]="evaluationUserId" name="evaluation-user" required>
+      <form class="page-form" (submit)="triggerEvaluation($event)">
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label">対象ユーザ</span>
+            <select
+              class="form-control"
+              [(ngModel)]="evaluationUserId"
+              name="evaluation-user"
+              required
+            >
               <option value="">選択してください</option>
               @for (user of users(); track user.id) {
                 <option [value]="user.id">{{ user.email }}</option>
               }
             </select>
           </label>
-          <label class="admin-field">
-            <span>コンピテンシー</span>
-            <select [(ngModel)]="evaluationCompetencyId" name="evaluation-competency" required>
+          <label class="form-field">
+            <span class="form-field__label">コンピテンシー</span>
+            <select
+              class="form-control"
+              [(ngModel)]="evaluationCompetencyId"
+              name="evaluation-competency"
+              required
+            >
               <option value="">選択してください</option>
               @for (competency of competencies(); track competency.id) {
                 <option [value]="competency.id">{{ competency.name }}</option>
               }
             </select>
           </label>
-          <label class="admin-field">
-            <span>評価開始日</span>
-            <input type="date" [(ngModel)]="evaluationPeriodStart" name="evaluation-period-start" />
+          <label class="form-field">
+            <span class="form-field__label">評価開始日</span>
+            <input
+              type="date"
+              class="form-control"
+              [(ngModel)]="evaluationPeriodStart"
+              name="evaluation-period-start"
+            />
           </label>
-          <label class="admin-field">
-            <span>評価終了日</span>
-            <input type="date" [(ngModel)]="evaluationPeriodEnd" name="evaluation-period-end" />
+          <label class="form-field">
+            <span class="form-field__label">評価終了日</span>
+            <input
+              type="date"
+              class="form-control"
+              [(ngModel)]="evaluationPeriodEnd"
+              name="evaluation-period-end"
+            />
           </label>
         </div>
 
-        <button type="submit" class="admin-button admin-button--primary" [disabled]="loading()">
+        <button type="submit" class="button button--primary" [disabled]="loading()">
           判定を実行
         </button>
       </form>
     </section>
 
-    <section class="admin-section">
-      <header class="admin-section__header">
-        <h2>評価履歴</h2>
-        <p class="admin-section__subtitle">最新の評価結果を一覧で確認できます。</p>
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">評価履歴</h2>
+        <p class="page-section__subtitle">最新の評価結果を一覧で確認できます。</p>
       </header>
 
       @if (evaluations().length === 0) {
-        <p class="admin-empty">
+        <p class="page-empty">
           まだ評価結果はありません。手動判定を実行するか、月次バッチを待機してください。
         </p>
       } @else {
-        <ul class="admin-evaluations">
+        <ul class="page-list admin-evaluations">
           @for (evaluation of evaluations(); track evaluation.id) {
-            <li class="admin-evaluations__item">
-              <header class="admin-evaluations__header">
+            <li class="page-list__item admin-evaluations__item">
+              <header class="page-list__heading admin-evaluations__header">
                 <div>
                   <strong>{{ evaluation.competency?.name || '不明なコンピテンシー' }}</strong>
-                  <span class="admin-badge">{{ evaluation.score_label }}</span>
+                  <span class="page-badge page-badge--accent">{{ evaluation.score_label }}</span>
                 </div>
                 <span class="admin-evaluations__meta">
                   対象: {{ userEmail(evaluation.user_id) }} ／ 期間:
@@ -292,17 +329,17 @@
   }
 
   @if (activeTab() === 'users') {
-    <section class="admin-section">
-      <header class="admin-section__header">
-        <h2>ユーザ一覧</h2>
-        <p class="admin-section__subtitle">権限や日次上限を調整すると即時に反映されます。</p>
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">ユーザ一覧</h2>
+        <p class="page-section__subtitle">権限や日次上限を調整すると即時に反映されます。</p>
       </header>
 
       @if (users().length === 0) {
-        <p class="admin-empty">ユーザが登録されていません。</p>
+        <p class="page-empty">ユーザが登録されていません。</p>
       } @else {
-        <div class="admin-table__wrapper">
-          <table class="admin-table">
+        <div class="page-table__wrapper">
+          <table class="page-table">
             <thead>
               <tr>
                 <th scope="col">メールアドレス</th>
@@ -316,7 +353,7 @@
               @for (user of users(); track user.id) {
                 <tr>
                   <td>{{ user.email }}</td>
-                  <td class="admin-table__cell--center">
+                  <td class="page-table__cell--center">
                     <input
                       type="checkbox"
                       [checked]="user.is_admin"
@@ -324,7 +361,7 @@
                       aria-label="{{ user.email }} の管理者権限を切り替え"
                     />
                   </td>
-                  <td class="admin-table__cell--center">
+                  <td class="page-table__cell--center">
                     <input
                       type="checkbox"
                       [checked]="user.is_active"
@@ -336,6 +373,7 @@
                     <input
                       type="number"
                       min="0"
+                      class="form-control"
                       [attr.name]="'card-limit-' + user.id"
                       [ngModel]="user.card_daily_limit ?? ''"
                       (ngModelChange)="onCardLimitChange(user, $event)"
@@ -347,6 +385,7 @@
                     <input
                       type="number"
                       min="0"
+                      class="form-control"
                       [attr.name]="'evaluation-limit-' + user.id"
                       [ngModel]="user.evaluation_daily_limit ?? ''"
                       (ngModelChange)="onEvaluationLimitChange(user, $event)"
@@ -359,34 +398,35 @@
             </tbody>
           </table>
         </div>
-        <p class="admin-hint">空欄の場合はデフォルト日次上限が適用されます。</p>
+        <p class="form-note">空欄の場合はデフォルト日次上限が適用されます。</p>
       }
     </section>
   }
 
   @if (activeTab() === 'settings') {
-    <section class="admin-section">
-      <header class="admin-section__header">
-        <h2>AI API トークン</h2>
-        <p class="admin-section__subtitle">
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">AI API トークン</h2>
+        <p class="page-section__subtitle">
           OpenAI などの API キーを安全に保管し、判定処理に利用します。
         </p>
       </header>
 
       @if (apiCredential(); as credential) {
-        <p class="admin-hint">
+        <p class="form-note">
           現在のキー: {{ credential.secret_hint || '****' }} ／ 更新日:
           {{ credential.updated_at | date: 'medium' }}
         </p>
       } @else {
-        <p class="admin-empty">登録済みの API トークンはありません。</p>
+        <p class="page-empty">登録済みの API トークンはありません。</p>
       }
 
-      <form class="admin-form" (submit)="updateApiCredential($event)">
-        <label class="admin-field admin-field--full">
-          <span>新しい API トークン</span>
+      <form class="page-form" (submit)="updateApiCredential($event)">
+        <label class="form-field form-field--full">
+          <span class="form-field__label">新しい API トークン</span>
           <input
             type="text"
+            class="form-control"
             name="api-secret"
             autocomplete="off"
             [(ngModel)]="apiSecret"
@@ -394,46 +434,44 @@
             required
           />
         </label>
-        <button type="submit" class="admin-button admin-button--primary" [disabled]="loading()">
-          保存
-        </button>
+        <button type="submit" class="button button--primary" [disabled]="loading()">保存</button>
       </form>
     </section>
 
-    <section class="admin-section">
-      <header class="admin-section__header">
-        <h2>デフォルト日次上限</h2>
-        <p class="admin-section__subtitle">
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">デフォルト日次上限</h2>
+        <p class="page-section__subtitle">
           ユーザ個別の設定が無い場合に適用される日次上限を変更します。
         </p>
       </header>
 
-      <form class="admin-form" (submit)="updateQuotaDefaults($event)">
-        <div class="admin-form__grid">
-          <label class="admin-field">
-            <span>カード起票数</span>
+      <form class="page-form" (submit)="updateQuotaDefaults($event)">
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label">カード起票数</span>
             <input
               type="number"
               min="0"
+              class="form-control"
               name="default-card-limit"
               [(ngModel)]="defaultCardLimit"
               required
             />
           </label>
-          <label class="admin-field">
-            <span>コンピテンシー判定数</span>
+          <label class="form-field">
+            <span class="form-field__label">コンピテンシー判定数</span>
             <input
               type="number"
               min="0"
+              class="form-control"
               name="default-evaluation-limit"
               [(ngModel)]="defaultEvaluationLimit"
               required
             />
           </label>
         </div>
-        <button type="submit" class="admin-button admin-button--primary" [disabled]="loading()">
-          更新
-        </button>
+        <button type="submit" class="button button--primary" [disabled]="loading()">更新</button>
       </form>
     </section>
   }
