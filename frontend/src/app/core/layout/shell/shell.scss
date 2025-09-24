@@ -19,6 +19,10 @@
     radial-gradient(circle at 92% 0%, rgba(129, 140, 248, 0.16), transparent 58%),
     linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.82));
   overflow: hidden;
+  border-bottom: 1px solid var(--border-overlay);
+  background: linear-gradient(120deg, var(--surface-overlay-strong), var(--surface-overlay-subtle));
+  backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-strong);
 }
 
 .shell-header::before,
@@ -120,21 +124,10 @@
   min-inline-size: 0;
 }
 
-.shell-brand__name {
-  font-size: clamp(1.05rem, 2.4vw, 1.32rem);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(15, 23, 42, 0.95);
-}
-
-.shell-brand__tagline {
-  font-size: clamp(0.72rem, 1.6vw, 0.83rem);
-  font-weight: 500;
-  color: rgba(71, 85, 105, 0.85);
-  letter-spacing: 0.08em;
-  text-transform: none;
-  max-width: 22rem;
+:host-context(.dark) .shell-header::before {
+  background:
+    radial-gradient(circle at 10% -20%, rgba(96, 165, 250, 0.26), transparent 60%),
+    radial-gradient(circle at 90% -20%, rgba(168, 85, 247, 0.28), transparent 65%);
 }
 
 .shell-nav-wrapper {
@@ -151,8 +144,8 @@
   gap: 0.35rem;
   padding: 0.4rem 0.45rem;
   border-radius: 9999px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--border-overlay);
+  background: var(--surface-overlay);
   backdrop-filter: blur(18px);
   box-shadow: 0 26px 70px -44px rgba(37, 99, 235, 0.45);
   overflow-x: auto;
@@ -172,7 +165,7 @@
   gap: 0.35rem;
   padding: 0.45rem 1.05rem;
   border-radius: 9999px;
-  color: rgba(30, 41, 59, 0.82);
+  color: var(--text-secondary);
   font-weight: 600;
   font-size: 0.88rem;
   white-space: nowrap;
@@ -184,42 +177,13 @@
 }
 
 .shell-nav__link:hover {
-  color: var(--accent-strong);
-  background-color: rgba(148, 163, 184, 0.16);
+  color: var(--text-primary);
+  background-color: var(--surface-overlay-muted);
 }
 
 .shell-nav__link--active {
   color: var(--on-surface-inverse);
-  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  box-shadow: 0 22px 52px -34px rgba(37, 99, 235, 0.55);
-}
-
-.shell-actions {
-  grid-area: actions;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  align-items: stretch;
-  justify-content: flex-end;
-  min-inline-size: 0;
-}
-
-.shell-actions__controls {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.55rem;
-  padding: 0.45rem 0.6rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 26px 70px -42px rgba(37, 99, 235, 0.45);
-  backdrop-filter: blur(18px);
-  align-self: stretch;
-}
-
-.shell-actions__controls > * {
-  flex-shrink: 0;
+  box-shadow: 0 14px 32px -22px rgba(37, 99, 235, 0.55);
 }
 
 .shell-help-button,
@@ -230,10 +194,10 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 9999px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: rgba(255, 255, 255, 0.92);
-  color: rgba(30, 41, 59, 0.82);
-  box-shadow: 0 24px 64px -38px rgba(37, 99, 235, 0.5);
+  border: 1px solid var(--border-overlay);
+  background: var(--surface-overlay);
+  color: var(--text-secondary);
+  box-shadow: 0 16px 40px -30px rgba(37, 99, 235, 0.5);
   transition:
     transform 150ms ease,
     box-shadow 150ms ease,
@@ -244,9 +208,10 @@
 .shell-help-button:hover,
 .shell-icon-action:hover {
   transform: translateY(-1px);
-  border-color: rgba(37, 99, 235, 0.45);
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 28px 72px -38px rgba(37, 99, 235, 0.55);
+  border-color: var(--border-overlay-strong);
+  background: var(--surface-overlay-strong);
+  box-shadow: 0 20px 44px -28px rgba(37, 99, 235, 0.58);
+  color: var(--text-primary);
 }
 
 .shell-quick-action {
@@ -275,8 +240,45 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.45rem;
-  height: 1.45rem;
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+:host-context(.dark) .shell-quick-action {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.95), rgba(37, 99, 235, 0.9));
+  box-shadow: 0 18px 44px -28px rgba(96, 165, 250, 0.58);
+}
+
+:host-context(.dark) .shell-quick-action:hover {
+  box-shadow: 0 20px 48px -26px rgba(96, 165, 250, 0.65);
+}
+
+.shell-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.9rem;
+  width: 100%;
+}
+
+.shell-actions__controls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-overlay);
+  background: var(--surface-overlay);
+  box-shadow: 0 18px 44px -30px rgba(37, 99, 235, 0.5);
+  backdrop-filter: blur(18px);
+  align-self: flex-end;
+}
+
+.shell-actions__controls > * {
+  flex-shrink: 0;
 }
 
 .shell-user {
@@ -285,16 +287,16 @@
   gap: 1rem;
   padding: 0.75rem 1.25rem;
   border-radius: 9999px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.95), rgba(236, 244, 255, 0.82));
-  box-shadow: 0 30px 76px -44px rgba(37, 99, 235, 0.45);
-  color: rgba(15, 23, 42, 0.92);
-  font-size: 0.94rem;
+  border: 1px solid var(--border-overlay);
+  background: linear-gradient(150deg, var(--surface-overlay-strong), var(--surface-overlay-muted));
+  box-shadow: 0 20px 48px -30px rgba(37, 99, 235, 0.45);
+  color: var(--text-primary);
+  font-size: 0.92rem;
   font-weight: 600;
+  cursor: pointer;
   transition:
     transform 150ms ease,
     box-shadow 150ms ease;
-  align-self: flex-end;
 }
 
 .shell-user:hover {
@@ -332,10 +334,7 @@
 .shell-user__name {
   font-size: 0.96rem;
   font-weight: 700;
-  color: rgba(15, 23, 42, 0.92);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-primary);
 }
 
 .shell-user__meta {
@@ -343,18 +342,18 @@
   flex-direction: column;
   gap: 0.15rem;
   font-size: 0.78rem;
-  color: rgba(71, 85, 105, 0.82);
+  color: var(--text-secondary);
   min-inline-size: 0;
 }
 
 .shell-user__roles {
   font-weight: 600;
-  color: rgba(37, 99, 235, 0.82);
+  color: var(--accent-strong);
 }
 
 .shell-user__email {
   font-weight: 500;
-  color: rgba(51, 65, 85, 0.88);
+  color: var(--text-tertiary);
   overflow-wrap: anywhere;
 }
 
@@ -471,60 +470,8 @@
   box-shadow: 0 22px 52px -34px rgba(96, 165, 250, 0.6);
 }
 
-:host-context(.dark) .shell-actions__controls {
-  border-color: rgba(51, 65, 85, 0.68);
-  background: rgba(15, 23, 42, 0.82);
-  box-shadow: 0 26px 70px -40px rgba(2, 6, 23, 0.82);
-}
-
-:host-context(.dark) .shell-help-button,
-:host-context(.dark) .shell-icon-action {
-  border-color: rgba(71, 85, 105, 0.65);
-  background: rgba(15, 23, 42, 0.88);
-  color: rgba(226, 232, 240, 0.85);
-  box-shadow: 0 26px 70px -40px rgba(2, 6, 23, 0.85);
-}
-
-:host-context(.dark) .shell-help-button:hover,
-:host-context(.dark) .shell-icon-action:hover {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(30, 41, 59, 0.9);
-  box-shadow: 0 30px 78px -38px rgba(37, 99, 235, 0.6);
-}
-
-:host-context(.dark) .shell-quick-action {
-  background: linear-gradient(135deg, rgba(96, 165, 250, 0.95), rgba(37, 99, 235, 0.88));
-  box-shadow: 0 26px 74px -38px rgba(59, 130, 246, 0.7);
-}
-
-:host-context(.dark) .shell-user {
-  border-color: rgba(51, 65, 85, 0.65);
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.8));
-  color: rgba(226, 232, 240, 0.95);
-  box-shadow: 0 30px 76px -42px rgba(2, 6, 23, 0.9);
-}
-
 :host-context(.dark) .shell-user__avatar {
   background: linear-gradient(135deg, rgba(96, 165, 250, 0.95), rgba(59, 130, 246, 0.82));
   color: rgba(15, 23, 42, 0.96);
   box-shadow: 0 22px 60px -38px rgba(96, 165, 250, 0.58);
-}
-
-:host-context(.dark) .shell-user__meta {
-  color: rgba(203, 213, 225, 0.8);
-}
-
-:host-context(.dark) .shell-user__roles {
-  color: rgba(96, 165, 250, 0.85);
-}
-
-:host-context(.dark) .shell-user__email {
-  color: rgba(226, 232, 240, 0.9);
-}
-
-:host-context(.dark) .shell-toast {
-  border-color: rgba(74, 222, 128, 0.45);
-  background: rgba(6, 95, 70, 0.78);
-  color: rgba(220, 252, 231, 0.92);
-  box-shadow: 0 22px 52px -34px rgba(6, 95, 70, 0.55);
 }

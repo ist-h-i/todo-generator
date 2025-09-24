@@ -56,8 +56,9 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 - `DATABASE_URL`: SQLAlchemy connection string. Defaults to `sqlite:///./todo.db`.
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
 - `CHATGPT_MODEL`: Logical name for the ChatGPT model (default: `gpt-4o-mini`).
-- `OPENAI_API_KEY`: Secret used to authenticate against the OpenAI API. Required for the analysis endpoint.
 - `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).
+- `SECRET_ENCRYPTION_KEY`: Optional key used to encrypt stored API credentials (defaults to an internal fallback; configure in production).
+- **AI API トークン**: Manage the actual ChatGPT API key from the admin settings screen. The backend reads the encrypted value from the database.
 
 ## Project Structure
 
