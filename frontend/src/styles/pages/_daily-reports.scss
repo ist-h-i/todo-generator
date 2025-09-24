@@ -41,8 +41,10 @@
   margin: 0;
   padding: 0.8rem 1.1rem;
   border-radius: 1rem;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: color-mix(in srgb, var(--accent-strong) 85%, var(--text-secondary));
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-soft);
   font-size: 0.85rem;
   line-height: 1.6;
 }
@@ -94,8 +96,8 @@
 .daily-report-page__content-section {
   padding: 0.85rem 1rem;
   border-radius: 1rem;
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-card) 85%, transparent);
+  border: 1px solid var(--border-card);
+  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
   display: grid;
   gap: 0.4rem;
 }
@@ -121,10 +123,10 @@
 
 .daily-report-page__card,
 .daily-report-page__proposal {
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-card);
   border-radius: 1.25rem;
   padding: 1.05rem 1.2rem;
-  background: color-mix(in srgb, var(--surface-card) 85%, transparent);
+  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
   display: grid;
   gap: 0.65rem;
   box-shadow: var(--shadow-soft);
