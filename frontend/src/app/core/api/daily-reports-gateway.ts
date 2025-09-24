@@ -15,11 +15,7 @@ import {
 export class DailyReportsGateway {
   private readonly http = inject(HttpClient);
 
-  public listReports(params?: {
-    readonly status?: string;
-    readonly start_date?: string;
-    readonly end_date?: string;
-  }): Observable<DailyReportListItem[]> {
+  public listReports(params?: { readonly status?: string }): Observable<DailyReportListItem[]> {
     let httpParams = new HttpParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {

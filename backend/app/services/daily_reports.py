@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import Any, Iterable, Sequence
 
 from fastapi import HTTPException, status
@@ -43,11 +43,8 @@ class DailyReportService:
                 detail="At least one section with content is required.",
             )
 
-        self._ensure_unique_report_date(owner_id=owner.id, report_date=payload.report_date)
-
         report = models.DailyReport(
             owner_id=owner.id,
-            report_date=payload.report_date,
             shift_type=payload.shift_type,
             tags=self._normalize_tags(payload.tags),
             content=self._sections_to_content(sections),
@@ -64,10 +61,6 @@ class DailyReportService:
         report: models.DailyReport,
         payload: schemas.DailyReportUpdate,
     ) -> models.DailyReport:
-        if payload.report_date and payload.report_date != report.report_date:
-            self._ensure_unique_report_date(owner_id=report.owner_id, report_date=payload.report_date)
-            report.report_date = payload.report_date
-
         if payload.shift_type is not None:
             report.shift_type = payload.shift_type or None
 
@@ -99,22 +92,16 @@ class DailyReportService:
         *,
         owner_id: str,
         status_filter: schemas.DailyReportStatus | None = None,
-        start_date: date | None = None,
-        end_date: date | None = None,
     ) -> list[models.DailyReport]:
         query = (
             self.db.query(models.DailyReport)
             .options(selectinload(models.DailyReport.cards))
             .filter(models.DailyReport.owner_id == owner_id)
-            .order_by(models.DailyReport.report_date.desc(), models.DailyReport.created_at.desc())
+            .order_by(models.DailyReport.created_at.desc())
         )
 
         if status_filter:
             query = query.filter(models.DailyReport.status == status_filter.value)
-        if start_date:
-            query = query.filter(models.DailyReport.report_date >= start_date)
-        if end_date:
-            query = query.filter(models.DailyReport.report_date <= end_date)
 
         return query.all()
 
@@ -145,7 +132,10 @@ class DailyReportService:
 
         report = query.first()
         if not report:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Daily report not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Daily or weekly report not found",
+            )
         return report
 
     # ------------------------------------------------------------------
@@ -160,7 +150,7 @@ class DailyReportService:
         if self.analyzer is None:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Daily report analyzer is not configured.",
+                detail="Daily or weekly report analyzer is not configured.",
             )
 
         if report.status not in {
@@ -244,7 +234,6 @@ class DailyReportService:
         sections = self._sections_from_content(report)
         return schemas.DailyReportRead(
             id=report.id,
-            report_date=report.report_date,
             shift_type=report.shift_type,
             tags=list(report.tags or []),
             status=schemas.DailyReportStatus(report.status),
@@ -265,7 +254,6 @@ class DailyReportService:
         pending = self._pending_proposals(report.processing_meta)
         return schemas.DailyReportListItem(
             id=report.id,
-            report_date=report.report_date,
             status=schemas.DailyReportStatus(report.status),
             shift_type=report.shift_type,
             tags=list(report.tags or []),
@@ -301,21 +289,6 @@ class DailyReportService:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _ensure_unique_report_date(self, *, owner_id: str, report_date: date) -> None:
-        exists = (
-            self.db.query(models.DailyReport)
-            .filter(
-                models.DailyReport.owner_id == owner_id,
-                models.DailyReport.report_date == report_date,
-            )
-            .first()
-        )
-        if exists:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="A report for this date already exists.",
-            )
-
     def _normalize_sections(
         self, sections: Sequence[schemas.DailyReportSection]
     ) -> list[schemas.DailyReportSection]:
@@ -366,7 +339,7 @@ class DailyReportService:
     def _compose_analysis_prompt(
         self, report: models.DailyReport, sections: Sequence[schemas.DailyReportSection]
     ) -> str:
-        lines = [f"Report Date: {report.report_date.isoformat()}"]
+        lines: list[str] = []
         if report.shift_type:
             lines.append(f"Shift Type: {report.shift_type}")
         if report.tags:

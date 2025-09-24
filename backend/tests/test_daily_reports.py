@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
-
 from fastapi.testclient import TestClient
 
 from app import schemas
@@ -33,7 +31,7 @@ class StubChatGPT:
             proposals=[
                 schemas.AnalysisCard(
                     title="フォローアップタスクを準備",
-                    summary="日報の重要事項を整理して改善案をまとめる",
+                    summary="日報・週報の重要事項を整理して改善案をまとめる",
                     priority="high",
                     due_in_days=1,
                     subtasks=[
@@ -68,9 +66,8 @@ class SequencedStubChatGPT:
         )
 
 
-def _daily_report_payload(report_date: date) -> dict:
+def _daily_report_payload() -> dict:
     return {
-        "report_date": report_date.isoformat(),
         "shift_type": "remote",
         "tags": ["backend", "daily"],
         "sections": [
@@ -85,14 +82,12 @@ def test_create_and_list_daily_reports(client: TestClient) -> None:
 
     create_response = client.post(
         "/daily-reports",
-        json=_daily_report_payload(date(2024, 4, 1)),
+        json=_daily_report_payload(),
         headers=headers,
     )
     assert create_response.status_code == 201, create_response.text
     data = create_response.json()
     assert data["status"] == "draft"
-    assert data["report_date"] == "2024-04-01"
-
     list_response = client.get("/daily-reports", headers=headers)
     assert list_response.status_code == 200
     items = list_response.json()
@@ -107,7 +102,7 @@ def test_submit_daily_report_returns_proposals(client: TestClient) -> None:
 
     create_response = client.post(
         "/daily-reports",
-        json=_daily_report_payload(date(2024, 4, 2)),
+        json=_daily_report_payload(),
         headers=headers,
     )
     report_id = create_response.json()["id"]
@@ -136,7 +131,7 @@ def test_retry_daily_report_replaces_pending_proposals(client: TestClient) -> No
 
     create_response = client.post(
         "/daily-reports",
-        json=_daily_report_payload(date(2024, 4, 3)),
+        json=_daily_report_payload(),
         headers=headers,
     )
     report_id = create_response.json()["id"]

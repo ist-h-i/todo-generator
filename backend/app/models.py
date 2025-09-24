@@ -440,13 +440,9 @@ class SuggestedAction(Base, TimestampMixin):
 
 class DailyReport(Base, TimestampMixin):
     __tablename__ = "daily_reports"
-    __table_args__ = (
-        UniqueConstraint("owner_id", "report_date", name="uq_daily_report_owner_date"),
-    )
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    report_date: Mapped[date] = mapped_column(Date, nullable=False)
     shift_type: Mapped[str | None] = mapped_column(String)
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     content: Mapped[dict] = mapped_column(JSON, default=dict)
