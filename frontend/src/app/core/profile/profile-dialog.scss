@@ -429,14 +429,14 @@
   flex: 1;
 }
 
-.profile-dialog__custom-role-list {
+.profile-dialog__role-summary-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin: 0;
 }
 
-.profile-dialog__custom-role-item {
+.profile-dialog__role-summary-item {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -449,7 +449,34 @@
   font-weight: 600;
 }
 
-.profile-dialog__custom-role-remove {
+.profile-dialog__role-summary-item--custom {
+  border-color: rgba(45, 212, 191, 0.35);
+  background: rgba(16, 185, 129, 0.12);
+  color: rgba(5, 150, 105, 0.95);
+}
+
+.profile-dialog__role-summary-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+}
+
+.profile-dialog__role-summary-name {
+  line-height: 1.2;
+}
+
+.profile-dialog__role-summary-group {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(37, 99, 235, 0.7);
+}
+
+.profile-dialog__role-summary-item--custom .profile-dialog__role-summary-group {
+  color: rgba(5, 150, 105, 0.7);
+}
+
+.profile-dialog__role-summary-remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -465,25 +492,25 @@
     color 150ms ease;
 }
 
-.profile-dialog__custom-role-summary {
+.profile-dialog__role-summary {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   margin-top: 0.75rem;
 }
 
-.profile-dialog__custom-role-summary-label {
+.profile-dialog__role-summary-label {
   margin: 0;
   font-size: 0.78rem;
   font-weight: 600;
   color: rgba(71, 85, 105, 0.85);
 }
 
-.profile-dialog__custom-role-remove:hover {
+.profile-dialog__role-summary-remove:hover {
   background: rgba(37, 99, 235, 0.18);
 }
 
-.profile-dialog__custom-role-remove svg {
+.profile-dialog__role-summary-remove svg {
   width: 0.65rem;
   height: 0.65rem;
 }
@@ -516,17 +543,33 @@
   color: rgba(191, 219, 254, 0.95);
 }
 
-:host-context(.dark) .profile-dialog__custom-role-item {
+:host-context(.dark) .profile-dialog__role-summary-item {
   border-color: rgba(96, 165, 250, 0.45);
   background: rgba(30, 64, 175, 0.35);
   color: rgba(191, 219, 254, 0.95);
 }
 
-:host-context(.dark) .profile-dialog__custom-role-summary-label {
+:host-context(.dark) .profile-dialog__role-summary-item--custom {
+  border-color: rgba(45, 212, 191, 0.4);
+  background: rgba(6, 95, 70, 0.35);
+  color: rgba(167, 243, 208, 0.95);
+}
+
+:host-context(.dark) .profile-dialog__role-summary-group {
+  color: rgba(147, 197, 253, 0.8);
+}
+
+:host-context(.dark)
+  .profile-dialog__role-summary-item--custom
+  .profile-dialog__role-summary-group {
+  color: rgba(134, 239, 172, 0.85);
+}
+
+:host-context(.dark) .profile-dialog__role-summary-label {
   color: rgba(203, 213, 225, 0.82);
 }
 
-:host-context(.dark) .profile-dialog__custom-role-remove:hover {
+:host-context(.dark) .profile-dialog__role-summary-remove:hover {
   background: rgba(96, 165, 250, 0.28);
 }
 

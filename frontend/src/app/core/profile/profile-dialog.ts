@@ -30,13 +30,27 @@ interface RoleTreeCategory {
   readonly children?: readonly RoleTreeCategory[];
 }
 
+interface RoleOptionDescriptor extends RoleTreeOption {
+  readonly groups: readonly string[];
+}
+
+interface SelectedRoleDetail {
+  readonly value: string;
+  readonly label: string;
+  readonly groups: readonly string[];
+  readonly isCustom: boolean;
+}
+
 const ROLE_TREE: readonly RoleTreeCategory[] = [
   {
     label: 'プロダクトマネジメント',
     options: [
-      { label: 'プロダクトマネージャー', value: 'プロダクトマネジメント / プロダクトマネージャー' },
-      { label: 'スクラムマスター', value: 'プロダクトマネジメント / スクラムマスター' },
-      { label: 'PMO', value: 'プロダクトマネジメント / PMO' },
+      { label: 'プロダクトマネージャー', value: 'プロダクトマネージャー' },
+      { label: 'プロダクトオーナー', value: 'プロダクトオーナー' },
+      { label: 'スクラムマスター', value: 'スクラムマスター' },
+      { label: 'PMO', value: 'PMO' },
+      { label: 'ビジネスアナリスト', value: 'ビジネスアナリスト' },
+      { label: 'グロースマネージャー', value: 'グロースマネージャー' },
     ],
   },
   {
@@ -45,93 +59,116 @@ const ROLE_TREE: readonly RoleTreeCategory[] = [
       {
         label: 'フロントエンド',
         options: [
-          { label: 'Webアプリケーション開発', value: 'フロントエンド / Webアプリケーション開発' },
+          { label: 'Webアプリケーション開発', value: 'Webアプリケーション開発' },
+          { label: 'モバイル・デスクトップアプリ', value: 'モバイル・デスクトップアプリ' },
+          { label: 'UI実装・デザインシステム', value: 'UI実装・デザインシステム' },
           {
-            label: 'モバイル・デスクトップアプリ',
-            value: 'フロントエンド / モバイル・デスクトップアプリ',
+            label: 'フロントエンドパフォーマンス最適化',
+            value: 'フロントエンドパフォーマンス最適化',
           },
-          { label: 'UI実装・デザインシステム', value: 'フロントエンド / UI実装・デザインシステム' },
+          { label: 'アクセシビリティ改善', value: 'アクセシビリティ改善' },
         ],
       },
       {
         label: 'バックエンド',
         options: [
-          { label: 'API・マイクロサービス開発', value: 'バックエンド / API・マイクロサービス開発' },
-          { label: 'バッチ・データ連携開発', value: 'バックエンド / バッチ・データ連携開発' },
-          { label: '認証基盤・セキュリティ', value: 'バックエンド / 認証基盤・セキュリティ' },
+          { label: 'API・マイクロサービス開発', value: 'API・マイクロサービス開発' },
+          { label: 'バッチ・データ連携開発', value: 'バッチ・データ連携開発' },
+          { label: '認証基盤・セキュリティ', value: '認証基盤・セキュリティ' },
+          { label: 'バックエンドアーキテクチャ設計', value: 'バックエンドアーキテクチャ設計' },
+          { label: 'バックエンド性能最適化', value: 'バックエンド性能最適化' },
         ],
       },
       {
         label: 'モバイル / クライアント',
         options: [
-          { label: 'iOSアプリ開発', value: 'モバイル / iOSアプリ開発' },
-          { label: 'Androidアプリ開発', value: 'モバイル / Androidアプリ開発' },
-          { label: 'クロスプラットフォーム開発', value: 'モバイル / クロスプラットフォーム開発' },
+          { label: 'iOSアプリ開発', value: 'iOSアプリ開発' },
+          { label: 'Androidアプリ開発', value: 'Androidアプリ開発' },
+          { label: 'クロスプラットフォーム開発', value: 'クロスプラットフォーム開発' },
+          { label: 'モバイルUX改善', value: 'モバイルUX改善' },
         ],
       },
       {
         label: 'インフラ / SRE',
         options: [
-          { label: 'クラウドインフラ構築', value: 'インフラ / クラウドインフラ構築' },
-          { label: 'CI/CD・DevOps', value: 'インフラ / CI/CD・DevOps' },
-          { label: '監視・運用自動化', value: 'インフラ / 監視・運用自動化' },
+          { label: 'クラウドインフラ構築', value: 'クラウドインフラ構築' },
+          { label: 'CI/CD・DevOps', value: 'CI/CD・DevOps' },
+          { label: '監視・運用自動化', value: '監視・運用自動化' },
+          { label: 'ネットワーク設計・運用', value: 'ネットワーク設計・運用' },
+          { label: 'インフラコスト最適化', value: 'インフラコスト最適化' },
         ],
       },
       {
         label: '品質保証',
         options: [
-          { label: 'QA計画・テスト設計', value: '品質保証 / QA計画・テスト設計' },
-          { label: 'テスト自動化', value: '品質保証 / テスト自動化' },
-          { label: '受け入れテスト支援', value: '品質保証 / 受け入れテスト支援' },
+          { label: 'QA計画・テスト設計', value: 'QA計画・テスト設計' },
+          { label: 'テスト自動化', value: 'テスト自動化' },
+          { label: '受け入れテスト支援', value: '受け入れテスト支援' },
+          { label: '品質指標設計', value: '品質指標設計' },
         ],
       },
       {
         label: 'データ / AI',
         options: [
-          { label: 'データ分析', value: 'データ / データ分析' },
-          { label: '機械学習モデル開発', value: 'データ / 機械学習モデル開発' },
-          { label: 'データ基盤構築', value: 'データ / データ基盤構築' },
+          { label: 'データ分析', value: 'データ分析' },
+          { label: '機械学習モデル開発', value: '機械学習モデル開発' },
+          { label: 'データ基盤構築', value: 'データ基盤構築' },
+          { label: 'データエンジニアリング', value: 'データエンジニアリング' },
+          { label: 'MLOps構築', value: 'MLOps構築' },
         ],
       },
       {
         label: 'フルスタック',
-        options: [{ label: 'フルスタック開発', value: 'フルスタック / アプリケーション開発' }],
+        options: [
+          { label: 'フルスタック開発', value: 'フルスタック開発' },
+          { label: '技術選定・アーキテクチャ', value: '技術選定・アーキテクチャ' },
+        ],
       },
     ],
   },
   {
     label: 'クリエイティブ / リサーチ',
     options: [
-      { label: 'UXリサーチ', value: 'クリエイティブ / UXリサーチ' },
-      { label: 'UI/ビジュアルデザイン', value: 'クリエイティブ / UI・ビジュアルデザイン' },
-      { label: 'テクニカルライティング', value: 'クリエイティブ / テクニカルライティング' },
+      { label: 'UXリサーチ', value: 'UXリサーチ' },
+      { label: 'UI・ビジュアルデザイン', value: 'UI・ビジュアルデザイン' },
+      { label: 'サービスデザイン', value: 'サービスデザイン' },
+      { label: 'テクニカルライティング', value: 'テクニカルライティング' },
+      { label: 'プロダクトブランディング', value: 'プロダクトブランディング' },
     ],
   },
   {
     label: 'ビジネスサポート',
     options: [
-      { label: 'カスタマーサクセス', value: 'ビジネスサポート / カスタマーサクセス' },
-      { label: 'セールスエンジニア', value: 'ビジネスサポート / セールスエンジニア' },
-      { label: '教育・オンボーディング', value: 'ビジネスサポート / 教育・オンボーディング' },
+      { label: 'カスタマーサクセス', value: 'カスタマーサクセス' },
+      { label: 'セールスエンジニア', value: 'セールスエンジニア' },
+      { label: '教育・オンボーディング', value: '教育・オンボーディング' },
+      { label: 'サポートドキュメント整備', value: 'サポートドキュメント整備' },
+      { label: 'テクニカルトレーニング', value: 'テクニカルトレーニング' },
     ],
   },
 ];
 
-function flattenRoleOptions(categories: readonly RoleTreeCategory[]): RoleTreeOption[] {
-  const result: RoleTreeOption[] = [];
+function flattenRoleOptions(
+  categories: readonly RoleTreeCategory[],
+  ancestors: readonly string[] = [],
+): RoleOptionDescriptor[] {
+  const result: RoleOptionDescriptor[] = [];
   for (const category of categories) {
+    const lineage = [...ancestors, category.label];
     if (category.options) {
-      result.push(...category.options);
+      for (const option of category.options) {
+        result.push({ ...option, groups: lineage });
+      }
     }
     if (category.children) {
-      result.push(...flattenRoleOptions(category.children));
+      result.push(...flattenRoleOptions(category.children, lineage));
     }
   }
   return result;
 }
 
 const ROLE_OPTIONS = flattenRoleOptions(ROLE_TREE);
-const ROLE_OPTION_VALUES = new Set(ROLE_OPTIONS.map((option) => option.value));
+const ROLE_OPTION_LOOKUP = new Map(ROLE_OPTIONS.map((option) => [option.value, option] as const));
 
 const LOCATION_OPTIONS: readonly string[] = [
   '未設定',
@@ -215,6 +252,7 @@ export class ProfileDialogComponent implements AfterViewInit {
   public readonly locationOptions = LOCATION_OPTIONS;
   public readonly maxBioLength = MAX_BIO_LENGTH;
   public readonly maxCustomRoleLength = MAX_CUSTOM_ROLE_LENGTH;
+  public readonly maxRoles = MAX_ROLES;
 
   public readonly form = createSignalForm<ProfileFormState>({
     nickname: '',
@@ -246,9 +284,22 @@ export class ProfileDialogComponent implements AfterViewInit {
   public readonly rolesError = computed(() => this.roleErrorStore());
   public readonly customRoleInput = computed(() => this.customRoleInputStore());
   public readonly customRoleError = computed(() => this.customRoleErrorStore());
-  public readonly customRoles = computed(() =>
-    this.form.controls.roles.value().filter((role) => !ROLE_OPTION_VALUES.has(role)),
-  );
+  public readonly selectedRoleCount = computed(() => this.form.controls.roles.value().length);
+  public readonly selectedRoleDetails = computed<readonly SelectedRoleDetail[]>(() => {
+    const roles = this.form.controls.roles.value();
+    return roles.map<SelectedRoleDetail>((role) => {
+      const option = ROLE_OPTION_LOOKUP.get(role);
+      if (!option) {
+        return { value: role, label: role, groups: [], isCustom: true };
+      }
+      return {
+        value: option.value,
+        label: option.label,
+        groups: option.groups,
+        isCustom: false,
+      };
+    });
+  });
   public readonly avatarPreview = computed(() => this.avatarPreviewStore());
   public readonly avatarSelected = computed(
     () => this.avatarFileStore() !== null || this.avatarPreviewStore() !== null,
@@ -525,6 +576,13 @@ export class ProfileDialogComponent implements AfterViewInit {
       return;
     }
 
+    if (ROLE_OPTION_LOOKUP.has(value)) {
+      this.customRoleErrorStore.set(
+        '同名の選択肢が存在します。チェックボックスから選択してください。',
+      );
+      return;
+    }
+
     const roles = this.form.controls.roles.value();
     if (roles.includes(value)) {
       this.customRoleErrorStore.set('同じ担当領域がすでに選択されています。');
@@ -544,20 +602,13 @@ export class ProfileDialogComponent implements AfterViewInit {
     this.roleErrorStore.set(null);
   }
 
-  public onCustomRoleRemove(role: string): void {
-    const roles = this.form.controls.roles.value();
-    const filtered = roles.filter((item) => item !== role);
-    this.form.controls.roles.setValue(filtered);
-    this.roleErrorStore.set(null);
-    this.customRoleErrorStore.set(null);
-  }
-
   public onRoleToggle(role: string): void {
     const roles = this.form.controls.roles.value();
     if (roles.includes(role)) {
       const filtered = roles.filter((item) => item !== role);
       this.form.controls.roles.setValue(filtered);
       this.roleErrorStore.set(null);
+      this.customRoleErrorStore.set(null);
       return;
     }
 
@@ -567,7 +618,20 @@ export class ProfileDialogComponent implements AfterViewInit {
     }
 
     this.roleErrorStore.set(null);
+    this.customRoleErrorStore.set(null);
     this.form.controls.roles.setValue([...roles, role]);
+  }
+
+  public onRoleRemove(role: string): void {
+    const roles = this.form.controls.roles.value();
+    if (!roles.includes(role)) {
+      return;
+    }
+
+    const filtered = roles.filter((item) => item !== role);
+    this.form.controls.roles.setValue(filtered);
+    this.roleErrorStore.set(null);
+    this.customRoleErrorStore.set(null);
   }
 
   public triggerAvatarPicker(): void {

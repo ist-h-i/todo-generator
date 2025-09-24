@@ -166,7 +166,7 @@
           <div class="profile-dialog__section-header">
             <h3 id="profile-role-section">担当領域</h3>
             <p class="profile-dialog__section-description">
-              現在担当している業務内容を選択してください（最大5件）。
+              現在担当している業務内容を選択してください（最大{{ maxRoles }}件）。
             </p>
           </div>
           <div
@@ -255,18 +255,30 @@
             }
           </div>
 
-          @if (customRoles().length) {
-            <div class="profile-dialog__custom-role-summary">
-              <p class="profile-dialog__custom-role-summary-label">追加した担当領域</p>
-              <div class="profile-dialog__custom-role-list" aria-label="追加した担当領域">
-                @for (role of customRoles(); track role) {
-                  <span class="profile-dialog__custom-role-item">
-                    <span>{{ role }}</span>
+          @if (selectedRoleDetails().length) {
+            <div class="profile-dialog__role-summary">
+              <p class="profile-dialog__role-summary-label">
+                選択中（{{ selectedRoleCount() }} / {{ maxRoles }}）
+              </p>
+              <div class="profile-dialog__role-summary-list" aria-label="選択中の担当領域">
+                @for (detail of selectedRoleDetails(); track detail.value) {
+                  <span
+                    class="profile-dialog__role-summary-item"
+                    [class.profile-dialog__role-summary-item--custom]="detail.isCustom"
+                  >
+                    <span class="profile-dialog__role-summary-text">
+                      <span class="profile-dialog__role-summary-name">{{ detail.label }}</span>
+                      @if (detail.groups.length) {
+                        <span class="profile-dialog__role-summary-group">
+                          {{ detail.groups.join(' / ') }}
+                        </span>
+                      }
+                    </span>
                     <button
                       type="button"
-                      class="profile-dialog__custom-role-remove focus-ring"
-                      (click)="onCustomRoleRemove(role)"
-                      [attr.aria-label]="role + 'を削除'"
+                      class="profile-dialog__role-summary-remove focus-ring"
+                      (click)="onRoleRemove(detail.value)"
+                      [attr.aria-label]="detail.label + 'を削除'"
                     >
                       <svg viewBox="0 0 16 16" aria-hidden="true">
                         <path
