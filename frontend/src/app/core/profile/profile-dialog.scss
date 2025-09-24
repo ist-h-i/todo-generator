@@ -22,23 +22,18 @@
   max-height: calc(100vh - 3rem);
   overflow-y: auto;
   border-radius: 1.5rem;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94));
-  box-shadow:
-    0 24px 60px -35px rgba(37, 99, 235, 0.45),
-    0 18px 36px -28px rgba(15, 23, 42, 0.38);
+  border: 1px solid var(--border-overlay);
+  background-color: var(--surface-overlay-strong);
+  background-image: linear-gradient(
+    180deg,
+    var(--surface-overlay-strong),
+    var(--surface-overlay-muted)
+  );
+  box-shadow: var(--shadow-strong);
   padding: 2.25rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;
-}
-
-:host-context(.dark) .profile-dialog__panel {
-  border-color: rgba(148, 163, 184, 0.28);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.86));
-  box-shadow:
-    0 24px 60px -32px rgba(15, 23, 42, 0.8),
-    0 18px 36px -28px rgba(37, 99, 235, 0.45);
 }
 
 .profile-dialog__header {
@@ -53,34 +48,22 @@
   letter-spacing: 0.28em;
   text-transform: uppercase;
   font-weight: 600;
-  color: rgba(71, 85, 105, 0.85);
+  color: var(--text-tertiary);
   margin-bottom: 0.35rem;
 }
 
 .profile-dialog__title {
   font-size: 1.65rem;
   font-weight: 700;
-  color: rgba(15, 23, 42, 0.92);
+  color: var(--text-primary);
   margin: 0;
 }
 
 .profile-dialog__description {
   margin-top: 0.35rem;
-  color: rgba(71, 85, 105, 0.92);
+  color: var(--text-secondary);
   font-size: 0.95rem;
   line-height: 1.5;
-}
-
-:host-context(.dark) .profile-dialog__eyebrow {
-  color: rgba(203, 213, 225, 0.72);
-}
-
-:host-context(.dark) .profile-dialog__title {
-  color: rgba(241, 245, 249, 0.96);
-}
-
-:host-context(.dark) .profile-dialog__description {
-  color: rgba(203, 213, 225, 0.85);
 }
 
 .profile-dialog__close {
@@ -90,21 +73,23 @@
   height: 2.5rem;
   width: 2.5rem;
   border-radius: 9999px;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(255, 255, 255, 0.85);
-  color: rgba(30, 41, 59, 0.8);
-  transition: transform 150ms ease, box-shadow 150ms ease;
+  border: 1px solid var(--border-overlay);
+  background: var(--surface-overlay);
+  color: var(--text-secondary);
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
 .profile-dialog__close:hover {
   transform: translateY(-1px);
-  box-shadow: 0 18px 40px -28px rgba(37, 99, 235, 0.35);
-}
-
-:host-context(.dark) .profile-dialog__close {
-  border-color: rgba(148, 163, 184, 0.32);
-  background: rgba(30, 41, 59, 0.9);
-  color: rgba(226, 232, 240, 0.82);
+  border-color: var(--border-overlay-strong);
+  background: var(--surface-overlay-strong);
+  box-shadow: 0 18px 40px -28px rgba(37, 99, 235, 0.3);
+  color: var(--text-primary);
 }
 
 .profile-dialog__loading {
@@ -113,7 +98,7 @@
   justify-content: center;
   padding: 3rem 0;
   font-size: 1rem;
-  color: rgba(71, 85, 105, 0.9);
+  color: var(--text-secondary);
 }
 
 .profile-dialog__form {
@@ -153,22 +138,14 @@
   margin: 0;
   font-size: 1.05rem;
   font-weight: 600;
-  color: rgba(30, 41, 59, 0.92);
+  color: var(--text-primary);
 }
 
 .profile-dialog__section-description {
   margin: 0;
   font-size: 0.85rem;
-  color: rgba(71, 85, 105, 0.85);
+  color: var(--text-secondary);
   line-height: 1.5;
-}
-
-:host-context(.dark) .profile-dialog__section-header h3 {
-  color: rgba(226, 232, 240, 0.95);
-}
-
-:host-context(.dark) .profile-dialog__section-description {
-  color: rgba(203, 213, 225, 0.75);
 }
 
 .profile-dialog__avatar {
@@ -188,7 +165,7 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, rgba(96, 165, 250, 0.3), rgba(129, 140, 248, 0.35));
-  color: rgba(30, 41, 59, 0.65);
+  color: var(--text-secondary);
 }
 
 .profile-dialog__avatar-preview img {
@@ -224,14 +201,17 @@
   font-weight: 600;
   border-radius: 0.9rem;
   padding: 0.6rem 1.1rem;
-  transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease,
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease,
     color 150ms ease;
 }
 
 .profile-dialog__button {
   border: 1px solid rgba(59, 130, 246, 0.5);
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.35));
-  color: rgba(37, 99, 235, 0.95);
+  color: var(--accent-strong);
 }
 
 .profile-dialog__button:hover {
@@ -242,21 +222,18 @@
 .profile-dialog__link-button {
   border: none;
   background: none;
-  color: rgba(37, 99, 235, 0.9);
+  color: var(--accent);
   padding-inline: 0;
 }
 
 .profile-dialog__link-button:hover {
+  color: var(--accent-strong);
   text-decoration: underline;
 }
 
 .profile-dialog__hint {
   font-size: 0.78rem;
-  color: rgba(100, 116, 139, 0.85);
-}
-
-:host-context(.dark) .profile-dialog__hint {
-  color: rgba(203, 213, 225, 0.7);
+  color: var(--text-muted);
 }
 
 .profile-dialog__grid {
@@ -274,7 +251,7 @@
 .profile-dialog__label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: rgba(30, 41, 59, 0.85);
+  color: var(--text-secondary);
 }
 
 .profile-dialog__required {
@@ -289,20 +266,14 @@
 .profile-dialog__textarea {
   width: 100%;
   border-radius: 0.9rem;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-overlay);
+  background: var(--surface-overlay-strong);
   padding: 0.7rem 0.9rem;
   font-size: 0.95rem;
-  color: rgba(15, 23, 42, 0.9);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
-}
-
-:host-context(.dark) .profile-dialog__input,
-:host-context(.dark) .profile-dialog__select,
-:host-context(.dark) .profile-dialog__textarea {
-  background: rgba(15, 23, 42, 0.9);
-  border-color: rgba(148, 163, 184, 0.38);
-  color: rgba(226, 232, 240, 0.92);
+  color: var(--text-primary);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .profile-dialog__input:focus,
@@ -341,10 +312,14 @@
   gap: 0.55rem;
   padding: 0.55rem 0.75rem;
   border-radius: 0.9rem;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: rgba(255, 255, 255, 0.85);
-  color: rgba(30, 41, 59, 0.85);
-  transition: border-color 150ms ease, background-color 150ms ease;
+  border: 1px solid var(--border-overlay);
+  background: var(--surface-overlay-muted);
+  color: var(--text-secondary);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .profile-dialog__role-option input {
@@ -352,14 +327,31 @@
 }
 
 .profile-dialog__role-option:hover {
-  border-color: rgba(37, 99, 235, 0.45);
-  background: rgba(59, 130, 246, 0.08);
+  border-color: var(--border-overlay-strong);
+  background: var(--surface-overlay);
+  color: var(--text-primary);
+}
+
+.profile-dialog__role-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.profile-dialog__role-option:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--text-primary);
+  box-shadow: 0 10px 24px -18px rgba(37, 99, 235, 0.35);
+}
+
+.profile-dialog__role-option:has(input:checked) span {
+  color: var(--accent-strong);
 }
 
 .profile-dialog__counter {
   font-size: 0.78rem;
   text-align: right;
-  color: rgba(100, 116, 139, 0.75);
+  color: var(--text-muted);
 }
 
 .profile-dialog__footer {
@@ -371,14 +363,17 @@
 }
 
 .profile-dialog__button-secondary {
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: rgba(255, 255, 255, 0.9);
-  color: rgba(30, 41, 59, 0.85);
+  border: 1px solid var(--border-overlay);
+  background: var(--surface-overlay);
+  color: var(--text-secondary);
 }
 
 .profile-dialog__button-secondary:hover {
   transform: translateY(-1px);
+  border-color: var(--border-overlay-strong);
+  background: var(--surface-overlay-strong);
   box-shadow: 0 14px 30px -24px rgba(15, 23, 42, 0.35);
+  color: var(--text-primary);
 }
 
 .profile-dialog__button-primary {

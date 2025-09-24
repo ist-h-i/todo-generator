@@ -8,14 +8,28 @@
   --surface-strong: #e2e8f0;
   --surface-card: #ffffff;
   --surface-card-muted: #f1f5f9;
-  --on-surface: #0f172a;
+  --on-surface: #0b1220;
   --surface-inverse: #0f172a;
   --on-surface-inverse: #f8fafc;
+  --text-primary: #0b1220;
+  --text-secondary: #1f2937;
+  --text-tertiary: #334155;
+  --text-muted: #475569;
+  --text-inverse-primary: #f8fafc;
+  --text-inverse-secondary: #e2e8f0;
+  --text-inverse-tertiary: #cbd5f5;
+  --text-inverse-muted: #94a3b8;
   --accent: #2563eb;
   --accent-strong: #1d4ed8;
   --accent-muted: #dbeafe;
+  --surface-overlay-strong: rgba(255, 255, 255, 0.98);
+  --surface-overlay: rgba(255, 255, 255, 0.92);
+  --surface-overlay-muted: rgba(248, 250, 252, 0.82);
+  --surface-overlay-subtle: rgba(241, 245, 249, 0.72);
   --border-subtle: rgba(15, 23, 42, 0.08);
   --border-card: rgba(15, 23, 42, 0.14);
+  --border-overlay: rgba(148, 163, 184, 0.24);
+  --border-overlay-strong: rgba(148, 163, 184, 0.32);
   --shadow-soft: 0 12px 24px rgba(15, 23, 42, 0.08);
   --shadow-strong: 0 18px 36px rgba(15, 23, 42, 0.12);
   color-scheme: light;
@@ -27,14 +41,28 @@
   --surface-strong: #1e293b;
   --surface-card: #1e293b;
   --surface-card-muted: #111c2f;
-  --on-surface: #e2e8f0;
+  --on-surface: #f1f5f9;
   --surface-inverse: #e2e8f0;
   --on-surface-inverse: #0f172a;
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
+  --text-tertiary: #cbd5f5;
+  --text-muted: #94a3b8;
+  --text-inverse-primary: #0f172a;
+  --text-inverse-secondary: #1e293b;
+  --text-inverse-tertiary: #334155;
+  --text-inverse-muted: #475569;
   --accent: #60a5fa;
   --accent-strong: #3b82f6;
   --accent-muted: rgba(96, 165, 250, 0.16);
+  --surface-overlay-strong: rgba(15, 23, 42, 0.95);
+  --surface-overlay: rgba(15, 23, 42, 0.88);
+  --surface-overlay-muted: rgba(30, 41, 59, 0.78);
+  --surface-overlay-subtle: rgba(30, 41, 59, 0.68);
   --border-subtle: rgba(226, 232, 240, 0.12);
   --border-card: rgba(226, 232, 240, 0.28);
+  --border-overlay: rgba(148, 163, 184, 0.32);
+  --border-overlay-strong: rgba(148, 163, 184, 0.42);
   --shadow-soft: 0 12px 24px rgba(15, 23, 42, 0.32);
   --shadow-strong: 0 18px 36px rgba(15, 23, 42, 0.36);
   color-scheme: dark;
@@ -43,7 +71,7 @@
 body {
   min-height: 100vh;
   background-color: var(--surface);
-  color: var(--on-surface);
+  color: var(--text-primary);
   font-family:
     'Inter',
     'Noto Sans JP',
@@ -72,11 +100,11 @@ a:hover {
 }
 
 .text-on-surface {
-  color: var(--on-surface);
+  color: var(--text-primary);
 }
 
 .text-on-surface-inverse {
-  color: var(--on-surface-inverse);
+  color: var(--text-inverse-primary);
 }
 
 .text-accent {
@@ -85,6 +113,18 @@ a:hover {
 
 .text-accent-strong {
   color: var(--accent-strong);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-muted {
+  color: var(--text-muted);
 }
 
 .bg-accent-muted {
