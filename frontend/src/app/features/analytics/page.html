@@ -202,7 +202,8 @@
                 </p>
                 @if (node.tone === 'direct') {
                   <p class="text-xs font-semibold text-rose-500">
-                    率直な指摘: 感情に配慮しながら事実をはっきり伝えています。
+                    率直な指摘:
+                    {{ node.toneMessage || '感情に配慮しながら事実をはっきり伝えています。' }}
                   </p>
                 }
               </li>
