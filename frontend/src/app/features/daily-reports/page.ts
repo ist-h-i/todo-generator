@@ -37,7 +37,6 @@ export class DailyReportsPage {
 
   public readonly form = this.fb.group({
     report_date: [this.todayString(), Validators.required],
-    shift_type: [''],
     tags: [''],
     sections: this.fb.array([this.createSectionGroup()]),
   });
@@ -152,7 +151,7 @@ export class DailyReportsPage {
 
     return {
       report_date: value.report_date,
-      shift_type: value.shift_type?.trim() || null,
+      shift_type: null,
       tags: this.parseTags(value.tags ?? ''),
       sections,
       auto_ticket_enabled: false,
@@ -173,7 +172,6 @@ export class DailyReportsPage {
     this.sections.at(0)?.reset({ title: '', body: '' });
     this.form.patchValue({
       report_date: this.todayString(),
-      shift_type: '',
       tags: '',
     });
   }
