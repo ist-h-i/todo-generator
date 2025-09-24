@@ -3,19 +3,19 @@
   min-height: 100vh;
   background:
     radial-gradient(
-      circle at top left,
-      color-mix(in srgb, var(--accent) 12%, transparent),
-      transparent 55%
+      120% 120% at 0% 0%,
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent
     ),
     radial-gradient(
-      circle at bottom right,
-      color-mix(in srgb, var(--accent-secondary) 12%, transparent),
-      transparent 55%
+      120% 120% at 100% 100%,
+      color-mix(in srgb, var(--accent-secondary) 10%, transparent),
+      transparent
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--surface-inverse) 4%, transparent),
-      transparent
+      var(--surface),
+      color-mix(in srgb, var(--surface-strong) 35%, transparent)
     );
 }
 
@@ -24,16 +24,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4rem 1.5rem;
+  padding: clamp(3rem, 6vw, 4.5rem) var(--shell-inline-padding, 1.5rem);
 }
 
 .auth-container {
-  width: 100%;
-  max-width: 1080px;
+  width: min(1040px, 100%);
 }
 
 .auth-grid {
   align-items: stretch;
+  gap: clamp(2rem, 4vw, 2.5rem);
 }
 
 .panel-header {
@@ -45,19 +45,22 @@
 .panel-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.85rem;
   border-radius: 9999px;
-  padding: 0.25rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: color-mix(in srgb, var(--accent) 85%, var(--text-secondary));
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent);
 }
 
 .panel-badge.accent {
-  background: color-mix(in srgb, var(--success) 18%, transparent);
-  color: var(--success-strong);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: color-mix(in srgb, var(--success-strong) 85%, var(--text-secondary));
 }
 
 .panel-title {
@@ -65,144 +68,165 @@
 }
 
 .panel-subtitle {
-  line-height: 1.6;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
+.login-panel,
+.register-panel {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.login-panel::after,
+.register-panel::after {
+  content: '';
+  position: absolute;
+  inset: 1.5rem auto auto 1.5rem;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 1.5rem;
+  background: radial-gradient(
+    circle at top,
+    color-mix(in srgb, var(--accent) 12%, transparent),
+    transparent
+  );
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.register-panel::after {
+  background: radial-gradient(
+    circle at top,
+    color-mix(in srgb, var(--success) 16%, transparent),
+    transparent
+  );
 }
 
 .login-panel {
-  border-top: 4px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-top: 4px solid color-mix(in srgb, var(--accent) 32%, transparent);
 }
 
 .register-panel {
-  border-top: 4px solid color-mix(in srgb, var(--success) 45%, transparent);
-  border: 1px solid color-mix(in srgb, var(--success) 20%, transparent);
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--success) 12%, var(--surface-card)),
-    color-mix(in srgb, var(--info) 10%, var(--surface-card))
-  );
-  box-shadow: 0 20px 40px color-mix(in srgb, var(--success) 15%, transparent);
+  border-top: 4px solid color-mix(in srgb, var(--success) 38%, transparent);
 }
 
 .register-hints {
   list-style: none;
-  padding-left: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
 }
 
 .register-hints li {
   position: relative;
-  padding-left: 1.25rem;
+  padding-left: 1.2rem;
 }
 
 .register-hints li::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 0.4rem;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--success) 70%, transparent);
+  top: 0.35rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+.register-panel .register-hints li::before {
+  background: color-mix(in srgb, var(--success) 65%, transparent);
 }
 
 .alert {
   margin-top: 1.5rem;
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  border-radius: 1rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid transparent;
 }
 
 .alert.notice {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: color-mix(in srgb, var(--accent-strong) 85%, var(--text-secondary));
 }
 
 .alert.error {
-  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
   color: color-mix(in srgb, var(--danger-strong) 90%, var(--text-primary));
-  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 .alert.success {
-  background: color-mix(in srgb, var(--success) 12%, transparent);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  background: color-mix(in srgb, var(--success) 16%, transparent);
   color: color-mix(in srgb, var(--success-strong) 90%, var(--text-primary));
-  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
 }
 
 .field-error {
   margin-top: 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
-  line-height: 1.4;
-  color: color-mix(in srgb, var(--danger-strong) 90%, var(--text-primary));
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--danger-strong) 88%, var(--text-primary));
 }
 
 .input-invalid {
-  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 35%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 18%, transparent);
 }
 
 :host-context(.dark) {
   background:
     radial-gradient(
-      circle at top left,
-      color-mix(in srgb, var(--accent) 18%, transparent),
-      transparent 55%
+      120% 120% at 0% 0%,
+      color-mix(in srgb, var(--accent) 16%, transparent),
+      transparent
     ),
     radial-gradient(
-      circle at bottom right,
-      color-mix(in srgb, var(--accent-secondary) 18%, transparent),
-      transparent 55%
+      120% 120% at 100% 100%,
+      color-mix(in srgb, var(--accent-secondary) 16%, transparent),
+      transparent
     ),
     linear-gradient(
       180deg,
-      color-mix(in srgb, var(--surface-inverse) 40%, transparent),
-      color-mix(in srgb, var(--surface-inverse) 10%, transparent)
+      color-mix(in srgb, var(--surface) 85%, transparent),
+      color-mix(in srgb, var(--surface-strong) 55%, transparent)
     );
 }
 
-:host-context(.dark) .alert.notice {
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  color: color-mix(in srgb, var(--accent) 40%, var(--text-inverse-primary));
-}
-
-:host-context(.dark) .alert.error {
-  background: color-mix(in srgb, var(--danger) 18%, transparent);
-  color: color-mix(in srgb, var(--danger) 35%, var(--text-inverse-primary));
-  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
+:host-context(.dark) .panel-subtitle {
+  color: var(--text-tertiary);
 }
 
 :host-context(.dark) .panel-badge {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: color-mix(in srgb, var(--accent) 45%, var(--text-inverse-primary));
 }
 
 :host-context(.dark) .panel-badge.accent {
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
   background: color-mix(in srgb, var(--success) 20%, transparent);
   color: color-mix(in srgb, var(--success) 45%, var(--text-inverse-primary));
 }
 
-:host-context(.dark) .register-panel {
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--success) 28%, transparent),
-    color-mix(in srgb, var(--info) 24%, transparent)
-  );
-  border-color: color-mix(in srgb, var(--success) 40%, transparent);
-  box-shadow: 0 16px 36px color-mix(in srgb, var(--success) 25%, transparent);
+:host-context(.dark) .alert.notice {
+  color: color-mix(in srgb, var(--accent) 42%, var(--text-inverse-primary));
+}
+
+:host-context(.dark) .alert.error {
+  border-color: color-mix(in srgb, var(--danger) 38%, transparent);
+  background: color-mix(in srgb, var(--danger) 24%, transparent);
+  color: color-mix(in srgb, var(--danger) 42%, var(--text-inverse-primary));
 }
 
 :host-context(.dark) .alert.success {
-  background: color-mix(in srgb, var(--success) 20%, transparent);
-  color: color-mix(in srgb, var(--success) 38%, var(--text-inverse-primary));
-  border-color: color-mix(in srgb, var(--success) 35%, transparent);
-}
-
-:host-context(.dark) .field-error {
-  color: color-mix(in srgb, var(--danger) 35%, var(--text-inverse-primary));
-}
-
-:host-context(.dark) .input-invalid {
-  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 30%, transparent);
+  border-color: color-mix(in srgb, var(--success) 38%, transparent);
+  background: color-mix(in srgb, var(--success) 24%, transparent);
+  color: color-mix(in srgb, var(--success) 42%, var(--text-inverse-primary));
 }

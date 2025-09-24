@@ -17,8 +17,8 @@
 .help-dialog__backdrop {
   position: absolute;
   inset: 0;
-  background: color-mix(in srgb, var(--surface-inverse) 62%, transparent);
-  backdrop-filter: blur(14px);
+  background: var(--overlay-backdrop);
+  backdrop-filter: blur(10px);
 }
 
 .help-dialog__panel {
@@ -29,13 +29,8 @@
   overflow-y: auto;
   border-radius: 1.75rem;
   border: 1px solid var(--border-overlay);
-  background-color: var(--surface-overlay-strong);
-  background-image: linear-gradient(
-    145deg,
-    var(--surface-overlay-strong),
-    var(--surface-overlay-muted)
-  );
-  box-shadow: var(--shadow-strong);
+  background: linear-gradient(180deg, var(--surface-overlay-strong), var(--surface-overlay));
+  box-shadow: var(--shadow-soft);
   padding: clamp(1.5rem, 3vw, 2.5rem);
   display: flex;
   flex-direction: column;
@@ -85,19 +80,18 @@
   border: 1px solid var(--border-overlay);
   background: var(--surface-overlay);
   color: var(--text-secondary);
-  box-shadow: 0 16px 44px -30px color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: none;
   transition:
     transform 150ms ease,
-    box-shadow 150ms ease,
     border-color 150ms ease,
-    background-color 150ms ease;
+    background-color 150ms ease,
+    color 150ms ease;
 }
 
 .help-dialog__close:hover {
   transform: translateY(-1px);
   border-color: var(--border-overlay-strong);
   background: var(--surface-overlay-strong);
-  box-shadow: 0 22px 50px -28px color-mix(in srgb, var(--accent) 55%, transparent);
   color: var(--text-primary);
 }
 
@@ -130,10 +124,8 @@
   gap: 1rem;
   border-radius: 1.25rem;
   border: 1px solid var(--border-overlay);
-  background: var(--surface-overlay);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 45%, transparent),
-    0 20px 40px -32px color-mix(in srgb, var(--surface-inverse) 45%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay) 92%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 30%, transparent);
   overflow: hidden;
 }
 
@@ -170,9 +162,9 @@
 .help-dialog__faq-item {
   border-radius: 1rem;
   border: 1px solid var(--border-overlay);
-  background: var(--surface-overlay-muted);
+  background: color-mix(in srgb, var(--surface-overlay) 90%, transparent);
   padding: 1.25rem 1.5rem;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 40%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 25%, transparent);
 }
 
 .help-dialog__faq-question {

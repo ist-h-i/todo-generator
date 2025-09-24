@@ -23,13 +23,8 @@ app-profile-dialog .profile-dialog__panel {
   overflow-y: auto;
   border-radius: 1.5rem;
   border: 1px solid var(--border-overlay);
-  background-color: var(--surface-overlay-strong);
-  background-image: linear-gradient(
-    180deg,
-    var(--surface-overlay-strong),
-    var(--surface-overlay-muted)
-  );
-  box-shadow: var(--shadow-strong);
+  background: linear-gradient(180deg, var(--surface-overlay-strong), var(--surface-overlay));
+  box-shadow: var(--shadow-soft);
   padding: 2.25rem 2.5rem;
   display: flex;
   flex-direction: column;
@@ -78,7 +73,6 @@ app-profile-dialog .profile-dialog__close {
   color: var(--text-secondary);
   transition:
     transform 150ms ease,
-    box-shadow 150ms ease,
     background-color 150ms ease,
     border-color 150ms ease,
     color 150ms ease;
@@ -88,7 +82,6 @@ app-profile-dialog .profile-dialog__close:hover {
   transform: translateY(-1px);
   border-color: var(--border-overlay-strong);
   background: var(--surface-overlay-strong);
-  box-shadow: 0 18px 40px -28px color-mix(in srgb, var(--accent) 30%, transparent);
   color: var(--text-primary);
 }
 
@@ -164,7 +157,11 @@ app-profile-dialog .profile-dialog__avatar-preview {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent-strong) 35%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 30%, transparent),
+    color-mix(in srgb, var(--accent-strong) 35%, transparent)
+  );
   color: var(--text-secondary);
 }
 
@@ -210,7 +207,11 @@ app-profile-dialog .profile-dialog__link-button {
 
 app-profile-dialog .profile-dialog__button {
   border: 1px solid color-mix(in srgb, var(--accent-strong) 50%, transparent);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-strong) 15%, transparent), color-mix(in srgb, var(--accent-strong) 35%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-strong) 15%, transparent),
+    color-mix(in srgb, var(--accent-strong) 35%, transparent)
+  );
   color: var(--accent-strong);
 }
 
