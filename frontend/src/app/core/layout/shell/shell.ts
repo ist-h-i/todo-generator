@@ -119,10 +119,6 @@ export class Shell {
     void this.router.navigateByUrl('/login');
   };
 
-  public readonly openSettings = (): void => {
-    void this.router.navigateByUrl('/admin');
-  };
-
   public constructor() {
     this.setupSystemThemeListener();
   }

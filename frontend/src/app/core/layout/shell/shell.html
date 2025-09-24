@@ -114,33 +114,6 @@
             </span>
           </button>
 
-          @if (isAdmin()) {
-            <button
-              type="button"
-              class="shell-icon-action focus-ring"
-              (click)="openSettings()"
-              aria-label="管理者設定を開く"
-            >
-              <span class="shell-icon-action__icon">
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  class="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="m10.325 4.317 1.276-2.223a1 1 0 0 1 1.798 0l1.275 2.223a1 1 0 0 0 .748.517l2.487.362a1 1 0 0 1 .555 1.695l-1.799 1.754a1 1 0 0 0-.287.885l.425 2.472a1 1 0 0 1-1.451 1.054l-2.222-1.167a1 1 0 0 0-.934 0l-2.223 1.167a1 1 0 0 1-1.45-1.054l.424-2.472a1 1 0 0 0-.287-.885L5.83 6.891a1 1 0 0 1 .555-1.695l2.487-.362a1 1 0 0 0 .748-.517Z"
-                  />
-                  <circle cx="12" cy="12" r="2.25" />
-                </svg>
-              </span>
-            </button>
-          }
-
           @if (user()) {
             <button
               type="button"
