@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import uuid4
@@ -53,8 +52,6 @@ class User(Base, TimestampMixin):
     experience_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
     roles: Mapped[list[str]] = mapped_column(JSON, default=list)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
-    location: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    portfolio_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
     avatar_image: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     avatar_mime_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
 

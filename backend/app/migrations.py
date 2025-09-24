@@ -114,8 +114,6 @@ def _profile_column_types(dialect_name: str) -> dict[str, str]:
         "experience_years": "INTEGER",
         "roles": "JSON",
         "bio": "TEXT",
-        "location": "VARCHAR(120)",
-        "portfolio_url": "VARCHAR(255)",
         "avatar_image": "BLOB",
         "avatar_mime_type": "VARCHAR(64)",
     }

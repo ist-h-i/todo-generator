@@ -31,8 +31,6 @@ class UserProfile(UserRead):
     experience_years: Optional[int] = Field(default=None, ge=0, le=50)
     roles: List[str] = Field(default_factory=list)
     bio: Optional[str] = None
-    location: Optional[str] = None
-    portfolio_url: Optional[str] = None
     avatar_url: Optional[str] = None
 
     @model_validator(mode="before")

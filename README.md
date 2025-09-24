@@ -28,7 +28,7 @@ continuous-improvement tooling in one cohesive experience.
   coaching guidance.
 - **Admin controls & secure secrets** – Admin endpoints rotate external API credentials, configure
   default quotas, and override per-user limits so teams can tune automation safely.
-- **Profile management & avatars** – Users can update nicknames, biographies, locations, portfolio
+- **Profile management & avatars** – Users can update nicknames, biographies, and avatars
   URLs, and upload validated avatars directly from the UI, keeping the workspace personable.
 
 ## Repository Layout

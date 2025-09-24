@@ -8,8 +8,6 @@ export interface AuthenticatedUser {
   readonly experience_years: number | null;
   readonly roles: readonly string[];
   readonly bio: string | null;
-  readonly location: string | null;
-  readonly portfolio_url: string | null;
   readonly avatar_url: string | null;
 }
 

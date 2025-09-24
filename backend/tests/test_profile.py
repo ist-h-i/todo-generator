@@ -50,8 +50,6 @@ def test_profile_update_round_trip(client: TestClient, email: str) -> None:
         "experience_years": "7",
         "roles": json.dumps(["Java", "フロント"]),
         "bio": "Javaとフロントエンドの開発が得意です。",
-        "location": "東京都",
-        "portfolio_url": "https://example.com/portfolio",
     }
     files = {"avatar": ("avatar.png", avatar_bytes, "image/png")}
 
@@ -63,8 +61,6 @@ def test_profile_update_round_trip(client: TestClient, email: str) -> None:
     assert data["experience_years"] == 7
     assert data["roles"] == ["Java", "フロント"]
     assert data["bio"].startswith("Javaとフロントエンド")
-    assert data["location"] == "東京都"
-    assert data["portfolio_url"] == "https://example.com/portfolio"
     assert data["avatar_url"].startswith("data:image/webp;base64,")
 
     follow_up = client.get("/profile/me", headers=headers)
