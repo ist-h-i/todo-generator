@@ -19,6 +19,11 @@ import { createSignalForm } from '@lib/forms/signal-forms';
 import { ProfileFormState, ProfileUpdatePayload, UserProfile } from './profile.models';
 import { ProfileService } from './profile.service';
 
+interface RoleTreeOptionInput {
+  readonly label: string;
+  readonly value?: string;
+}
+
 interface RoleTreeOption {
   readonly label: string;
   readonly value: string;
@@ -26,7 +31,8 @@ interface RoleTreeOption {
 
 interface RoleTreeCategoryInput {
   readonly label: string;
-  readonly options?: readonly RoleTreeOption[];
+  readonly valuePrefix?: string;
+  readonly options?: readonly RoleTreeOptionInput[];
   readonly children?: readonly RoleTreeCategoryInput[];
 }
 
@@ -54,13 +60,14 @@ interface SelectedRoleDetail {
 const ROLE_TREE_DEFINITION = [
   {
     label: 'プロダクトマネジメント',
+    valuePrefix: 'プロダクトマネジメント',
     options: [
-      { label: 'プロダクトマネージャー', value: 'プロダクトマネージャー' },
-      { label: 'プロダクトオーナー', value: 'プロダクトオーナー' },
-      { label: 'スクラムマスター', value: 'スクラムマスター' },
-      { label: 'PMO', value: 'PMO' },
-      { label: 'ビジネスアナリスト', value: 'ビジネスアナリスト' },
-      { label: 'グロースマネージャー', value: 'グロースマネージャー' },
+      { label: 'プロダクトマネージャー' },
+      { label: 'プロダクトオーナー' },
+      { label: 'スクラムマスター' },
+      { label: 'PMO' },
+      { label: 'ビジネスアナリスト' },
+      { label: 'グロースマネージャー' },
     ],
   },
   {
@@ -68,95 +75,112 @@ const ROLE_TREE_DEFINITION = [
     children: [
       {
         label: 'フロントエンド',
+        valuePrefix: 'フロントエンド',
         options: [
-          { label: 'Webアプリケーション開発', value: 'Webアプリケーション開発' },
-          { label: 'モバイル・デスクトップアプリ', value: 'モバイル・デスクトップアプリ' },
-          { label: 'UI実装・デザインシステム', value: 'UI実装・デザインシステム' },
-          {
-            label: 'フロントエンドパフォーマンス最適化',
-            value: 'フロントエンドパフォーマンス最適化',
-          },
-          { label: 'アクセシビリティ改善', value: 'アクセシビリティ改善' },
+          { label: 'Webアプリケーション開発' },
+          { label: 'モバイル・デスクトップアプリ' },
+          { label: 'UI実装・デザインシステム' },
+          { label: 'フロントエンドパフォーマンス最適化' },
+          { label: 'アクセシビリティ改善' },
         ],
       },
       {
         label: 'バックエンド',
+        valuePrefix: 'バックエンド',
         options: [
-          { label: 'API・マイクロサービス開発', value: 'API・マイクロサービス開発' },
-          { label: 'バッチ・データ連携開発', value: 'バッチ・データ連携開発' },
-          { label: '認証基盤・セキュリティ', value: '認証基盤・セキュリティ' },
-          { label: 'バックエンドアーキテクチャ設計', value: 'バックエンドアーキテクチャ設計' },
-          { label: 'バックエンド性能最適化', value: 'バックエンド性能最適化' },
+          { label: 'API・マイクロサービス開発' },
+          { label: 'バッチ・データ連携開発' },
+          { label: '認証基盤・セキュリティ' },
+          { label: 'バックエンドアーキテクチャ設計' },
+          { label: 'バックエンド性能最適化' },
         ],
       },
       {
         label: 'モバイル / クライアント',
+        valuePrefix: 'モバイル',
         options: [
-          { label: 'iOSアプリ開発', value: 'iOSアプリ開発' },
-          { label: 'Androidアプリ開発', value: 'Androidアプリ開発' },
-          { label: 'クロスプラットフォーム開発', value: 'クロスプラットフォーム開発' },
-          { label: 'モバイルUX改善', value: 'モバイルUX改善' },
+          { label: 'iOSアプリ開発' },
+          { label: 'Androidアプリ開発' },
+          { label: 'クロスプラットフォーム開発' },
+          { label: 'モバイルUX改善' },
         ],
       },
       {
         label: 'インフラ / SRE',
+        valuePrefix: 'インフラ',
         options: [
-          { label: 'クラウドインフラ構築', value: 'クラウドインフラ構築' },
-          { label: 'CI/CD・DevOps', value: 'CI/CD・DevOps' },
-          { label: '監視・運用自動化', value: '監視・運用自動化' },
-          { label: 'ネットワーク設計・運用', value: 'ネットワーク設計・運用' },
-          { label: 'インフラコスト最適化', value: 'インフラコスト最適化' },
+          { label: 'クラウドインフラ構築' },
+          { label: 'CI/CD・DevOps' },
+          { label: '監視・運用自動化' },
+          { label: 'ネットワーク設計・運用' },
+          { label: 'インフラコスト最適化' },
         ],
       },
       {
         label: '品質保証',
+        valuePrefix: '品質保証',
         options: [
-          { label: 'QA計画・テスト設計', value: 'QA計画・テスト設計' },
-          { label: 'テスト自動化', value: 'テスト自動化' },
-          { label: '受け入れテスト支援', value: '受け入れテスト支援' },
-          { label: '品質指標設計', value: '品質指標設計' },
+          { label: 'QA計画・テスト設計' },
+          { label: 'テスト自動化' },
+          { label: '受け入れテスト支援' },
+          { label: '品質指標設計' },
         ],
       },
       {
         label: 'データ / AI',
+        valuePrefix: 'データ',
         options: [
-          { label: 'データ分析', value: 'データ分析' },
-          { label: '機械学習モデル開発', value: '機械学習モデル開発' },
-          { label: 'データ基盤構築', value: 'データ基盤構築' },
-          { label: 'データエンジニアリング', value: 'データエンジニアリング' },
-          { label: 'MLOps構築', value: 'MLOps構築' },
+          { label: 'データ分析' },
+          { label: '機械学習モデル開発' },
+          { label: 'データ基盤構築' },
+          { label: 'データエンジニアリング' },
+          { label: 'MLOps構築' },
         ],
       },
       {
         label: 'フルスタック',
+        valuePrefix: 'フルスタック',
         options: [
-          { label: 'フルスタック開発', value: 'フルスタック開発' },
-          { label: '技術選定・アーキテクチャ', value: '技術選定・アーキテクチャ' },
+          { label: 'フルスタック開発' },
+          { label: '技術選定・アーキテクチャ' },
         ],
       },
     ],
   },
   {
     label: 'クリエイティブ / リサーチ',
+    valuePrefix: 'クリエイティブ',
     options: [
-      { label: 'UXリサーチ', value: 'UXリサーチ' },
-      { label: 'UI・ビジュアルデザイン', value: 'UI・ビジュアルデザイン' },
-      { label: 'サービスデザイン', value: 'サービスデザイン' },
-      { label: 'テクニカルライティング', value: 'テクニカルライティング' },
-      { label: 'プロダクトブランディング', value: 'プロダクトブランディング' },
+      { label: 'UXリサーチ' },
+      { label: 'UI・ビジュアルデザイン' },
+      { label: 'サービスデザイン' },
+      { label: 'テクニカルライティング' },
+      { label: 'プロダクトブランディング' },
     ],
   },
   {
     label: 'ビジネスサポート',
+    valuePrefix: 'ビジネスサポート',
     options: [
-      { label: 'カスタマーサクセス', value: 'カスタマーサクセス' },
-      { label: 'セールスエンジニア', value: 'セールスエンジニア' },
-      { label: '教育・オンボーディング', value: '教育・オンボーディング' },
-      { label: 'サポートドキュメント整備', value: 'サポートドキュメント整備' },
-      { label: 'テクニカルトレーニング', value: 'テクニカルトレーニング' },
+      { label: 'カスタマーサクセス' },
+      { label: 'セールスエンジニア' },
+      { label: '教育・オンボーディング' },
+      { label: 'サポートドキュメント整備' },
+      { label: 'テクニカルトレーニング' },
     ],
   },
 ] satisfies readonly RoleTreeCategoryInput[];
+
+function deriveValuePrefix(label: string): string {
+  const separatorIndex = label.indexOf(' / ');
+  if (separatorIndex !== -1) {
+    const prefix = label.slice(0, separatorIndex).trim();
+    if (prefix) {
+      return prefix;
+    }
+  }
+  return label;
+}
 
 const ROLE_TREE: readonly RoleTreeCategory[] = (() => {
   let categoryIdSequence = 0;
@@ -169,7 +193,11 @@ const ROLE_TREE: readonly RoleTreeCategory[] = (() => {
     for (const category of categories) {
       const path = [...ancestors, category.label];
       const id = `role-category-${categoryIdSequence++}`;
-      const options = category.options ?? [];
+      const valuePrefix = category.valuePrefix ?? deriveValuePrefix(category.label);
+      const options = (category.options ?? []).map<RoleTreeOption>((option) => {
+        const value = option.value ?? `${valuePrefix} / ${option.label}`;
+        return { label: option.label, value };
+      });
       const children = build(category.children ?? [], path);
       const allOptionValues: string[] = [];
       for (const option of options) {
@@ -241,94 +269,6 @@ function flattenRoleOptions(
 const ROLE_OPTIONS = flattenRoleOptions(ROLE_TREE);
 const ROLE_OPTION_LOOKUP = new Map(ROLE_OPTIONS.map((option) => [option.value, option] as const));
 
-const ROLE_TREE: readonly RoleTreeCategory[] = [
-  {
-    label: 'プロダクトマネジメント',
-    options: [
-      { label: 'プロダクトマネージャー', value: 'プロダクトマネジメント / プロダクトマネージャー' },
-      { label: 'スクラムマスター', value: 'プロダクトマネジメント / スクラムマスター' },
-      { label: 'PMO', value: 'プロダクトマネジメント / PMO' },
-    ],
-  },
-  {
-    label: 'ソフトウェアエンジニアリング',
-    children: [
-      {
-        label: 'フロントエンド',
-        options: [
-          { label: 'Webアプリケーション開発', value: 'フロントエンド / Webアプリケーション開発' },
-          {
-            label: 'モバイル・デスクトップアプリ',
-            value: 'フロントエンド / モバイル・デスクトップアプリ',
-          },
-          { label: 'UI実装・デザインシステム', value: 'フロントエンド / UI実装・デザインシステム' },
-        ],
-      },
-      {
-        label: 'バックエンド',
-        options: [
-          { label: 'API・マイクロサービス開発', value: 'バックエンド / API・マイクロサービス開発' },
-          { label: 'バッチ・データ連携開発', value: 'バックエンド / バッチ・データ連携開発' },
-          { label: '認証基盤・セキュリティ', value: 'バックエンド / 認証基盤・セキュリティ' },
-        ],
-      },
-      {
-        label: 'モバイル / クライアント',
-        options: [
-          { label: 'iOSアプリ開発', value: 'モバイル / iOSアプリ開発' },
-          { label: 'Androidアプリ開発', value: 'モバイル / Androidアプリ開発' },
-          { label: 'クロスプラットフォーム開発', value: 'モバイル / クロスプラットフォーム開発' },
-        ],
-      },
-      {
-        label: 'インフラ / SRE',
-        options: [
-          { label: 'クラウドインフラ構築', value: 'インフラ / クラウドインフラ構築' },
-          { label: 'CI/CD・DevOps', value: 'インフラ / CI/CD・DevOps' },
-          { label: '監視・運用自動化', value: 'インフラ / 監視・運用自動化' },
-        ],
-      },
-      {
-        label: '品質保証',
-        options: [
-          { label: 'QA計画・テスト設計', value: '品質保証 / QA計画・テスト設計' },
-          { label: 'テスト自動化', value: '品質保証 / テスト自動化' },
-          { label: '受け入れテスト支援', value: '品質保証 / 受け入れテスト支援' },
-        ],
-      },
-      {
-        label: 'データ / AI',
-        options: [
-          { label: 'データ分析', value: 'データ / データ分析' },
-          { label: '機械学習モデル開発', value: 'データ / 機械学習モデル開発' },
-          { label: 'データ基盤構築', value: 'データ / データ基盤構築' },
-        ],
-      },
-      {
-        label: 'フルスタック',
-        options: [{ label: 'フルスタック開発', value: 'フルスタック / アプリケーション開発' }],
-      },
-    ],
-  },
-  {
-    label: 'クリエイティブ / リサーチ',
-    options: [
-      { label: 'UXリサーチ', value: 'クリエイティブ / UXリサーチ' },
-      { label: 'UI/ビジュアルデザイン', value: 'クリエイティブ / UI・ビジュアルデザイン' },
-      { label: 'テクニカルライティング', value: 'クリエイティブ / テクニカルライティング' },
-    ],
-  },
-  {
-    label: 'ビジネスサポート',
-    options: [
-      { label: 'カスタマーサクセス', value: 'ビジネスサポート / カスタマーサクセス' },
-      { label: 'セールスエンジニア', value: 'ビジネスサポート / セールスエンジニア' },
-      { label: '教育・オンボーディング', value: 'ビジネスサポート / 教育・オンボーディング' },
-    ],
-  },
-];
-
-
 const MAX_NICKNAME_LENGTH = 30;
 const MAX_BIO_LENGTH = 500;
 const MAX_EXPERIENCE_YEARS = 50;
@@ -355,7 +295,6 @@ export class ProfileDialogComponent implements AfterViewInit {
   private readonly profileService = inject(ProfileService);
 
   public readonly roleCategories = ROLE_TREE;
-  public readonly locationOptions = LOCATION_OPTIONS;
   public readonly maxBioLength = MAX_BIO_LENGTH;
   public readonly maxCustomRoleLength = MAX_CUSTOM_ROLE_LENGTH;
   public readonly maxRoles = MAX_ROLES;
@@ -478,38 +417,11 @@ export class ProfileDialogComponent implements AfterViewInit {
     return null;
   });
 
-  public readonly portfolioError = computed(() => {
-    if (!this.portfolioTouched()) {
-      return null;
-    }
-
-    const value = this.form.controls.portfolioUrl.value().trim();
-    if (!value) {
-      return null;
-    }
-
-    if (value.length > MAX_PORTFOLIO_LENGTH) {
-      return `ポートフォリオURLは${MAX_PORTFOLIO_LENGTH}文字以内で入力してください。`;
-    }
-
-    try {
-      const url = new URL(value);
-      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-        return 'ポートフォリオURLは http または https で始まる必要があります。';
-      }
-    } catch {
-      return '有効なURLを入力してください。';
-    }
-
-    return null;
-  });
-
   public readonly hasValidationErrors = computed(() =>
     Boolean(
       this.nicknameError() ||
         this.experienceError() ||
         this.bioError() ||
-        this.portfolioError() ||
         this.rolesError(),
     ),
   );
@@ -651,19 +563,6 @@ export class ProfileDialogComponent implements AfterViewInit {
     const target = event.target as HTMLTextAreaElement | null;
     const value = target?.value ?? '';
     this.form.controls.bio.setValue(value);
-  }
-
-  public onLocationChange(event: Event): void {
-    const target = event.target as HTMLSelectElement | null;
-    const value = target?.value ?? '';
-    this.form.controls.location.setValue(value === '未設定' ? '' : value);
-  }
-
-  public onPortfolioInput(event: Event): void {
-    this.portfolioTouched.set(true);
-    const target = event.target as HTMLInputElement | null;
-    const value = target?.value ?? '';
-    this.form.controls.portfolioUrl.setValue(value);
   }
 
   public onCustomRoleInput(event: Event): void {
