@@ -40,6 +40,28 @@ def _card_query(db: Session, *, owner_id: str | None = None):
     return query
 
 
+_DONE_STATUS_TOKENS = {"done", "completed", "完了"}
+
+
+def _status_is_done(status: models.Status | None) -> bool:
+    if status is None:
+        return False
+
+    category = (status.category or "").strip().lower()
+    if category == "done":
+        return True
+
+    name = (status.name or "").strip().lower()
+    return name in _DONE_STATUS_TOKENS
+
+
+def _subtask_status_is_done(value: str | None) -> bool:
+    if not value:
+        return False
+
+    return value.strip().lower() in _DONE_STATUS_TOKENS
+
+
 def _load_owned_labels(db: Session, *, label_ids: list[str], owner_id: str) -> list[models.Label]:
     if not label_ids:
         return []
@@ -299,6 +321,7 @@ def create_card(
         initiative_id=payload.initiative_id,
     )
 
+    status_obj = db.get(models.Status, payload.status_id) if payload.status_id else None
     labels = _load_owned_labels(
         db, label_ids=list(payload.label_ids or []), owner_id=current_user.id
     )
@@ -324,11 +347,19 @@ def create_card(
         owner=current_user,
     )
 
+    if status_obj:
+        card.status = status_obj
+        if _status_is_done(status_obj):
+            card.completed_at = datetime.now(timezone.utc)
+
     if labels:
         card.labels = labels
 
     for subtask_data in payload.subtasks:
-        card.subtasks.append(models.Subtask(**subtask_data.model_dump()))
+        subtask = models.Subtask(**subtask_data.model_dump())
+        if _subtask_status_is_done(subtask.status):
+            subtask.completed_at = datetime.now(timezone.utc)
+        card.subtasks.append(subtask)
 
     db.add(card)
     record_activity(db, action="card_created", card_id=card.id, actor_id=current_user.id)
@@ -358,6 +389,9 @@ def update_card(
     update_data = payload.model_dump(exclude_unset=True)
     label_ids = update_data.pop("label_ids", None)
 
+    previous_status = card.status
+    status_was_done = _status_is_done(previous_status)
+
     _validate_related_entities(
         db,
         owner_id=current_user.id,
@@ -366,6 +400,11 @@ def update_card(
         initiative_id=update_data.get("initiative_id"),
     )
 
+    new_status = previous_status
+    if "status_id" in update_data:
+        status_id = update_data.get("status_id")
+        new_status = db.get(models.Status, status_id) if status_id else None
+
     apply_updates(card, update_data)
 
     if label_ids is not None:
@@ -373,6 +412,15 @@ def update_card(
             db, label_ids=list(label_ids or []), owner_id=current_user.id
         )
         card.labels = labels
+
+    if "status_id" in update_data:
+        card.status = new_status
+
+    status_is_done = _status_is_done(card.status)
+    if status_is_done and not status_was_done and card.completed_at is None:
+        card.completed_at = datetime.now(timezone.utc)
+    elif not status_is_done and status_was_done:
+        card.completed_at = None
 
     db.add(card)
     record_activity(db, action="card_updated", card_id=card.id, actor_id=current_user.id)
@@ -446,6 +494,8 @@ def create_subtask(
     )
 
     subtask = models.Subtask(card_id=card_id, **payload.model_dump())
+    if _subtask_status_is_done(subtask.status):
+        subtask.completed_at = datetime.now(timezone.utc)
     db.add(subtask)
     record_activity(
         db,
@@ -484,8 +534,17 @@ def update_subtask(
     if subtask.card_id != card_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
+    previous_status = subtask.status
+    status_was_done = _subtask_status_is_done(previous_status)
+
     updates = payload.model_dump(exclude_unset=True)
     apply_updates(subtask, updates)
+
+    status_is_done = _subtask_status_is_done(subtask.status)
+    if status_is_done and not status_was_done and subtask.completed_at is None:
+        subtask.completed_at = datetime.now(timezone.utc)
+    elif not status_is_done and status_was_done:
+        subtask.completed_at = None
 
     db.add(subtask)
     record_activity(

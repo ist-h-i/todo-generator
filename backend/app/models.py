@@ -141,6 +141,7 @@ class Card(Base, TimestampMixin):
     )
     ai_similarity_vector_id: Mapped[str | None] = mapped_column(String)
     analytics_notes: Mapped[str | None] = mapped_column(Text)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     labels: Mapped[list[Label]] = relationship(
@@ -204,6 +205,7 @@ class Subtask(Base, TimestampMixin):
     root_cause_node_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("root_cause_nodes.id", ondelete="SET NULL"), nullable=True
     )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     card: Mapped[Card] = relationship("Card", back_populates="subtasks")
     root_cause_node: Mapped[Optional["RootCauseNode"]] = relationship("RootCauseNode", back_populates="subtasks")

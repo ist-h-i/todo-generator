@@ -260,9 +260,11 @@ class CompetencyEvaluator:
         return start_dt, end_dt
 
     def _completion_timestamp(self, obj: models.Card | models.Subtask) -> datetime | None:
-        updated = self._normalize_datetime(getattr(obj, "updated_at", None))
-        created = self._normalize_datetime(getattr(obj, "created_at", None))
-        return updated or created
+        completed = self._normalize_datetime(getattr(obj, "completed_at", None))
+        if completed:
+            return completed
+
+        return self._normalize_datetime(getattr(obj, "created_at", None))
 
     @staticmethod
     def _normalize_datetime(value: datetime | None) -> datetime | None:
