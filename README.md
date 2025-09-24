@@ -1,34 +1,35 @@
 # Todo Generator
 
-Todo Generator is a full-stack reference implementation of a productivity system that turns
-free-form notes about bugs, mistakes, or improvement ideas into structured work. The project
-contains an Angular 20 single-page application and a FastAPI backend that collaborates to
-capture AI-generated task proposals, manage kanban-style boards, explore analytics, and produce
-continuous-improvement reports.
+Todo Generator is a full-stack productivity workspace that turns free-form notes about bugs,
+mistakes, or improvement ideas into structured work. An Angular 20 single-page application pairs
+with a FastAPI backend to provide AI-assisted intake, authenticated workspaces, analytics, and
+continuous-improvement tooling in one cohesive experience.
 
-## Key Capabilities
+## Feature Highlights
 
-- **AI-first intake & triage** – The `/analysis` endpoint calls the ChatGPT Responses API to
-  convert free-form notes into validated proposals with titles, summaries, labels, priority,
-  due-date guidance, and subtasks that align with the backend schema before humans approve
-  new cards.
-- **Collaborative board & filtering** – Cards capture statuses, labels, priorities, assignees,
-  error categories, initiatives, subtasks, comments, and activity history, while saved filters,
-  advanced search facets, and workspace preferences keep the kanban board focused on the
-  highest-impact work.
-- **Similarity & analytics intelligence** – Analytics snapshots, multi-depth Why-Why analyses,
-  and `/cards/{id}/similar` recommendations surface recurring issues, related cards and
-  subtasks, and the error categories driving them so teams can diagnose patterns faster.
-- **Guided improvements & initiatives** – Suggested actions store effort and impact metadata,
-  convert into linked cards in one click, and roll up to improvement initiatives with progress
-  logs and health metrics to keep remediation plans on track.
-- **Narrative reporting & storytelling** – Report templates and the generator blend analytics
-  highlights, root-cause findings, initiative updates, and action plans into shareable
-  narratives ready for stakeholders.
-- **Extensible architecture & tooling** – FastAPI routers expose typed OpenAPI endpoints,
-  the Angular 20 frontend leans on signal-first patterns with Tailwind-powered dark mode, and
-  automation hooks (activity logging, MCP manifests, conflict-resolution workflows) make the
-  stack integration friendly.
+- **AI-first intake & triage** – The `/analysis` endpoint calls the ChatGPT Responses API to turn
+  free-form notes into validated proposals with titles, summaries, labels, priorities, due-date
+  guidance, and subtasks aligned with the backend schema before humans publish new cards.
+- **Authenticated workspaces** – Email/password registration, login, and session tokens secure each
+  workspace while `/auth/me` exposes the current profile for the frontend to hydrate state.
+- **Board collaboration & history** – Card APIs enforce daily creation quotas, manage subtasks,
+  labels, initiatives, and similarity scoring, while comments and the activity log capture
+  discussions and automated events for every card.
+- **Saved filters & layout preferences** – Users persist personalized board layouts and reusable
+  search filters to focus kanban views on the most relevant workstreams.
+- **Analytics & root-cause intelligence** – Analytics snapshots, Why-Why investigations, and
+  suggested actions surface recurring issues, generate remediation plans, and convert actions into
+  linked cards when teams are ready to execute.
+- **Initiatives & narrative reporting** – Improvement initiatives track progress, health, and linked
+  cards, while report templates assemble analytics, root-cause findings, and initiative updates into
+  stakeholder-ready narratives.
+- **Competency development** – Administrators define competency rubrics, trigger evaluations, and
+  respect daily evaluation quotas, with scoring driven by workspace activity to build actionable
+  coaching guidance.
+- **Admin controls & secure secrets** – Admin endpoints rotate external API credentials, configure
+  default quotas, and override per-user limits so teams can tune automation safely.
+- **Profile management & avatars** – Users can update nicknames, biographies, locations, portfolio
+  URLs, and upload validated avatars directly from the UI, keeping the workspace personable.
 
 ## Repository Layout
 
@@ -37,6 +38,7 @@ continuous-improvement reports.
 ├── backend/                # FastAPI service, SQLAlchemy models, and pytest suite
 ├── frontend/               # Angular 20 application and Tailwind configuration
 ├── docs/                   # Product requirements and development guidelines
+├── scripts/                # Automation helpers (auto-resolve workflow)
 └── start-localhost.bat     # Convenience script to boot backend + frontend on Windows
 ```
 
@@ -50,6 +52,7 @@ requirements that describe the product vision in detail.
 - Python 3.11+ (for the backend FastAPI service)
 - Node.js 20+ and npm (for the Angular frontend)
 - SQLite is bundled by default; configure `DATABASE_URL` to use PostgreSQL or another engine.
+- An `OPENAI_API_KEY` enables the AI analysis endpoint during local development.
 
 ### One-click startup on Windows
 
@@ -72,6 +75,8 @@ launches:
    python -m venv .venv
    source .venv/bin/activate
    pip install -r backend/requirements.txt
+   # Optional: linting/formatting helpers
+   pip install -r backend/requirements-dev.txt
    uvicorn app.main:app --app-dir backend --reload
    ```
 
@@ -82,6 +87,8 @@ launches:
    npm start
    ```
 
+### Environment variables
+
 The backend automatically creates an SQLite database (`todo.db`) on first run. Configure
 additional settings through environment variables defined in `backend/app/config.py`:
 
@@ -90,18 +97,23 @@ additional settings through environment variables defined in `backend/app/config
 - `CHATGPT_MODEL` – Logical model name surfaced by the analysis endpoint
 - `OPENAI_API_KEY` – Secret used by the backend to authenticate ChatGPT requests
 - `ALLOWED_ORIGINS` – Comma-separated list of frontend origins permitted for CORS (default `http://localhost:4200`)
+- `SECRET_ENCRYPTION_KEY` – Key used to encrypt stored API credentials; falls back to the ChatGPT key when unspecified.
 
 ## Running Tests & Quality Checks
 
 Run the automated test suites before opening a pull request:
 
 ```bash
-# Backend API tests
+# Backend API tests and linters
 pytest backend/tests
+ruff check backend
+black --check backend/app backend/tests
 
-# Frontend unit tests (Karma)
+# Frontend unit tests (Karma) and formatting
 cd frontend
 npm test
+npm run lint
+npm run format:check
 ```
 
 The frontend also supports `npm run build` to produce a production bundle under `dist/`.
@@ -157,10 +169,12 @@ your own fork or deployment.
 ## API & Tooling Highlights
 
 - Swagger UI: <http://localhost:8000/docs>
+- `backend/app/main.py` wires routers for analysis, analytics, auth, cards, filters, initiatives,
+  reports, competency workflows, admin tooling, and more so the API surface stays modular.
 - Activity logging helpers in `backend/app/utils/activity.py` automatically capture meaningful
   changes to cards, subtasks, and analytics artefacts.
-- The analysis service in `backend/app/services/chatgpt.py` connects directly to ChatGPT using
-  an OpenAI API key and enforces structured JSON responses for predictable integrations.
+- The analysis service in `backend/app/services/chatgpt.py` connects directly to ChatGPT using an
+  OpenAI API key and enforces structured JSON responses for predictable integrations.
 
 ## Further Reading
 
