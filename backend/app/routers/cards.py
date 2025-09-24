@@ -114,6 +114,39 @@ def _card_query(db: Session, *, owner_id: Optional[str] = None):
     return query
 
 
+def _ensure_owned_status(db: Session, *, status_id: str, owner_id: str) -> None:
+    status = db.get(models.Status, status_id)
+    if not status or status.owner_id != owner_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Status not found")
+
+
+def _ensure_owned_error_category(db: Session, *, category_id: str, owner_id: str) -> None:
+    category = db.get(models.ErrorCategory, category_id)
+    if not category or category.owner_id != owner_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Error category not found")
+
+
+def _ensure_owned_initiative(db: Session, *, initiative_id: str, owner_id: str) -> None:
+    initiative = db.get(models.ImprovementInitiative, initiative_id)
+    if not initiative or initiative.owner_id != owner_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
+
+
+def _load_owned_labels(db: Session, *, label_ids: list[str], owner_id: str) -> list[models.Label]:
+    if not label_ids:
+        return []
+
+    unique_ids = list({label_id for label_id in label_ids})
+    labels = (
+        db.query(models.Label)
+        .filter(models.Label.id.in_(unique_ids), models.Label.owner_id == owner_id)
+        .all()
+    )
+    if len(labels) != len(unique_ids):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
+    return labels
+
+
 def _derive_created_from(time_range: str) -> Optional[datetime]:
     value = (time_range or "").strip().lower()
     if not value:
@@ -300,6 +333,21 @@ def create_card(
             detail=_DAILY_CARD_LIMIT_MESSAGE,
         )
 
+    if payload.status_id:
+        _ensure_owned_status(db, status_id=payload.status_id, owner_id=current_user.id)
+    if payload.error_category_id:
+        _ensure_owned_error_category(
+            db, category_id=payload.error_category_id, owner_id=current_user.id
+        )
+    if payload.initiative_id:
+        _ensure_owned_initiative(
+            db, initiative_id=payload.initiative_id, owner_id=current_user.id
+        )
+
+    labels = _load_owned_labels(
+        db, label_ids=list(payload.label_ids or []), owner_id=current_user.id
+    )
+
     card = models.Card(
         title=payload.title,
         summary=payload.summary,
@@ -321,8 +369,7 @@ def create_card(
         owner=current_user,
     )
 
-    if payload.label_ids:
-        labels = db.query(models.Label).filter(models.Label.id.in_(payload.label_ids)).all()
+    if labels:
         card.labels = labels
 
     for subtask_data in payload.subtasks:
@@ -366,11 +413,24 @@ def update_card(
     update_data = payload.model_dump(exclude_unset=True)
     label_ids = update_data.pop("label_ids", None)
 
+    if "status_id" in update_data and update_data["status_id"]:
+        _ensure_owned_status(db, status_id=update_data["status_id"], owner_id=current_user.id)
+    if "error_category_id" in update_data and update_data["error_category_id"]:
+        _ensure_owned_error_category(
+            db, category_id=update_data["error_category_id"], owner_id=current_user.id
+        )
+    if "initiative_id" in update_data and update_data["initiative_id"]:
+        _ensure_owned_initiative(
+            db, initiative_id=update_data["initiative_id"], owner_id=current_user.id
+        )
+
     for key, value in update_data.items():
         setattr(card, key, value)
 
     if label_ids is not None:
-        labels = db.query(models.Label).filter(models.Label.id.in_(label_ids)).all()
+        labels = _load_owned_labels(
+            db, label_ids=list(label_ids or []), owner_id=current_user.id
+        )
         card.labels = labels
 
     db.add(card)
@@ -553,12 +613,18 @@ def get_similar_items(
     card_id: str,
     limit: int = Query(default=8, ge=1, le=50),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> schemas.SimilarItemsResponse:
-    base_card = _card_query(db).filter(models.Card.id == card_id).first()
+    base_card = _card_query(db, owner_id=current_user.id).filter(models.Card.id == card_id).first()
     if not base_card:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
-    candidates = _card_query(db).filter(models.Card.id != card_id).order_by(models.Card.created_at.desc()).all()
+    candidates = (
+        _card_query(db, owner_id=current_user.id)
+        .filter(models.Card.id != card_id)
+        .order_by(models.Card.created_at.desc())
+        .all()
+    )
     items = _build_similar_items(base_card, candidates)
     return schemas.SimilarItemsResponse(items=items[:limit])
 
@@ -573,10 +639,23 @@ def record_similarity_feedback(
     related_id: str,
     payload: schemas.SimilarityFeedbackRequest,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> Response:
     card = db.get(models.Card, card_id)
-    if not card:
+    if not card or card.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+
+    if payload.related_type == "card":
+        related_card = db.get(models.Card, related_id)
+        if not related_card or related_card.owner_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Related card not found")
+    elif payload.related_type == "subtask":
+        subtask = db.get(models.Subtask, related_id)
+        if not subtask:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Related subtask not found")
+        related_card = db.get(models.Card, subtask.card_id)
+        if not related_card or related_card.owner_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Related subtask not found")
 
     feedback = models.SimilarityFeedback(
         card_id=card_id,

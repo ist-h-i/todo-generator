@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from .. import models, schemas
+from ..auth import get_current_user
 from ..database import get_db
 
 router = APIRouter(prefix="/initiatives", tags=["initiatives"])
@@ -19,27 +20,29 @@ def _initiative_query(db: Session):
 @router.get("/", response_model=List[schemas.ImprovementInitiativeRead])
 def list_initiatives(
     status_filter: Optional[str] = Query(default=None),
-    owner: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> List[models.ImprovementInitiative]:
-    query = _initiative_query(db)
+    query = _initiative_query(db).filter(models.ImprovementInitiative.owner_id == current_user.id)
     if status_filter:
         query = query.filter(models.ImprovementInitiative.status == status_filter)
-    if owner:
-        query = query.filter(models.ImprovementInitiative.owner == owner)
     return query.order_by(models.ImprovementInitiative.created_at.desc()).all()
 
 
 @router.post("/", response_model=schemas.ImprovementInitiativeRead, status_code=status.HTTP_201_CREATED)
-def create_initiative(payload: schemas.InitiativeCreate, db: Session = Depends(get_db)) -> models.ImprovementInitiative:
+def create_initiative(
+    payload: schemas.InitiativeCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> models.ImprovementInitiative:
     initiative = models.ImprovementInitiative(
         name=payload.name,
         description=payload.description,
-        owner=payload.owner,
         start_date=payload.start_date,
         target_metrics=payload.target_metrics,
         status=payload.status,
         health=payload.health,
+        owner_id=current_user.id,
     )
     db.add(initiative)
     db.commit()
@@ -48,8 +51,19 @@ def create_initiative(payload: schemas.InitiativeCreate, db: Session = Depends(g
 
 
 @router.get("/{initiative_id}", response_model=schemas.ImprovementInitiativeRead)
-def get_initiative(initiative_id: str, db: Session = Depends(get_db)) -> models.ImprovementInitiative:
-    initiative = _initiative_query(db).filter(models.ImprovementInitiative.id == initiative_id).first()
+def get_initiative(
+    initiative_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> models.ImprovementInitiative:
+    initiative = (
+        _initiative_query(db)
+        .filter(
+            models.ImprovementInitiative.id == initiative_id,
+            models.ImprovementInitiative.owner_id == current_user.id,
+        )
+        .first()
+    )
     if not initiative:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
     return initiative
@@ -60,12 +74,23 @@ def update_initiative(
     initiative_id: str,
     payload: schemas.InitiativeUpdate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> models.ImprovementInitiative:
-    initiative = _initiative_query(db).filter(models.ImprovementInitiative.id == initiative_id).first()
+    initiative = (
+        _initiative_query(db)
+        .filter(
+            models.ImprovementInitiative.id == initiative_id,
+            models.ImprovementInitiative.owner_id == current_user.id,
+        )
+        .first()
+    )
     if not initiative:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
 
-    for key, value in payload.model_dump(exclude_unset=True).items():
+    update_data = payload.model_dump(exclude_unset=True)
+    update_data.pop("owner", None)
+
+    for key, value in update_data.items():
         setattr(initiative, key, value)
 
     db.add(initiative)
@@ -83,9 +108,10 @@ def add_progress_log(
     initiative_id: str,
     payload: schemas.InitiativeProgressLogCreate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> models.InitiativeProgressLog:
     initiative = db.get(models.ImprovementInitiative, initiative_id)
-    if not initiative:
+    if not initiative or initiative.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
 
     log = models.InitiativeProgressLog(
@@ -102,9 +128,13 @@ def add_progress_log(
 
 
 @router.get("/{initiative_id}/progress", response_model=List[schemas.InitiativeProgressLogRead])
-def list_progress_logs(initiative_id: str, db: Session = Depends(get_db)) -> List[models.InitiativeProgressLog]:
+def list_progress_logs(
+    initiative_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> List[models.InitiativeProgressLog]:
     initiative = db.get(models.ImprovementInitiative, initiative_id)
-    if not initiative:
+    if not initiative or initiative.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
 
     return (
@@ -116,9 +146,13 @@ def list_progress_logs(initiative_id: str, db: Session = Depends(get_db)) -> Lis
 
 
 @router.get("/{initiative_id}/cards", response_model=List[schemas.CardRead])
-def list_initiative_cards(initiative_id: str, db: Session = Depends(get_db)) -> List[models.Card]:
+def list_initiative_cards(
+    initiative_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> List[models.Card]:
     initiative = db.get(models.ImprovementInitiative, initiative_id)
-    if not initiative:
+    if not initiative or initiative.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
 
     return (
@@ -128,7 +162,10 @@ def list_initiative_cards(initiative_id: str, db: Session = Depends(get_db)) -> 
             selectinload(models.Card.subtasks),
             joinedload(models.Card.status),
         )
-        .filter(models.Card.initiative_id == initiative_id)
+        .filter(
+            models.Card.initiative_id == initiative_id,
+            models.Card.owner_id == current_user.id,
+        )
         .order_by(models.Card.created_at.desc())
         .all()
     )

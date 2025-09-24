@@ -6,19 +6,32 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..auth import get_current_user
 from ..database import get_db
 
 router = APIRouter(prefix="/labels", tags=["labels"])
 
 
 @router.get("/", response_model=List[schemas.LabelRead])
-def list_labels(db: Session = Depends(get_db)) -> List[models.Label]:
-    return db.query(models.Label).order_by(models.Label.name).all()
+def list_labels(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> List[models.Label]:
+    return (
+        db.query(models.Label)
+        .filter(models.Label.owner_id == current_user.id)
+        .order_by(models.Label.name)
+        .all()
+    )
 
 
 @router.post("/", response_model=schemas.LabelRead, status_code=status.HTTP_201_CREATED)
-def create_label(payload: schemas.LabelCreate, db: Session = Depends(get_db)) -> models.Label:
-    label = models.Label(**payload.model_dump())
+def create_label(
+    payload: schemas.LabelCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> models.Label:
+    label = models.Label(owner_id=current_user.id, **payload.model_dump())
     db.add(label)
     db.commit()
     db.refresh(label)
@@ -26,9 +39,14 @@ def create_label(payload: schemas.LabelCreate, db: Session = Depends(get_db)) ->
 
 
 @router.put("/{label_id}", response_model=schemas.LabelRead)
-def update_label(label_id: str, payload: schemas.LabelUpdate, db: Session = Depends(get_db)) -> models.Label:
+def update_label(
+    label_id: str,
+    payload: schemas.LabelUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> models.Label:
     label = db.get(models.Label, label_id)
-    if not label:
+    if not label or label.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
 
     for key, value in payload.model_dump(exclude_unset=True).items():
@@ -45,9 +63,13 @@ def update_label(label_id: str, payload: schemas.LabelUpdate, db: Session = Depe
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
 )
-def delete_label(label_id: str, db: Session = Depends(get_db)) -> Response:
+def delete_label(
+    label_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> Response:
     label = db.get(models.Label, label_id)
-    if not label:
+    if not label or label.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
 
     db.delete(label)

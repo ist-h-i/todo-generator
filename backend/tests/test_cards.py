@@ -230,3 +230,123 @@ def test_card_creation_daily_limit(client: TestClient) -> None:
         limit_response.json()["detail"]
         == f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached."
     )
+
+
+def test_status_and_label_scoping(client: TestClient) -> None:
+    owner_headers = register_and_login(client, "owner-scope@example.com")
+    status_response = client.post(
+        "/statuses",
+        json={"name": "Todo", "category": "todo", "order": 1},
+        headers=owner_headers,
+    )
+    assert status_response.status_code == 201
+    status_id = status_response.json()["id"]
+
+    label_response = client.post(
+        "/labels",
+        json={"name": "Backend", "color": "#123456"},
+        headers=owner_headers,
+    )
+    assert label_response.status_code == 201
+    label_id = label_response.json()["id"]
+
+    other_headers = register_and_login(client, "other-scope@example.com")
+
+    status_list_other = client.get("/statuses", headers=other_headers)
+    assert status_list_other.status_code == 200
+    assert status_list_other.json() == []
+
+    update_other = client.put(
+        f"/statuses/{status_id}",
+        json={"name": "Updated"},
+        headers=other_headers,
+    )
+    assert update_other.status_code == 404
+
+    label_list_other = client.get("/labels", headers=other_headers)
+    assert label_list_other.status_code == 200
+    assert label_list_other.json() == []
+
+    delete_other = client.delete(f"/labels/{label_id}", headers=other_headers)
+    assert delete_other.status_code == 404
+
+    status_list_owner = client.get("/statuses", headers=owner_headers)
+    assert status_list_owner.status_code == 200
+    assert len(status_list_owner.json()) == 1
+
+    label_list_owner = client.get("/labels", headers=owner_headers)
+    assert label_list_owner.status_code == 200
+    assert len(label_list_owner.json()) == 1
+
+
+def test_error_categories_are_user_scoped(client: TestClient) -> None:
+    owner_headers = register_and_login(client, "error-owner@example.com")
+    create_response = client.post(
+        "/error-categories",
+        json={"name": "Bug", "description": "Unexpected issue"},
+        headers=owner_headers,
+    )
+    assert create_response.status_code == 201
+    category_id = create_response.json()["id"]
+
+    other_headers = register_and_login(client, "error-other@example.com")
+
+    list_other = client.get("/error-categories", headers=other_headers)
+    assert list_other.status_code == 200
+    assert list_other.json() == []
+
+    update_other = client.patch(
+        f"/error-categories/{category_id}",
+        json={"description": "Updated"},
+        headers=other_headers,
+    )
+    assert update_other.status_code == 404
+
+    delete_other = client.delete(
+        f"/error-categories/{category_id}",
+        headers=other_headers,
+    )
+    assert delete_other.status_code == 404
+
+    list_owner = client.get("/error-categories", headers=owner_headers)
+    assert list_owner.status_code == 200
+    assert len(list_owner.json()) == 1
+
+
+def test_board_layouts_are_user_specific(client: TestClient) -> None:
+    headers_a = register_and_login(client, "layout-a@example.com")
+    initial_a = client.get("/board-layouts", headers=headers_a)
+    assert initial_a.status_code == 200
+    assert initial_a.json()["user_id"]
+
+    update_a = client.put(
+        "/board-layouts",
+        json={"board_grouping": "status", "visible_fields": ["title", "status"]},
+        headers=headers_a,
+    )
+    assert update_a.status_code == 200
+    assert update_a.json()["board_grouping"] == "status"
+
+    headers_b = register_and_login(client, "layout-b@example.com")
+    initial_b = client.get("/board-layouts", headers=headers_b)
+    assert initial_b.status_code == 200
+    assert initial_b.json()["board_grouping"] is None
+
+    list_filters_a = client.get("/filters", headers=headers_a)
+    assert list_filters_a.status_code == 200
+    assert list_filters_a.json() == []
+
+    create_filter = client.post(
+        "/filters",
+        json={"name": "My filter", "definition": {"priority": "high"}},
+        headers=headers_a,
+    )
+    assert create_filter.status_code == 201
+    filter_id = create_filter.json()["id"]
+
+    list_filters_b = client.get("/filters", headers=headers_b)
+    assert list_filters_b.status_code == 200
+    assert list_filters_b.json() == []
+
+    get_filter_b = client.get(f"/filters/{filter_id}", headers=headers_b)
+    assert get_filter_b.status_code == 404
