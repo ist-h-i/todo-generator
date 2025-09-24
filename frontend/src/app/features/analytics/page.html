@@ -7,6 +7,30 @@
     </p>
   </header>
 
+  <div
+    class="flex flex-col gap-2 rounded-3xl border border-dashed border-subtle bg-white/70 px-4 py-4 text-sm text-slate-600 shadow-soft dark:bg-slate-900/60 dark:text-slate-300 lg:flex-row lg:items-center lg:justify-between"
+  >
+    <p class="leading-relaxed">
+      最新のコンピテンシー判定とあわせてボード分析を見ると、改善の優先度が整理しやすくなります。
+    </p>
+    <a
+      routerLink="/profile/evaluations"
+      class="focus-ring inline-flex items-center gap-2 self-start rounded-full bg-accent px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-on-surface-inverse transition hover:bg-accent-strong"
+    >
+      最新の評価を確認
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        class="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </a>
+  </div>
+
   @if (summarySignal(); as summary) {
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <article class="surface-panel px-6 py-6">

@@ -1,0 +1,250 @@
+<section class="evaluations-page shell-container">
+  <header class="page-header">
+    <div class="page-header__content">
+      <p class="page-eyebrow">Competency Insights</p>
+      <h1 class="page-title">コンピテンシー評価の履歴</h1>
+      <p class="page-description">
+        直近のコンピテンシー判定とアクションプランを確認できます。姿勢面と行動面それぞれの推奨事項を振り返り、
+        次のスプリント計画に活用しましょう。
+      </p>
+    </div>
+    <div class="page-header__actions">
+      <button
+        type="button"
+        class="refresh-button focus-ring"
+        (click)="refresh()"
+        [disabled]="loading()"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M4 4v5h5M20 20v-5h-5M5 14a7 7 0 0 1 12-4.9l2 1.9M19 10a7 7 0 0 1-12 4.9l-2-1.9"
+          />
+        </svg>
+        最新情報に更新
+      </button>
+      <a routerLink="/board" class="back-link focus-ring">ボードに戻る</a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="state state--loading">
+      <span class="state__spinner" aria-hidden="true"></span>
+      <p>評価履歴を読み込んでいます…</p>
+    </div>
+  } @else {
+    @if (error(); as message) {
+      <div class="state state--error" role="alert">
+        <h2>取得に失敗しました</h2>
+        <p>{{ message }}</p>
+        <button type="button" class="retry-button focus-ring" (click)="refresh()">再試行する</button>
+      </div>
+    } @else {
+      @if (!hasEvaluations()) {
+        <div class="state state--empty">
+          <svg aria-hidden="true" viewBox="0 0 24 24" class="h-12 w-12 text-slate-400">
+            <path
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 3c3.866 0 7 3.134 7 7 0 2.93-1.877 5.42-4.5 6.4L12 21l-2.5-4.6C6.877 15.42 5 12.93 5 10c0-3.866 3.134-7 7-7Z"
+            />
+          </svg>
+          <h2>まだ評価はありません</h2>
+          <p>コンピテンシー評価が実行されると、ここに結果が表示されます。</p>
+        </div>
+      } @else {
+        @if (latestEvaluation(); as evaluation) {
+          <section class="latest surface-panel">
+            <header class="latest__header">
+              <div class="latest__summary">
+                <p class="latest__eyebrow">最新の評価</p>
+                <h2 class="latest__title">{{ evaluation.competency?.name || 'コンピテンシー評価' }}</h2>
+                <p class="latest__meta">
+                  評価期間
+                  <span>{{ evaluation.period_start | date: 'yyyy/MM/dd' }}</span>
+                  〜
+                  <span>{{ evaluation.period_end | date: 'yyyy/MM/dd' }}</span>
+                </p>
+                <p class="latest__meta">
+                  判定種別: {{ triggeredLabel(evaluation.triggered_by) }} / モデル: {{ evaluation.ai_model || '未設定' }}
+                </p>
+              </div>
+              <div class="latest__score" aria-label="評価スコア">
+                <div class="latest__score-value">
+                  <span aria-hidden="true">{{ evaluation.score_value }}</span>
+                  <span class="latest__score-scale" aria-hidden="true">/ {{ evaluation.scale }}</span>
+                </div>
+                <p class="latest__score-label">{{ evaluation.score_label }}</p>
+                <p class="latest__score-percent">達成率 {{ scorePercent(evaluation) }}%</p>
+              </div>
+            </header>
+
+            <div class="latest__progress" role="presentation">
+              <div class="latest__progress-bar" [style.width.%]="scorePercent(evaluation)"></div>
+            </div>
+
+            <div class="latest__body">
+              @if (evaluation.rationale) {
+                <section class="latest__section">
+                  <h3>総合所見</h3>
+                  <p class="latest__text">{{ evaluation.rationale }}</p>
+                </section>
+              }
+
+              <section class="latest__actions-grid">
+                <article class="latest__action">
+                  <header>
+                    <h3>姿勢・意識面でのアクション</h3>
+                    <p>モチベーションやコミュニケーションの観点で意識したいポイントです。</p>
+                  </header>
+                  @if (hasActions(evaluation.attitude_actions)) {
+                    <ul>
+                      @for (action of evaluation.attitude_actions; track action) {
+                        <li>{{ action }}</li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="latest__empty">推奨事項は特にありません。</p>
+                  }
+                </article>
+                <article class="latest__action">
+                  <header>
+                    <h3>具体的な行動プラン</h3>
+                    <p>すぐに実行できるタスクや振り返りポイントをまとめています。</p>
+                  </header>
+                  @if (hasActions(evaluation.behavior_actions)) {
+                    <ul>
+                      @for (action of evaluation.behavior_actions; track action) {
+                        <li>{{ action }}</li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="latest__empty">特筆すべきアクションはありません。</p>
+                  }
+                </article>
+              </section>
+
+              @if (evaluation.items.length > 0) {
+                <section class="latest__details">
+                  <h3>評価項目の内訳</h3>
+                  <div class="latest__items">
+                    @for (item of evaluation.items; track item.id; let index = $index) {
+                      <article class="latest__item surface-card">
+                        <header>
+                          <p class="latest__item-title">{{ '評価項目 ' + (index + 1) }}</p>
+                          <p class="latest__item-score">{{ item.score_label }} ({{ item.score_value }} 点)</p>
+                        </header>
+                        <div class="latest__item-body">
+                          <p class="latest__item-text">{{ item.rationale || '根拠メモは記録されていません。' }}</p>
+
+                          @if (hasActions(item.attitude_actions)) {
+                            <div class="latest__item-actions">
+                              <h4>姿勢・意識</h4>
+                              <ul>
+                                @for (action of item.attitude_actions; track action) {
+                                  <li>{{ action }}</li>
+                                }
+                              </ul>
+                            </div>
+                          }
+
+                          @if (hasActions(item.behavior_actions)) {
+                            <div class="latest__item-actions">
+                              <h4>行動プラン</h4>
+                              <ul>
+                                @for (action of item.behavior_actions; track action) {
+                                  <li>{{ action }}</li>
+                                }
+                              </ul>
+                            </div>
+                          }
+                        </div>
+                      </article>
+                    }
+                  </div>
+                </section>
+              }
+            </div>
+          </section>
+        }
+
+        <section class="history surface-panel">
+          <header class="history__header">
+            <div>
+              <h2>過去の評価履歴</h2>
+              <p>最大 12 件まで表示します。詳細を開いて改善ポイントを再確認できます。</p>
+            </div>
+            <span class="history__count">{{ evaluations().length }} 件表示中</span>
+          </header>
+
+          @if (history().length === 0) {
+            <p class="history__empty">最新の判定のみが登録されています。</p>
+          } @else {
+            <ul class="history__list">
+              @for (item of history(); track item.id) {
+                <li class="history__entry">
+                  <details>
+                    <summary>
+                      <div class="history__summary">
+                        <div class="history__summary-text">
+                          <span class="history__period"
+                            >{{ item.period_start | date: 'yyyy/MM/dd' }} 〜
+                            {{ item.period_end | date: 'yyyy/MM/dd' }}</span
+                          >
+                          <span class="history__label">{{ item.competency?.name || 'コンピテンシー評価' }}</span>
+                        </div>
+                        <div class="history__score">
+                          <span class="history__score-value">{{ item.score_value }}</span>
+                          <span class="history__score-scale">/ {{ item.scale }}</span>
+                          <span class="history__score-label">{{ item.score_label }}</span>
+                        </div>
+                      </div>
+                    </summary>
+                    <div class="history__content">
+                      @if (item.rationale) {
+                        <p class="history__text">{{ item.rationale }}</p>
+                      }
+                      <div class="history__meta">
+                        <span>判定種別: {{ triggeredLabel(item.triggered_by) }}</span>
+                        <span>モデル: {{ item.ai_model || '未設定' }}</span>
+                        <span>記録日時: {{ item.created_at | date: 'yyyy/MM/dd HH:mm' }}</span>
+                      </div>
+                      @if (hasActions(item.attitude_actions) || hasActions(item.behavior_actions)) {
+                        <div class="history__actions">
+                          @if (hasActions(item.attitude_actions)) {
+                            <div>
+                              <h4>姿勢・意識</h4>
+                              <ul>
+                                @for (action of item.attitude_actions; track action) {
+                                  <li>{{ action }}</li>
+                                }
+                              </ul>
+                            </div>
+                          }
+                          @if (hasActions(item.behavior_actions)) {
+                            <div>
+                              <h4>行動プラン</h4>
+                              <ul>
+                                @for (action of item.behavior_actions; track action) {
+                                  <li>{{ action }}</li>
+                                }
+                              </ul>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </details>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+    }
+  }
+</section>
