@@ -2,7 +2,7 @@ import { AuthenticatedUser } from '@core/models/auth';
 
 export type UserProfile = AuthenticatedUser;
 
-export interface ProfileFormState extends Record<string, unknown> {
+export interface ProfileFormState {
   readonly nickname: string;
   readonly experienceYears: number | null;
   readonly roles: readonly string[];

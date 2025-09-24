@@ -12,7 +12,7 @@ export interface SignalControl<T> {
 /**
  * Aggregate form utilities exposing signals and helpers for submission.
  */
-export interface SignalForm<T extends Record<string, unknown>> {
+export interface SignalForm<T extends object> {
   readonly controls: { [K in keyof T]: SignalControl<T[K]> };
   readonly value: Signal<T>;
   readonly patchValue: (patch: Partial<T>) => void;
@@ -40,9 +40,7 @@ const buildControl = <T>(initialValue: T): SignalControl<T> => {
  * @param initialValue - Starting state for the form controls.
  * @returns Configured signal-based form helpers.
  */
-export const createSignalForm = <T extends Record<string, unknown>>(
-  initialValue: T,
-): SignalForm<T> => {
+export const createSignalForm = <T extends object>(initialValue: T): SignalForm<T> => {
   const controlEntries = Object.entries(initialValue).map(
     ([key, value]) => [key, buildControl(value as T[keyof T])] as const,
   );
