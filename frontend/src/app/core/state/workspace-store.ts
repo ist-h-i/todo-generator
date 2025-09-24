@@ -258,6 +258,17 @@ export class WorkspaceStore {
   private readonly auth = inject(AuthService);
   private readonly storage = this.resolveStorage();
   private readonly activeUserId = computed(() => this.auth.user()?.id ?? null);
+  private readonly activeUserEmail = computed(() => this.auth.user()?.email ?? null);
+  private readonly activeUserNickname = computed(() => {
+    const raw = this.auth.user()?.nickname;
+    if (raw === null || raw === undefined) {
+      return null;
+    }
+
+    const nickname = raw.trim();
+    return nickname.length > 0 ? nickname : null;
+  });
+  private lastSyncedAssigneeName: string | null = null;
 
   private readonly settingsSignal = signal<WorkspaceSettings>(cloneSettings(INITIAL_SETTINGS));
   private readonly cardsSignal = signal<readonly Card[]>(INITIAL_CARDS);
@@ -289,6 +300,96 @@ export class WorkspaceStore {
       { allowSignalWrites: true },
     );
   }
+
+  private readonly syncDefaultAssigneeWithNicknameEffect = effect(
+    () => {
+      const nickname = this.activeUserNickname();
+      if (!nickname) {
+        this.lastSyncedAssigneeName = null;
+        return;
+      }
+
+      if (this.lastSyncedAssigneeName === nickname) {
+        return;
+      }
+
+      const email = this.activeUserEmail();
+      const settings = this.settingsSignal();
+      const previousDefault = settings.defaultAssignee;
+      const canUpdateDefault =
+        previousDefault === INITIAL_SETTINGS.defaultAssignee ||
+        previousDefault === this.lastSyncedAssigneeName ||
+        (email !== null && previousDefault === email);
+
+      if (canUpdateDefault && previousDefault !== nickname) {
+        const nextSettings: WorkspaceSettings = {
+          ...settings,
+          defaultAssignee: nickname,
+        };
+        this.settingsSignal.set(nextSettings);
+        this.persistSettings(nextSettings);
+      }
+
+      const aliasValues = new Set<string>();
+      if (canUpdateDefault && previousDefault && previousDefault !== nickname) {
+        aliasValues.add(previousDefault);
+      }
+      if (this.lastSyncedAssigneeName && this.lastSyncedAssigneeName !== nickname) {
+        aliasValues.add(this.lastSyncedAssigneeName);
+      }
+      if (email && email !== nickname) {
+        aliasValues.add(email);
+      }
+      if (INITIAL_SETTINGS.defaultAssignee !== nickname) {
+        aliasValues.add(INITIAL_SETTINGS.defaultAssignee);
+      }
+
+      if (aliasValues.size > 0) {
+        this.cardsSignal.update((cards) => {
+          let mutated = false;
+          const nextCards = cards.map((card) => {
+            let updated = false;
+            let nextAssignee = card.assignee;
+
+            if (nextAssignee && aliasValues.has(nextAssignee)) {
+              nextAssignee = nickname;
+              updated = true;
+            }
+
+            let nextSubtasks = card.subtasks;
+            if (
+              card.subtasks.some(
+                (subtask) => subtask.assignee && aliasValues.has(subtask.assignee),
+              )
+            ) {
+              nextSubtasks = card.subtasks.map((subtask) =>
+                subtask.assignee && aliasValues.has(subtask.assignee)
+                  ? { ...subtask, assignee: nickname }
+                  : subtask,
+              );
+              updated = true;
+            }
+
+            if (!updated) {
+              return card;
+            }
+
+            mutated = true;
+            return {
+              ...card,
+              assignee: nextAssignee,
+              subtasks: nextSubtasks,
+            } satisfies Card;
+          });
+
+          return mutated ? nextCards : cards;
+        });
+      }
+
+      this.lastSyncedAssigneeName = nickname;
+    },
+    { allowSignalWrites: true },
+  );
 
   public readonly settings = computed(() => this.settingsSignal());
   public readonly cards = computed(() => this.cardsSignal());

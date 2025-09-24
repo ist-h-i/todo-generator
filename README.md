@@ -28,7 +28,7 @@ continuous-improvement tooling in one cohesive experience.
   coaching guidance.
 - **Admin controls & secure secrets** – Admin endpoints rotate external API credentials, configure
   default quotas, and override per-user limits so teams can tune automation safely.
-- **Profile management & avatars** – Users can update nicknames, biographies, locations, portfolio
+- **Profile management & avatars** – Users can update nicknames, biographies, and avatars
   URLs, and upload validated avatars directly from the UI, keeping the workspace personable.
 
 ## Repository Layout
@@ -117,6 +117,8 @@ npm run format:check
 ```
 
 The frontend also supports `npm run build` to produce a production bundle under `dist/`.
+
+If any command above fails, do **not** proceed with your task. Investigate the cause, apply fixes, and rerun the full set of checks until every command completes successfully before considering the work ready for review.
 
 ## MCP Server Integration
 

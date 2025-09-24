@@ -117,76 +117,9 @@ const ROLE_TREE: readonly RoleTreeCategory[] = [
   },
 ];
 
-function flattenRoleOptions(categories: readonly RoleTreeCategory[]): RoleTreeOption[] {
-  const result: RoleTreeOption[] = [];
-  for (const category of categories) {
-    if (category.options) {
-      result.push(...category.options);
-    }
-    if (category.children) {
-      result.push(...flattenRoleOptions(category.children));
-    }
-  }
-  return result;
-}
-
-const ROLE_OPTION_VALUES = new Set(flattenRoleOptions(ROLE_TREE).map((option) => option.value));
-
-const LOCATION_OPTIONS: readonly string[] = [
-  '未設定',
-  '北海道',
-  '青森県',
-  '岩手県',
-  '宮城県',
-  '秋田県',
-  '山形県',
-  '福島県',
-  '茨城県',
-  '栃木県',
-  '群馬県',
-  '埼玉県',
-  '千葉県',
-  '東京都',
-  '神奈川県',
-  '新潟県',
-  '富山県',
-  '石川県',
-  '福井県',
-  '山梨県',
-  '長野県',
-  '岐阜県',
-  '静岡県',
-  '愛知県',
-  '三重県',
-  '滋賀県',
-  '京都府',
-  '大阪府',
-  '兵庫県',
-  '奈良県',
-  '和歌山県',
-  '鳥取県',
-  '島根県',
-  '岡山県',
-  '広島県',
-  '山口県',
-  '徳島県',
-  '香川県',
-  '愛媛県',
-  '高知県',
-  '福岡県',
-  '佐賀県',
-  '長崎県',
-  '熊本県',
-  '大分県',
-  '宮崎県',
-  '鹿児島県',
-  '沖縄県',
-  '海外',
-];
 
 const MAX_NICKNAME_LENGTH = 30;
 const MAX_BIO_LENGTH = 500;
-const MAX_PORTFOLIO_LENGTH = 255;
 const MAX_EXPERIENCE_YEARS = 50;
 const MAX_ROLES = 5;
 const MAX_CUSTOM_ROLE_LENGTH = 32;
@@ -210,8 +143,7 @@ export class ProfileDialogComponent implements AfterViewInit {
 
   private readonly profileService = inject(ProfileService);
 
-  public readonly roleCategories = ROLE_TREE;
-  public readonly locationOptions = LOCATION_OPTIONS;
+  public readonly roleOptions = ROLE_OPTIONS;
   public readonly maxBioLength = MAX_BIO_LENGTH;
   public readonly maxCustomRoleLength = MAX_CUSTOM_ROLE_LENGTH;
 
@@ -220,8 +152,6 @@ export class ProfileDialogComponent implements AfterViewInit {
     experienceYears: null,
     roles: [],
     bio: '',
-    location: '',
-    portfolioUrl: '',
   });
 
   private readonly loadingStore = signal(true);
@@ -233,7 +163,6 @@ export class ProfileDialogComponent implements AfterViewInit {
   private readonly nicknameTouched = signal(false);
   private readonly experienceTouched = signal(false);
   private readonly bioTouched = signal(false);
-  private readonly portfolioTouched = signal(false);
   private readonly initialValueStore = signal<ProfileFormState | null>(null);
   private readonly avatarPreviewStore = signal<string | null>(null);
   private readonly avatarFileStore = signal<File | null>(null);
@@ -297,40 +226,14 @@ export class ProfileDialogComponent implements AfterViewInit {
     return null;
   });
 
-  public readonly portfolioError = computed(() => {
-    if (!this.portfolioTouched()) {
-      return null;
-    }
-
-    const value = this.form.controls.portfolioUrl.value().trim();
-    if (!value) {
-      return null;
-    }
-
-    if (value.length > MAX_PORTFOLIO_LENGTH) {
-      return `ポートフォリオURLは${MAX_PORTFOLIO_LENGTH}文字以内で入力してください。`;
-    }
-
-    try {
-      const url = new URL(value);
-      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-        return 'ポートフォリオURLは http または https で始まる必要があります。';
-      }
-    } catch {
-      return '有効なURLを入力してください。';
-    }
-
-    return null;
-  });
-
-  public readonly hasValidationErrors = computed(() =>
-    Boolean(
-      this.nicknameError() ||
-        this.experienceError() ||
-        this.bioError() ||
-        this.portfolioError() ||
-        this.rolesError(),
-    ),
+  public readonly hasValidationErrors = computed(
+    () =>
+      Boolean(
+        this.nicknameError() ||
+          this.experienceError() ||
+          this.bioError() ||
+          this.rolesError(),
+      ),
   );
 
   public readonly experienceDisplay = computed(() => {
@@ -354,12 +257,6 @@ export class ProfileDialogComponent implements AfterViewInit {
       return true;
     }
     if (initial.bio !== current.bio) {
-      return true;
-    }
-    if (initial.location !== current.location) {
-      return true;
-    }
-    if (initial.portfolioUrl !== current.portfolioUrl) {
       return true;
     }
     if (!this.areRolesEqual(initial.roles, current.roles)) {
@@ -411,7 +308,6 @@ export class ProfileDialogComponent implements AfterViewInit {
     this.nicknameTouched.set(true);
     this.experienceTouched.set(true);
     this.bioTouched.set(true);
-    this.portfolioTouched.set(true);
     this.errorStore.set(null);
 
     if (!this.canSubmit()) {
@@ -427,8 +323,6 @@ export class ProfileDialogComponent implements AfterViewInit {
       experienceYears: value.experienceYears,
       roles: [...value.roles],
       bio: value.bio,
-      location: value.location,
-      portfolioUrl: value.portfolioUrl,
       removeAvatar: this.removeAvatarStore(),
       avatarFile: this.avatarFileStore(),
     };
@@ -631,8 +525,6 @@ export class ProfileDialogComponent implements AfterViewInit {
       experienceYears: profile.experience_years ?? null,
       roles: [...profile.roles],
       bio: profile.bio ?? '',
-      location: profile.location ?? '',
-      portfolioUrl: profile.portfolio_url ?? '',
     };
 
     this.form.reset({ ...state, roles: [...state.roles] });
@@ -643,7 +535,6 @@ export class ProfileDialogComponent implements AfterViewInit {
     this.nicknameTouched.set(false);
     this.experienceTouched.set(false);
     this.bioTouched.set(false);
-    this.portfolioTouched.set(false);
     this.roleErrorStore.set(null);
     this.customRoleInputStore.set('');
     this.customRoleErrorStore.set(null);

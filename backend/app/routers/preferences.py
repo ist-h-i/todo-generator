@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..utils.repository import apply_updates, save_model
 
 router = APIRouter(prefix="/board-layouts", tags=["board-layouts"])
 
@@ -20,10 +21,7 @@ def get_board_layout(
         return preference
 
     preference = models.UserPreference(user_id=current_user.id)
-    db.add(preference)
-    db.commit()
-    db.refresh(preference)
-    return preference
+    return save_model(db, preference)
 
 
 @router.put("/", response_model=schemas.UserPreferenceRead)
@@ -37,10 +35,5 @@ def update_board_layout(
         preference = models.UserPreference(user_id=current_user.id)
 
     update_data = payload.model_dump(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(preference, key, value)
-
-    db.add(preference)
-    db.commit()
-    db.refresh(preference)
-    return preference
+    apply_updates(preference, update_data)
+    return save_model(db, preference)

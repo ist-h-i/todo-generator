@@ -228,10 +228,6 @@ class ChatGPTClient:
             metadata["roles"] = profile.roles
         if profile.bio:
             metadata["bio"] = profile.bio
-        if profile.location:
-            metadata["location"] = profile.location
-        if profile.portfolio_url:
-            metadata["portfolio_url"] = profile.portfolio_url
 
         if getattr(profile, "updated_at", None):
             metadata["profile_last_updated"] = profile.updated_at.isoformat()
