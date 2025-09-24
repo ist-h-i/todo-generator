@@ -17,6 +17,7 @@ from .models import SessionToken, User
 _PBKDF2_ITERATIONS = 120_000
 _TOKEN_TTL_HOURS = 24
 _AUTH_SCHEME = HTTPBearer(auto_error=False)
+_TOKEN_HASH_ALGORITHM = "sha256"
 
 
 def _utcnow() -> datetime:
@@ -59,11 +60,16 @@ def verify_password(password: str, encoded: str) -> bool:
     return hmac.compare_digest(derived, digest_hex)
 
 
+def _hash_token(value: str) -> str:
+    digest = hashlib.new(_TOKEN_HASH_ALGORITHM, value.encode("utf-8"))
+    return digest.hexdigest()
+
+
 def create_session_token(db: Session, user: User) -> str:
     token_value = secrets.token_urlsafe(32)
     expires_at = _utcnow() + timedelta(hours=_TOKEN_TTL_HOURS)
 
-    token = SessionToken(token=token_value, user_id=user.id, expires_at=expires_at)
+    token = SessionToken(token=_hash_token(token_value), user_id=user.id, expires_at=expires_at)
     db.add(token)
     return token_value
 
@@ -79,7 +85,18 @@ def get_current_user(
         )
 
     raw_token = credentials.credentials
-    token: SessionToken | None = db.get(SessionToken, raw_token)
+    token_hash = _hash_token(raw_token)
+    token: SessionToken | None = db.get(SessionToken, token_hash)
+
+    if token is None:
+        legacy_token = db.get(SessionToken, raw_token)
+        if legacy_token is not None:
+            legacy_token.token = token_hash
+            db.add(legacy_token)
+            db.commit()
+            db.refresh(legacy_token)
+            token = legacy_token
+
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

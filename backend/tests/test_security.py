@@ -1,3 +1,5 @@
+import hashlib
+
 import pytest
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.testclient import TestClient
@@ -7,6 +9,19 @@ from app.auth import hash_password
 from app.config import Settings, settings
 from app.database import get_db
 from app.main import app
+
+
+def _register_user(client: TestClient, email: str, password: str) -> dict:
+    response = client.post("/auth/register", json={"email": email, "password": password})
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def _bootstrap_admin_and_member(client: TestClient) -> tuple[dict, dict]:
+    password = "SecurePass123!"
+    admin_payload = _register_user(client, "admin@example.com", password)
+    member_payload = _register_user(client, "member@example.com", password)
+    return admin_payload, member_payload
 
 
 def test_cors_configuration_disallows_wildcard_credentials() -> None:
@@ -107,3 +122,111 @@ def test_login_allows_legacy_normalized_emails(client: TestClient) -> None:
     assert login_response.status_code == 200, login_response.text
     login_payload = login_response.json()
     assert login_payload["user"]["email"] == stored_email
+
+
+def test_session_tokens_are_hashed(client: TestClient) -> None:
+    payload = _register_user(client, "secure@example.com", "StrongPass123!")
+    access_token = payload["access_token"]
+
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    try:
+        stored_tokens = db.query(models.SessionToken).all()
+    finally:
+        db_gen.close()
+
+    assert stored_tokens, "Session token should be stored"
+    stored_token = stored_tokens[0]
+    expected_hash = hashlib.sha256(access_token.encode("utf-8")).hexdigest()
+    assert stored_token.token == expected_hash
+
+
+def test_analytics_routes_require_admin(client: TestClient) -> None:
+    admin_payload, member_payload = _bootstrap_admin_and_member(client)
+    admin_token = admin_payload["access_token"]
+    member_token = member_payload["access_token"]
+
+    unauthenticated = client.get("/analytics/snapshots")
+    assert unauthenticated.status_code == 401
+
+    forbidden = client.get(
+        "/analytics/snapshots",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert forbidden.status_code == 403
+
+    allowed = client.get(
+        "/analytics/snapshots",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert allowed.status_code == 200, allowed.text
+    assert isinstance(allowed.json(), list)
+
+
+def test_suggested_actions_routes_require_admin(client: TestClient) -> None:
+    admin_payload, member_payload = _bootstrap_admin_and_member(client)
+    admin_token = admin_payload["access_token"]
+    member_token = member_payload["access_token"]
+
+    unauthenticated = client.get("/suggested-actions/")
+    assert unauthenticated.status_code == 401
+
+    forbidden = client.get(
+        "/suggested-actions/",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert forbidden.status_code == 403
+
+    allowed = client.get(
+        "/suggested-actions/",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert allowed.status_code == 200, allowed.text
+    assert isinstance(allowed.json(), list)
+
+
+def test_reports_routes_require_admin(client: TestClient) -> None:
+    admin_payload, member_payload = _bootstrap_admin_and_member(client)
+    admin_token = admin_payload["access_token"]
+    member_token = member_payload["access_token"]
+
+    unauthenticated = client.get("/reports/templates")
+    assert unauthenticated.status_code == 401
+
+    forbidden = client.get(
+        "/reports/templates",
+        headers={"Authorization": f"Bearer {member_token}"},
+    )
+    assert forbidden.status_code == 403
+
+    allowed = client.get(
+        "/reports/templates",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert allowed.status_code == 200, allowed.text
+    assert isinstance(allowed.json(), list)
+
+    forbidden_generate = client.post(
+        "/reports/generate",
+        headers={"Authorization": f"Bearer {member_token}"},
+        json={"parameters": {}},
+    )
+    assert forbidden_generate.status_code == 403
+
+
+def test_generate_report_sets_author_to_authenticated_admin(client: TestClient) -> None:
+    admin_payload, _ = _bootstrap_admin_and_member(client)
+    admin_token = admin_payload["access_token"]
+
+    response = client.post(
+        "/reports/generate",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={
+            "author_id": "spoofed-user",
+            "parameters": {"title": "Security Review"},
+        },
+    )
+    assert response.status_code == 201, response.text
+    data = response.json()
+    assert data["author_id"] == admin_payload["user"]["id"]

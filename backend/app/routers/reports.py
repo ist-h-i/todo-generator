@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
 from ..database import get_db
+from ..utils.dependencies import require_admin
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -87,7 +88,10 @@ def _format_initiatives(initiatives: List[models.ImprovementInitiative]) -> str:
 
 
 @router.get("/templates", response_model=List[schemas.ReportTemplateRead])
-def list_templates(db: Session = Depends(get_db)) -> List[models.ReportTemplate]:
+def list_templates(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> List[models.ReportTemplate]:
     templates = _template_query(db).order_by(models.ReportTemplate.created_at.desc()).all()
     for template in templates:
         template.sections = template.sections
@@ -99,7 +103,11 @@ def list_templates(db: Session = Depends(get_db)) -> List[models.ReportTemplate]
     response_model=schemas.ReportTemplateRead,
     status_code=status.HTTP_201_CREATED,
 )
-def create_template(payload: schemas.ReportTemplateCreate, db: Session = Depends(get_db)) -> models.ReportTemplate:
+def create_template(
+    payload: schemas.ReportTemplateCreate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> models.ReportTemplate:
     template = models.ReportTemplate(
         name=payload.name,
         audience=payload.audience,
@@ -114,7 +122,11 @@ def create_template(payload: schemas.ReportTemplateCreate, db: Session = Depends
 
 
 @router.get("/templates/{template_id}", response_model=schemas.ReportTemplateRead)
-def get_template(template_id: str, db: Session = Depends(get_db)) -> models.ReportTemplate:
+def get_template(
+    template_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> models.ReportTemplate:
     template = db.get(models.ReportTemplate, template_id)
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
@@ -127,6 +139,7 @@ def update_template(
     template_id: str,
     payload: schemas.ReportTemplateUpdate,
     db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
 ) -> models.ReportTemplate:
     template = db.get(models.ReportTemplate, template_id)
     if not template:
@@ -147,7 +160,10 @@ def update_template(
 
 
 @router.get("/", response_model=List[schemas.GeneratedReportRead])
-def list_reports(db: Session = Depends(get_db)) -> List[models.GeneratedReport]:
+def list_reports(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> List[models.GeneratedReport]:
     reports = (
         _report_query(db)
         .options(selectinload(models.GeneratedReport.template))
@@ -160,7 +176,11 @@ def list_reports(db: Session = Depends(get_db)) -> List[models.GeneratedReport]:
 
 
 @router.get("/{report_id}", response_model=schemas.GeneratedReportRead)
-def get_report(report_id: str, db: Session = Depends(get_db)) -> models.GeneratedReport:
+def get_report(
+    report_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> models.GeneratedReport:
     report = _report_query(db).filter(models.GeneratedReport.id == report_id).first()
     if not report:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
@@ -173,7 +193,11 @@ def get_report(report_id: str, db: Session = Depends(get_db)) -> models.Generate
     response_model=schemas.ReportGenerateResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def generate_report(payload: schemas.ReportGenerateRequest, db: Session = Depends(get_db)) -> models.GeneratedReport:
+def generate_report(
+    payload: schemas.ReportGenerateRequest,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(require_admin),
+) -> models.GeneratedReport:
     template = None
     if payload.template_id:
         template = db.get(models.ReportTemplate, payload.template_id)
@@ -243,7 +267,7 @@ def generate_report(payload: schemas.ReportGenerateRequest, db: Session = Depend
 
     report = models.GeneratedReport(
         template_id=payload.template_id,
-        author_id=payload.author_id,
+        author_id=current_admin.id,
         parameters_json=payload.parameters,
         content="\n\n".join(content_blocks),
     )

@@ -64,6 +64,9 @@ class User(Base, TimestampMixin):
     daily_card_quotas: Mapped[list["DailyCardQuota"]] = relationship(
         "DailyCardQuota", back_populates="owner", cascade="all, delete-orphan"
     )
+    daily_evaluation_quotas: Mapped[list["DailyEvaluationQuota"]] = relationship(
+        "DailyEvaluationQuota", back_populates="owner", cascade="all, delete-orphan"
+    )
     labels: Mapped[list["Label"]] = relationship(
         "Label", back_populates="owner", cascade="all, delete-orphan"
     )
@@ -93,6 +96,12 @@ class User(Base, TimestampMixin):
     )
     competency_evaluations: Mapped[list["CompetencyEvaluation"]] = relationship(
         "CompetencyEvaluation", back_populates="user", cascade="all, delete-orphan"
+    )
+    quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
+        "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+    api_credentials: Mapped[list["ApiCredential"]] = relationship(
+        "ApiCredential", back_populates="created_by_user"
     )
 
 

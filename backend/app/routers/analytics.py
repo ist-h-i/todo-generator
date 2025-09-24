@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
 from ..database import get_db
+from ..utils.dependencies import require_admin
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -28,6 +29,7 @@ def list_snapshots(
     period_start: Optional[datetime] = Query(default=None),
     period_end: Optional[datetime] = Query(default=None),
     db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
 ) -> List[models.AnalyticsSnapshot]:
     query = _snapshot_query(db)
     if period_start:
@@ -43,7 +45,9 @@ def list_snapshots(
     status_code=status.HTTP_201_CREATED,
 )
 def create_snapshot(
-    payload: schemas.AnalyticsSnapshotCreate, db: Session = Depends(get_db)
+    payload: schemas.AnalyticsSnapshotCreate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
 ) -> models.AnalyticsSnapshot:
     snapshot = models.AnalyticsSnapshot(
         title=payload.title,
@@ -61,7 +65,11 @@ def create_snapshot(
 
 
 @router.get("/snapshots/{snapshot_id}", response_model=schemas.AnalyticsSnapshotRead)
-def get_snapshot(snapshot_id: str, db: Session = Depends(get_db)) -> models.AnalyticsSnapshot:
+def get_snapshot(
+    snapshot_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> models.AnalyticsSnapshot:
     snapshot = db.get(models.AnalyticsSnapshot, snapshot_id)
     if not snapshot:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Snapshot not found")
@@ -324,6 +332,7 @@ def trigger_why_why(
     target_id: str,
     payload: schemas.WhyWhyRequest,
     db: Session = Depends(get_db),
+    current_admin: models.User = Depends(require_admin),
 ) -> schemas.WhyWhyTriggerResponse:
     target_type, snapshot, card = _resolve_target(db, target_id)
     target_reference = snapshot.id if snapshot else card.id if card else None
@@ -333,7 +342,7 @@ def trigger_why_why(
         snapshot_id=snapshot.id if snapshot else None,
         target_type=target_type,
         target_id=target_reference,
-        created_by=payload.actor_id,
+        created_by=current_admin.id,
         version=version,
         status="in-progress",
         model_version="heuristic-v1",
@@ -353,7 +362,11 @@ def trigger_why_why(
 
 
 @router.get("/why-why/{analysis_id}", response_model=schemas.RootCauseAnalysisRead)
-def get_why_why(analysis_id: str, db: Session = Depends(get_db)) -> models.RootCauseAnalysis:
+def get_why_why(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> models.RootCauseAnalysis:
     analysis = _analysis_query(db).filter(models.RootCauseAnalysis.id == analysis_id).first()
     if not analysis:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
