@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
+from enum import Enum
 from typing import Any, Dict, List, Literal, Mapping, Optional
 from uuid import uuid4
 import unicodedata
@@ -439,6 +440,124 @@ class AnalysisResponse(BaseModel):
     model: str
     proposals: List[AnalysisCard]
 
+
+class DailyReportStatus(str, Enum):
+    DRAFT = "draft"
+    SUBMITTED = "submitted"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class DailyReportEventType(str, Enum):
+    DRAFT_CREATED = "draft_created"
+    UPDATED = "updated"
+    SUBMITTED = "submitted"
+    ANALYSIS_STARTED = "analysis_started"
+    PROPOSALS_RECORDED = "proposals_recorded"
+    ANALYSIS_COMPLETED = "analysis_completed"
+    ANALYSIS_FAILED = "analysis_failed"
+    CARDS_LINKED = "cards_linked"
+
+
+class DailyReportSection(BaseModel):
+    title: Optional[str] = None
+    body: str
+
+    @field_validator("body")
+    @classmethod
+    def ensure_non_empty_body(cls, value: str) -> str:
+        text = value.strip()
+        if not text:
+            raise ValueError("Section body cannot be empty.")
+        return text
+
+
+class DailyReportBase(BaseModel):
+    report_date: date
+    shift_type: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    sections: List[DailyReportSection]
+    auto_ticket_enabled: bool = Field(default=False)
+
+
+class DailyReportCreate(DailyReportBase):
+    pass
+
+
+class DailyReportUpdate(BaseModel):
+    report_date: Optional[date] = None
+    shift_type: Optional[str] = None
+    tags: Optional[List[str]] = None
+    sections: Optional[List[DailyReportSection]] = None
+    auto_ticket_enabled: Optional[bool] = None
+
+
+class DailyReportListItem(BaseModel):
+    id: str
+    report_date: date
+    status: DailyReportStatus
+    shift_type: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    auto_ticket_enabled: bool
+    created_at: datetime
+    updated_at: datetime
+    card_count: int = 0
+    proposal_count: int = 0
+    summary: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DailyReportCardSummary(BaseModel):
+    id: str
+    title: str
+    summary: Optional[str] = None
+    status_id: Optional[str] = None
+    status_name: Optional[str] = None
+    priority: Optional[str] = None
+    due_date: Optional[datetime] = None
+    assignees: List[str] = Field(default_factory=list)
+    subtasks: List["SubtaskRead"] = Field(default_factory=list)
+    relationship: str = "primary"
+    confidence: Optional[float] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DailyReportEventRead(BaseModel):
+    id: str
+    event_type: DailyReportEventType
+    payload: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DailyReportRead(BaseModel):
+    id: str
+    report_date: date
+    shift_type: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    status: DailyReportStatus
+    auto_ticket_enabled: bool
+    sections: List[DailyReportSection]
+    analysis_model: Optional[str] = None
+    analysis_started_at: Optional[datetime] = None
+    analysis_completed_at: Optional[datetime] = None
+    failure_reason: Optional[str] = None
+    confidence: Optional[float] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DailyReportDetail(DailyReportRead):
+    cards: List[DailyReportCardSummary] = Field(default_factory=list)
+    events: List[DailyReportEventRead] = Field(default_factory=list)
+    processing_meta: Dict[str, Any] = Field(default_factory=dict)
+    pending_proposals: List[AnalysisCard] = Field(default_factory=list)
 
 class ActivityCreate(BaseModel):
     card_id: Optional[str] = None
