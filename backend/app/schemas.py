@@ -25,6 +25,27 @@ class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserProfile(UserRead):
+    nickname: Optional[str] = None
+    experience_years: Optional[int] = Field(default=None, ge=0, le=50)
+    roles: List[str] = Field(default_factory=list)
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_roles(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            roles = data.get("roles")
+            if roles is None:
+                normalized = dict(data)
+                normalized["roles"] = []
+                return normalized
+        return data
+
+
 def _normalize_email_input(value: str | EmailStr) -> str:
     normalized = unicodedata.normalize("NFKC", str(value))
     return normalized.strip()
@@ -59,7 +80,7 @@ class RegistrationRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
-    user: UserRead
+    user: UserProfile
 
 
 class LabelBase(BaseModel):

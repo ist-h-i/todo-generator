@@ -108,10 +108,62 @@ def _promote_first_user_to_admin(engine: Engine) -> None:
         )
 
 
+def _profile_column_types(dialect_name: str) -> dict[str, str]:
+    base_types = {
+        "nickname": "VARCHAR(64)",
+        "experience_years": "INTEGER",
+        "roles": "JSON",
+        "bio": "TEXT",
+        "location": "VARCHAR(120)",
+        "portfolio_url": "VARCHAR(255)",
+        "avatar_image": "BLOB",
+        "avatar_mime_type": "VARCHAR(64)",
+    }
+
+    if dialect_name == "postgresql":
+        base_types["roles"] = "JSONB"
+
+    if dialect_name == "sqlite":
+        base_types["roles"] = "TEXT"
+
+    return base_types
+
+
+def _ensure_user_profile_columns(engine: Engine) -> None:
+    with engine.begin() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "users"):
+            return
+
+        existing_columns = _column_names(inspector, "users")
+        column_types = _profile_column_types(engine.dialect.name)
+
+        for column_name, column_type in column_types.items():
+            if column_name in existing_columns:
+                continue
+
+            try:
+                connection.execute(
+                    text(
+                        f"ALTER TABLE users ADD COLUMN {column_name} {column_type}"  # noqa: S608
+                    )
+                )
+            except SQLAlchemyError as exc:
+                if not _is_duplicate_column_error(exc):
+                    raise
+
+        if "roles" in _column_names(inspector, "users"):
+            connection.execute(
+                text("UPDATE users SET roles = :empty WHERE roles IS NULL"),
+                {"empty": "[]"},
+            )
+
+
 def run_startup_migrations(engine: Engine) -> None:
     """Ensure database upgrades that rely on application startup are applied."""
 
     _ensure_users_is_admin_column(engine)
+    _ensure_user_profile_columns(engine)
     _promote_first_user_to_admin(engine)
 
 

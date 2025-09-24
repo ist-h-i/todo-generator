@@ -17,6 +17,7 @@ from .routers import (
     filters,
     initiatives,
     labels,
+    profile,
     preferences,
     reports,
     statuses,
@@ -47,6 +48,7 @@ app.include_router(cards.router)
 app.include_router(labels.router)
 app.include_router(statuses.router)
 app.include_router(preferences.router)
+app.include_router(profile.router)
 app.include_router(comments.router)
 app.include_router(activity.router)
 app.include_router(error_categories.router)
