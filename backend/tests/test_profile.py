@@ -3,10 +3,15 @@ from __future__ import annotations
 import base64
 import json
 
+from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 
+_DEFAULT_TEST_PASSWORD = "Password123!"  # noqa: S105 - fixed credential for test accounts
 
-def _register_and_login(client: TestClient, email: str, password: str = "Password123!") -> tuple[str, dict[str, str]]:
+
+def _register_and_login(
+    client: TestClient, email: str, password: str = _DEFAULT_TEST_PASSWORD
+) -> tuple[str, dict[str, str]]:
     response = client.post(
         "/auth/register",
         json={"email": email, "password": password},
@@ -79,6 +84,35 @@ def test_profile_update_round_trip(client: TestClient, email: str) -> None:
     )
     assert removal_response.status_code == 200
     assert removal_response.json()["avatar_url"] is None
+
+
+def test_avatar_upload_missing_pillow(monkeypatch, client: TestClient, email: str) -> None:
+    from app.services import profile
+
+    _, headers = _register_and_login(client, email)
+
+    def _raise_missing_dependency() -> None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=profile._MISSING_PILLOW_MESSAGE,
+        )
+
+    monkeypatch.setattr(profile, "_import_pillow", _raise_missing_dependency)
+
+    avatar_bytes = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAQAAAC1+jfqAAAAIklEQVR42mNgoBfgPxBmBhBgGAWjYBSMglEwCkbBAgBgAADX0wQKX/9S1gAAAABJRU5ErkJ"
+        "ggg=="
+    )
+
+    response = client.put(
+        "/profile/me",
+        data={"nickname": "田中 太郎"},
+        files={"avatar": ("avatar.png", avatar_bytes, "image/png")},
+        headers=headers,
+    )
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.json()["detail"] == profile._MISSING_PILLOW_MESSAGE
 
 
 def test_profile_roles_limit(client: TestClient, email: str) -> None:
