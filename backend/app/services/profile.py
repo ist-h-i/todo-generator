@@ -37,13 +37,13 @@ _MISSING_PILLOW_MESSAGE = "画像処理ライブラリ(Pillow)がインストー
 
 def build_user_profile(user: models.User) -> schemas.UserProfile:
     profile = schemas.UserProfile.model_validate(user)
-    avatar_bytes = getattr(user, "avatar_image", None)
-    avatar_mime = getattr(user, "avatar_mime_type", None)
-    if avatar_bytes and avatar_mime:
-        encoded = base64.b64encode(avatar_bytes).decode("ascii")
-        profile.avatar_url = f"data:{avatar_mime};base64,{encoded}"
+
+    if user.avatar_image and user.avatar_mime_type:
+        encoded = base64.b64encode(user.avatar_image).decode()
+        profile.avatar_url = f"data:{user.avatar_mime_type};base64,{encoded}"
     else:
         profile.avatar_url = None
+
     return profile
 
 

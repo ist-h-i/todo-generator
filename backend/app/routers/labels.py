@@ -1,22 +1,26 @@
 from __future__ import annotations
 
-from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..utils.repository import (
+    apply_updates,
+    delete_model,
+    get_owned_resource_or_404,
+    save_model,
+)
 
 router = APIRouter(prefix="/labels", tags=["labels"])
 
 
-@router.get("/", response_model=List[schemas.LabelRead])
+@router.get("/", response_model=list[schemas.LabelRead])
 def list_labels(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> List[models.Label]:
+) -> list[models.Label]:
     return (
         db.query(models.Label)
         .filter(models.Label.owner_id == current_user.id)
@@ -32,10 +36,7 @@ def create_label(
     current_user: models.User = Depends(get_current_user),
 ) -> models.Label:
     label = models.Label(owner_id=current_user.id, **payload.model_dump())
-    db.add(label)
-    db.commit()
-    db.refresh(label)
-    return label
+    return save_model(db, label)
 
 
 @router.put("/{label_id}", response_model=schemas.LabelRead)
@@ -45,17 +46,16 @@ def update_label(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Label:
-    label = db.get(models.Label, label_id)
-    if not label or label.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
-
-    for key, value in payload.model_dump(exclude_unset=True).items():
-        setattr(label, key, value)
-
-    db.add(label)
-    db.commit()
-    db.refresh(label)
-    return label
+    label = get_owned_resource_or_404(
+        db,
+        models.Label,
+        label_id,
+        owner_id=current_user.id,
+        detail="Label not found",
+    )
+    updates = payload.model_dump(exclude_unset=True)
+    apply_updates(label, updates)
+    return save_model(db, label)
 
 
 @router.delete(
@@ -68,10 +68,12 @@ def delete_label(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    label = db.get(models.Label, label_id)
-    if not label or label.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
-
-    db.delete(label)
-    db.commit()
+    label = get_owned_resource_or_404(
+        db,
+        models.Label,
+        label_id,
+        owner_id=current_user.id,
+        detail="Label not found",
+    )
+    delete_model(db, label)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
