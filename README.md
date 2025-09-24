@@ -118,6 +118,8 @@ npm run format:check
 
 The frontend also supports `npm run build` to produce a production bundle under `dist/`.
 
+If any command above fails, do **not** proceed with your task. Investigate the cause, apply fixes, and rerun the full set of checks until every command completes successfully before considering the work ready for review.
+
 ## MCP Server Integration
 
 Workspace-ready settings for [Model Context Protocol](https://modelcontextprotocol.io/) clients are
