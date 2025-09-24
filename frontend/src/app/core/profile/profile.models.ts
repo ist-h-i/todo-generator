@@ -7,8 +7,6 @@ export interface ProfileFormState extends Record<string, unknown> {
   readonly experienceYears: number | null;
   readonly roles: readonly string[];
   readonly bio: string;
-  readonly location: string;
-  readonly portfolioUrl: string;
 }
 
 export interface ProfileUpdatePayload extends ProfileFormState {
