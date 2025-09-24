@@ -1,3 +1,7 @@
+@use './styles/components/profile-dialog';
+@use './styles/pages/admin';
+@use './styles/pages/profile-evaluations';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
