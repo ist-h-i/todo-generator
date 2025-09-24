@@ -93,7 +93,7 @@ class User(Base, TimestampMixin):
         "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
     )
     api_credentials: Mapped[list["ApiCredential"]] = relationship(
-        "ApiCredential", back_populates="created_by_user", cascade="all, delete-orphan"
+        "ApiCredential", back_populates="created_by_user"
     )
 
 
