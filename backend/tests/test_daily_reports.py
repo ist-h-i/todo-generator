@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app import schemas
 from app.main import app
-from app.services.chatgpt import get_chatgpt_client
+from app.services.chatgpt import ChatGPTError, get_chatgpt_client
 
 DEFAULT_PASSWORD = "Register123!"
 
@@ -47,19 +47,20 @@ class StubChatGPT:
         )
 
 
-class SequencedStubChatGPT:
+class FailingThenSucceedingChatGPT:
     def __init__(self) -> None:
         self.call_count = 0
 
     def analyze(self, request: schemas.AnalysisRequest) -> schemas.AnalysisResponse:
         self.call_count += 1
-        suffix = f" #{self.call_count}"
+        if self.call_count == 1:
+            raise ChatGPTError("Temporary analysis failure")
         return schemas.AnalysisResponse(
             model="stub-model",
             proposals=[
                 schemas.AnalysisCard(
-                    title=f"フォローアップタスク{suffix}",
-                    summary=f"提案{suffix}の要約",
+                    title="フォローアップタスク (再解析)",
+                    summary="再解析後の提案", 
                     priority="medium",
                     due_in_days=None,
                     subtasks=[],
@@ -127,11 +128,13 @@ def test_submit_daily_report_returns_proposals(client: TestClient) -> None:
 
     list_response = client.get("/daily-reports", headers=headers)
     list_response.raise_for_status()
-    items = list_response.json()
-    assert items[0]["proposal_count"] == 1
+    assert list_response.json() == []
+
+    get_response = client.get(f"/daily-reports/{report_id}", headers=headers)
+    assert get_response.status_code == 404
 
 
-def test_retry_daily_report_replaces_pending_proposals(client: TestClient) -> None:
+def test_retry_daily_report_after_failure_succeeds(client: TestClient) -> None:
     headers = register_and_login(client, "retry@example.com")
 
     create_response = client.post(
@@ -141,27 +144,34 @@ def test_retry_daily_report_replaces_pending_proposals(client: TestClient) -> No
     )
     report_id = create_response.json()["id"]
 
-    stub = SequencedStubChatGPT()
+    stub = FailingThenSucceedingChatGPT()
     app.dependency_overrides[get_chatgpt_client] = lambda: stub
     try:
         first_response = client.post(f"/daily-reports/{report_id}/submit", headers=headers)
         assert first_response.status_code == 200, first_response.text
         first_detail = first_response.json()
-        first_title = first_detail["pending_proposals"][0]["title"]
+        assert first_detail["status"] == "failed"
+        assert first_detail["failure_reason"] == "Temporary analysis failure"
 
         retry_response = client.post(f"/daily-reports/{report_id}/retry", headers=headers)
+        assert retry_response.status_code == 200, retry_response.text
+        retry_detail = retry_response.json()
     finally:
         app.dependency_overrides.pop(get_chatgpt_client, None)
 
-    assert retry_response.status_code == 200, retry_response.text
-    retry_detail = retry_response.json()
     assert retry_detail["status"] == "completed"
     assert retry_detail["cards"] == []
     assert len(retry_detail["pending_proposals"]) == 1
-    retry_title = retry_detail["pending_proposals"][0]["title"]
-    assert retry_title != first_title
-    assert retry_title.endswith("#2")
+    assert retry_detail["pending_proposals"][0]["title"].startswith("フォローアップタスク")
     assert stub.call_count == 2
 
     event_types = {event["event_type"] for event in retry_detail["events"]}
-    assert "proposals_recorded" in event_types
+    assert "analysis_failed" in event_types
+    assert "analysis_completed" in event_types
+
+    list_response = client.get("/daily-reports", headers=headers)
+    list_response.raise_for_status()
+    assert list_response.json() == []
+
+    get_response = client.get(f"/daily-reports/{report_id}", headers=headers)
+    assert get_response.status_code == 404

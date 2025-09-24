@@ -54,22 +54,9 @@
   </div>
 
   <div class="sidebar">
-    <section class="report-list">
-      <h2>登録済みの日報</h2>
-      <p class="empty" *ngIf="reports().length === 0">まだ登録された日報はありません。</p>
-      <ul>
-        <li *ngFor="let report of reports(); trackBy: trackByReport">
-          <button type="button" (click)="openReport(report.id)" [class.active]="detail()?.id === report.id">
-            <span class="date">{{ report.report_date }}</span>
-            <span class="status" [attr.data-status]="report.status">{{ report.status }}</span>
-            <span class="summary">{{ report.summary || '本文なし' }}</span>
-            <span class="count">提案: {{ report.proposal_count }}</span>
-          </button>
-        </li>
-      </ul>
-    </section>
+    <p class="retention-note">解析結果は今回のカード作成のためだけに利用され、日報本文は保存されません。</p>
 
-    <section class="report-detail" *ngIf="detail() as active">
+    <section class="report-detail" *ngIf="detail() as active; else emptyState">
       <h2>解析結果</h2>
       <p class="status">ステータス: {{ active.status }}</p>
       <p class="failure" *ngIf="active.failure_reason">失敗理由: {{ active.failure_reason }}</p>
@@ -117,5 +104,13 @@
         </ul>
       </article>
     </section>
+
+    <ng-template #emptyState>
+      <section class="empty-state">
+        <h2>解析結果</h2>
+        <p>まだ解析結果はありません。フォームに日報を入力して AI 解析を実行すると、ここに提案が表示されます。</p>
+        <p class="hint">カード化が完了すると日報データは破棄されるため、履歴として保存されません。</p>
+      </section>
+    </ng-template>
   </div>
 </section>
