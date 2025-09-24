@@ -23,7 +23,14 @@
         (click)="onCancelClick()"
         aria-label="プロフィール設定を閉じる"
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          class="h-5 w-5"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        >
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6l-12 12" />
         </svg>
       </button>
@@ -76,27 +83,41 @@
                 accept="image/png,image/jpeg,image/webp"
                 (change)="onAvatarChange($event)"
               />
-              <button type="button" class="profile-dialog__button focus-ring" (click)="triggerAvatarPicker()">
+              <button
+                type="button"
+                class="profile-dialog__button focus-ring"
+                (click)="triggerAvatarPicker()"
+              >
                 画像を選択
               </button>
               @if (avatarSelected()) {
-                <button type="button" class="profile-dialog__link-button focus-ring" (click)="onAvatarRemove()">
+                <button
+                  type="button"
+                  class="profile-dialog__link-button focus-ring"
+                  (click)="onAvatarRemove()"
+                >
                   画像を削除
                 </button>
               }
             </div>
-            <p class="profile-dialog__hint">PNG / JPEG / WebP 形式、5MB 以内のファイルが利用できます。</p>
+            <p class="profile-dialog__hint">
+              PNG / JPEG / WebP 形式、5MB 以内のファイルが利用できます。
+            </p>
           </div>
         </section>
 
         <section class="profile-dialog__section" aria-labelledby="profile-basic-section">
           <div class="profile-dialog__section-header">
             <h3 id="profile-basic-section">基本情報</h3>
-            <p class="profile-dialog__section-description">チームに表示される名前や経験年数を設定します。</p>
+            <p class="profile-dialog__section-description">
+              チームに表示される名前や経験年数を設定します。
+            </p>
           </div>
           <div class="profile-dialog__grid">
             <label class="profile-dialog__field" for="profile-nickname">
-              <span class="profile-dialog__label">ニックネーム <span class="profile-dialog__required">必須</span></span>
+              <span class="profile-dialog__label"
+                >ニックネーム <span class="profile-dialog__required">必須</span></span
+              >
               <input
                 id="profile-nickname"
                 type="text"
@@ -144,20 +165,126 @@
         <section class="profile-dialog__section" aria-labelledby="profile-role-section">
           <div class="profile-dialog__section-header">
             <h3 id="profile-role-section">担当領域</h3>
-            <p class="profile-dialog__section-description">現在担当している業務内容を選択してください（最大5件）。</p>
+            <p class="profile-dialog__section-description">
+              現在担当している業務内容を選択してください（最大5件）。
+            </p>
           </div>
-          <div class="profile-dialog__role-grid" role="group" aria-labelledby="profile-role-section">
-            @for (role of roleOptions; track role) {
-              <label class="profile-dialog__role-option">
-                <input
-                  type="checkbox"
-                  [checked]="form.controls.roles.value().includes(role)"
-                  (change)="onRoleToggle(role)"
-                />
-                <span>{{ role }}</span>
-              </label>
+          <div
+            class="profile-dialog__role-tree"
+            role="group"
+            aria-labelledby="profile-role-section"
+          >
+            @for (category of roleCategories; track category.label) {
+              <section class="profile-dialog__role-category">
+                <h4 class="profile-dialog__role-category-title">{{ category.label }}</h4>
+
+                @if (category.options?.length) {
+                  <div class="profile-dialog__role-options">
+                    @for (option of category.options; track option.value) {
+                      <label class="profile-dialog__role-option">
+                        <input
+                          type="checkbox"
+                          [checked]="form.controls.roles.value().includes(option.value)"
+                          (change)="onRoleToggle(option.value)"
+                        />
+                        <span>{{ option.label }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+
+                @if (category.children?.length) {
+                  <div class="profile-dialog__role-children">
+                    @for (child of category.children; track child.label) {
+                      <div class="profile-dialog__role-child">
+                        <h5 class="profile-dialog__role-child-title">{{ child.label }}</h5>
+                        <div class="profile-dialog__role-options">
+                          @for (option of child.options ?? []; track option.value) {
+                            <label class="profile-dialog__role-option">
+                              <input
+                                type="checkbox"
+                                [checked]="form.controls.roles.value().includes(option.value)"
+                                (change)="onRoleToggle(option.value)"
+                              />
+                              <span>{{ option.label }}</span>
+                            </label>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </section>
             }
           </div>
+
+          <div class="profile-dialog__custom-role">
+            <label class="profile-dialog__label" for="profile-custom-role"
+              >その他（直接入力）</label
+            >
+            <div class="profile-dialog__custom-role-field">
+              <input
+                id="profile-custom-role"
+                type="text"
+                class="profile-dialog__input"
+                [value]="customRoleInput()"
+                (input)="onCustomRoleInput($event)"
+                (keydown)="onCustomRoleKeydown($event)"
+                [attr.maxlength]="maxCustomRoleLength"
+                [attr.aria-describedby]="
+                  customRoleError() ? 'profile-custom-role-error' : 'profile-custom-role-hint'
+                "
+                placeholder="例：技術広報、プロジェクト支援 など"
+                autocomplete="off"
+              />
+              <button
+                type="button"
+                class="profile-dialog__button focus-ring"
+                (click)="onCustomRoleAdd()"
+              >
+                追加
+              </button>
+            </div>
+            <p class="profile-dialog__hint" id="profile-custom-role-hint">
+              最大{{ maxCustomRoleLength }}文字、Enterまたは「追加」で登録できます。
+            </p>
+            @if (customRoleError(); as customRoleMessage) {
+              <p id="profile-custom-role-error" class="profile-dialog__error" aria-live="polite">
+                {{ customRoleMessage }}
+              </p>
+            }
+          </div>
+
+          @if (customRoles().length) {
+            <div class="profile-dialog__custom-role-summary">
+              <p class="profile-dialog__custom-role-summary-label">追加した担当領域</p>
+              <div class="profile-dialog__custom-role-list" aria-label="追加した担当領域">
+                @for (role of customRoles(); track role) {
+                  <span class="profile-dialog__custom-role-item">
+                    <span>{{ role }}</span>
+                    <button
+                      type="button"
+                      class="profile-dialog__custom-role-remove focus-ring"
+                      (click)="onCustomRoleRemove(role)"
+                      [attr.aria-label]="role + 'を削除'"
+                    >
+                      <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path
+                          d="M4 4l8 8m0-8-8 8"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.6"
+                        />
+                      </svg>
+                    </button>
+                  </span>
+                }
+              </div>
+            </div>
+          }
+
           @if (rolesError(); as rolesMessage) {
             <p class="profile-dialog__error" aria-live="assertive">{{ rolesMessage }}</p>
           }
@@ -166,7 +293,9 @@
         <section class="profile-dialog__section" aria-labelledby="profile-bio-section">
           <div class="profile-dialog__section-header">
             <h3 id="profile-bio-section">自己紹介</h3>
-            <p class="profile-dialog__section-description">得意分野や担当プロジェクトなどを自由に記載できます。</p>
+            <p class="profile-dialog__section-description">
+              得意分野や担当プロジェクトなどを自由に記載できます。
+            </p>
           </div>
           <label class="profile-dialog__field" for="profile-bio">
             <span class="profile-dialog__label">自己紹介（任意）</span>
@@ -185,13 +314,19 @@
               {{ bioLength() }} / {{ maxBioLength }}
             </div>
             @if (bioError(); as bioMessage) {
-              <p id="profile-bio-error" class="profile-dialog__error" aria-live="polite">{{ bioMessage }}</p>
+              <p id="profile-bio-error" class="profile-dialog__error" aria-live="polite">
+                {{ bioMessage }}
+              </p>
             }
           </label>
         </section>
 
         <footer class="profile-dialog__footer">
-          <button type="button" class="profile-dialog__button-secondary focus-ring" (click)="onCancelClick()">
+          <button
+            type="button"
+            class="profile-dialog__button-secondary focus-ring"
+            (click)="onCancelClick()"
+          >
             キャンセル
           </button>
           <button
