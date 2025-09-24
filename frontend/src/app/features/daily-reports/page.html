@@ -1,0 +1,126 @@
+<section class="daily-report-page">
+  <div class="form-panel">
+    <h1>日報解析</h1>
+    <form [formGroup]="form" (submit)="submit($event)" novalidate>
+      <div class="field">
+        <label for="reportDate">日付</label>
+        <input id="reportDate" type="date" formControlName="report_date" />
+      </div>
+
+      <div class="field">
+        <label for="shiftType">勤務形態</label>
+        <input
+          id="shiftType"
+          type="text"
+          formControlName="shift_type"
+          placeholder="例: remote / office"
+        />
+      </div>
+
+      <div class="field">
+        <label for="tags">タグ</label>
+        <input id="tags" type="text" formControlName="tags" placeholder="例: backend, 障害対応" />
+        <small>カンマまたはスペース区切りで入力すると複数タグを追加できます。</small>
+      </div>
+
+      <div class="sections" formArrayName="sections">
+        <h2>日報セクション</h2>
+        <div
+          class="section"
+          *ngFor="let section of sections.controls; index as index"
+          [formGroupName]="index"
+        >
+          <div class="section-header">
+            <h3>セクション {{ index + 1 }}</h3>
+            <button type="button" class="remove" (click)="removeSection(index)" [disabled]="sections.length === 1">
+              削除
+            </button>
+          </div>
+          <label>タイトル</label>
+          <input type="text" formControlName="title" placeholder="例: 対応内容" />
+          <label>本文 <span aria-hidden="true">*</span></label>
+          <textarea formControlName="body" rows="4" placeholder="重要な出来事や気づきを入力してください"></textarea>
+        </div>
+        <button type="button" class="add" (click)="addSection()">セクションを追加</button>
+      </div>
+
+      <div class="field checkbox">
+        <input id="autoTicket" type="checkbox" formControlName="auto_ticket_enabled" />
+        <label for="autoTicket">解析結果から自動でタスクを起票する</label>
+      </div>
+
+      <div class="actions">
+        <button type="submit" [disabled]="pending()">解析を実行</button>
+      </div>
+
+      <p class="feedback error" *ngIf="error() as errorMessage">{{ errorMessage }}</p>
+      <p class="feedback success" *ngIf="successMessage() as successMessage">{{ successMessage }}</p>
+    </form>
+  </div>
+
+  <div class="sidebar">
+    <section class="report-list">
+      <h2>登録済みの日報</h2>
+      <p class="empty" *ngIf="reports().length === 0">まだ登録された日報はありません。</p>
+      <ul>
+        <li *ngFor="let report of reports(); trackBy: trackByReport">
+          <button type="button" (click)="openReport(report.id)" [class.active]="detail()?.id === report.id">
+            <span class="date">{{ report.report_date }}</span>
+            <span class="status" [attr.data-status]="report.status">{{ report.status }}</span>
+            <span class="summary">{{ report.summary || '本文なし' }}</span>
+            <span class="count">タスク: {{ report.card_count }}</span>
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <section class="report-detail" *ngIf="detail() as active">
+      <h2>解析結果</h2>
+      <p class="status">ステータス: {{ active.status }}</p>
+      <p class="failure" *ngIf="active.failure_reason">失敗理由: {{ active.failure_reason }}</p>
+
+      <article class="content">
+        <h3>日報本文</h3>
+        <div class="content-section" *ngFor="let section of active.sections; index as index">
+          <h4>{{ section.title || ('セクション ' + (index + 1)) }}</h4>
+          <p>{{ section.body }}</p>
+        </div>
+      </article>
+
+      <article class="cards" *ngIf="active.cards.length > 0">
+        <h3>生成されたタスク</h3>
+        <div class="card" *ngFor="let card of active.cards">
+          <header>
+            <h4>{{ card.title }}</h4>
+            <span class="priority">優先度: {{ card.priority || 'medium' }}</span>
+          </header>
+          <p class="summary">{{ card.summary }}</p>
+          <ul class="subtasks" *ngIf="card.subtasks.length > 0">
+            <li *ngFor="let subtask of card.subtasks">{{ subtask.title }}</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="proposals" *ngIf="active.cards.length === 0 && active.pending_proposals.length > 0">
+        <h3>提案中のタスク</h3>
+        <div class="proposal" *ngFor="let proposal of active.pending_proposals">
+          <h4>{{ proposal.title }}</h4>
+          <p>{{ proposal.summary }}</p>
+          <ul class="subtasks" *ngIf="proposal.subtasks.length > 0">
+            <li *ngFor="let sub of proposal.subtasks">{{ sub.title }}</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="events">
+        <h3>イベント履歴</h3>
+        <ul>
+          <li *ngFor="let event of active.events">
+            <span class="event-type">{{ event.event_type }}</span>
+            <span class="event-time">{{ event.created_at | date: 'short' }}</span>
+          </li>
+        </ul>
+      </article>
+    </section>
+  </div>
+</section>
