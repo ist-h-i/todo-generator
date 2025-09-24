@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..utils.activity import record_activity
+from ..utils.dependencies import require_admin
 
 router = APIRouter(prefix="/suggested-actions", tags=["suggested-actions"])
 
@@ -18,6 +19,7 @@ def list_suggested_actions(
     node_id: Optional[str] = Query(default=None),
     status_filter: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
 ) -> List[models.SuggestedAction]:
     query = db.query(models.SuggestedAction)
     if analysis_id:
@@ -30,7 +32,11 @@ def list_suggested_actions(
 
 
 @router.get("/{action_id}", response_model=schemas.SuggestedActionRead)
-def get_suggested_action(action_id: str, db: Session = Depends(get_db)) -> models.SuggestedAction:
+def get_suggested_action(
+    action_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> models.SuggestedAction:
     suggestion = db.get(models.SuggestedAction, action_id)
     if not suggestion:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Suggestion not found")
@@ -42,6 +48,7 @@ def update_suggested_action(
     action_id: str,
     payload: schemas.SuggestedActionUpdate,
     db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
 ) -> models.SuggestedAction:
     suggestion = db.get(models.SuggestedAction, action_id)
     if not suggestion:
@@ -65,6 +72,7 @@ def convert_suggested_action(
     action_id: str,
     payload: schemas.SuggestionConversionRequest,
     db: Session = Depends(get_db),
+    current_admin: models.User = Depends(require_admin),
 ) -> schemas.SuggestionConversionResponse:
     suggestion = db.get(models.SuggestedAction, action_id)
     if not suggestion:
@@ -113,6 +121,7 @@ def convert_suggested_action(
         db,
         action="suggestion_converted",
         card_id=card.id,
+        actor_id=current_admin.id,
         details={"suggestion_id": suggestion.id},
     )
     db.commit()
