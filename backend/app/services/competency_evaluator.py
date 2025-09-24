@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timezone, timedelta
 from typing import Iterable
 
 from sqlalchemy.orm import Session
 
 from .. import models
+
+
+RECENT_COMPLETION_WINDOW_DAYS = 30
+RECENT_COMPLETION_WEIGHT = 2.0
 
 
 class CompetencyEvaluator:
@@ -98,9 +102,30 @@ class CompetencyEvaluator:
             .all()
         )
 
+        recent_cutoff = max(start, end - timedelta(days=RECENT_COMPLETION_WINDOW_DAYS))
+
         completed_cards = sum(1 for card in cards if self._is_done(card.status_id, card.status))
         completed_subtasks = sum(
             1 for subtask in subtasks if self._is_status_done(subtask.status)
+        )
+
+        recent_cards_completed = sum(
+            1
+            for card in cards
+            if self._is_done(card.status_id, card.status)
+            and (
+                (completion_ts := self._completion_timestamp(card)) is not None
+                and recent_cutoff <= completion_ts <= end
+            )
+        )
+        recent_subtasks_completed = sum(
+            1
+            for subtask in subtasks
+            if self._is_status_done(subtask.status)
+            and (
+                (completion_ts := self._completion_timestamp(subtask)) is not None
+                and recent_cutoff <= completion_ts <= end
+            )
         )
 
         return {
@@ -108,6 +133,9 @@ class CompetencyEvaluator:
             "cards_completed": completed_cards,
             "subtasks_created": len(subtasks),
             "subtasks_completed": completed_subtasks,
+            "recent_cards_completed": recent_cards_completed,
+            "recent_subtasks_completed": recent_subtasks_completed,
+            "recent_completion_window_days": RECENT_COMPLETION_WINDOW_DAYS,
         }
 
     def _determine_score(
@@ -116,23 +144,39 @@ class CompetencyEvaluator:
         scale: int,
         metrics: dict[str, int],
     ) -> tuple[int, str]:
-        completed = metrics.get("cards_completed", 0) + metrics.get("subtasks_completed", 0)
+        total_completed = metrics.get("cards_completed", 0) + metrics.get(
+            "subtasks_completed",
+            0,
+        )
+        recent_completed = metrics.get("recent_cards_completed", 0) + metrics.get(
+            "recent_subtasks_completed",
+            0,
+        )
+        older_completed = max(total_completed - recent_completed, 0)
+        effective_completed = int(
+            recent_completed * RECENT_COMPLETION_WEIGHT + older_completed
+        )
+
+        metrics["recent_completed_total"] = recent_completed
+        metrics["older_completed_total"] = older_completed
+        metrics["effective_completed"] = effective_completed
+        metrics["recent_completion_weight"] = RECENT_COMPLETION_WEIGHT
 
         if scale == 3:
-            if completed >= 12:
+            if effective_completed >= 12:
                 return 3, "達成"
-            if completed >= 5:
+            if effective_completed >= 5:
                 return 2, "部分達成"
             return 1, "未達"
 
         # Five-point scale for intermediate level
-        if completed >= 20:
+        if effective_completed >= 20:
             return 5, "卓越"
-        if completed >= 12:
+        if effective_completed >= 12:
             return 4, "良好"
-        if completed >= 6:
+        if effective_completed >= 6:
             return 3, "標準"
-        if completed >= 3:
+        if effective_completed >= 3:
             return 2, "要改善"
         return 1, "未達"
 
@@ -146,6 +190,9 @@ class CompetencyEvaluator:
             f"{competency.name}に対する今月の評価は『{score_label}』です。"
             f"カード完了数は{metrics.get('cards_completed', 0)}件、"
             f"サブタスク完了数は{metrics.get('subtasks_completed', 0)}件でした。"
+            f"直近{metrics.get('recent_completion_window_days', RECENT_COMPLETION_WINDOW_DAYS)}日では"
+            f"カード{metrics.get('recent_cards_completed', 0)}件、"
+            f"サブタスク{metrics.get('recent_subtasks_completed', 0)}件を完了しています。"
         )
 
     def _build_criterion_rationale(
@@ -159,6 +206,9 @@ class CompetencyEvaluator:
                 f"全体評価は『{score_label}』です。"
                 f"カード{metrics.get('cards_completed', 0)}件、"
                 f"サブタスク{metrics.get('subtasks_completed', 0)}件を完了しました。"
+                f"直近{metrics.get('recent_completion_window_days', RECENT_COMPLETION_WINDOW_DAYS)}日では"
+                f"カード{metrics.get('recent_cards_completed', 0)}件、"
+                f"サブタスク{metrics.get('recent_subtasks_completed', 0)}件の完了が確認できています。"
             )
 
         base = f"評価項目『{criterion.title}』では『{score_label}』と判定しました。"
@@ -166,6 +216,9 @@ class CompetencyEvaluator:
             base
             + f"対象期間中の成果はカード完了{metrics.get('cards_completed', 0)}件、"
             f"サブタスク完了{metrics.get('subtasks_completed', 0)}件です。"
+            f"直近{metrics.get('recent_completion_window_days', RECENT_COMPLETION_WINDOW_DAYS)}日で"
+            f"カード{metrics.get('recent_cards_completed', 0)}件、"
+            f"サブタスク{metrics.get('recent_subtasks_completed', 0)}件を完了しています。"
         )
 
     def _build_actions(
@@ -205,6 +258,21 @@ class CompetencyEvaluator:
         start_dt = datetime.combine(start, time.min).replace(tzinfo=timezone.utc)
         end_dt = datetime.combine(end, time.max).replace(tzinfo=timezone.utc)
         return start_dt, end_dt
+
+    def _completion_timestamp(self, obj: models.Card | models.Subtask) -> datetime | None:
+        completed = self._normalize_datetime(getattr(obj, "completed_at", None))
+        if completed:
+            return completed
+
+        return self._normalize_datetime(getattr(obj, "created_at", None))
+
+    @staticmethod
+    def _normalize_datetime(value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
 
 
 __all__: Iterable[str] = ["CompetencyEvaluator"]

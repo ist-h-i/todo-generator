@@ -157,12 +157,46 @@ def _ensure_user_profile_columns(engine: Engine) -> None:
             )
 
 
+def _datetime_column_type(dialect_name: str) -> str:
+    if dialect_name == "postgresql":
+        return "TIMESTAMP WITH TIME ZONE"
+    if dialect_name == "mysql":
+        return "DATETIME(6)"
+    return "DATETIME"
+
+
+def _ensure_completion_timestamps(engine: Engine) -> None:
+    column_type = _datetime_column_type(engine.dialect.name)
+
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        tables = {
+            table: _column_names(inspector, table)
+            for table in ("cards", "subtasks")
+            if _table_exists(inspector, table)
+        }
+
+    for table_name, columns in tables.items():
+        if "completed_at" in columns:
+            continue
+
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(f"ALTER TABLE {table_name} ADD COLUMN completed_at {column_type}")
+                )
+        except SQLAlchemyError as exc:
+            if not _is_duplicate_column_error(exc):
+                raise
+
+
 def run_startup_migrations(engine: Engine) -> None:
     """Ensure database upgrades that rely on application startup are applied."""
 
     _ensure_users_is_admin_column(engine)
     _ensure_user_profile_columns(engine)
     _promote_first_user_to_admin(engine)
+    _ensure_completion_timestamps(engine)
 
 
 __all__: Iterable[str] = ["run_startup_migrations"]

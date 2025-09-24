@@ -194,6 +194,7 @@ class SubtaskRead(SubtaskBase):
     id: str
     created_at: datetime
     updated_at: datetime
+    completed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -249,6 +250,7 @@ class CardRead(CardBase):
     owner_id: str
     created_at: datetime
     updated_at: datetime
+    completed_at: Optional[datetime] = None
     labels: List[LabelRead] = Field(default_factory=list)
     subtasks: List[SubtaskRead] = Field(default_factory=list)
     status: Optional[StatusRead] = None
