@@ -107,8 +107,6 @@ def test_build_user_prompt_includes_profile_metadata() -> None:
         experience_years=6,
         roles=["backend", "ml"],
         bio="Builds resilient APIs.",
-        location="Tokyo",
-        portfolio_url="https://dev.example.com",
     )
 
     prompt = ChatGPTClient._build_user_prompt(

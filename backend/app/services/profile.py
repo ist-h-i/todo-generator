@@ -4,7 +4,6 @@ import base64
 import io
 import json
 from typing import TYPE_CHECKING, Any, NamedTuple
-from urllib.parse import urlparse
 
 from fastapi import HTTPException, UploadFile, status
 
@@ -12,8 +11,6 @@ from .. import models, schemas
 
 _MAX_NICKNAME_LENGTH = 30
 _MAX_BIO_LENGTH = 500
-_MAX_LOCATION_LENGTH = 120
-_MAX_PORTFOLIO_LENGTH = 255
 _MAX_ROLES = 5
 _MAX_ROLE_LENGTH = 32
 _MAX_EXPERIENCE_YEARS = 50
@@ -37,13 +34,13 @@ _MISSING_PILLOW_MESSAGE = "画像処理ライブラリ(Pillow)がインストー
 
 def build_user_profile(user: models.User) -> schemas.UserProfile:
     profile = schemas.UserProfile.model_validate(user)
-    avatar_bytes = getattr(user, "avatar_image", None)
-    avatar_mime = getattr(user, "avatar_mime_type", None)
-    if avatar_bytes and avatar_mime:
-        encoded = base64.b64encode(avatar_bytes).decode("ascii")
-        profile.avatar_url = f"data:{avatar_mime};base64,{encoded}"
+
+    if user.avatar_image and user.avatar_mime_type:
+        encoded = base64.b64encode(user.avatar_image).decode()
+        profile.avatar_url = f"data:{user.avatar_mime_type};base64,{encoded}"
     else:
         profile.avatar_url = None
+
     return profile
 
 
@@ -122,25 +119,6 @@ def _sanitize_optional_text(value: str | None, max_length: int) -> str | None:
 
 def sanitize_bio(value: str | None) -> str | None:
     return _sanitize_optional_text(value, _MAX_BIO_LENGTH)
-
-
-def sanitize_location(value: str | None) -> str | None:
-    return _sanitize_optional_text(value, _MAX_LOCATION_LENGTH)
-
-
-def sanitize_portfolio_url(value: str | None) -> str | None:
-    url = _sanitize_optional_text(value, _MAX_PORTFOLIO_LENGTH)
-    if url is None:
-        return None
-
-    parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="ポートフォリオURLは http または https で始まる有効なURLを入力してください。",
-        )
-
-    return url
 
 
 def parse_roles(value: str | None) -> list[str]:
@@ -273,7 +251,5 @@ __all__ = [
     "parse_roles",
     "process_avatar_upload",
     "sanitize_bio",
-    "sanitize_location",
-    "sanitize_portfolio_url",
     "should_remove_avatar",
 ]

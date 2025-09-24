@@ -32,16 +32,6 @@ export class ProfileService {
       formData.append('bio', bio);
     }
 
-    const location = payload.location.trim();
-    if (location) {
-      formData.append('location', location);
-    }
-
-    const portfolioUrl = payload.portfolioUrl.trim();
-    if (portfolioUrl) {
-      formData.append('portfolio_url', portfolioUrl);
-    }
-
     if (payload.removeAvatar) {
       formData.append('remove_avatar', 'true');
     }

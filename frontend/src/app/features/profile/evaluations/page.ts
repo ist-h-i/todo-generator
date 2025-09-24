@@ -8,11 +8,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CompetencyApiService } from '@core/api/competency-api.service';
-import { CompetencyEvaluation } from '@core/models';
+import { CompetencyEvaluation, EvaluationQuotaStatus, SelfEvaluationRequest } from '@core/models';
 
 const DEFAULT_HISTORY_LIMIT = 12;
 
@@ -22,7 +21,7 @@ const DEFAULT_HISTORY_LIMIT = 12;
 @Component({
   selector: 'app-profile-evaluations-page',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   templateUrl: './page.html',
   styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,10 +29,17 @@ const DEFAULT_HISTORY_LIMIT = 12;
 export class ProfileEvaluationsPage {
   private readonly api = inject(CompetencyApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private feedbackTimeoutId: number | null = null;
 
   public readonly evaluations = signal<CompetencyEvaluation[]>([]);
   public readonly loading = signal<boolean>(false);
   public readonly error = signal<string | null>(null);
+  public readonly quota = signal<EvaluationQuotaStatus | null>(null);
+  public readonly quotaLoading = signal<boolean>(false);
+  public readonly quotaError = signal<string | null>(null);
+  public readonly runningEvaluation = signal<boolean>(false);
+  public readonly actionError = signal<string | null>(null);
+  public readonly feedback = signal<string | null>(null);
 
   public readonly latestEvaluation = computed<CompetencyEvaluation | null>(() => {
     const [latest] = this.evaluations();
@@ -46,13 +52,32 @@ export class ProfileEvaluationsPage {
   });
 
   public readonly hasEvaluations = computed(() => this.evaluations().length > 0);
+  public readonly limitReached = computed<boolean>(() => {
+    const quota = this.quota();
+    if (!quota || quota.daily_limit <= 0) {
+      return false;
+    }
+
+    const remaining = quota.remaining ?? Math.max(quota.daily_limit - quota.used, 0);
+    return remaining <= 0;
+  });
+
+  public readonly canRunEvaluation = computed<boolean>(() => {
+    if (this.quotaLoading()) {
+      return false;
+    }
+
+    return !this.limitReached();
+  });
 
   public constructor() {
     this.loadEvaluations();
+    this.loadQuota();
   }
 
   public refresh(): void {
     this.loadEvaluations();
+    this.loadQuota();
   }
 
   public scorePercent(evaluation: CompetencyEvaluation | null): number {
@@ -78,6 +103,97 @@ export class ProfileEvaluationsPage {
     return Array.isArray(actions) && actions.length > 0;
   }
 
+  public limitLabel(quota: EvaluationQuotaStatus | null): string {
+    if (!quota) {
+      return '-';
+    }
+
+    return quota.daily_limit <= 0 ? '無制限' : `${quota.daily_limit} 回`;
+  }
+
+  public remainingLabel(quota: EvaluationQuotaStatus | null): string {
+    if (!quota) {
+      return '-';
+    }
+
+    if (quota.daily_limit <= 0 || quota.remaining === null || quota.remaining === undefined) {
+      return '無制限';
+    }
+
+    return `${quota.remaining} 回`;
+  }
+
+  public runEvaluation(): void {
+    if (this.runningEvaluation() || !this.canRunEvaluation()) {
+      return;
+    }
+
+    this.runningEvaluation.set(true);
+    this.actionError.set(null);
+    this.feedback.set(null);
+
+    const payload: SelfEvaluationRequest = {};
+    const latest = this.latestEvaluation();
+    if (latest?.competency_id) {
+      payload.competency_id = latest.competency_id;
+    }
+
+    this.api
+      .runMyEvaluation(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (evaluation) => {
+          this.runningEvaluation.set(false);
+          this.error.set(null);
+          this.evaluations.update((list) => {
+            const filtered = list.filter((item) => item.id !== evaluation.id);
+            return [evaluation, ...filtered].slice(0, DEFAULT_HISTORY_LIMIT);
+          });
+          this.showFeedback('評価を実行しました。最新の結果が反映されています。');
+          this.loadQuota();
+        },
+        error: (error: HttpErrorResponse) => {
+          this.runningEvaluation.set(false);
+          const message =
+            typeof error.error === 'object' && error.error?.detail
+              ? String(error.error.detail)
+              : '評価の実行に失敗しました。時間をおいて再度お試しください。';
+          this.actionError.set(message);
+          if (error.status === 429 || error.status === 401) {
+            this.loadQuota();
+          }
+        },
+      });
+  }
+
+  public exportLatestAsJson(): void {
+    const evaluation = this.latestEvaluation();
+    if (!evaluation || typeof document === 'undefined') {
+      return;
+    }
+
+    const sanitizedName = this.sanitizeFileName(
+      evaluation.competency?.name || 'competency-evaluation',
+    );
+    const period = (evaluation.period_end || evaluation.period_start || 'latest')
+      .toString()
+      .replaceAll('/', '-')
+      .replaceAll('.', '-')
+      .replaceAll(' ', '_');
+    const fileName = `competency-evaluation-${sanitizedName}-${period}.json`;
+    const json = JSON.stringify(evaluation, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    this.showFeedback('評価結果を JSON 形式で出力しました。');
+  }
+
   private loadEvaluations(): void {
     this.loading.set(true);
     this.error.set(null);
@@ -99,5 +215,51 @@ export class ProfileEvaluationsPage {
           this.error.set(message);
         },
       });
+  }
+
+  private loadQuota(): void {
+    this.quotaLoading.set(true);
+    this.quotaError.set(null);
+
+    this.api
+      .getMyEvaluationQuota()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (quota) => {
+          this.quota.set(quota);
+          this.quotaLoading.set(false);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.quotaLoading.set(false);
+          this.quota.set(null);
+          const message =
+            typeof error.error === 'object' && error.error?.detail
+              ? String(error.error.detail)
+              : '評価上限の情報を取得できませんでした。';
+          this.quotaError.set(message);
+        },
+      });
+  }
+
+  private showFeedback(message: string): void {
+    this.feedback.set(message);
+    if (typeof window !== 'undefined') {
+      if (this.feedbackTimeoutId !== null) {
+        window.clearTimeout(this.feedbackTimeoutId);
+      }
+
+      this.feedbackTimeoutId = window.setTimeout(() => {
+        this.feedback.set(null);
+        this.feedbackTimeoutId = null;
+      }, 4000);
+    }
+  }
+
+  private sanitizeFileName(input: string): string {
+    return input
+      .trim()
+      .toLowerCase()
+      .replace(/[\\/:*?"<>|]/g, '-')
+      .replace(/\s+/g, '-');
   }
 }
