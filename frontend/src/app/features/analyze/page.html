@@ -1,13 +1,10 @@
 <section class="space-y-10">
   <form class="surface-panel space-y-6 px-8 py-8" (submit)="handleSubmit($event)">
-    <header class="space-y-2">
-      <p class="text-xs uppercase tracking-[0.3em] text-slate-400">AI Task Creator</p>
-      <h2 class="text-2xl font-semibold text-on-surface">メモからタスクを起票</h2>
-      <p class="text-sm text-slate-500 dark:text-slate-400">
-        作業メモやアイデアを貼り付けると、AI
-        がカード案とサブタスクを提案します。内容を確認し、必要なものだけボードへ追加しましょう。
-      </p>
-    </header>
+    <app-page-header
+      eyebrow="AI Task Creator"
+      title="メモからタスクを起票"
+      description="作業メモやアイデアを貼り付けると、AI がカード案とサブタスクを提案します。内容を確認し、必要なものだけボードへ追加しましょう。"
+    ></app-page-header>
 
     <div class="grid gap-4 lg:grid-cols-2">
       <label class="flex h-full flex-col gap-2">

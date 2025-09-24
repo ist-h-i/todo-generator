@@ -1,0 +1,29 @@
+<header class="page-header">
+  <div class="page-header__content">
+    @if (eyebrow) {
+      <p class="text-xs uppercase tracking-[0.3em] text-slate-400">{{ eyebrow }}</p>
+    }
+
+    @switch (headingLevel) {
+      @case ('h1') {
+        <h1 class="text-3xl font-semibold text-on-surface">{{ title }}</h1>
+      }
+      @case ('h3') {
+        <h3 class="text-xl font-semibold text-on-surface">{{ title }}</h3>
+      }
+      @default {
+        <h2 class="text-2xl font-semibold text-on-surface">{{ title }}</h2>
+      }
+    }
+
+    @if (description) {
+      <p class="text-sm text-slate-500 dark:text-slate-400">{{ description }}</p>
+    }
+
+    <ng-content></ng-content>
+  </div>
+
+  <div class="page-header__actions">
+    <ng-content select="[appPageHeaderActions]"></ng-content>
+  </div>
+</header>
