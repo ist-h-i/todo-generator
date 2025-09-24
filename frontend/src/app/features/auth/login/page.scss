@@ -2,9 +2,21 @@
   display: block;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(192, 38, 211, 0.12), transparent 55%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.04), rgba(15, 23, 42, 0));
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      color-mix(in srgb, var(--accent-secondary) 12%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-inverse) 4%, transparent),
+      transparent
+    );
 }
 
 .auth-wrapper {
@@ -39,13 +51,13 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  background: rgba(59, 130, 246, 0.15);
-  color: rgb(37, 99, 235);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
 }
 
 .panel-badge.accent {
-  background: rgba(16, 185, 129, 0.18);
-  color: rgb(4, 120, 87);
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success-strong);
 }
 
 .panel-title {
@@ -57,14 +69,18 @@
 }
 
 .login-panel {
-  border-top: 4px solid rgba(59, 130, 246, 0.35);
+  border-top: 4px solid color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .register-panel {
-  border-top: 4px solid rgba(16, 185, 129, 0.45);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  background: linear-gradient(160deg, rgba(236, 253, 245, 0.65), rgba(224, 242, 254, 0.4));
-  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+  border-top: 4px solid color-mix(in srgb, var(--success) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 20%, transparent);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--success) 12%, var(--surface-card)),
+    color-mix(in srgb, var(--info) 10%, var(--surface-card))
+  );
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--success) 15%, transparent);
 }
 
 .register-hints {
@@ -85,7 +101,7 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: rgba(16, 185, 129, 0.7);
+  background: color-mix(in srgb, var(--success) 70%, transparent);
 }
 
 .alert {
@@ -97,20 +113,20 @@
 }
 
 .alert.notice {
-  background: rgba(59, 130, 246, 0.12);
-  color: rgb(37, 99, 235);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
 }
 
 .alert.error {
-  background: rgba(248, 113, 113, 0.15);
-  color: rgb(185, 28, 28);
-  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: color-mix(in srgb, var(--danger-strong) 90%, var(--text-primary));
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 .alert.success {
-  background: rgba(34, 197, 94, 0.12);
-  color: rgb(22, 101, 52);
-  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  color: color-mix(in srgb, var(--success-strong) 90%, var(--text-primary));
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
 }
 
 .field-error {
@@ -118,59 +134,75 @@
   font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.4;
-  color: rgb(185, 28, 28);
+  color: color-mix(in srgb, var(--danger-strong) 90%, var(--text-primary));
 }
 
 .input-invalid {
-  border-color: rgba(248, 113, 113, 0.6);
-  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35);
+  border-color: color-mix(in srgb, var(--danger) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 :host-context(.dark) {
   background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(147, 51, 234, 0.18), transparent 55%),
-    linear-gradient(180deg, rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.1));
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--accent) 18%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      color-mix(in srgb, var(--accent-secondary) 18%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-inverse) 40%, transparent),
+      color-mix(in srgb, var(--surface-inverse) 10%, transparent)
+    );
 }
 
 :host-context(.dark) .alert.notice {
-  background: rgba(59, 130, 246, 0.2);
-  color: rgba(191, 219, 254, 0.95);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: color-mix(in srgb, var(--accent) 40%, var(--text-inverse-primary));
 }
 
 :host-context(.dark) .alert.error {
-  background: rgba(248, 113, 113, 0.18);
-  color: rgba(254, 226, 226, 0.92);
-  border-color: rgba(248, 113, 113, 0.35);
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+  color: color-mix(in srgb, var(--danger) 35%, var(--text-inverse-primary));
+  border-color: color-mix(in srgb, var(--danger) 35%, transparent);
 }
 
 :host-context(.dark) .panel-badge {
-  background: rgba(96, 165, 250, 0.2);
-  color: rgba(191, 219, 254, 0.9);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: color-mix(in srgb, var(--accent) 45%, var(--text-inverse-primary));
 }
 
 :host-context(.dark) .panel-badge.accent {
-  background: rgba(16, 185, 129, 0.2);
-  color: rgba(167, 243, 208, 0.9);
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  color: color-mix(in srgb, var(--success) 45%, var(--text-inverse-primary));
 }
 
 :host-context(.dark) .register-panel {
-  background: linear-gradient(160deg, rgba(15, 118, 110, 0.35), rgba(14, 116, 144, 0.28));
-  border-color: rgba(20, 184, 166, 0.4);
-  box-shadow: 0 16px 36px rgba(13, 148, 136, 0.25);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--success) 28%, transparent),
+    color-mix(in srgb, var(--info) 24%, transparent)
+  );
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--success) 25%, transparent);
 }
 
 :host-context(.dark) .alert.success {
-  background: rgba(34, 197, 94, 0.2);
-  color: rgba(187, 247, 208, 0.95);
-  border-color: rgba(34, 197, 94, 0.35);
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  color: color-mix(in srgb, var(--success) 38%, var(--text-inverse-primary));
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
 }
 
 :host-context(.dark) .field-error {
-  color: rgba(254, 226, 226, 0.92);
+  color: color-mix(in srgb, var(--danger) 35%, var(--text-inverse-primary));
 }
 
 :host-context(.dark) .input-invalid {
-  border-color: rgba(248, 113, 113, 0.55);
-  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.3);
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 30%, transparent);
 }
