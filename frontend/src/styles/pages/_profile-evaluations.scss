@@ -46,7 +46,7 @@ app-profile-evaluations-page .page-eyebrow {
 }
 
 app-profile-evaluations-page .page-title {
-  font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+  font-size: clamp(1.4rem, 1.6vw, 1.6rem);
   font-weight: 700;
   color: var(--on-surface);
 }
@@ -185,7 +185,7 @@ app-profile-evaluations-page .quota-card__values {
   display: flex;
   align-items: baseline;
   gap: 0.35rem;
-  font-size: 1.35rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--on-surface);
 }
@@ -364,7 +364,7 @@ app-profile-evaluations-page .latest__eyebrow {
 }
 
 app-profile-evaluations-page .latest__title {
-  font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+  font-size: clamp(1.25rem, 1.5vw, 1.5rem);
   font-weight: 700;
   color: var(--on-surface);
 }
@@ -395,7 +395,7 @@ app-profile-evaluations-page .latest__score {
 }
 
 app-profile-evaluations-page .latest__score-value {
-  font-size: clamp(2.4rem, 3vw, 3rem);
+  font-size: clamp(1.6rem, 2vw, 2rem);
   font-weight: 700;
   line-height: 1;
 }
@@ -603,7 +603,7 @@ app-profile-evaluations-page .history__header {
 }
 
 app-profile-evaluations-page .history__header h2 {
-  font-size: 1.2rem;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
@@ -701,7 +701,7 @@ app-profile-evaluations-page .history__score {
 }
 
 app-profile-evaluations-page .history__score-value {
-  font-size: 1.4rem;
+  font-size: 1.125rem;
 }
 
 app-profile-evaluations-page .history__score-scale {
