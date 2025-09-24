@@ -4,6 +4,13 @@ export interface AuthenticatedUser {
   readonly is_admin: boolean;
   readonly created_at: string;
   readonly updated_at: string;
+  readonly nickname: string | null;
+  readonly experience_years: number | null;
+  readonly roles: readonly string[];
+  readonly bio: string | null;
+  readonly location: string | null;
+  readonly portfolio_url: string | null;
+  readonly avatar_url: string | null;
 }
 
 export interface TokenResponse {

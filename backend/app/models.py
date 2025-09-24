@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import uuid4
@@ -13,6 +14,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    LargeBinary,
     String,
     Table,
     Text,
@@ -47,6 +49,14 @@ class User(Base, TimestampMixin):
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    nickname: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    experience_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    roles: Mapped[list[str]] = mapped_column(JSON, default=list)
+    bio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    location: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    portfolio_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    avatar_image: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    avatar_mime_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     cards: Mapped[list["Card"]] = relationship("Card", back_populates="owner", cascade="all, delete-orphan")
     tokens: Mapped[list["SessionToken"]] = relationship(
@@ -82,6 +92,14 @@ class User(Base, TimestampMixin):
     quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
         "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
     )
+
+    @property
+    def avatar_url(self) -> str | None:
+        if not self.avatar_image or not self.avatar_mime_type:
+            return None
+
+        encoded = base64.b64encode(self.avatar_image).decode("ascii")
+        return f"data:{self.avatar_mime_type};base64,{encoded}"
 
 
 class SessionToken(Base, TimestampMixin):

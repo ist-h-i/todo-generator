@@ -1,5 +1,20 @@
 <div class="flex min-h-screen flex-col bg-surface">
   <header class="shell-header">
+    @if (profileToastMessage(); as toast) {
+      <div class="shell-toast" role="status" aria-live="polite">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          class="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5 10 17l9-10" />
+        </svg>
+        <span>{{ toast }}</span>
+      </div>
+    }
     <div
       class="shell-header__content shell-container flex flex-col gap-4 py-6 lg:flex-row lg:items-center lg:justify-between"
     >
@@ -148,21 +163,37 @@
         </div>
 
         @if (user(); as currentUser) {
-          <div class="shell-user" [attr.title]="currentUser.email">
-            <span class="shell-user__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0"
-                />
-              </svg>
+          <button
+            type="button"
+            class="shell-user focus-ring"
+            (click)="openProfile()"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="isProfileDialogOpen()"
+            aria-label="プロフィール設定を開く"
+          >
+            <span class="shell-user__avatar" aria-hidden="true">
+              @if (currentUser.avatar_url; as avatarUrl) {
+                <img [src]="avatarUrl" alt="" />
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0"
+                  />
+                </svg>
+              }
             </span>
             <span class="shell-user__details">
-              <span class="shell-user__label">ログイン中</span>
-              <span class="shell-user__email">{{ currentUser.email }}</span>
+              <span class="shell-user__name">{{ currentUser.nickname ?? currentUser.email }}</span>
+              <span class="shell-user__meta">
+                @if (currentUser.roles.length) {
+                  <span class="shell-user__roles">{{ currentUser.roles.join(' / ') }}</span>
+                }
+                <span class="shell-user__email">{{ currentUser.email }}</span>
+              </span>
             </span>
-          </div>
+          </button>
         }
       </div>
     </div>
@@ -182,6 +213,10 @@
       <p>Angular 20 Signal Architecture / ChatGPT モック統合</p>
     </div>
   </footer>
+
+  @if (isProfileDialogOpen()) {
+    <app-profile-dialog (dismiss)="closeProfile()" (profileSaved)="onProfileSaved($event)" />
+  }
 
   @if (isHelpDialogOpen()) {
     <app-help-dialog (dismiss)="closeHelp()" />
