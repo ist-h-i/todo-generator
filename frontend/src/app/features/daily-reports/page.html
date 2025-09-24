@@ -1,12 +1,7 @@
 <section class="daily-report-page">
   <div class="form-panel">
-    <h1>日報解析</h1>
+    <h1>日報・週報解析</h1>
     <form [formGroup]="form" (submit)="submit($event)" novalidate>
-      <div class="field">
-        <label for="reportDate">日付</label>
-        <input id="reportDate" type="date" formControlName="report_date" />
-      </div>
-
       <div class="field">
         <label for="tags">タグ</label>
         <input id="tags" type="text" formControlName="tags" placeholder="例: backend, 障害対応" />
@@ -14,7 +9,7 @@
       </div>
 
       <div class="sections" formArrayName="sections">
-        <h2>日報セクション</h2>
+        <h2>日報・週報セクション</h2>
         <div
           class="section"
           *ngFor="let section of sections.controls; index as index"
@@ -52,7 +47,7 @@
       <p class="failure" *ngIf="active.failure_reason">失敗理由: {{ active.failure_reason }}</p>
 
       <article class="content">
-        <h3>日報本文</h3>
+        <h3>日報・週報本文</h3>
         <div class="content-section" *ngFor="let section of active.sections; index as index">
           <h4>{{ section.title || ('セクション ' + (index + 1)) }}</h4>
           <p>{{ section.body }}</p>

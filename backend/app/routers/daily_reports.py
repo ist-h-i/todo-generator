@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -31,8 +30,6 @@ def create_daily_report(
 @router.get("", response_model=list[schemas.DailyReportListItem])
 def list_daily_reports(
     status_filter: Optional[schemas.DailyReportStatus] = Query(default=None, alias="status"),
-    start_date: Optional[date] = Query(default=None),
-    end_date: Optional[date] = Query(default=None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> list[schemas.DailyReportListItem]:
@@ -40,8 +37,6 @@ def list_daily_reports(
     reports = service.list_reports(
         owner_id=current_user.id,
         status_filter=status_filter,
-        start_date=start_date,
-        end_date=end_date,
     )
     return [service.to_list_item(report) for report in reports]
 

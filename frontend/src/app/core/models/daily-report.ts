@@ -49,7 +49,6 @@ export interface DailyReportEvent {
 
 export interface DailyReportBase {
   readonly id: string;
-  readonly report_date: string;
   readonly shift_type: string | null;
   readonly tags: readonly string[];
   readonly status: DailyReportStatus;
@@ -75,7 +74,6 @@ export interface DailyReportDetail extends DailyReportBase {
 
 export interface DailyReportListItem {
   readonly id: string;
-  readonly report_date: string;
   readonly status: DailyReportStatus;
   readonly shift_type: string | null;
   readonly tags: readonly string[];
@@ -88,7 +86,6 @@ export interface DailyReportListItem {
 }
 
 export interface DailyReportCreateRequest {
-  readonly report_date: string;
   readonly shift_type: string | null;
   readonly tags: readonly string[];
   readonly sections: readonly DailyReportSection[];
@@ -96,7 +93,6 @@ export interface DailyReportCreateRequest {
 }
 
 export interface DailyReportUpdateRequest {
-  readonly report_date?: string;
   readonly shift_type?: string | null;
   readonly tags?: readonly string[];
   readonly sections?: readonly DailyReportSection[];

@@ -495,7 +495,6 @@ class DailyReportSection(BaseModel):
 
 
 class DailyReportBase(BaseModel):
-    report_date: date
     shift_type: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     sections: List[DailyReportSection]
@@ -507,7 +506,6 @@ class DailyReportCreate(DailyReportBase):
 
 
 class DailyReportUpdate(BaseModel):
-    report_date: Optional[date] = None
     shift_type: Optional[str] = None
     tags: Optional[List[str]] = None
     sections: Optional[List[DailyReportSection]] = None
@@ -516,7 +514,6 @@ class DailyReportUpdate(BaseModel):
 
 class DailyReportListItem(BaseModel):
     id: str
-    report_date: date
     status: DailyReportStatus
     shift_type: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
@@ -557,7 +554,6 @@ class DailyReportEventRead(BaseModel):
 
 class DailyReportRead(BaseModel):
     id: str
-    report_date: date
     shift_type: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     status: DailyReportStatus

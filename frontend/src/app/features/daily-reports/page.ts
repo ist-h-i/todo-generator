@@ -31,7 +31,6 @@ export class DailyReportsPage {
   private readonly detailState = signal<DailyReportDetail | null>(null);
 
   public readonly form = this.fb.group({
-    report_date: [this.todayString(), Validators.required],
     tags: [''],
     sections: this.fb.array([this.createSectionGroup()]),
   });
@@ -102,12 +101,11 @@ export class DailyReportsPage {
       }))
       .filter((section) => section.body.length > 0);
 
-    if (sections.length === 0 || !value.report_date) {
+    if (sections.length === 0) {
       return null;
     }
 
     return {
-      report_date: value.report_date,
       shift_type: null,
       tags: this.parseTags(value.tags ?? ''),
       sections,
@@ -128,7 +126,6 @@ export class DailyReportsPage {
     }
     this.sections.at(0)?.reset({ title: '', body: '' });
     this.form.patchValue({
-      report_date: this.todayString(),
       tags: '',
     });
   }
@@ -142,14 +139,14 @@ export class DailyReportsPage {
       if (error.status === 0) {
         return 'サーバーに接続できませんでした。時間をおいて再度お試しください。';
       }
-      return '日報の処理に失敗しました。時間をおいて再度お試しください。';
+      return '日報・週報の処理に失敗しました。時間をおいて再度お試しください。';
     }
 
     if (error instanceof Error && error.message) {
       return error.message;
     }
 
-    return '日報の処理に失敗しました。';
+    return '日報・週報の処理に失敗しました。';
   }
 
   private resolveDetailMessage(payload: unknown): string | null {
@@ -163,10 +160,4 @@ export class DailyReportsPage {
     return null;
   }
 
-  private todayString(): string {
-    const today = new Date();
-    const month = `${today.getMonth() + 1}`.padStart(2, '0');
-    const day = `${today.getDate()}`.padStart(2, '0');
-    return `${today.getFullYear()}-${month}-${day}`;
-  }
 }

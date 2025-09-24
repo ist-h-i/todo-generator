@@ -101,7 +101,7 @@ export class Shell {
     const links = [
       { path: '/board', label: 'ボード' },
       { path: '/input', label: 'タスク起票' },
-      { path: '/daily-reports', label: '日報解析' },
+      { path: '/daily-reports', label: '日報・週報解析' },
       { path: '/analytics', label: '分析' },
       { path: '/profile/evaluations', label: 'コンピテンシー' },
       { path: '/settings', label: '設定' },
