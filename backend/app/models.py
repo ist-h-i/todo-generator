@@ -70,6 +70,18 @@ class User(Base, TimestampMixin):
     saved_filters: Mapped[list["SavedFilter"]] = relationship(
         "SavedFilter", back_populates="owner", cascade="all, delete-orphan"
     )
+    api_credentials: Mapped[list["ApiCredential"]] = relationship(
+        "ApiCredential", back_populates="created_by_user", cascade="all, delete-orphan"
+    )
+    competency_evaluations: Mapped[list["CompetencyEvaluation"]] = relationship(
+        "CompetencyEvaluation", back_populates="user", cascade="all, delete-orphan"
+    )
+    daily_evaluation_quotas: Mapped[list["DailyEvaluationQuota"]] = relationship(
+        "DailyEvaluationQuota", back_populates="owner", cascade="all, delete-orphan"
+    )
+    quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
+        "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
 
 
 class SessionToken(Base, TimestampMixin):
@@ -471,3 +483,187 @@ class SimilarityFeedback(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text)
 
     card: Mapped[Card] = relationship("Card")
+
+
+class Competency(Base, TimestampMixin):
+    __tablename__ = "competencies"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    level: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    rubric: Mapped[dict] = mapped_column(JSON, default=dict)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    criteria: Mapped[list["CompetencyCriterion"]] = relationship(
+        "CompetencyCriterion",
+        back_populates="competency",
+        cascade="all, delete-orphan",
+        order_by="CompetencyCriterion.order_index",
+    )
+    evaluations: Mapped[list["CompetencyEvaluation"]] = relationship(
+        "CompetencyEvaluation", back_populates="competency", cascade="all, delete-orphan"
+    )
+    jobs: Mapped[list["CompetencyEvaluationJob"]] = relationship(
+        "CompetencyEvaluationJob", back_populates="competency", cascade="all, delete-orphan"
+    )
+
+
+class CompetencyCriterion(Base, TimestampMixin):
+    __tablename__ = "competency_criteria"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    competency_id: Mapped[str] = mapped_column(
+        String, ForeignKey("competencies.id", ondelete="CASCADE"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    weight: Mapped[float | None] = mapped_column(Float)
+    intentionality_prompt: Mapped[str | None] = mapped_column(Text)
+    behavior_prompt: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+
+    competency: Mapped[Competency] = relationship("Competency", back_populates="criteria")
+    evaluation_items: Mapped[list["CompetencyEvaluationItem"]] = relationship(
+        "CompetencyEvaluationItem", back_populates="criterion", cascade="all, delete-orphan"
+    )
+
+
+class CompetencyEvaluation(Base, TimestampMixin):
+    __tablename__ = "competency_evaluations"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    competency_id: Mapped[str] = mapped_column(
+        String, ForeignKey("competencies.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    period_start: Mapped[date] = mapped_column(Date, nullable=False)
+    period_end: Mapped[date] = mapped_column(Date, nullable=False)
+    scale: Mapped[int] = mapped_column(Integer, nullable=False)
+    score_value: Mapped[int] = mapped_column(Integer, nullable=False)
+    score_label: Mapped[str] = mapped_column(String, nullable=False)
+    rationale: Mapped[str | None] = mapped_column(Text)
+    attitude_actions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    behavior_actions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    ai_model: Mapped[str | None] = mapped_column(String)
+    triggered_by: Mapped[str] = mapped_column(String, default="manual")
+    job_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("competency_evaluation_jobs.id", ondelete="SET NULL"), nullable=True
+    )
+    context: Mapped[dict] = mapped_column(JSON, default=dict)
+
+    competency: Mapped[Competency] = relationship("Competency", back_populates="evaluations")
+    user: Mapped[User] = relationship("User", back_populates="competency_evaluations")
+    job: Mapped[Optional["CompetencyEvaluationJob"]] = relationship(
+        "CompetencyEvaluationJob", back_populates="evaluations"
+    )
+    items: Mapped[list["CompetencyEvaluationItem"]] = relationship(
+        "CompetencyEvaluationItem", back_populates="evaluation", cascade="all, delete-orphan"
+    )
+
+
+class CompetencyEvaluationItem(Base, TimestampMixin):
+    __tablename__ = "competency_evaluation_items"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    evaluation_id: Mapped[str] = mapped_column(
+        String, ForeignKey("competency_evaluations.id", ondelete="CASCADE"), nullable=False
+    )
+    criterion_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("competency_criteria.id", ondelete="SET NULL"), nullable=True
+    )
+    score_value: Mapped[int] = mapped_column(Integer, nullable=False)
+    score_label: Mapped[str] = mapped_column(String, nullable=False)
+    rationale: Mapped[str | None] = mapped_column(Text)
+    attitude_actions: Mapped[list[str]] = mapped_column(JSON, default=list)
+    behavior_actions: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+    evaluation: Mapped[CompetencyEvaluation] = relationship("CompetencyEvaluation", back_populates="items")
+    criterion: Mapped[Optional[CompetencyCriterion]] = relationship(
+        "CompetencyCriterion", back_populates="evaluation_items"
+    )
+
+
+class CompetencyEvaluationJob(Base, TimestampMixin):
+    __tablename__ = "competency_evaluation_jobs"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    competency_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("competencies.id", ondelete="SET NULL"), nullable=True
+    )
+    user_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id", ondelete="SET NULL"))
+    status: Mapped[str] = mapped_column(String, default="pending")
+    scope: Mapped[str] = mapped_column(String, default="user")
+    target_period_start: Mapped[date | None] = mapped_column(Date)
+    target_period_end: Mapped[date | None] = mapped_column(Date)
+    triggered_by: Mapped[str] = mapped_column(String, default="manual")
+    triggered_by_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id", ondelete="SET NULL"))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_message: Mapped[str | None] = mapped_column(Text)
+    summary_stats: Mapped[dict] = mapped_column(JSON, default=dict)
+
+    competency: Mapped[Optional[Competency]] = relationship("Competency", back_populates="jobs")
+    triggered_by_user: Mapped[Optional[User]] = relationship(
+        "User", foreign_keys=[triggered_by_id]
+    )
+    target_user: Mapped[Optional[User]] = relationship(
+        "User", foreign_keys=[user_id]
+    )
+    evaluations: Mapped[list[CompetencyEvaluation]] = relationship(
+        "CompetencyEvaluation", back_populates="job", cascade="all, delete-orphan"
+    )
+
+
+class DailyEvaluationQuota(Base):
+    __tablename__ = "daily_evaluation_quotas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    quota_date: Mapped[date] = mapped_column(Date, nullable=False)
+    executed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    owner: Mapped[User] = relationship("User", back_populates="daily_evaluation_quotas")
+
+    __table_args__ = (
+        UniqueConstraint("owner_id", "quota_date", name="uq_daily_evaluation_quota_owner_date"),
+    )
+
+
+class QuotaDefaults(Base, TimestampMixin):
+    __tablename__ = "quota_defaults"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    card_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=25)
+    evaluation_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+
+
+class UserQuotaOverride(Base, TimestampMixin):
+    __tablename__ = "user_quota_overrides"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    card_daily_limit: Mapped[int | None] = mapped_column(Integer)
+    evaluation_daily_limit: Mapped[int | None] = mapped_column(Integer)
+    updated_by: Mapped[str | None] = mapped_column(String)
+
+    user: Mapped[User] = relationship("User", back_populates="quota_override")
+
+
+class ApiCredential(Base, TimestampMixin):
+    __tablename__ = "api_credentials"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    provider: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    encrypted_secret: Mapped[str] = mapped_column(Text, nullable=False)
+    secret_hint: Mapped[str | None] = mapped_column(String)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_by_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id", ondelete="SET NULL"))
+
+    created_by_user: Mapped[Optional[User]] = relationship("User", back_populates="api_credentials")

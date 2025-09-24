@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from app.config import settings
-from app.routers.cards import DAILY_CARD_CREATION_LIMIT
+from app.utils.quotas import DEFAULT_CARD_DAILY_LIMIT
 
 DEFAULT_PASSWORD = "Register123!"
 
@@ -160,7 +160,7 @@ def test_card_creation_daily_limit(client: TestClient) -> None:
     headers = register_and_login(client, email)
     status_id = create_status(client, headers)
 
-    for index in range(DAILY_CARD_CREATION_LIMIT):
+    for index in range(DEFAULT_CARD_DAILY_LIMIT):
         response = client.post(
             "/cards",
             json={"title": f"Card {index}", "status_id": status_id},
@@ -177,7 +177,7 @@ def test_card_creation_daily_limit(client: TestClient) -> None:
     assert extra_response.status_code == 429
     assert (
         extra_response.json()["detail"]
-        == f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached."
+        == f"Daily card creation limit of {DEFAULT_CARD_DAILY_LIMIT} reached."
     )
 
 
@@ -212,7 +212,7 @@ def test_card_creation_daily_limit(client: TestClient) -> None:
     headers = register_and_login(client, email)
     status_id = create_status(client, headers)
 
-    for index in range(DAILY_CARD_CREATION_LIMIT):
+    for index in range(DEFAULT_CARD_DAILY_LIMIT):
         response = client.post(
             "/cards",
             json={"title": f"Task {index}", "status_id": status_id},
@@ -228,7 +228,7 @@ def test_card_creation_daily_limit(client: TestClient) -> None:
     assert limit_response.status_code == 429
     assert (
         limit_response.json()["detail"]
-        == f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached."
+        == f"Daily card creation limit of {DEFAULT_CARD_DAILY_LIMIT} reached."
     )
 
 

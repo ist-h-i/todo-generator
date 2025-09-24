@@ -36,8 +36,12 @@ export const appRoutes: Routes = [
       },
       {
         path: 'settings',
-        canActivate: [adminGuard],
         loadComponent: () => import('@features/settings/page').then((mod) => mod.SettingsPage),
+      },
+      {
+        path: 'admin',
+        canActivate: [adminGuard],
+        loadComponent: () => import('@features/admin/page').then((mod) => mod.AdminPage),
       },
       {
         path: '**',
