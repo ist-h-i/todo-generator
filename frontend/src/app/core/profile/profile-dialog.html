@@ -190,51 +190,6 @@
           </label>
         </section>
 
-        <section class="profile-dialog__section" aria-labelledby="profile-additional-section">
-          <div class="profile-dialog__section-header">
-            <h3 id="profile-additional-section">追加情報</h3>
-            <p class="profile-dialog__section-description">
-              拠点やポートフォリオURLを設定すると、メンバーが連絡を取りやすくなります。
-            </p>
-          </div>
-          <div class="profile-dialog__grid">
-            <label class="profile-dialog__field" for="profile-location">
-              <span class="profile-dialog__label">拠点（任意）</span>
-              <select
-                id="profile-location"
-                class="profile-dialog__select"
-                [value]="form.controls.location.value() || '未設定'"
-                (change)="onLocationChange($event)"
-              >
-                @for (location of locationOptions; track location) {
-                  <option [value]="location">{{ location }}</option>
-                }
-              </select>
-            </label>
-
-            <label class="profile-dialog__field" for="profile-portfolio">
-              <span class="profile-dialog__label">ポートフォリオURL（任意）</span>
-              <input
-                id="profile-portfolio"
-                type="url"
-                inputmode="url"
-                [value]="form.controls.portfolioUrl.value()"
-                (input)="onPortfolioInput($event)"
-                class="profile-dialog__input"
-                [class.profile-dialog__input--invalid]="portfolioError()"
-                [attr.aria-invalid]="portfolioError() ? 'true' : null"
-                [attr.aria-describedby]="portfolioError() ? 'profile-portfolio-error' : null"
-                placeholder="https://example.com"
-              />
-              @if (portfolioError(); as portfolioMessage) {
-                <p id="profile-portfolio-error" class="profile-dialog__error" aria-live="polite">
-                  {{ portfolioMessage }}
-                </p>
-              }
-            </label>
-          </div>
-        </section>
-
         <footer class="profile-dialog__footer">
           <button type="button" class="profile-dialog__button-secondary focus-ring" (click)="onCancelClick()">
             キャンセル

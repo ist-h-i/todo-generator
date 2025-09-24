@@ -13,8 +13,6 @@ from ..services.profile import (
     parse_roles,
     process_avatar_upload,
     sanitize_bio,
-    sanitize_location,
-    sanitize_portfolio_url,
     should_remove_avatar,
 )
 
@@ -34,8 +32,6 @@ async def update_profile(
     experience_years: str | None = Form(default=None),
     roles: str | None = Form(default=None),
     bio: str | None = Form(default=None),
-    location: str | None = Form(default=None),
-    portfolio_url: str | None = Form(default=None),
     remove_avatar: str | None = Form(default=None),
     avatar: UploadFile | None = File(default=None),
     current_user: models.User = Depends(get_current_user),
@@ -45,8 +41,6 @@ async def update_profile(
     sanitized_experience = parse_experience_years(experience_years)
     sanitized_roles = parse_roles(roles)
     sanitized_bio = sanitize_bio(bio)
-    sanitized_location = sanitize_location(location)
-    sanitized_portfolio = sanitize_portfolio_url(portfolio_url)
     remove_current_avatar = should_remove_avatar(remove_avatar)
 
     avatar_bytes: bytes | None = None
@@ -61,8 +55,6 @@ async def update_profile(
     current_user.experience_years = sanitized_experience
     current_user.roles = sanitized_roles
     current_user.bio = sanitized_bio
-    current_user.location = sanitized_location
-    current_user.portfolio_url = sanitized_portfolio
 
     if avatar is not None or remove_current_avatar:
         current_user.avatar_image = avatar_bytes
