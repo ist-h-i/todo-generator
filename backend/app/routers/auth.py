@@ -45,7 +45,6 @@ def register(
             detail="User with this email already exists.",
         )
 
-    is_first_user = db.query(models.User).count() == 0
     password = payload_data.get("password", payload.password)
     normalized_email = normalize_email(raw_email)
     remaining_fields = {
@@ -57,7 +56,7 @@ def register(
         **remaining_fields,
         "email": normalized_email,
         "password_hash": hash_password(password),
-        "is_admin": is_first_user,
+        "is_admin": False,
     }
     user = models.User(**user_values)
     db.add(user)

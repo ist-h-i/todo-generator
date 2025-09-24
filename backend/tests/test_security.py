@@ -47,6 +47,7 @@ def test_email_login_flow_accepts_user_input_variations(client: TestClient) -> N
     assert register_response.status_code == 201, register_response.text
     register_payload = register_response.json()
     assert register_payload["user"]["email"] == "test.user+1@example.com"
+    assert register_payload["user"]["is_admin"] is False
 
     login_response = client.post(
         "/auth/login",
@@ -55,6 +56,7 @@ def test_email_login_flow_accepts_user_input_variations(client: TestClient) -> N
     assert login_response.status_code == 200, login_response.text
     login_payload = login_response.json()
     assert login_payload["user"]["email"] == "test.user+1@example.com"
+    assert login_payload["user"]["is_admin"] is False
 
 
 def test_login_allows_legacy_normalized_emails(client: TestClient) -> None:
