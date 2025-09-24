@@ -15,8 +15,11 @@ _MAX_GENERATED_CARDS = 5
 
 @dataclass
 class DailyReportProcessResult:
-    report: models.DailyReport
+    """Result payload returned after submitting a daily report for analysis."""
+
+    detail: schemas.DailyReportDetail
     proposals: list[schemas.AnalysisCard]
+    destroyed: bool = False
     error: str | None = None
 
 
@@ -198,7 +201,8 @@ class DailyReportService:
                 {"message": error_message},
             )
             self.db.flush()
-            return DailyReportProcessResult(report=report, proposals=[], error=error_message)
+            detail = self.to_detail(report)
+            return DailyReportProcessResult(detail=detail, proposals=[], destroyed=False, error=error_message)
 
         stored_proposals = proposals[:max_cards]
         self._update_processing_meta(
@@ -221,9 +225,12 @@ class DailyReportService:
             {"cards_created": 0, "proposals_recorded": len(stored_proposals)},
         )
         self.db.flush()
+        detail = self.to_detail(report)
+        self.db.delete(report)
         return DailyReportProcessResult(
-            report=report,
+            detail=detail,
             proposals=stored_proposals,
+            destroyed=True,
             error=None,
         )
 
@@ -273,9 +280,9 @@ class DailyReportService:
                 id=event.id,
                 event_type=schemas.DailyReportEventType(event.event_type),
                 payload=dict(event.payload or {}),
-                created_at=event.created_at,
+                created_at=self._normalize_timestamp(event.created_at),
             )
-            for event in sorted(report.events or [], key=lambda item: item.created_at)
+            for event in sorted(report.events or [], key=self._event_sort_key)
         ]
         pending = self._pending_proposals(report.processing_meta)
         return schemas.DailyReportDetail(
@@ -425,4 +432,17 @@ class DailyReportService:
             except Exception:  # pragma: no cover - defensive parsing
                 continue
         return results
+
+    def _event_sort_key(self, event: models.DailyReportEvent) -> datetime:
+        normalized = self._normalize_timestamp(event.created_at)
+        if normalized is None:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        return normalized
+
+    def _normalize_timestamp(self, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value
 
