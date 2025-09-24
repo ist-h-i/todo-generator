@@ -60,7 +60,7 @@ def _seed_legacy_users_table(engine) -> None:
         )
 
 
-def test_run_startup_migrations_adds_column_without_promoting_users() -> None:
+def test_run_startup_migrations_adds_column_and_promotes_first_user() -> None:
     engine = create_engine("sqlite:///:memory:", future=True)
     _seed_legacy_users_table(engine)
 
@@ -76,7 +76,7 @@ def test_run_startup_migrations_adds_column_without_promoting_users() -> None:
         ).all()
 
     assert rows, "Expected at least one user row"
-    assert all(bool(row.is_admin) is False for row in rows)
+    assert [bool(row.is_admin) for row in rows] == [True, False]
 
 
 def test_run_startup_migrations_is_noop_when_column_exists() -> None:
