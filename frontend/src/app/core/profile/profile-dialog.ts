@@ -241,94 +241,6 @@ function flattenRoleOptions(
 const ROLE_OPTIONS = flattenRoleOptions(ROLE_TREE);
 const ROLE_OPTION_LOOKUP = new Map(ROLE_OPTIONS.map((option) => [option.value, option] as const));
 
-const ROLE_TREE: readonly RoleTreeCategory[] = [
-  {
-    label: 'プロダクトマネジメント',
-    options: [
-      { label: 'プロダクトマネージャー', value: 'プロダクトマネジメント / プロダクトマネージャー' },
-      { label: 'スクラムマスター', value: 'プロダクトマネジメント / スクラムマスター' },
-      { label: 'PMO', value: 'プロダクトマネジメント / PMO' },
-    ],
-  },
-  {
-    label: 'ソフトウェアエンジニアリング',
-    children: [
-      {
-        label: 'フロントエンド',
-        options: [
-          { label: 'Webアプリケーション開発', value: 'フロントエンド / Webアプリケーション開発' },
-          {
-            label: 'モバイル・デスクトップアプリ',
-            value: 'フロントエンド / モバイル・デスクトップアプリ',
-          },
-          { label: 'UI実装・デザインシステム', value: 'フロントエンド / UI実装・デザインシステム' },
-        ],
-      },
-      {
-        label: 'バックエンド',
-        options: [
-          { label: 'API・マイクロサービス開発', value: 'バックエンド / API・マイクロサービス開発' },
-          { label: 'バッチ・データ連携開発', value: 'バックエンド / バッチ・データ連携開発' },
-          { label: '認証基盤・セキュリティ', value: 'バックエンド / 認証基盤・セキュリティ' },
-        ],
-      },
-      {
-        label: 'モバイル / クライアント',
-        options: [
-          { label: 'iOSアプリ開発', value: 'モバイル / iOSアプリ開発' },
-          { label: 'Androidアプリ開発', value: 'モバイル / Androidアプリ開発' },
-          { label: 'クロスプラットフォーム開発', value: 'モバイル / クロスプラットフォーム開発' },
-        ],
-      },
-      {
-        label: 'インフラ / SRE',
-        options: [
-          { label: 'クラウドインフラ構築', value: 'インフラ / クラウドインフラ構築' },
-          { label: 'CI/CD・DevOps', value: 'インフラ / CI/CD・DevOps' },
-          { label: '監視・運用自動化', value: 'インフラ / 監視・運用自動化' },
-        ],
-      },
-      {
-        label: '品質保証',
-        options: [
-          { label: 'QA計画・テスト設計', value: '品質保証 / QA計画・テスト設計' },
-          { label: 'テスト自動化', value: '品質保証 / テスト自動化' },
-          { label: '受け入れテスト支援', value: '品質保証 / 受け入れテスト支援' },
-        ],
-      },
-      {
-        label: 'データ / AI',
-        options: [
-          { label: 'データ分析', value: 'データ / データ分析' },
-          { label: '機械学習モデル開発', value: 'データ / 機械学習モデル開発' },
-          { label: 'データ基盤構築', value: 'データ / データ基盤構築' },
-        ],
-      },
-      {
-        label: 'フルスタック',
-        options: [{ label: 'フルスタック開発', value: 'フルスタック / アプリケーション開発' }],
-      },
-    ],
-  },
-  {
-    label: 'クリエイティブ / リサーチ',
-    options: [
-      { label: 'UXリサーチ', value: 'クリエイティブ / UXリサーチ' },
-      { label: 'UI/ビジュアルデザイン', value: 'クリエイティブ / UI・ビジュアルデザイン' },
-      { label: 'テクニカルライティング', value: 'クリエイティブ / テクニカルライティング' },
-    ],
-  },
-  {
-    label: 'ビジネスサポート',
-    options: [
-      { label: 'カスタマーサクセス', value: 'ビジネスサポート / カスタマーサクセス' },
-      { label: 'セールスエンジニア', value: 'ビジネスサポート / セールスエンジニア' },
-      { label: '教育・オンボーディング', value: 'ビジネスサポート / 教育・オンボーディング' },
-    ],
-  },
-];
-
-
 const MAX_NICKNAME_LENGTH = 30;
 const MAX_BIO_LENGTH = 500;
 const MAX_EXPERIENCE_YEARS = 50;
@@ -355,7 +267,6 @@ export class ProfileDialogComponent implements AfterViewInit {
   private readonly profileService = inject(ProfileService);
 
   public readonly roleCategories = ROLE_TREE;
-  public readonly locationOptions = LOCATION_OPTIONS;
   public readonly maxBioLength = MAX_BIO_LENGTH;
   public readonly maxCustomRoleLength = MAX_CUSTOM_ROLE_LENGTH;
   public readonly maxRoles = MAX_ROLES;
@@ -478,38 +389,11 @@ export class ProfileDialogComponent implements AfterViewInit {
     return null;
   });
 
-  public readonly portfolioError = computed(() => {
-    if (!this.portfolioTouched()) {
-      return null;
-    }
-
-    const value = this.form.controls.portfolioUrl.value().trim();
-    if (!value) {
-      return null;
-    }
-
-    if (value.length > MAX_PORTFOLIO_LENGTH) {
-      return `ポートフォリオURLは${MAX_PORTFOLIO_LENGTH}文字以内で入力してください。`;
-    }
-
-    try {
-      const url = new URL(value);
-      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-        return 'ポートフォリオURLは http または https で始まる必要があります。';
-      }
-    } catch {
-      return '有効なURLを入力してください。';
-    }
-
-    return null;
-  });
-
   public readonly hasValidationErrors = computed(() =>
     Boolean(
       this.nicknameError() ||
         this.experienceError() ||
         this.bioError() ||
-        this.portfolioError() ||
         this.rolesError(),
     ),
   );
@@ -651,19 +535,6 @@ export class ProfileDialogComponent implements AfterViewInit {
     const target = event.target as HTMLTextAreaElement | null;
     const value = target?.value ?? '';
     this.form.controls.bio.setValue(value);
-  }
-
-  public onLocationChange(event: Event): void {
-    const target = event.target as HTMLSelectElement | null;
-    const value = target?.value ?? '';
-    this.form.controls.location.setValue(value === '未設定' ? '' : value);
-  }
-
-  public onPortfolioInput(event: Event): void {
-    this.portfolioTouched.set(true);
-    const target = event.target as HTMLInputElement | null;
-    const value = target?.value ?? '';
-    this.form.controls.portfolioUrl.setValue(value);
   }
 
   public onCustomRoleInput(event: Event): void {
