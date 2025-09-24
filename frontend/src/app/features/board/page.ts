@@ -62,6 +62,15 @@ interface CardPriorityOption {
   readonly label: string;
 }
 
+interface CardFormState {
+  readonly title: string;
+  readonly summary: string;
+  readonly statusId: string;
+  readonly assignee: string;
+  readonly storyPoints: string;
+  readonly priority: Card['priority'];
+}
+
 const CARD_PRIORITIES: readonly CardPriorityOption[] = [
   { id: 'low', label: '低' },
   { id: 'medium', label: '中' },
@@ -247,7 +256,19 @@ export class BoardPage {
     message: '',
   });
 
+  private lastCardFormBaseline: CardFormState | null = null;
   private lastSelectedCardId: string | null = null;
+
+  private areCardFormStatesEqual(left: CardFormState, right: CardFormState): boolean {
+    return (
+      left.title === right.title &&
+      left.summary === right.summary &&
+      left.statusId === right.statusId &&
+      left.assignee === right.assignee &&
+      left.storyPoints === right.storyPoints &&
+      left.priority === right.priority
+    );
+  }
 
   public readonly isCardFormValid = (): boolean => {
     const snapshot = this.cardForm.value();
@@ -364,33 +385,58 @@ export class BoardPage {
   private readonly syncSelectedCardFormsEffect = effect(
     () => {
       const active = this.selectedCardSignal();
+      const formSnapshot = this.cardForm.value();
 
       if (!active) {
         const statuses = this.statusesSignal();
-        this.cardForm.reset({
+        const fallback: CardFormState = {
           title: '',
           summary: '',
           statusId: statuses[0]?.id ?? '',
           assignee: '',
           storyPoints: '',
           priority: 'medium',
-        });
+        };
+
+        if (!this.areCardFormStatesEqual(formSnapshot, fallback)) {
+          this.cardForm.reset(fallback);
+        }
+        this.lastCardFormBaseline = fallback;
         this.commentForm.reset({ author: '', message: '' });
         this.newSubtaskForm.reset({ title: '', assignee: '', estimateHours: '', status: 'todo' });
         this.lastSelectedCardId = null;
         return;
       }
 
-      this.cardForm.reset({
+      const baseline: CardFormState = {
         title: active.title,
         summary: active.summary,
         statusId: active.statusId,
         assignee: active.assignee ?? '',
         storyPoints: active.storyPoints.toString(),
         priority: active.priority,
-      });
+      };
 
-      if (this.lastSelectedCardId !== active.id) {
+      let baselineChanged = true;
+      let hasUnsavedChanges = false;
+
+      if (this.lastCardFormBaseline) {
+        baselineChanged = !this.areCardFormStatesEqual(baseline, this.lastCardFormBaseline);
+        hasUnsavedChanges = !this.areCardFormStatesEqual(formSnapshot, this.lastCardFormBaseline);
+      }
+
+      const selectedCardChanged = this.lastSelectedCardId !== active.id;
+
+      if (selectedCardChanged || (!hasUnsavedChanges && baselineChanged)) {
+        this.cardForm.reset(baseline);
+        this.lastCardFormBaseline = baseline;
+      } else if (baselineChanged && this.areCardFormStatesEqual(formSnapshot, baseline)) {
+        this.lastCardFormBaseline = baseline;
+      } else if (!this.lastCardFormBaseline) {
+        this.lastCardFormBaseline = baseline;
+      }
+
+      if (selectedCardChanged) {
         this.commentForm.reset({
           author: active.assignee ?? '',
           message: '',
@@ -401,8 +447,9 @@ export class BoardPage {
           estimateHours: '',
           status: 'todo',
         });
-        this.lastSelectedCardId = active.id;
       }
+
+      this.lastSelectedCardId = active.id;
     },
     { allowSignalWrites: true },
   );
