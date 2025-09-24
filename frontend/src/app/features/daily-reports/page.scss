@@ -1,12 +1,12 @@
 :host {
   display: block;
-  padding: clamp(1.5rem, 2vw, 2.5rem) 0 4rem;
+  padding: var(--page-padding-block-start) 0 var(--page-padding-block-end);
   color: var(--text-primary);
 }
 
 .daily-report-page {
   display: grid;
-  gap: clamp(1.5rem, 3vw, 2.5rem);
+  gap: var(--page-content-gap);
 }
 
 @media (min-width: 60rem) {
@@ -20,9 +20,9 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: clamp(1.25rem, 2vw, 1.75rem);
-  padding: clamp(1.5rem, 2vw, 2.2rem);
-  border-radius: 1.75rem;
+  gap: var(--panel-gap);
+  padding: var(--panel-padding);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
   box-shadow: var(--shadow-soft);
@@ -270,7 +270,7 @@ form {
 }
 
 .report-detail article {
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
   padding: clamp(1.1rem, 1.8vw, 1.5rem);
@@ -390,7 +390,7 @@ form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   border: 1px dashed var(--border-subtle);
   background: color-mix(in srgb, var(--surface-card) 78%, transparent);
   padding: clamp(1.2rem, 1.8vw, 1.6rem);

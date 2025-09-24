@@ -1,4 +1,4 @@
 :host {
   display: block;
-  padding: clamp(1.5rem, 2vw, 2.5rem) 0 4rem;
+  padding: var(--page-padding-block-start) 0 var(--page-padding-block-end);
 }

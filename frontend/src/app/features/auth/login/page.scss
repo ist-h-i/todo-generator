@@ -86,7 +86,7 @@
   inset: 1.5rem auto auto 1.5rem;
   width: 6rem;
   height: 6rem;
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   background: radial-gradient(
     circle at top,
     color-mix(in srgb, var(--accent) 12%, transparent),

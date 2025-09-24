@@ -27,14 +27,14 @@
   width: min(960px, 100%);
   max-height: min(90vh, 980px);
   overflow-y: auto;
-  border-radius: 1.75rem;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border-overlay);
   background: linear-gradient(180deg, var(--surface-overlay-strong), var(--surface-overlay));
   box-shadow: var(--shadow-soft);
   padding: clamp(1.5rem, 3vw, 2.5rem);
   display: flex;
   flex-direction: column;
-  gap: clamp(1.5rem, 3vw, 2.5rem);
+  gap: var(--page-content-gap);
   outline: none;
 }
 

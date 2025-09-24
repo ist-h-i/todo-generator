@@ -1,21 +1,23 @@
 app-profile-evaluations-page {
   display: block;
-  padding: clamp(1.5rem, 2vw, 2.5rem) 0 4rem;
   color: var(--text-primary);
+  padding: var(--page-padding-block-start) 0 var(--page-padding-block-end);
+  --page-content-gap: clamp(1.75rem, 2vw, 2.5rem);
+  --panel-gap: clamp(1.25rem, 2vw, 1.75rem);
 }
 
 app-profile-evaluations-page .evaluations-page {
   display: flex;
   flex-direction: column;
-  gap: clamp(1.75rem, 2vw, 2.5rem);
+  gap: var(--page-content-gap);
 }
 
 app-profile-evaluations-page .page-header {
   display: flex;
   flex-direction: column;
-  gap: clamp(1.25rem, 2vw, 1.75rem);
+  gap: var(--panel-gap);
   padding: clamp(1.75rem, 3vw, 2.5rem);
-  border-radius: 1.75rem;
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
   background: linear-gradient(
     135deg,
@@ -72,7 +74,7 @@ app-profile-evaluations-page .quota-card {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
   background: color-mix(in srgb, var(--surface-card) 82%, transparent);
   padding: 1.25rem 1.5rem;
@@ -204,7 +206,7 @@ app-profile-evaluations-page .state {
   gap: 0.75rem;
   place-items: center;
   padding: 3rem 1.75rem;
-  border-radius: 1.75rem;
+  border-radius: var(--radius-xl);
   border: 2px dashed var(--border-subtle);
   background: color-mix(in srgb, var(--surface-card) 82%, transparent);
   text-align: center;
@@ -230,7 +232,7 @@ app-profile-evaluations-page .state__spinner {
 app-profile-evaluations-page .latest {
   display: flex;
   flex-direction: column;
-  gap: clamp(1.25rem, 2vw, 1.75rem);
+  gap: var(--panel-gap);
 }
 
 app-profile-evaluations-page .latest__header {
@@ -283,7 +285,7 @@ app-profile-evaluations-page .latest__score {
   display: grid;
   gap: 0.5rem;
   padding: 1.35rem 1.5rem;
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--accent) 18%, transparent),

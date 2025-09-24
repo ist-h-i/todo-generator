@@ -21,7 +21,7 @@ app-profile-dialog .profile-dialog__panel {
   width: min(48rem, 100%);
   max-height: calc(100vh - 3rem);
   overflow-y: auto;
-  border-radius: 1.5rem;
+  border-radius: var(--radius-lg);
   border: 1px solid var(--border-overlay);
   background: linear-gradient(180deg, var(--surface-overlay-strong), var(--surface-overlay));
   box-shadow: var(--shadow-soft);
