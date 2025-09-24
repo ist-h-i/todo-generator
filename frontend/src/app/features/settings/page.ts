@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { TemplatePreset } from '@core/models';
 import { SignalControl, createSignalForm } from '@lib/forms/signal-forms';
+import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
 
 /**
  * Settings page exposing workspace configuration controls.
@@ -11,7 +12,7 @@ import { SignalControl, createSignalForm } from '@lib/forms/signal-forms';
 @Component({
   selector: 'app-settings-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PageHeaderComponent],
   templateUrl: './page.html',
   styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
