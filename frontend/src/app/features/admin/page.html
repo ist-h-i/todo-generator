@@ -1,7 +1,9 @@
-<div class="admin-page">
+<section class="app-page admin-page">
   <header class="admin-header">
     <h1 class="admin-title">管理コンソール</h1>
-    <p class="admin-description">コンピテンシー設定・判定・ユーザ権限・API キーをまとめて管理できます。</p>
+    <p class="admin-description">
+      コンピテンシー設定・判定・ユーザ権限・API キーをまとめて管理できます。
+    </p>
   </header>
 
   @if (error(); as message) {
@@ -60,7 +62,9 @@
       </header>
 
       @if (competencies().length === 0) {
-        <p class="admin-empty">まだコンピテンシーが登録されていません。右側のフォームから追加できます。</p>
+        <p class="admin-empty">
+          まだコンピテンシーが登録されていません。右側のフォームから追加できます。
+        </p>
       } @else {
         <ul class="admin-list">
           @for (competency of competencies(); track competency.id) {
@@ -98,7 +102,9 @@
     <section class="admin-section">
       <header class="admin-section__header">
         <h2>コンピテンシーを登録</h2>
-        <p class="admin-section__subtitle">名称・レベル・評価項目を設定して AI 判定対象を作成します。</p>
+        <p class="admin-section__subtitle">
+          名称・レベル・評価項目を設定して AI 判定対象を作成します。
+        </p>
       </header>
 
       <form class="admin-form" (submit)="createCompetency($event)">
@@ -199,7 +205,9 @@
     <section class="admin-section">
       <header class="admin-section__header">
         <h2>手動判定</h2>
-        <p class="admin-section__subtitle">対象ユーザとコンピテンシーを選択し、AI 判定を即時実行します。</p>
+        <p class="admin-section__subtitle">
+          対象ユーザとコンピテンシーを選択し、AI 判定を即時実行します。
+        </p>
       </header>
 
       <form class="admin-form" (submit)="triggerEvaluation($event)">
@@ -245,7 +253,9 @@
       </header>
 
       @if (evaluations().length === 0) {
-        <p class="admin-empty">まだ評価結果はありません。手動判定を実行するか、月次バッチを待機してください。</p>
+        <p class="admin-empty">
+          まだ評価結果はありません。手動判定を実行するか、月次バッチを待機してください。
+        </p>
       } @else {
         <ul class="admin-evaluations">
           @for (evaluation of evaluations(); track evaluation.id) {
@@ -256,11 +266,14 @@
                   <span class="admin-badge">{{ evaluation.score_label }}</span>
                 </div>
                 <span class="admin-evaluations__meta">
-                  対象: {{ userEmail(evaluation.user_id) }} ／ 期間: {{ evaluation.period_start | date: 'yyyy/MM/dd' }} -
+                  対象: {{ userEmail(evaluation.user_id) }} ／ 期間:
+                  {{ evaluation.period_start | date: 'yyyy/MM/dd' }} -
                   {{ evaluation.period_end | date: 'yyyy/MM/dd' }}
                 </span>
               </header>
-              <p class="admin-evaluations__rationale">{{ evaluation.rationale || 'AI からの根拠は取得できませんでした。' }}</p>
+              <p class="admin-evaluations__rationale">
+                {{ evaluation.rationale || 'AI からの根拠は取得できませんでした。' }}
+              </p>
               @if (evaluation.items.length > 0) {
                 <ul class="admin-evaluations__items">
                   @for (item of evaluation.items; track item.id) {
@@ -355,12 +368,15 @@
     <section class="admin-section">
       <header class="admin-section__header">
         <h2>AI API トークン</h2>
-        <p class="admin-section__subtitle">OpenAI などの API キーを安全に保管し、判定処理に利用します。</p>
+        <p class="admin-section__subtitle">
+          OpenAI などの API キーを安全に保管し、判定処理に利用します。
+        </p>
       </header>
 
       @if (apiCredential(); as credential) {
         <p class="admin-hint">
-          現在のキー: {{ credential.secret_hint || '****' }} ／ 更新日: {{ credential.updated_at | date: 'medium' }}
+          現在のキー: {{ credential.secret_hint || '****' }} ／ 更新日:
+          {{ credential.updated_at | date: 'medium' }}
         </p>
       } @else {
         <p class="admin-empty">登録済みの API トークンはありません。</p>
@@ -387,7 +403,9 @@
     <section class="admin-section">
       <header class="admin-section__header">
         <h2>デフォルト日次上限</h2>
-        <p class="admin-section__subtitle">ユーザ個別の設定が無い場合に適用される日次上限を変更します。</p>
+        <p class="admin-section__subtitle">
+          ユーザ個別の設定が無い場合に適用される日次上限を変更します。
+        </p>
       </header>
 
       <form class="admin-form" (submit)="updateQuotaDefaults($event)">
@@ -419,4 +437,4 @@
       </form>
     </section>
   }
-</div>
+</section>

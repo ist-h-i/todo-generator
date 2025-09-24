@@ -1,9 +1,10 @@
-:host {
-  display: block;
-  padding: var(--page-padding-block-start) 0 var(--page-padding-block-end);
+.analytics-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-content-gap);
 }
 
-.snapshot-chip {
+.analytics-page .snapshot-chip {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -22,23 +23,23 @@
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 8%, transparent);
 }
 
-.snapshot-chip:hover {
+.analytics-page .snapshot-chip:hover {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   background: color-mix(in srgb, var(--accent) 14%, var(--surface-card));
   color: var(--accent-strong);
   box-shadow: 0 12px 28px -18px var(--accent-shadow-color);
 }
 
-.snapshot-chip--active {
+.analytics-page .snapshot-chip--active {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   background: color-mix(in srgb, var(--accent) 20%, var(--surface-card));
   color: var(--accent-strong);
   box-shadow: 0 14px 32px -20px var(--accent-shadow-strong-color);
 }
 
-.severity-pill,
-.status-pill,
-.health-pill {
+.analytics-page .severity-pill,
+.analytics-page .status-pill,
+.analytics-page .health-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -58,10 +59,10 @@
     color 150ms ease;
 }
 
-.cause-column,
-.action-card,
-.metric-card,
-.initiative-card {
+.analytics-page .cause-column,
+.analytics-page .action-card,
+.analytics-page .metric-card,
+.analytics-page .initiative-card {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -75,15 +76,15 @@
     box-shadow 150ms ease;
 }
 
-.cause-column:hover,
-.action-card:hover,
-.metric-card:hover,
-.initiative-card:hover {
+.analytics-page .cause-column:hover,
+.analytics-page .action-card:hover,
+.analytics-page .metric-card:hover,
+.analytics-page .initiative-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-strong);
 }
 
-.cause-card {
+.analytics-page .cause-card {
   display: grid;
   gap: 0.6rem;
   border-radius: 1.1rem;
@@ -93,41 +94,41 @@
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 10%, transparent);
 }
 
-.action-card {
+.analytics-page .action-card {
   gap: 1.1rem;
 }
 
-.status-pill--pending {
+.analytics-page .status-pill--pending {
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   background: color-mix(in srgb, var(--accent) 16%, var(--surface-card));
   color: var(--accent-strong);
 }
 
-.status-pill--done {
+.analytics-page .status-pill--done {
   border-color: color-mix(in srgb, var(--success) 40%, transparent);
   background: color-mix(in srgb, var(--success) 18%, var(--surface-card));
   color: var(--success-strong);
 }
 
-.health-pill[data-health='good'] {
+.analytics-page .health-pill[data-health='good'] {
   border-color: color-mix(in srgb, var(--success) 40%, transparent);
   background: color-mix(in srgb, var(--success) 20%, var(--surface-card));
   color: var(--success-strong);
 }
 
-.health-pill[data-health='watch'] {
+.analytics-page .health-pill[data-health='watch'] {
   border-color: color-mix(in srgb, var(--warning) 40%, transparent);
   background: color-mix(in srgb, var(--warning) 18%, var(--surface-card));
   color: var(--warning-strong);
 }
 
-.health-pill[data-health='poor'] {
+.analytics-page .health-pill[data-health='poor'] {
   border-color: color-mix(in srgb, var(--danger) 40%, transparent);
   background: color-mix(in srgb, var(--danger) 18%, var(--surface-card));
   color: var(--danger-strong);
 }
 
-.report-preview {
+.analytics-page .report-preview {
   width: 100%;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
@@ -142,21 +143,21 @@
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 12%, transparent);
 }
 
-:host-context(.dark) .snapshot-chip {
+.dark .analytics-page .snapshot-chip {
   background: color-mix(in srgb, var(--surface-card) 68%, transparent);
   color: var(--text-tertiary);
 }
 
-:host-context(.dark) .snapshot-chip:hover,
-:host-context(.dark) .snapshot-chip--active {
+.dark .analytics-page .snapshot-chip:hover,
+.dark .analytics-page .snapshot-chip--active {
   color: var(--text-primary);
 }
 
-:host-context(.dark) .cause-card {
+.dark .analytics-page .cause-card {
   background: color-mix(in srgb, var(--accent) 16%, var(--surface-card));
 }
 
-:host-context(.dark) .report-preview {
+.dark .analytics-page .report-preview {
   color: var(--text-primary);
   background: linear-gradient(
     180deg,

@@ -15,7 +15,6 @@ import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
   standalone: true,
   imports: [CommonModule, RouterLink, PageHeaderComponent],
   templateUrl: './page.html',
-  styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AnalyticsPage {

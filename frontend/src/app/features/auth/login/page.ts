@@ -33,7 +33,6 @@ interface RegistrationSubmission {
   standalone: true,
   imports: [CommonModule],
   templateUrl: './page.html',
-  styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginPage {

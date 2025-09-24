@@ -1,101 +1,153 @@
-<section class="daily-report-page">
-  <div class="form-panel">
-    <h1>日報・週報解析</h1>
-    <form [formGroup]="form" (submit)="submit($event)" novalidate>
-      <div class="field">
-        <label for="tags">タグ</label>
-        <input id="tags" type="text" formControlName="tags" placeholder="例: backend, 障害対応" />
-        <small>カンマまたはスペース区切りで入力すると複数タグを追加できます。</small>
+<section class="app-page daily-report-page">
+  <div class="surface-panel page-panel daily-report-page__form">
+    <h1 class="page-title">日報・週報解析</h1>
+    <form class="page-form" [formGroup]="form" (submit)="submit($event)" novalidate>
+      <div class="form-field">
+        <label class="form-field__label" for="tags">タグ</label>
+        <input
+          id="tags"
+          type="text"
+          class="form-control"
+          formControlName="tags"
+          placeholder="例: backend, 障害対応"
+        />
+        <p class="form-field__hint">
+          カンマまたはスペース区切りで入力すると複数タグを追加できます。
+        </p>
       </div>
 
-      <div class="sections" formArrayName="sections">
+      <div class="form-collection" formArrayName="sections">
         <h2>日報・週報セクション</h2>
         <div
-          class="section"
+          class="form-collection__item"
           *ngFor="let section of sections.controls; index as index"
           [formGroupName]="index"
         >
-          <div class="section-header">
-            <h3>セクション {{ index + 1 }}</h3>
-            <button type="button" class="remove" (click)="removeSection(index)" [disabled]="sections.length === 1">
+          <div class="form-collection__header">
+            <h3 class="form-collection__title">セクション {{ index + 1 }}</h3>
+            <button
+              type="button"
+              class="form-collection__remove"
+              (click)="removeSection(index)"
+              [disabled]="sections.length === 1"
+            >
               削除
             </button>
           </div>
-          <label>タイトル</label>
-          <input type="text" formControlName="title" placeholder="例: 対応内容" />
-          <label>本文 <span aria-hidden="true">*</span></label>
-          <textarea formControlName="body" rows="4" placeholder="重要な出来事や気づきを入力してください"></textarea>
+          <label class="form-field__label">タイトル</label>
+          <input
+            type="text"
+            class="form-control"
+            formControlName="title"
+            placeholder="例: 対応内容"
+          />
+          <label class="form-field__label"> 本文 <span aria-hidden="true">*</span> </label>
+          <textarea
+            class="form-control form-control--textarea"
+            formControlName="body"
+            rows="4"
+            placeholder="重要な出来事や気づきを入力してください"
+          ></textarea>
         </div>
-        <button type="button" class="add" (click)="addSection()">セクションを追加</button>
+        <button type="button" class="form-collection__add" (click)="addSection()">
+          セクションを追加
+        </button>
       </div>
 
-      <div class="actions">
-        <button type="submit" [disabled]="pending()">解析を実行</button>
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold"
+          [disabled]="pending()"
+        >
+          解析を実行
+        </button>
       </div>
 
-      <p class="feedback error" *ngIf="error() as errorMessage">{{ errorMessage }}</p>
-      <p class="feedback success" *ngIf="successMessage() as successMessage">{{ successMessage }}</p>
+      <p class="form-feedback form-feedback--error" *ngIf="error() as errorMessage">
+        {{ errorMessage }}
+      </p>
+      <p class="form-feedback form-feedback--success" *ngIf="successMessage() as successMessage">
+        {{ successMessage }}
+      </p>
     </form>
   </div>
 
-  <div class="sidebar">
-    <p class="retention-note">解析結果は今回のカード作成のためだけに利用され、日報本文は保存されません。</p>
+  <aside class="surface-panel page-panel daily-report-page__sidebar">
+    <p class="daily-report-page__retention">
+      解析結果は今回のカード作成のためだけに利用され、日報本文は保存されません。
+    </p>
 
-    <section class="report-detail" *ngIf="detail() as active; else emptyState">
+    <section class="daily-report-page__detail" *ngIf="detail() as active; else emptyState">
       <h2>解析結果</h2>
-      <p class="status">ステータス: {{ active.status }}</p>
-      <p class="failure" *ngIf="active.failure_reason">失敗理由: {{ active.failure_reason }}</p>
+      <p class="daily-report-page__status">ステータス: {{ active.status }}</p>
+      <p class="daily-report-page__failure" *ngIf="active.failure_reason">
+        失敗理由: {{ active.failure_reason }}
+      </p>
 
-      <article class="content">
+      <article>
         <h3>日報・週報本文</h3>
-        <div class="content-section" *ngFor="let section of active.sections; index as index">
-          <h4>{{ section.title || ('セクション ' + (index + 1)) }}</h4>
+        <div
+          class="daily-report-page__content-section"
+          *ngFor="let section of active.sections; index as index"
+        >
+          <h4>{{ section.title || 'セクション ' + (index + 1) }}</h4>
           <p>{{ section.body }}</p>
         </div>
       </article>
 
-      <article class="cards" *ngIf="active.cards.length > 0">
+      <article class="daily-report-page__cards" *ngIf="active.cards.length > 0">
         <h3>生成されたタスク</h3>
-        <div class="card" *ngFor="let card of active.cards">
+        <div class="daily-report-page__card" *ngFor="let card of active.cards">
           <header>
             <h4>{{ card.title }}</h4>
-            <span class="priority">優先度: {{ card.priority || 'medium' }}</span>
+            <span class="daily-report-page__priority">優先度: {{ card.priority || 'medium' }}</span>
           </header>
-          <p class="summary">{{ card.summary }}</p>
-          <ul class="subtasks" *ngIf="card.subtasks.length > 0">
+          <p class="daily-report-page__summary">{{ card.summary }}</p>
+          <ul class="daily-report-page__subtasks" *ngIf="card.subtasks.length > 0">
             <li *ngFor="let subtask of card.subtasks">{{ subtask.title }}</li>
           </ul>
         </div>
       </article>
 
-      <article class="proposals" *ngIf="active.cards.length === 0 && active.pending_proposals.length > 0">
+      <article
+        class="daily-report-page__proposals"
+        *ngIf="active.cards.length === 0 && active.pending_proposals.length > 0"
+      >
         <h3>提案中のタスク</h3>
-        <div class="proposal" *ngFor="let proposal of active.pending_proposals">
+        <div class="daily-report-page__proposal" *ngFor="let proposal of active.pending_proposals">
           <h4>{{ proposal.title }}</h4>
-          <p>{{ proposal.summary }}</p>
-          <ul class="subtasks" *ngIf="proposal.subtasks.length > 0">
+          <p class="daily-report-page__summary">{{ proposal.summary }}</p>
+          <ul class="daily-report-page__subtasks" *ngIf="proposal.subtasks.length > 0">
             <li *ngFor="let sub of proposal.subtasks">{{ sub.title }}</li>
           </ul>
         </div>
       </article>
 
-      <article class="events">
+      <article class="daily-report-page__events">
         <h3>イベント履歴</h3>
-        <ul>
-          <li *ngFor="let event of active.events">
-            <span class="event-type">{{ event.event_type }}</span>
-            <span class="event-time">{{ event.created_at | date: 'short' }}</span>
+        <ul class="daily-report-page__events-list">
+          <li class="daily-report-page__events-item" *ngFor="let event of active.events">
+            <span class="daily-report-page__event-type">{{ event.event_type }}</span>
+            <span class="daily-report-page__event-time">{{
+              event.created_at | date: 'short'
+            }}</span>
           </li>
         </ul>
       </article>
     </section>
 
     <ng-template #emptyState>
-      <section class="empty-state">
+      <section class="daily-report-page__empty">
         <h2>解析結果</h2>
-        <p>まだ解析結果はありません。フォームに日報を入力して AI 解析を実行すると、ここに提案が表示されます。</p>
-        <p class="hint">カード化が完了すると日報データは破棄されるため、履歴として保存されません。</p>
+        <p>
+          まだ解析結果はありません。フォームに日報を入力して AI
+          解析を実行すると、ここに提案が表示されます。
+        </p>
+        <p class="daily-report-page__hint">
+          カード化が完了すると日報データは破棄されるため、履歴として保存されません。
+        </p>
       </section>
     </ng-template>
-  </div>
+  </aside>
 </section>

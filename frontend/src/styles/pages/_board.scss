@@ -1,6 +1,25 @@
-:host {
-  display: block;
-  padding: var(--page-padding-block-start) 0 var(--page-padding-block-end);
+.board-page {
+  display: grid;
+  min-height: 100%;
+  gap: var(--page-content-gap);
+}
+
+@media (min-width: 64rem) {
+  .board-page {
+    grid-template-rows: auto 1fr;
+  }
+}
+
+.board-page__overview {
+  display: grid;
+  gap: var(--page-content-gap);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .board-page__overview {
+    grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+  }
 }
 
 .board-columns {
@@ -16,6 +35,7 @@
     justify-content: flex-start;
   }
 }
+
 @media (min-width: 1024px) {
   .board-columns {
     margin: 0;
@@ -46,7 +66,7 @@
   justify-content: space-between;
 }
 
-:host-context(.dark) .board-column {
+.dark .board-page .board-column {
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--surface-strong) 88%, transparent),
@@ -77,7 +97,7 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-tertiary) 24%, transparent);
 }
 
-:host-context(.dark) .board-empty {
+.dark .board-page .board-empty {
   background: color-mix(in srgb, var(--surface-card) 60%, transparent);
   color: var(--text-tertiary);
 }
@@ -150,17 +170,17 @@
   background: color-mix(in srgb, var(--surface-card) 60%, transparent);
 }
 
-:host-context(.dark) .board-badge {
+.dark .board-page .board-badge {
   background: color-mix(in srgb, var(--surface-card) 60%, transparent);
   border-color: var(--neutral-border-strong);
 }
 
-.cdk-drag-preview {
+.board-page .cdk-drag-preview {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-strong);
 }
 
-.cdk-drag-placeholder {
+.board-page .cdk-drag-placeholder {
   opacity: 0;
 }
 
@@ -197,11 +217,14 @@
   background: color-mix(in srgb, var(--surface-card) 75%, transparent);
 }
 
-:host-context(.dark) .subtask-badge {
-  background: color-mix(in srgb, var(--surface-card) 65%, transparent);
+.dark .board-page .subtask-badge {
+  background: color-mix(in srgb, var(--surface-card) 60%, transparent);
   border-color: var(--neutral-border-strong);
 }
 
-.subtask-card-compact-note {
-  font-style: italic;
+.board-page__subtasks {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 2rem;
 }
