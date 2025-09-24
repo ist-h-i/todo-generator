@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import io
 import json
-from typing import Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
 
 from fastapi import HTTPException, UploadFile, status
-from PIL import Image, ImageFile, UnidentifiedImageError
 
 from .. import models, schemas
 
@@ -22,8 +21,33 @@ _MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024
 _ALLOWED_CONTENT_TYPES = {"image/png", "image/jpeg", "image/webp"}
 
 
+if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
+    from PIL import Image as PILImage
+
+
+class _PillowModules(NamedTuple):
+    Image: Any
+    ImageFile: Any
+    UnidentifiedImageError: type[Exception]
+
+
+_MISSING_PILLOW_MESSAGE = "画像処理ライブラリ(Pillow)がインストールされていません。管理者にお問い合わせください。"
+
+
 def build_user_profile(user: models.User) -> schemas.UserProfile:
     return schemas.UserProfile.model_validate(user)
+
+
+def _import_pillow() -> _PillowModules:
+    try:
+        from PIL import Image, ImageFile, UnidentifiedImageError  # type: ignore[import-not-found]
+    except ModuleNotFoundError as exc:  # pragma: no cover - exercised via integration test
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=_MISSING_PILLOW_MESSAGE,
+        ) from exc
+
+    return _PillowModules(Image=Image, ImageFile=ImageFile, UnidentifiedImageError=UnidentifiedImageError)
 
 
 def normalize_nickname(value: str | None) -> str:
@@ -180,22 +204,24 @@ async def process_avatar_upload(upload: UploadFile) -> tuple[bytes, str]:
             detail="アイコン画像のサイズは5MB以内にしてください。",
         )
 
+    pillow = _import_pillow()
+
     try:
-        image = Image.open(io.BytesIO(raw_bytes))
-    except UnidentifiedImageError as exc:
+        image = pillow.Image.open(io.BytesIO(raw_bytes))
+    except pillow.UnidentifiedImageError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="画像を読み込めませんでした。ファイルを確認してください。",
         ) from exc
 
-    image = _convert_image_to_rgba(image, raw_bytes)
+    image = _convert_image_to_rgba(image, raw_bytes, pillow)
     side = min(image.width, image.height)
     left = (image.width - side) // 2
     top = (image.height - side) // 2
     cropped = image.crop((left, top, left + side, top + side))
 
     if side > _MAX_AVATAR_DIMENSION:
-        resampling = getattr(Image, "Resampling", Image)
+        resampling = getattr(pillow.Image, "Resampling", pillow.Image)
         cropped = cropped.resize((
             _MAX_AVATAR_DIMENSION,
             _MAX_AVATAR_DIMENSION,
@@ -206,25 +232,29 @@ async def process_avatar_upload(upload: UploadFile) -> tuple[bytes, str]:
     return buffer.getvalue(), "image/webp"
 
 
-def _convert_image_to_rgba(image: Image.Image, raw_bytes: bytes) -> Image.Image:
+def _convert_image_to_rgba(
+    image: "PILImage.Image",
+    raw_bytes: bytes,
+    pillow: _PillowModules,
+) -> "PILImage.Image":
     try:
         return image.convert("RGBA")
     except OSError:
         pass
 
-    original_setting = ImageFile.LOAD_TRUNCATED_IMAGES
-    ImageFile.LOAD_TRUNCATED_IMAGES = True
+    original_setting = pillow.ImageFile.LOAD_TRUNCATED_IMAGES
+    pillow.ImageFile.LOAD_TRUNCATED_IMAGES = True
     try:
-        retry_image = Image.open(io.BytesIO(raw_bytes))
+        retry_image = pillow.Image.open(io.BytesIO(raw_bytes))
         retry_image.load()
         return retry_image.convert("RGBA")
-    except (UnidentifiedImageError, OSError) as exc:
+    except (pillow.UnidentifiedImageError, OSError) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="画像を読み込めませんでした。ファイルを確認してください。",
         ) from exc
     finally:
-        ImageFile.LOAD_TRUNCATED_IMAGES = original_setting
+        pillow.ImageFile.LOAD_TRUNCATED_IMAGES = original_setting
 
 
 __all__ = [
