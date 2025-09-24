@@ -31,8 +31,8 @@
   --accent-secondary-muted: color-mix(in srgb, var(--accent-secondary) 16%, transparent);
   --accent-glow-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --accent-glow-strong: color-mix(in srgb, var(--accent-strong) 8%, transparent);
-  --accent-shadow-color: color-mix(in srgb, var(--accent) 35%, transparent);
-  --accent-shadow-strong-color: color-mix(in srgb, var(--accent-strong) 45%, transparent);
+  --accent-shadow-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  --accent-shadow-strong-color: color-mix(in srgb, var(--accent-strong) 36%, transparent);
   --info: #0ea5e9;
   --info-strong: #0284c7;
   --info-muted: color-mix(in srgb, var(--info) 18%, transparent);
@@ -59,8 +59,8 @@
   --border-card: color-mix(in srgb, var(--surface-inverse) 14%, transparent);
   --border-overlay: color-mix(in srgb, var(--text-tertiary) 24%, transparent);
   --border-overlay-strong: color-mix(in srgb, var(--text-tertiary) 32%, transparent);
-  --shadow-soft: 0 12px 24px color-mix(in srgb, var(--surface-inverse) 8%, transparent);
-  --shadow-strong: 0 18px 36px color-mix(in srgb, var(--surface-inverse) 12%, transparent);
+  --shadow-soft: 0 12px 28px color-mix(in srgb, var(--surface-inverse) 6%, transparent);
+  --shadow-strong: 0 18px 42px color-mix(in srgb, var(--surface-inverse) 9%, transparent);
   color-scheme: light;
 }
 
@@ -89,8 +89,8 @@
   --accent-secondary-muted: color-mix(in srgb, var(--accent-secondary) 20%, transparent);
   --accent-glow-soft: color-mix(in srgb, var(--accent) 18%, transparent);
   --accent-glow-strong: color-mix(in srgb, var(--accent-strong) 12%, transparent);
-  --accent-shadow-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  --accent-shadow-strong-color: color-mix(in srgb, var(--accent-strong) 55%, transparent);
+  --accent-shadow-color: color-mix(in srgb, var(--accent) 32%, transparent);
+  --accent-shadow-strong-color: color-mix(in srgb, var(--accent-strong) 40%, transparent);
   --info: #38bdf8;
   --info-strong: #0ea5e9;
   --info-muted: color-mix(in srgb, var(--info) 22%, transparent);
@@ -117,8 +117,8 @@
   --border-card: color-mix(in srgb, var(--surface-inverse) 28%, transparent);
   --border-overlay: color-mix(in srgb, var(--text-inverse-tertiary) 32%, transparent);
   --border-overlay-strong: color-mix(in srgb, var(--text-inverse-tertiary) 42%, transparent);
-  --shadow-soft: 0 12px 24px color-mix(in srgb, var(--surface-inverse) 32%, transparent);
-  --shadow-strong: 0 18px 36px color-mix(in srgb, var(--surface-inverse) 36%, transparent);
+  --shadow-soft: 0 10px 24px color-mix(in srgb, var(--surface-inverse) 18%, transparent);
+  --shadow-strong: 0 16px 36px color-mix(in srgb, var(--surface-inverse) 22%, transparent);
   color-scheme: dark;
 }
 
@@ -200,22 +200,26 @@ a:hover {
 .surface-card {
   border-radius: 1.5rem;
   border: 1px solid var(--border-card);
-  background-color: var(--surface-card);
-  background-image: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
   box-shadow: var(--shadow-soft);
 }
 
 .surface-panel {
   border-radius: 1.75rem;
   border: 1px solid var(--border-subtle);
-  background-color: var(--surface);
-  box-shadow: var(--shadow-strong);
+  background: linear-gradient(180deg, var(--neutral-surface), var(--neutral-surface-strong));
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(12px);
 }
 
 .surface-pill {
+  display: inline-flex;
+  align-items: center;
   border-radius: 9999px;
   border: 1px solid var(--border-subtle);
-  background-color: var(--surface);
+  background: color-mix(in srgb, var(--surface-card) 75%, transparent);
+  color: var(--text-secondary);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 8%, transparent);
 }
 
 .surface-primary {
