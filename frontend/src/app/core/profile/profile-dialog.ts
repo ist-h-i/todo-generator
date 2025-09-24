@@ -24,11 +24,222 @@ interface RoleTreeOption {
   readonly value: string;
 }
 
-interface RoleTreeCategory {
+interface RoleTreeCategoryInput {
   readonly label: string;
   readonly options?: readonly RoleTreeOption[];
-  readonly children?: readonly RoleTreeCategory[];
+  readonly children?: readonly RoleTreeCategoryInput[];
 }
+
+interface RoleTreeCategory {
+  readonly id: string;
+  readonly label: string;
+  readonly path: readonly string[];
+  readonly options: readonly RoleTreeOption[];
+  readonly children: readonly RoleTreeCategory[];
+  readonly allOptionValues: readonly string[];
+}
+
+interface RoleOptionDescriptor extends RoleTreeOption {
+  readonly groups: readonly string[];
+  readonly categoryIds: readonly string[];
+}
+
+interface SelectedRoleDetail {
+  readonly value: string;
+  readonly label: string;
+  readonly groups: readonly string[];
+  readonly isCustom: boolean;
+}
+
+const ROLE_TREE_DEFINITION = [
+  {
+    label: 'プロダクトマネジメント',
+    options: [
+      { label: 'プロダクトマネージャー', value: 'プロダクトマネージャー' },
+      { label: 'プロダクトオーナー', value: 'プロダクトオーナー' },
+      { label: 'スクラムマスター', value: 'スクラムマスター' },
+      { label: 'PMO', value: 'PMO' },
+      { label: 'ビジネスアナリスト', value: 'ビジネスアナリスト' },
+      { label: 'グロースマネージャー', value: 'グロースマネージャー' },
+    ],
+  },
+  {
+    label: 'ソフトウェアエンジニアリング',
+    children: [
+      {
+        label: 'フロントエンド',
+        options: [
+          { label: 'Webアプリケーション開発', value: 'Webアプリケーション開発' },
+          { label: 'モバイル・デスクトップアプリ', value: 'モバイル・デスクトップアプリ' },
+          { label: 'UI実装・デザインシステム', value: 'UI実装・デザインシステム' },
+          {
+            label: 'フロントエンドパフォーマンス最適化',
+            value: 'フロントエンドパフォーマンス最適化',
+          },
+          { label: 'アクセシビリティ改善', value: 'アクセシビリティ改善' },
+        ],
+      },
+      {
+        label: 'バックエンド',
+        options: [
+          { label: 'API・マイクロサービス開発', value: 'API・マイクロサービス開発' },
+          { label: 'バッチ・データ連携開発', value: 'バッチ・データ連携開発' },
+          { label: '認証基盤・セキュリティ', value: '認証基盤・セキュリティ' },
+          { label: 'バックエンドアーキテクチャ設計', value: 'バックエンドアーキテクチャ設計' },
+          { label: 'バックエンド性能最適化', value: 'バックエンド性能最適化' },
+        ],
+      },
+      {
+        label: 'モバイル / クライアント',
+        options: [
+          { label: 'iOSアプリ開発', value: 'iOSアプリ開発' },
+          { label: 'Androidアプリ開発', value: 'Androidアプリ開発' },
+          { label: 'クロスプラットフォーム開発', value: 'クロスプラットフォーム開発' },
+          { label: 'モバイルUX改善', value: 'モバイルUX改善' },
+        ],
+      },
+      {
+        label: 'インフラ / SRE',
+        options: [
+          { label: 'クラウドインフラ構築', value: 'クラウドインフラ構築' },
+          { label: 'CI/CD・DevOps', value: 'CI/CD・DevOps' },
+          { label: '監視・運用自動化', value: '監視・運用自動化' },
+          { label: 'ネットワーク設計・運用', value: 'ネットワーク設計・運用' },
+          { label: 'インフラコスト最適化', value: 'インフラコスト最適化' },
+        ],
+      },
+      {
+        label: '品質保証',
+        options: [
+          { label: 'QA計画・テスト設計', value: 'QA計画・テスト設計' },
+          { label: 'テスト自動化', value: 'テスト自動化' },
+          { label: '受け入れテスト支援', value: '受け入れテスト支援' },
+          { label: '品質指標設計', value: '品質指標設計' },
+        ],
+      },
+      {
+        label: 'データ / AI',
+        options: [
+          { label: 'データ分析', value: 'データ分析' },
+          { label: '機械学習モデル開発', value: '機械学習モデル開発' },
+          { label: 'データ基盤構築', value: 'データ基盤構築' },
+          { label: 'データエンジニアリング', value: 'データエンジニアリング' },
+          { label: 'MLOps構築', value: 'MLOps構築' },
+        ],
+      },
+      {
+        label: 'フルスタック',
+        options: [
+          { label: 'フルスタック開発', value: 'フルスタック開発' },
+          { label: '技術選定・アーキテクチャ', value: '技術選定・アーキテクチャ' },
+        ],
+      },
+    ],
+  },
+  {
+    label: 'クリエイティブ / リサーチ',
+    options: [
+      { label: 'UXリサーチ', value: 'UXリサーチ' },
+      { label: 'UI・ビジュアルデザイン', value: 'UI・ビジュアルデザイン' },
+      { label: 'サービスデザイン', value: 'サービスデザイン' },
+      { label: 'テクニカルライティング', value: 'テクニカルライティング' },
+      { label: 'プロダクトブランディング', value: 'プロダクトブランディング' },
+    ],
+  },
+  {
+    label: 'ビジネスサポート',
+    options: [
+      { label: 'カスタマーサクセス', value: 'カスタマーサクセス' },
+      { label: 'セールスエンジニア', value: 'セールスエンジニア' },
+      { label: '教育・オンボーディング', value: '教育・オンボーディング' },
+      { label: 'サポートドキュメント整備', value: 'サポートドキュメント整備' },
+      { label: 'テクニカルトレーニング', value: 'テクニカルトレーニング' },
+    ],
+  },
+] satisfies readonly RoleTreeCategoryInput[];
+
+const ROLE_TREE: readonly RoleTreeCategory[] = (() => {
+  let categoryIdSequence = 0;
+
+  const build = (
+    categories: readonly RoleTreeCategoryInput[],
+    ancestors: readonly string[] = [],
+  ): RoleTreeCategory[] => {
+    const result: RoleTreeCategory[] = [];
+    for (const category of categories) {
+      const path = [...ancestors, category.label];
+      const id = `role-category-${categoryIdSequence++}`;
+      const options = category.options ?? [];
+      const children = build(category.children ?? [], path);
+      const allOptionValues: string[] = [];
+      for (const option of options) {
+        allOptionValues.push(option.value);
+      }
+      for (const child of children) {
+        allOptionValues.push(...child.allOptionValues);
+      }
+      result.push({
+        id,
+        label: category.label,
+        path,
+        options,
+        children,
+        allOptionValues,
+      });
+    }
+    return result;
+  };
+
+  return build(ROLE_TREE_DEFINITION) as readonly RoleTreeCategory[];
+})();
+
+const ROLE_CATEGORY_INDEX_MUTABLE = new Map<string, RoleTreeCategory>();
+const ROLE_CATEGORY_VALUE_SETS_MUTABLE = new Map<string, ReadonlySet<string>>();
+
+(function register(categories: readonly RoleTreeCategory[]): void {
+  for (const category of categories) {
+    ROLE_CATEGORY_INDEX_MUTABLE.set(category.id, category);
+    ROLE_CATEGORY_VALUE_SETS_MUTABLE.set(category.id, new Set(category.allOptionValues));
+    if (category.children.length) {
+      register(category.children);
+    }
+  }
+})(ROLE_TREE);
+
+const ROLE_CATEGORY_INDEX = ROLE_CATEGORY_INDEX_MUTABLE as ReadonlyMap<string, RoleTreeCategory>;
+const ROLE_CATEGORY_VALUE_SETS = ROLE_CATEGORY_VALUE_SETS_MUTABLE as ReadonlyMap<
+  string,
+  ReadonlySet<string>
+>;
+const ROLE_CATEGORY_OPTION_TOTALS = new Map(
+  Array.from(ROLE_CATEGORY_VALUE_SETS_MUTABLE.entries(), ([id, values]) => [id, values.size]),
+) as ReadonlyMap<string, number>;
+const ALL_CATEGORY_IDS = Array.from(ROLE_CATEGORY_INDEX.keys());
+const EMPTY_CATEGORY_SELECTION = new Map<string, number>();
+
+function flattenRoleOptions(
+  categories: readonly RoleTreeCategory[],
+  ancestorLabels: readonly string[] = [],
+  ancestorIds: readonly string[] = [],
+): RoleOptionDescriptor[] {
+  const result: RoleOptionDescriptor[] = [];
+  for (const category of categories) {
+    const lineageLabels = [...ancestorLabels, category.label];
+    const lineageIds = [...ancestorIds, category.id];
+    if (category.options.length) {
+      for (const option of category.options) {
+        result.push({ ...option, groups: lineageLabels, categoryIds: lineageIds });
+      }
+    }
+    if (category.children.length) {
+      result.push(...flattenRoleOptions(category.children, lineageLabels, lineageIds));
+    }
+  }
+  return result;
+}
+
+const ROLE_OPTIONS = flattenRoleOptions(ROLE_TREE);
+const ROLE_OPTION_LOOKUP = new Map(ROLE_OPTIONS.map((option) => [option.value, option] as const));
 
 const ROLE_TREE: readonly RoleTreeCategory[] = [
   {
@@ -143,9 +354,11 @@ export class ProfileDialogComponent implements AfterViewInit {
 
   private readonly profileService = inject(ProfileService);
 
-  public readonly roleOptions = ROLE_OPTIONS;
+  public readonly roleCategories = ROLE_TREE;
+  public readonly locationOptions = LOCATION_OPTIONS;
   public readonly maxBioLength = MAX_BIO_LENGTH;
   public readonly maxCustomRoleLength = MAX_CUSTOM_ROLE_LENGTH;
+  public readonly maxRoles = MAX_ROLES;
 
   public readonly form = createSignalForm<ProfileFormState>({
     nickname: '',
@@ -167,6 +380,7 @@ export class ProfileDialogComponent implements AfterViewInit {
   private readonly avatarPreviewStore = signal<string | null>(null);
   private readonly avatarFileStore = signal<File | null>(null);
   private readonly removeAvatarStore = signal(false);
+  private readonly expandedCategoriesStore = signal<ReadonlySet<string>>(new Set(ALL_CATEGORY_IDS));
 
   public readonly loading = computed(() => this.loadingStore());
   public readonly saving = computed(() => this.savingStore());
@@ -174,9 +388,47 @@ export class ProfileDialogComponent implements AfterViewInit {
   public readonly rolesError = computed(() => this.roleErrorStore());
   public readonly customRoleInput = computed(() => this.customRoleInputStore());
   public readonly customRoleError = computed(() => this.customRoleErrorStore());
-  public readonly customRoles = computed(() =>
-    this.form.controls.roles.value().filter((role) => !ROLE_OPTION_VALUES.has(role)),
-  );
+  public readonly expandedCategories = computed(() => this.expandedCategoriesStore());
+  public readonly selectedRoleCount = computed(() => this.form.controls.roles.value().length);
+  public readonly selectedRoleDetails = computed<readonly SelectedRoleDetail[]>(() => {
+    const roles = this.form.controls.roles.value();
+    return roles.map<SelectedRoleDetail>((role) => {
+      const option = ROLE_OPTION_LOOKUP.get(role);
+      if (!option) {
+        return { value: role, label: role, groups: [], isCustom: true };
+      }
+      return {
+        value: option.value,
+        label: option.label,
+        groups: option.groups,
+        isCustom: false,
+      };
+    });
+  });
+  public readonly categorySelectionCounts = computed(() => {
+    const roles = this.form.controls.roles.value();
+    if (!roles.length) {
+      return EMPTY_CATEGORY_SELECTION;
+    }
+
+    const selected = new Set(roles);
+    const entries: [string, number][] = [];
+
+    for (const [categoryId, values] of ROLE_CATEGORY_VALUE_SETS) {
+      let count = 0;
+      for (const value of values) {
+        if (selected.has(value)) {
+          count += 1;
+        }
+      }
+      if (count > 0) {
+        entries.push([categoryId, count]);
+      }
+    }
+
+    return new Map(entries);
+  });
+  public readonly roleCategoryOptionTotals = ROLE_CATEGORY_OPTION_TOTALS;
   public readonly avatarPreview = computed(() => this.avatarPreviewStore());
   public readonly avatarSelected = computed(
     () => this.avatarFileStore() !== null || this.avatarPreviewStore() !== null,
@@ -226,14 +478,40 @@ export class ProfileDialogComponent implements AfterViewInit {
     return null;
   });
 
-  public readonly hasValidationErrors = computed(
-    () =>
-      Boolean(
-        this.nicknameError() ||
-          this.experienceError() ||
-          this.bioError() ||
-          this.rolesError(),
-      ),
+  public readonly portfolioError = computed(() => {
+    if (!this.portfolioTouched()) {
+      return null;
+    }
+
+    const value = this.form.controls.portfolioUrl.value().trim();
+    if (!value) {
+      return null;
+    }
+
+    if (value.length > MAX_PORTFOLIO_LENGTH) {
+      return `ポートフォリオURLは${MAX_PORTFOLIO_LENGTH}文字以内で入力してください。`;
+    }
+
+    try {
+      const url = new URL(value);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return 'ポートフォリオURLは http または https で始まる必要があります。';
+      }
+    } catch {
+      return '有効なURLを入力してください。';
+    }
+
+    return null;
+  });
+
+  public readonly hasValidationErrors = computed(() =>
+    Boolean(
+      this.nicknameError() ||
+        this.experienceError() ||
+        this.bioError() ||
+        this.portfolioError() ||
+        this.rolesError(),
+    ),
   );
 
   public readonly experienceDisplay = computed(() => {
@@ -418,6 +696,13 @@ export class ProfileDialogComponent implements AfterViewInit {
       return;
     }
 
+    if (ROLE_OPTION_LOOKUP.has(value)) {
+      this.customRoleErrorStore.set(
+        '同名の選択肢が存在します。チェックボックスから選択してください。',
+      );
+      return;
+    }
+
     const roles = this.form.controls.roles.value();
     if (roles.includes(value)) {
       this.customRoleErrorStore.set('同じ担当領域がすでに選択されています。');
@@ -437,12 +722,16 @@ export class ProfileDialogComponent implements AfterViewInit {
     this.roleErrorStore.set(null);
   }
 
-  public onCustomRoleRemove(role: string): void {
-    const roles = this.form.controls.roles.value();
-    const filtered = roles.filter((item) => item !== role);
-    this.form.controls.roles.setValue(filtered);
-    this.roleErrorStore.set(null);
-    this.customRoleErrorStore.set(null);
+  public onCategoryToggle(categoryId: string): void {
+    this.expandedCategoriesStore.update((current) => {
+      const next = new Set(current);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
   }
 
   public onRoleToggle(role: string): void {
@@ -451,6 +740,7 @@ export class ProfileDialogComponent implements AfterViewInit {
       const filtered = roles.filter((item) => item !== role);
       this.form.controls.roles.setValue(filtered);
       this.roleErrorStore.set(null);
+      this.customRoleErrorStore.set(null);
       return;
     }
 
@@ -460,7 +750,20 @@ export class ProfileDialogComponent implements AfterViewInit {
     }
 
     this.roleErrorStore.set(null);
+    this.customRoleErrorStore.set(null);
     this.form.controls.roles.setValue([...roles, role]);
+  }
+
+  public onRoleRemove(role: string): void {
+    const roles = this.form.controls.roles.value();
+    if (!roles.includes(role)) {
+      return;
+    }
+
+    const filtered = roles.filter((item) => item !== role);
+    this.form.controls.roles.setValue(filtered);
+    this.roleErrorStore.set(null);
+    this.customRoleErrorStore.set(null);
   }
 
   public triggerAvatarPicker(): void {

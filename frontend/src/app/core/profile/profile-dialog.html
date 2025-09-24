@@ -166,7 +166,7 @@
           <div class="profile-dialog__section-header">
             <h3 id="profile-role-section">担当領域</h3>
             <p class="profile-dialog__section-description">
-              現在担当している業務内容を選択してください（最大5件）。
+              担当経験のある業務内容を選択してください（最大{{ maxRoles }}件）。
             </p>
           </div>
           <div
@@ -174,47 +174,148 @@
             role="group"
             aria-labelledby="profile-role-section"
           >
-            @for (category of roleCategories; track category.label) {
-              <section class="profile-dialog__role-category">
-                <h4 class="profile-dialog__role-category-title">{{ category.label }}</h4>
+            <ng-template #roleCategoryContent let-category let-depth="depth">
+              @if (category.options.length) {
+                <div class="profile-dialog__role-options">
+                  @for (option of category.options; track option.value) {
+                    <label class="profile-dialog__role-option">
+                      <input
+                        type="checkbox"
+                        [checked]="form.controls.roles.value().includes(option.value)"
+                        (change)="onRoleToggle(option.value)"
+                      />
+                      <span>{{ option.label }}</span>
+                    </label>
+                  }
+                </div>
+              }
 
-                @if (category.options?.length) {
-                  <div class="profile-dialog__role-options">
-                    @for (option of category.options; track option.value) {
-                      <label class="profile-dialog__role-option">
-                        <input
-                          type="checkbox"
-                          [checked]="form.controls.roles.value().includes(option.value)"
-                          (change)="onRoleToggle(option.value)"
-                        />
-                        <span>{{ option.label }}</span>
-                      </label>
-                    }
-                  </div>
-                }
+              @if (category.children.length) {
+                <div class="profile-dialog__role-children">
+                  @for (child of category.children; track child.id) {
+                    <ng-container
+                      [ngTemplateOutlet]="roleCategory"
+                      [ngTemplateOutletContext]="{ $implicit: child, depth: depth + 1 }"
+                    ></ng-container>
+                  }
+                </div>
+              }
+            </ng-template>
 
-                @if (category.children?.length) {
-                  <div class="profile-dialog__role-children">
-                    @for (child of category.children; track child.label) {
-                      <div class="profile-dialog__role-child">
-                        <h5 class="profile-dialog__role-child-title">{{ child.label }}</h5>
-                        <div class="profile-dialog__role-options">
-                          @for (option of child.options ?? []; track option.value) {
-                            <label class="profile-dialog__role-option">
-                              <input
-                                type="checkbox"
-                                [checked]="form.controls.roles.value().includes(option.value)"
-                                (change)="onRoleToggle(option.value)"
-                              />
-                              <span>{{ option.label }}</span>
-                            </label>
-                          }
-                        </div>
-                      </div>
-                    }
+            <ng-template #roleCategory let-category let-depth="depth">
+              @let isExpanded = expandedCategories().has(category.id);
+              @let selectionCount = categorySelectionCounts().get(category.id) ?? 0;
+              @let optionTotal =
+                roleCategoryOptionTotals.get(category.id) ?? category.allOptionValues.length;
+
+              @if (depth === 0) {
+                <section
+                  class="profile-dialog__role-category"
+                  [class.profile-dialog__role-category--collapsed]="!isExpanded"
+                >
+                  <div class="profile-dialog__role-category-header">
+                    <h4 class="profile-dialog__role-category-title" [id]="category.id + '-label'">
+                      {{ category.label }}
+                    </h4>
+                    <div class="profile-dialog__role-category-actions">
+                      <span class="profile-dialog__role-category-count">
+                        {{ selectionCount }} / {{ optionTotal }}
+                      </span>
+                      <button
+                        type="button"
+                        class="profile-dialog__role-category-toggle focus-ring"
+                        (click)="onCategoryToggle(category.id)"
+                        [attr.aria-expanded]="isExpanded ? 'true' : 'false'"
+                        [attr.aria-controls]="category.id + '-content'"
+                        [attr.aria-label]="
+                          category.label + 'を' + (isExpanded ? '折りたたむ' : '展開')
+                        "
+                      >
+                        <svg viewBox="0 0 20 20" aria-hidden="true">
+                          <path
+                            d="M6 8l4 4 4-4"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.8"
+                          />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                }
-              </section>
+
+                  @if (isExpanded) {
+                    <div
+                      [id]="category.id + '-content'"
+                      role="group"
+                      [attr.aria-labelledby]="category.id + '-label'"
+                    >
+                      <ng-container
+                        [ngTemplateOutlet]="roleCategoryContent"
+                        [ngTemplateOutletContext]="{ $implicit: category, depth: depth }"
+                      ></ng-container>
+                    </div>
+                  }
+                </section>
+              } @else {
+                <div
+                  class="profile-dialog__role-child"
+                  [class.profile-dialog__role-child--collapsed]="!isExpanded"
+                >
+                  <div class="profile-dialog__role-child-header">
+                    <h5 class="profile-dialog__role-child-title" [id]="category.id + '-label'">
+                      {{ category.label }}
+                    </h5>
+                    <div class="profile-dialog__role-category-actions">
+                      <span class="profile-dialog__role-category-count">
+                        {{ selectionCount }} / {{ optionTotal }}
+                      </span>
+                      <button
+                        type="button"
+                        class="profile-dialog__role-category-toggle focus-ring"
+                        (click)="onCategoryToggle(category.id)"
+                        [attr.aria-expanded]="isExpanded ? 'true' : 'false'"
+                        [attr.aria-controls]="category.id + '-content'"
+                        [attr.aria-label]="
+                          category.label + 'を' + (isExpanded ? '折りたたむ' : '展開')
+                        "
+                      >
+                        <svg viewBox="0 0 20 20" aria-hidden="true">
+                          <path
+                            d="M6 8l4 4 4-4"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.8"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  @if (isExpanded) {
+                    <div
+                      [id]="category.id + '-content'"
+                      role="group"
+                      [attr.aria-labelledby]="category.id + '-label'"
+                    >
+                      <ng-container
+                        [ngTemplateOutlet]="roleCategoryContent"
+                        [ngTemplateOutletContext]="{ $implicit: category, depth: depth }"
+                      ></ng-container>
+                    </div>
+                  }
+                </div>
+              }
+            </ng-template>
+
+            @for (category of roleCategories; track category.id) {
+              <ng-container
+                [ngTemplateOutlet]="roleCategory"
+                [ngTemplateOutletContext]="{ $implicit: category, depth: 0 }"
+              ></ng-container>
             }
           </div>
 
@@ -255,18 +356,30 @@
             }
           </div>
 
-          @if (customRoles().length) {
-            <div class="profile-dialog__custom-role-summary">
-              <p class="profile-dialog__custom-role-summary-label">追加した担当領域</p>
-              <div class="profile-dialog__custom-role-list" aria-label="追加した担当領域">
-                @for (role of customRoles(); track role) {
-                  <span class="profile-dialog__custom-role-item">
-                    <span>{{ role }}</span>
+          @if (selectedRoleDetails().length) {
+            <div class="profile-dialog__role-summary">
+              <p class="profile-dialog__role-summary-label">
+                選択中（{{ selectedRoleCount() }} / {{ maxRoles }}）
+              </p>
+              <div class="profile-dialog__role-summary-list" aria-label="選択中の担当領域">
+                @for (detail of selectedRoleDetails(); track detail.value) {
+                  <span
+                    class="profile-dialog__role-summary-item"
+                    [class.profile-dialog__role-summary-item--custom]="detail.isCustom"
+                  >
+                    <span class="profile-dialog__role-summary-text">
+                      <span class="profile-dialog__role-summary-name">{{ detail.label }}</span>
+                      @if (detail.groups.length) {
+                        <span class="profile-dialog__role-summary-group">
+                          {{ detail.groups.join(' / ') }}
+                        </span>
+                      }
+                    </span>
                     <button
                       type="button"
-                      class="profile-dialog__custom-role-remove focus-ring"
-                      (click)="onCustomRoleRemove(role)"
-                      [attr.aria-label]="role + 'を削除'"
+                      class="profile-dialog__role-summary-remove focus-ring"
+                      (click)="onRoleRemove(detail.value)"
+                      [attr.aria-label]="detail.label + 'を削除'"
                     >
                       <svg viewBox="0 0 16 16" aria-hidden="true">
                         <path
