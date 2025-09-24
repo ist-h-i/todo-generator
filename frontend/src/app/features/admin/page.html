@@ -360,7 +360,7 @@
 
       @if (apiCredential(); as credential) {
         <p class="admin-hint">
-          現在のキー末尾: {{ credential.secret_hint || '****' }} ／ 更新日: {{ credential.updated_at | date: 'medium' }}
+          現在のキー: {{ credential.secret_hint || '****' }} ／ 更新日: {{ credential.updated_at | date: 'medium' }}
         </p>
       } @else {
         <p class="admin-empty">登録済みの API トークンはありません。</p>

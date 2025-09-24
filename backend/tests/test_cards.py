@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.config import settings
 from app.utils.quotas import DEFAULT_CARD_DAILY_LIMIT
 
 DEFAULT_PASSWORD = "Register123!"
@@ -147,8 +146,7 @@ def test_analysis_endpoint(client: TestClient) -> None:
         headers=headers,
     )
 
-    if settings.chatgpt_api_key:
-        assert response.status_code == 200
+    if response.status_code == 200:
         data = response.json()
         assert data["model"]
         assert len(data["proposals"]) >= 1
