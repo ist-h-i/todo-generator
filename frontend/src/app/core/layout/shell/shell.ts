@@ -89,10 +89,11 @@ export class Shell {
       { path: '/board', label: 'ボード' },
       { path: '/input', label: 'タスク起票' },
       { path: '/analytics', label: '分析' },
+      { path: '/settings', label: 'ワークスペース設定' },
     ];
 
     if (this.isAdmin()) {
-      links.push({ path: '/settings', label: 'ワークスペース設定' });
+      links.push({ path: '/admin', label: '管理コンソール' });
     }
 
     return links;
@@ -119,7 +120,7 @@ export class Shell {
   };
 
   public readonly openSettings = (): void => {
-    void this.router.navigateByUrl('/settings');
+    void this.router.navigateByUrl('/admin');
   };
 
   public constructor() {

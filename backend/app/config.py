@@ -25,6 +25,10 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("OPENAI_API_KEY", "chatgpt_api_key"),
     )
+    secret_encryption_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("SECRET_ENCRYPTION_KEY", "secret_encryption_key"),
+    )
     allowed_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:4200"],
         validation_alias=AliasChoices("ALLOWED_ORIGINS", "allowed_origins"),
