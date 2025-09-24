@@ -16,6 +16,12 @@ interface GuideItem {
   readonly alt: string;
 }
 
+interface UseCaseItem {
+  readonly title: string;
+  readonly summary: string;
+  readonly steps: readonly string[];
+}
+
 interface FaqItem {
   readonly question: string;
   readonly answer: string;
@@ -32,6 +38,36 @@ export class HelpDialogComponent implements AfterViewInit {
   @Output() public readonly dismiss = new EventEmitter<void>();
 
   @ViewChild('panel', { static: true }) private readonly panel?: ElementRef<HTMLDivElement>;
+
+  public readonly useCases: readonly UseCaseItem[] = [
+    {
+      title: '朝会前にタスクを洗い出す',
+      summary: '散らかったメモを整理し、チーム全体で同じ状況を共有するための流れです。',
+      steps: [
+        '分析画面にミーティングメモやチャットログを貼り付け、AI 提案を生成します。',
+        '提案されたタイトル・担当者・ストーリーポイントを確認し、必要に応じて整えます。',
+        '公開ボタンからカードをボードに追加し、朝会で共有できるよう列を調整します。',
+      ],
+    },
+    {
+      title: 'バグ報告の対応をすぐに進める',
+      summary: '緊急度の高い不具合を拾い上げ、担当者と状況を明確にするためのステップです。',
+      steps: [
+        'ボードで新規カードを作成し、再現手順やスクリーンショットをコメントに残します。',
+        '担当者・期限・優先度ラベルを設定し、通知が必要であればメンションで知らせます。',
+        '進捗に合わせてカードをドラッグし、最新のステータスと次のアクションを常に共有します。',
+      ],
+    },
+    {
+      title: 'スプリントの振り返りに活用する',
+      summary: '実績データをもとに改善ポイントを抽出し、次のアクションへつなげる使い方です。',
+      steps: [
+        '分析ダッシュボードで対象期間をスプリントに合わせて絞り込みます。',
+        '完了率やラベル別の工数を確認し、停滞している領域や偏りを洗い出します。',
+        '気づいた内容を日報・週報画面で共有し、タスクとして再度ボードへ反映します。',
+      ],
+    },
+  ];
 
   public readonly guides: readonly GuideItem[] = [
     {
