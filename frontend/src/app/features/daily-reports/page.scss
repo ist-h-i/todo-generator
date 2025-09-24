@@ -123,7 +123,7 @@ form {
 .section-header .remove {
   border: none;
   background: transparent;
-  color: color-mix(in srgb, #ef4444 82%, var(--text-primary));
+  color: color-mix(in srgb, var(--danger) 82%, var(--text-primary));
   font-weight: 600;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
@@ -134,7 +134,7 @@ form {
 }
 
 .section-header .remove:hover:not(:disabled) {
-  background: color-mix(in srgb, #ef4444 16%, transparent);
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
 }
 
 .section-header .remove:disabled {
@@ -202,11 +202,11 @@ form {
 }
 
 .feedback.error {
-  color: color-mix(in srgb, #dc2626 90%, var(--text-primary));
+  color: color-mix(in srgb, var(--danger-strong) 90%, var(--text-primary));
 }
 
 .feedback.success {
-  color: color-mix(in srgb, #15803d 90%, var(--text-primary));
+  color: color-mix(in srgb, var(--success-strong) 90%, var(--text-primary));
 }
 
 
@@ -266,8 +266,8 @@ form {
   margin: 0;
   padding: 0.35rem 0.85rem;
   border-radius: 0.85rem;
-  background: color-mix(in srgb, #ef4444 18%, transparent);
-  color: color-mix(in srgb, #b91c1c 90%, var(--text-primary));
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+  color: color-mix(in srgb, var(--danger-strong) 90%, var(--text-primary));
   font-weight: 600;
 }
 
