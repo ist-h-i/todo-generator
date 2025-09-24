@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime, timedelta, timezone
-from typing import Iterable, List, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Iterable
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, or_
@@ -11,19 +11,21 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
-from ..services.card_limits import DAILY_CARD_CREATION_LIMIT, reserve_daily_card_quota
-from ..utils.quotas import get_card_daily_limit
+from ..services.card_limits import reserve_daily_card_quota
 from ..utils.activity import record_activity
-
-_DAILY_CARD_LIMIT_MESSAGE = (
-    f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached."
+from ..utils.quotas import get_card_daily_limit
+from ..utils.repository import (
+    apply_updates,
+    delete_model,
+    ensure_optional_owned_resource,
+    get_owned_resource_or_404,
+    get_resource_or_404,
 )
-
 
 router = APIRouter(prefix="/cards", tags=["cards"])
 
 
-def _card_query(db: Session, *, owner_id: Optional[str] = None):
+def _card_query(db: Session, *, owner_id: str | None = None):
     query = db.query(models.Card).options(
         selectinload(models.Card.subtasks),
         selectinload(models.Card.labels),
@@ -38,29 +40,33 @@ def _card_query(db: Session, *, owner_id: Optional[str] = None):
     return query
 
 
-def _ensure_owned_status(db: Session, *, status_id: str, owner_id: str) -> None:
-    status = db.get(models.Status, status_id)
-    if not status or status.owner_id != owner_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Status not found")
+_DONE_STATUS_TOKENS = {"done", "completed", "完了"}
 
 
-def _ensure_owned_error_category(db: Session, *, category_id: str, owner_id: str) -> None:
-    category = db.get(models.ErrorCategory, category_id)
-    if not category or category.owner_id != owner_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Error category not found")
+def _status_is_done(status: models.Status | None) -> bool:
+    if status is None:
+        return False
+
+    category = (status.category or "").strip().lower()
+    if category == "done":
+        return True
+
+    name = (status.name or "").strip().lower()
+    return name in _DONE_STATUS_TOKENS
 
 
-def _ensure_owned_initiative(db: Session, *, initiative_id: str, owner_id: str) -> None:
-    initiative = db.get(models.ImprovementInitiative, initiative_id)
-    if not initiative or initiative.owner_id != owner_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
+def _subtask_status_is_done(value: str | None) -> bool:
+    if not value:
+        return False
+
+    return value.strip().lower() in _DONE_STATUS_TOKENS
 
 
 def _load_owned_labels(db: Session, *, label_ids: list[str], owner_id: str) -> list[models.Label]:
     if not label_ids:
         return []
 
-    unique_ids = list({label_id for label_id in label_ids})
+    unique_ids = list(dict.fromkeys(label_ids))
     labels = (
         db.query(models.Label)
         .filter(models.Label.id.in_(unique_ids), models.Label.owner_id == owner_id)
@@ -71,7 +77,50 @@ def _load_owned_labels(db: Session, *, label_ids: list[str], owner_id: str) -> l
     return labels
 
 
-def _derive_created_from(time_range: str) -> Optional[datetime]:
+def _validate_related_entities(
+    db: Session,
+    *,
+    owner_id: str,
+    status_id: str | None = None,
+    error_category_id: str | None = None,
+    initiative_id: str | None = None,
+) -> None:
+    ensure_optional_owned_resource(
+        db,
+        models.Status,
+        status_id,
+        owner_id=owner_id,
+        detail="Status not found",
+    )
+    ensure_optional_owned_resource(
+        db,
+        models.ErrorCategory,
+        error_category_id,
+        owner_id=owner_id,
+        detail="Error category not found",
+    )
+    ensure_optional_owned_resource(
+        db,
+        models.ImprovementInitiative,
+        initiative_id,
+        owner_id=owner_id,
+        detail="Initiative not found",
+    )
+
+
+def _get_owned_card(db: Session, *, owner_id: str, card_id: str) -> models.Card:
+    card = (
+        _card_query(db, owner_id=owner_id)
+        .filter(models.Card.id == card_id)
+        .order_by(models.Card.created_at.desc())
+        .first()
+    )
+    if not card:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    return card
+
+
+def _derive_created_from(time_range: str) -> datetime | None:
     value = (time_range or "").strip().lower()
     if not value:
         return None
@@ -92,7 +141,7 @@ def _derive_created_from(time_range: str) -> Optional[datetime]:
     return None
 
 
-def _normalize_words(*texts: Optional[str]) -> set[str]:
+def _normalize_words(*texts: str | None) -> set[str]:
     words: set[str] = set()
     for text in texts:
         if not text:
@@ -101,7 +150,7 @@ def _normalize_words(*texts: Optional[str]) -> set[str]:
     return words
 
 
-def _text_similarity(left: Optional[str], right: Optional[str]) -> float:
+def _text_similarity(left: str | None, right: str | None) -> float:
     left_words = _normalize_words(left)
     right_words = _normalize_words(right)
     if not left_words or not right_words:
@@ -151,26 +200,26 @@ def _score_subtask_similarity(card: models.Card, subtask: models.Subtask) -> flo
     return float(min(0.7 * text_similarity + priority_bonus, 1.0))
 
 
-@router.get("/", response_model=List[schemas.CardRead])
+@router.get("/", response_model=list[schemas.CardRead])
 def list_cards(
-    status_id: Optional[str] = Query(default=None),
-    label_id: Optional[str] = Query(default=None),
-    search: Optional[str] = Query(default=None),
-    status_ids: Optional[List[str]] = Query(default=None),
-    label_ids: Optional[List[str]] = Query(default=None),
-    assignees: Optional[List[str]] = Query(default=None),
-    priority: Optional[str] = Query(default=None),
-    priorities: Optional[List[str]] = Query(default=None),
-    error_category_id: Optional[str] = Query(default=None),
-    initiative_id: Optional[str] = Query(default=None),
-    created_from: Optional[datetime] = Query(default=None),
-    created_to: Optional[datetime] = Query(default=None),
-    due_from: Optional[datetime] = Query(default=None),
-    due_to: Optional[datetime] = Query(default=None),
-    time_range: Optional[str] = Query(default=None),
+    status_id: str | None = Query(default=None),
+    label_id: str | None = Query(default=None),
+    search: str | None = Query(default=None),
+    status_ids: list[str] | None = Query(default=None),
+    label_ids: list[str] | None = Query(default=None),
+    assignees: list[str] | None = Query(default=None),
+    priority: str | None = Query(default=None),
+    priorities: list[str] | None = Query(default=None),
+    error_category_id: str | None = Query(default=None),
+    initiative_id: str | None = Query(default=None),
+    created_from: datetime | None = Query(default=None),
+    created_to: datetime | None = Query(default=None),
+    due_from: datetime | None = Query(default=None),
+    due_to: datetime | None = Query(default=None),
+    time_range: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> List[models.Card]:
+) -> list[models.Card]:
     query = _card_query(db, owner_id=current_user.id)
 
     effective_status_ids = set(status_ids or [])
@@ -264,17 +313,15 @@ def create_card(
         quota_day=now.date(),
     )
 
-    if payload.status_id:
-        _ensure_owned_status(db, status_id=payload.status_id, owner_id=current_user.id)
-    if payload.error_category_id:
-        _ensure_owned_error_category(
-            db, category_id=payload.error_category_id, owner_id=current_user.id
-        )
-    if payload.initiative_id:
-        _ensure_owned_initiative(
-            db, initiative_id=payload.initiative_id, owner_id=current_user.id
-        )
+    _validate_related_entities(
+        db,
+        owner_id=current_user.id,
+        status_id=payload.status_id,
+        error_category_id=payload.error_category_id,
+        initiative_id=payload.initiative_id,
+    )
 
+    status_obj = db.get(models.Status, payload.status_id) if payload.status_id else None
     labels = _load_owned_labels(
         db, label_ids=list(payload.label_ids or []), owner_id=current_user.id
     )
@@ -300,11 +347,19 @@ def create_card(
         owner=current_user,
     )
 
+    if status_obj:
+        card.status = status_obj
+        if _status_is_done(status_obj):
+            card.completed_at = datetime.now(timezone.utc)
+
     if labels:
         card.labels = labels
 
     for subtask_data in payload.subtasks:
-        card.subtasks.append(models.Subtask(**subtask_data.model_dump()))
+        subtask = models.Subtask(**subtask_data.model_dump())
+        if _subtask_status_is_done(subtask.status):
+            subtask.completed_at = datetime.now(timezone.utc)
+        card.subtasks.append(subtask)
 
     db.add(card)
     record_activity(db, action="card_created", card_id=card.id, actor_id=current_user.id)
@@ -319,15 +374,7 @@ def get_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Card:
-    card = (
-        _card_query(db, owner_id=current_user.id)
-        .filter(models.Card.id == card_id)
-        .order_by(models.Card.created_at.desc())
-        .first()
-    )
-    if not card:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
-    return card
+    return _get_owned_card(db, owner_id=current_user.id, card_id=card_id)
 
 
 @router.put("/{card_id}", response_model=schemas.CardRead)
@@ -337,32 +384,43 @@ def update_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Card:
-    card = _card_query(db, owner_id=current_user.id).filter(models.Card.id == card_id).first()
-    if not card:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    card = _get_owned_card(db, owner_id=current_user.id, card_id=card_id)
 
     update_data = payload.model_dump(exclude_unset=True)
     label_ids = update_data.pop("label_ids", None)
 
-    if "status_id" in update_data and update_data["status_id"]:
-        _ensure_owned_status(db, status_id=update_data["status_id"], owner_id=current_user.id)
-    if "error_category_id" in update_data and update_data["error_category_id"]:
-        _ensure_owned_error_category(
-            db, category_id=update_data["error_category_id"], owner_id=current_user.id
-        )
-    if "initiative_id" in update_data and update_data["initiative_id"]:
-        _ensure_owned_initiative(
-            db, initiative_id=update_data["initiative_id"], owner_id=current_user.id
-        )
+    previous_status = card.status
+    status_was_done = _status_is_done(previous_status)
 
-    for key, value in update_data.items():
-        setattr(card, key, value)
+    _validate_related_entities(
+        db,
+        owner_id=current_user.id,
+        status_id=update_data.get("status_id"),
+        error_category_id=update_data.get("error_category_id"),
+        initiative_id=update_data.get("initiative_id"),
+    )
+
+    new_status = previous_status
+    if "status_id" in update_data:
+        status_id = update_data.get("status_id")
+        new_status = db.get(models.Status, status_id) if status_id else None
+
+    apply_updates(card, update_data)
 
     if label_ids is not None:
         labels = _load_owned_labels(
             db, label_ids=list(label_ids or []), owner_id=current_user.id
         )
         card.labels = labels
+
+    if "status_id" in update_data:
+        card.status = new_status
+
+    status_is_done = _status_is_done(card.status)
+    if status_is_done and not status_was_done and card.completed_at is None:
+        card.completed_at = datetime.now(timezone.utc)
+    elif not status_is_done and status_was_done:
+        card.completed_at = None
 
     db.add(card)
     record_activity(db, action="card_updated", card_id=card.id, actor_id=current_user.id)
@@ -381,27 +439,39 @@ def delete_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    card = db.get(models.Card, card_id)
-    if not card or card.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    card = get_owned_resource_or_404(
+        db,
+        models.Card,
+        card_id,
+        owner_id=current_user.id,
+        detail="Card not found",
+    )
 
     record_activity(db, action="card_deleted", card_id=card.id, actor_id=current_user.id)
-    db.delete(card)
-    db.commit()
+    delete_model(db, card)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/{card_id}/subtasks", response_model=List[schemas.SubtaskRead])
+@router.get("/{card_id}/subtasks", response_model=list[schemas.SubtaskRead])
 def list_subtasks(
     card_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> List[models.Subtask]:
-    card = db.get(models.Card, card_id)
-    if not card or card.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+) -> list[models.Subtask]:
+    get_owned_resource_or_404(
+        db,
+        models.Card,
+        card_id,
+        owner_id=current_user.id,
+        detail="Card not found",
+    )
 
-    return db.query(models.Subtask).filter(models.Subtask.card_id == card_id).order_by(models.Subtask.created_at).all()
+    return (
+        db.query(models.Subtask)
+        .filter(models.Subtask.card_id == card_id)
+        .order_by(models.Subtask.created_at)
+        .all()
+    )
 
 
 @router.post(
@@ -415,11 +485,17 @@ def create_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Subtask:
-    card = db.get(models.Card, card_id)
-    if not card or card.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    get_owned_resource_or_404(
+        db,
+        models.Card,
+        card_id,
+        owner_id=current_user.id,
+        detail="Card not found",
+    )
 
     subtask = models.Subtask(card_id=card_id, **payload.model_dump())
+    if _subtask_status_is_done(subtask.status):
+        subtask.completed_at = datetime.now(timezone.utc)
     db.add(subtask)
     record_activity(
         db,
@@ -441,16 +517,34 @@ def update_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Subtask:
-    card = db.get(models.Card, card_id)
-    if not card or card.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    get_owned_resource_or_404(
+        db,
+        models.Card,
+        card_id,
+        owner_id=current_user.id,
+        detail="Card not found",
+    )
 
-    subtask = db.get(models.Subtask, subtask_id)
-    if not subtask or subtask.card_id != card_id:
+    subtask = get_resource_or_404(
+        db,
+        models.Subtask,
+        subtask_id,
+        detail="Subtask not found",
+    )
+    if subtask.card_id != card_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
-    for key, value in payload.model_dump(exclude_unset=True).items():
-        setattr(subtask, key, value)
+    previous_status = subtask.status
+    status_was_done = _subtask_status_is_done(previous_status)
+
+    updates = payload.model_dump(exclude_unset=True)
+    apply_updates(subtask, updates)
+
+    status_is_done = _subtask_status_is_done(subtask.status)
+    if status_is_done and not status_was_done and subtask.completed_at is None:
+        subtask.completed_at = datetime.now(timezone.utc)
+    elif not status_is_done and status_was_done:
+        subtask.completed_at = None
 
     db.add(subtask)
     record_activity(
@@ -476,12 +570,21 @@ def delete_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    card = db.get(models.Card, card_id)
-    if not card or card.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    get_owned_resource_or_404(
+        db,
+        models.Card,
+        card_id,
+        owner_id=current_user.id,
+        detail="Card not found",
+    )
 
-    subtask = db.get(models.Subtask, subtask_id)
-    if not subtask or subtask.card_id != card_id:
+    subtask = get_resource_or_404(
+        db,
+        models.Subtask,
+        subtask_id,
+        detail="Subtask not found",
+    )
+    if subtask.card_id != card_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
     record_activity(
@@ -491,13 +594,12 @@ def delete_subtask(
         actor_id=current_user.id,
         details={"subtask_id": subtask.id},
     )
-    db.delete(subtask)
-    db.commit()
+    delete_model(db, subtask)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-def _build_similar_items(base_card: models.Card, candidates: Iterable[models.Card]) -> List[schemas.SimilarItem]:
-    items: List[schemas.SimilarItem] = []
+def _build_similar_items(base_card: models.Card, candidates: Iterable[models.Card]) -> list[schemas.SimilarItem]:
+    items: list[schemas.SimilarItem] = []
     for candidate in candidates:
         score = _score_card_similarity(base_card, candidate)
         if score <= 0:
@@ -546,9 +648,7 @@ def get_similar_items(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> schemas.SimilarItemsResponse:
-    base_card = _card_query(db, owner_id=current_user.id).filter(models.Card.id == card_id).first()
-    if not base_card:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    base_card = _get_owned_card(db, owner_id=current_user.id, card_id=card_id)
 
     candidates = (
         _card_query(db, owner_id=current_user.id)
@@ -572,21 +672,36 @@ def record_similarity_feedback(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    card = db.get(models.Card, card_id)
-    if not card or card.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    get_owned_resource_or_404(
+        db,
+        models.Card,
+        card_id,
+        owner_id=current_user.id,
+        detail="Card not found",
+    )
 
     if payload.related_type == "card":
-        related_card = db.get(models.Card, related_id)
-        if not related_card or related_card.owner_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Related card not found")
+        get_owned_resource_or_404(
+            db,
+            models.Card,
+            related_id,
+            owner_id=current_user.id,
+            detail="Related card not found",
+        )
     elif payload.related_type == "subtask":
-        subtask = db.get(models.Subtask, related_id)
-        if not subtask:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Related subtask not found")
-        related_card = db.get(models.Card, subtask.card_id)
-        if not related_card or related_card.owner_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Related subtask not found")
+        subtask = get_resource_or_404(
+            db,
+            models.Subtask,
+            related_id,
+            detail="Related subtask not found",
+        )
+        get_owned_resource_or_404(
+            db,
+            models.Card,
+            subtask.card_id,
+            owner_id=current_user.id,
+            detail="Related subtask not found",
+        )
 
     feedback = models.SimilarityFeedback(
         card_id=card_id,

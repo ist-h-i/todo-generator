@@ -6,9 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
-from ..config import settings
 from ..database import get_db
-from ..utils.crypto import SecretCipher
+from ..utils.secrets import build_secret_hint, get_secret_cipher
 from ..utils.dependencies import require_admin
 from ..utils.quotas import (
     get_quota_defaults,
@@ -20,22 +19,13 @@ from ..utils.quotas import (
 router = APIRouter(prefix="/admin", tags=["admin", "settings"])
 
 
-def _cipher() -> SecretCipher:
-    key = settings.secret_encryption_key or settings.chatgpt_api_key or "todo-generator"
-    return SecretCipher(key)
-
-
 @router.get("/api-credentials/{provider}", response_model=schemas.ApiCredentialRead)
 def get_api_credential(
     provider: str,
     db: Session = Depends(get_db),
     _: models.User = Depends(require_admin),
 ) -> models.ApiCredential:
-    credential = (
-        db.query(models.ApiCredential)
-        .filter(models.ApiCredential.provider == provider)
-        .first()
-    )
+    credential = db.query(models.ApiCredential).filter(models.ApiCredential.provider == provider).first()
     if not credential:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Credential not found")
     return credential
@@ -48,15 +38,11 @@ def upsert_api_credential(
     db: Session = Depends(get_db),
     admin_user: models.User = Depends(require_admin),
 ) -> models.ApiCredential:
-    credential = (
-        db.query(models.ApiCredential)
-        .filter(models.ApiCredential.provider == provider)
-        .first()
-    )
+    credential = db.query(models.ApiCredential).filter(models.ApiCredential.provider == provider).first()
 
-    cipher = _cipher()
+    cipher = get_secret_cipher()
     encrypted_secret = cipher.encrypt(payload.secret)
-    secret_hint = payload.secret[-4:] if payload.secret else None
+    secret_hint = build_secret_hint(payload.secret) if payload.secret else None
 
     if credential is None:
         credential = models.ApiCredential(
@@ -85,11 +71,7 @@ def deactivate_api_credential(
     db: Session = Depends(get_db),
     _: models.User = Depends(require_admin),
 ) -> Response:
-    credential = (
-        db.query(models.ApiCredential)
-        .filter(models.ApiCredential.provider == provider)
-        .first()
-    )
+    credential = db.query(models.ApiCredential).filter(models.ApiCredential.provider == provider).first()
     if not credential:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Credential not found")
 

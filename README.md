@@ -28,7 +28,7 @@ continuous-improvement tooling in one cohesive experience.
   coaching guidance.
 - **Admin controls & secure secrets** – Admin endpoints rotate external API credentials, configure
   default quotas, and override per-user limits so teams can tune automation safely.
-- **Profile management & avatars** – Users can update nicknames, biographies, locations, portfolio
+- **Profile management & avatars** – Users can update nicknames, biographies, and avatars
   URLs, and upload validated avatars directly from the UI, keeping the workspace personable.
 
 ## Repository Layout
@@ -52,7 +52,7 @@ requirements that describe the product vision in detail.
 - Python 3.11+ (for the backend FastAPI service)
 - Node.js 20+ and npm (for the Angular frontend)
 - SQLite is bundled by default; configure `DATABASE_URL` to use PostgreSQL or another engine.
-- An `OPENAI_API_KEY` enables the AI analysis endpoint during local development.
+- Configure the AI API トークン from the admin settings screen after launching the app to enable the analysis features.
 
 ### One-click startup on Windows
 
@@ -95,9 +95,8 @@ additional settings through environment variables defined in `backend/app/config
 - `DATABASE_URL` – SQLAlchemy connection string (default `sqlite:///./todo.db`)
 - `DEBUG` – Enable FastAPI debug mode (default `false`)
 - `CHATGPT_MODEL` – Logical model name surfaced by the analysis endpoint
-- `OPENAI_API_KEY` – Secret used by the backend to authenticate ChatGPT requests
 - `ALLOWED_ORIGINS` – Comma-separated list of frontend origins permitted for CORS (default `http://localhost:4200`)
-- `SECRET_ENCRYPTION_KEY` – Key used to encrypt stored API credentials; falls back to the ChatGPT key when unspecified.
+- `SECRET_ENCRYPTION_KEY` – Key used to encrypt stored API credentials; configure in production to avoid using the built-in default.
 
 ## Running Tests & Quality Checks
 
@@ -117,6 +116,8 @@ npm run format:check
 ```
 
 The frontend also supports `npm run build` to produce a production bundle under `dist/`.
+
+If any command above fails, do **not** proceed with your task. Investigate the cause, apply fixes, and rerun the full set of checks until every command completes successfully before considering the work ready for review.
 
 ## MCP Server Integration
 

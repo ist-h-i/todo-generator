@@ -31,8 +31,6 @@ class UserProfile(UserRead):
     experience_years: Optional[int] = Field(default=None, ge=0, le=50)
     roles: List[str] = Field(default_factory=list)
     bio: Optional[str] = None
-    location: Optional[str] = None
-    portfolio_url: Optional[str] = None
     avatar_url: Optional[str] = None
 
     @model_validator(mode="before")
@@ -196,6 +194,7 @@ class SubtaskRead(SubtaskBase):
     id: str
     created_at: datetime
     updated_at: datetime
+    completed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -251,6 +250,7 @@ class CardRead(CardBase):
     owner_id: str
     created_at: datetime
     updated_at: datetime
+    completed_at: Optional[datetime] = None
     labels: List[LabelRead] = Field(default_factory=list)
     subtasks: List[SubtaskRead] = Field(default_factory=list)
     status: Optional[StatusRead] = None
@@ -891,6 +891,25 @@ class EvaluationTriggerRequest(BaseModel):
             if values.period_start > values.period_end:
                 raise ValueError("period_start must be on or before period_end")
         return values
+
+
+class SelfEvaluationRequest(BaseModel):
+    competency_id: Optional[str] = None
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+
+    @model_validator(mode="after")
+    def ensure_period(cls, values: "SelfEvaluationRequest") -> "SelfEvaluationRequest":
+        if values.period_start and values.period_end:
+            if values.period_start > values.period_end:
+                raise ValueError("period_start must be on or before period_end")
+        return values
+
+
+class EvaluationQuotaStatus(BaseModel):
+    daily_limit: int
+    used: int
+    remaining: Optional[int] = None
 
 
 class AdminUserRead(BaseModel):

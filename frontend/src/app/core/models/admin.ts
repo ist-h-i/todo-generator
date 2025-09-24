@@ -94,6 +94,18 @@ export interface EvaluationTriggerRequest {
   triggered_by?: 'manual' | 'auto';
 }
 
+export interface SelfEvaluationRequest {
+  competency_id?: string;
+  period_start?: IsoDateString | null;
+  period_end?: IsoDateString | null;
+}
+
+export interface EvaluationQuotaStatus {
+  daily_limit: number;
+  used: number;
+  remaining?: number | null;
+}
+
 export interface AdminUser {
   id: string;
   email: string;

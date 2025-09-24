@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from datetime import date, datetime, timezone
 from typing import Optional
 from uuid import uuid4
@@ -53,8 +52,6 @@ class User(Base, TimestampMixin):
     experience_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
     roles: Mapped[list[str]] = mapped_column(JSON, default=list)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
-    location: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    portfolio_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
     avatar_image: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     avatar_mime_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
@@ -85,6 +82,15 @@ class User(Base, TimestampMixin):
     )
     daily_reports: Mapped[list["DailyReport"]] = relationship(
         "DailyReport", back_populates="owner", cascade="all, delete-orphan"
+    )
+    daily_evaluation_quotas: Mapped[list["DailyEvaluationQuota"]] = relationship(
+        "DailyEvaluationQuota", back_populates="owner", cascade="all, delete-orphan"
+    )
+    quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
+        "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
+    api_credentials: Mapped[list["ApiCredential"]] = relationship(
+        "ApiCredential", back_populates="created_by_user", cascade="all, delete-orphan"
     )
     competency_evaluations: Mapped[list["CompetencyEvaluation"]] = relationship(
         "CompetencyEvaluation", back_populates="user", cascade="all, delete-orphan"
@@ -133,6 +139,7 @@ class Card(Base, TimestampMixin):
     )
     ai_similarity_vector_id: Mapped[str | None] = mapped_column(String)
     analytics_notes: Mapped[str | None] = mapped_column(Text)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     labels: Mapped[list[Label]] = relationship(
@@ -196,6 +203,7 @@ class Subtask(Base, TimestampMixin):
     root_cause_node_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("root_cause_nodes.id", ondelete="SET NULL"), nullable=True
     )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     card: Mapped[Card] = relationship("Card", back_populates="subtasks")
     root_cause_node: Mapped[Optional["RootCauseNode"]] = relationship("RootCauseNode", back_populates="subtasks")

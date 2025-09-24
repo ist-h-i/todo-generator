@@ -21,10 +21,6 @@ class Settings(BaseSettings):
         default="gpt-4o-mini",
         validation_alias=AliasChoices("CHATGPT_MODEL", "chatgpt_model"),
     )
-    chatgpt_api_key: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("OPENAI_API_KEY", "chatgpt_api_key"),
-    )
     secret_encryption_key: str | None = Field(
         default=None,
         validation_alias=AliasChoices("SECRET_ENCRYPTION_KEY", "secret_encryption_key"),

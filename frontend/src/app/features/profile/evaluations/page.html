@@ -9,24 +9,72 @@
       </p>
     </div>
     <div class="page-header__actions">
-      <button
-        type="button"
-        class="refresh-button focus-ring"
-        (click)="refresh()"
-        [disabled]="loading()"
-      >
-        <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M4 4v5h5M20 20v-5h-5M5 14a7 7 0 0 1 12-4.9l2 1.9M19 10a7 7 0 0 1-12 4.9l-2-1.9"
-          />
-        </svg>
-        最新情報に更新
-      </button>
-      <a routerLink="/board" class="back-link focus-ring">ボードに戻る</a>
+      <section class="quota-card" aria-live="polite">
+        <p class="quota-card__label">本日の評価判定可能回数</p>
+
+        @if (quotaLoading()) {
+          <p class="quota-card__loading">計算中…</p>
+        } @else if (quotaError(); as message) {
+          <p class="quota-card__warning">{{ message }}</p>
+        } @else {
+          <div class="quota-card__values">
+            <span class="quota-card__value">{{ limitLabel(quota()) }}</span>
+            <span class="quota-card__separator">／</span>
+            <span class="quota-card__value quota-card__value--remaining">
+              {{ remainingLabel(quota()) }}
+            </span>
+          </div>
+          <p class="quota-card__meta">実行済み {{ quota()?.used ?? 0 }} 回</p>
+
+          @if (limitReached()) {
+            <p class="quota-card__warning">本日の上限に達しました。</p>
+          }
+        }
+      </section>
+
+      <div class="page-header__buttons">
+        <button
+          type="button"
+          class="refresh-button focus-ring"
+          (click)="runEvaluation()"
+          [disabled]="runningEvaluation() || loading() || !canRunEvaluation()"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            class="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 3v2m0 14v2m9-9h-2M5 12H3m12.364-5.364-1.414 1.414M6.05 17.95l-1.414 1.414m12.728 0-1.414-1.414M6.05 6.05 4.636 4.636M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z"
+            />
+          </svg>
+          評価を実行
+        </button>
+
+        <button
+          type="button"
+          class="secondary-button focus-ring"
+          (click)="exportLatestAsJson()"
+          [disabled]="!latestEvaluation()"
+        >
+          JSON で出力
+        </button>
+      </div>
     </div>
   </header>
+
+  @if (actionError(); as message) {
+    <p class="page-alert page-alert--error" role="alert">{{ message }}</p>
+  }
+
+  @if (feedback(); as message) {
+    <p class="page-alert page-alert--success" role="status">{{ message }}</p>
+  }
 
   @if (loading()) {
     <div class="state state--loading">
@@ -38,7 +86,9 @@
       <div class="state state--error" role="alert">
         <h2>取得に失敗しました</h2>
         <p>{{ message }}</p>
-        <button type="button" class="retry-button focus-ring" (click)="refresh()">再試行する</button>
+        <button type="button" class="retry-button focus-ring" (click)="refresh()">
+          再試行する
+        </button>
       </div>
     } @else {
       @if (!hasEvaluations()) {
@@ -62,7 +112,9 @@
             <header class="latest__header">
               <div class="latest__summary">
                 <p class="latest__eyebrow">最新の評価</p>
-                <h2 class="latest__title">{{ evaluation.competency?.name || 'コンピテンシー評価' }}</h2>
+                <h2 class="latest__title">
+                  {{ evaluation.competency?.name || 'コンピテンシー評価' }}
+                </h2>
                 <p class="latest__meta">
                   評価期間
                   <span>{{ evaluation.period_start | date: 'yyyy/MM/dd' }}</span>
@@ -70,13 +122,16 @@
                   <span>{{ evaluation.period_end | date: 'yyyy/MM/dd' }}</span>
                 </p>
                 <p class="latest__meta">
-                  判定種別: {{ triggeredLabel(evaluation.triggered_by) }} / モデル: {{ evaluation.ai_model || '未設定' }}
+                  判定種別: {{ triggeredLabel(evaluation.triggered_by) }} / モデル:
+                  {{ evaluation.ai_model || '未設定' }}
                 </p>
               </div>
               <div class="latest__score" aria-label="評価スコア">
                 <div class="latest__score-value">
                   <span aria-hidden="true">{{ evaluation.score_value }}</span>
-                  <span class="latest__score-scale" aria-hidden="true">/ {{ evaluation.scale }}</span>
+                  <span class="latest__score-scale" aria-hidden="true"
+                    >/ {{ evaluation.scale }}</span
+                  >
                 </div>
                 <p class="latest__score-label">{{ evaluation.score_label }}</p>
                 <p class="latest__score-percent">達成率 {{ scorePercent(evaluation) }}%</p>
@@ -136,10 +191,14 @@
                       <article class="latest__item surface-card">
                         <header>
                           <p class="latest__item-title">{{ '評価項目 ' + (index + 1) }}</p>
-                          <p class="latest__item-score">{{ item.score_label }} ({{ item.score_value }} 点)</p>
+                          <p class="latest__item-score">
+                            {{ item.score_label }} ({{ item.score_value }} 点)
+                          </p>
                         </header>
                         <div class="latest__item-body">
-                          <p class="latest__item-text">{{ item.rationale || '根拠メモは記録されていません。' }}</p>
+                          <p class="latest__item-text">
+                            {{ item.rationale || '根拠メモは記録されていません。' }}
+                          </p>
 
                           @if (hasActions(item.attitude_actions)) {
                             <div class="latest__item-actions">
@@ -195,7 +254,9 @@
                             >{{ item.period_start | date: 'yyyy/MM/dd' }} 〜
                             {{ item.period_end | date: 'yyyy/MM/dd' }}</span
                           >
-                          <span class="history__label">{{ item.competency?.name || 'コンピテンシー評価' }}</span>
+                          <span class="history__label">{{
+                            item.competency?.name || 'コンピテンシー評価'
+                          }}</span>
                         </div>
                         <div class="history__score">
                           <span class="history__score-value">{{ item.score_value }}</span>

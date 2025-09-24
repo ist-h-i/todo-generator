@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -9,6 +8,11 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..utils.repository import (
+    apply_updates,
+    get_owned_resource_or_404,
+    save_model,
+)
 
 router = APIRouter(prefix="/initiatives", tags=["initiatives"])
 
@@ -17,12 +21,30 @@ def _initiative_query(db: Session):
     return db.query(models.ImprovementInitiative).options(selectinload(models.ImprovementInitiative.progress_logs))
 
 
-@router.get("/", response_model=List[schemas.ImprovementInitiativeRead])
+def _get_owned_initiative(
+    db: Session,
+    initiative_id: str,
+    owner_id: str,
+) -> models.ImprovementInitiative:
+    initiative = (
+        _initiative_query(db)
+        .filter(
+            models.ImprovementInitiative.id == initiative_id,
+            models.ImprovementInitiative.owner_id == owner_id,
+        )
+        .first()
+    )
+    if not initiative:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
+    return initiative
+
+
+@router.get("/", response_model=list[schemas.ImprovementInitiativeRead])
 def list_initiatives(
-    status_filter: Optional[str] = Query(default=None),
+    status_filter: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> List[models.ImprovementInitiative]:
+) -> list[models.ImprovementInitiative]:
     query = _initiative_query(db).filter(models.ImprovementInitiative.owner_id == current_user.id)
     if status_filter:
         query = query.filter(models.ImprovementInitiative.status == status_filter)
@@ -44,10 +66,7 @@ def create_initiative(
         health=payload.health,
         owner_id=current_user.id,
     )
-    db.add(initiative)
-    db.commit()
-    db.refresh(initiative)
-    return initiative
+    return save_model(db, initiative)
 
 
 @router.get("/{initiative_id}", response_model=schemas.ImprovementInitiativeRead)
@@ -56,17 +75,7 @@ def get_initiative(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.ImprovementInitiative:
-    initiative = (
-        _initiative_query(db)
-        .filter(
-            models.ImprovementInitiative.id == initiative_id,
-            models.ImprovementInitiative.owner_id == current_user.id,
-        )
-        .first()
-    )
-    if not initiative:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
-    return initiative
+    return _get_owned_initiative(db, initiative_id, current_user.id)
 
 
 @router.patch("/{initiative_id}", response_model=schemas.ImprovementInitiativeRead)
@@ -76,27 +85,11 @@ def update_initiative(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.ImprovementInitiative:
-    initiative = (
-        _initiative_query(db)
-        .filter(
-            models.ImprovementInitiative.id == initiative_id,
-            models.ImprovementInitiative.owner_id == current_user.id,
-        )
-        .first()
-    )
-    if not initiative:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
-
+    initiative = _get_owned_initiative(db, initiative_id, current_user.id)
     update_data = payload.model_dump(exclude_unset=True)
     update_data.pop("owner", None)
-
-    for key, value in update_data.items():
-        setattr(initiative, key, value)
-
-    db.add(initiative)
-    db.commit()
-    db.refresh(initiative)
-    return initiative
+    apply_updates(initiative, update_data)
+    return save_model(db, initiative)
 
 
 @router.post(
@@ -110,9 +103,13 @@ def add_progress_log(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.InitiativeProgressLog:
-    initiative = db.get(models.ImprovementInitiative, initiative_id)
-    if not initiative or initiative.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
+    get_owned_resource_or_404(
+        db,
+        models.ImprovementInitiative,
+        initiative_id,
+        owner_id=current_user.id,
+        detail="Initiative not found",
+    )
 
     log = models.InitiativeProgressLog(
         initiative_id=initiative_id,
@@ -121,21 +118,22 @@ def add_progress_log(
         notes=payload.notes,
         observed_metrics=payload.observed_metrics,
     )
-    db.add(log)
-    db.commit()
-    db.refresh(log)
-    return log
+    return save_model(db, log)
 
 
-@router.get("/{initiative_id}/progress", response_model=List[schemas.InitiativeProgressLogRead])
+@router.get("/{initiative_id}/progress", response_model=list[schemas.InitiativeProgressLogRead])
 def list_progress_logs(
     initiative_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> List[models.InitiativeProgressLog]:
-    initiative = db.get(models.ImprovementInitiative, initiative_id)
-    if not initiative or initiative.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
+) -> list[models.InitiativeProgressLog]:
+    get_owned_resource_or_404(
+        db,
+        models.ImprovementInitiative,
+        initiative_id,
+        owner_id=current_user.id,
+        detail="Initiative not found",
+    )
 
     return (
         db.query(models.InitiativeProgressLog)
@@ -145,15 +143,19 @@ def list_progress_logs(
     )
 
 
-@router.get("/{initiative_id}/cards", response_model=List[schemas.CardRead])
+@router.get("/{initiative_id}/cards", response_model=list[schemas.CardRead])
 def list_initiative_cards(
     initiative_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> List[models.Card]:
-    initiative = db.get(models.ImprovementInitiative, initiative_id)
-    if not initiative or initiative.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Initiative not found")
+) -> list[models.Card]:
+    get_owned_resource_or_404(
+        db,
+        models.ImprovementInitiative,
+        initiative_id,
+        owner_id=current_user.id,
+        detail="Initiative not found",
+    )
 
     return (
         db.query(models.Card)
