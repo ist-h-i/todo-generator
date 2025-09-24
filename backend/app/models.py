@@ -55,6 +55,21 @@ class User(Base, TimestampMixin):
     daily_card_quotas: Mapped[list["DailyCardQuota"]] = relationship(
         "DailyCardQuota", back_populates="owner", cascade="all, delete-orphan"
     )
+    labels: Mapped[list["Label"]] = relationship(
+        "Label", back_populates="owner", cascade="all, delete-orphan"
+    )
+    statuses: Mapped[list["Status"]] = relationship(
+        "Status", back_populates="owner", cascade="all, delete-orphan"
+    )
+    error_categories: Mapped[list["ErrorCategory"]] = relationship(
+        "ErrorCategory", back_populates="owner", cascade="all, delete-orphan"
+    )
+    initiatives: Mapped[list["ImprovementInitiative"]] = relationship(
+        "ImprovementInitiative", back_populates="owner_user", cascade="all, delete-orphan"
+    )
+    saved_filters: Mapped[list["SavedFilter"]] = relationship(
+        "SavedFilter", back_populates="owner", cascade="all, delete-orphan"
+    )
 
 
 class SessionToken(Base, TimestampMixin):
@@ -160,27 +175,37 @@ class Subtask(Base, TimestampMixin):
 
 class Label(Base):
     __tablename__ = "labels"
+    __table_args__ = (UniqueConstraint("owner_id", "name", name="uq_label_owner_name"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     color: Mapped[str | None] = mapped_column(String)
     description: Mapped[str | None] = mapped_column(Text)
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     cards: Mapped[list[Card]] = relationship("Card", secondary=card_labels, back_populates="labels")
+    owner: Mapped[User] = relationship("User", back_populates="labels")
 
 
 class Status(Base):
     __tablename__ = "statuses"
+    __table_args__ = (UniqueConstraint("owner_id", "name", name="uq_status_owner_name"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     category: Mapped[str | None] = mapped_column(String)
     order: Mapped[int | None] = mapped_column(Integer)
     color: Mapped[str | None] = mapped_column(String)
     wip_limit: Mapped[int | None] = mapped_column(Integer)
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     cards: Mapped[list[Card]] = relationship("Card", back_populates="status")
+    owner: Mapped[User] = relationship("User", back_populates="statuses")
 
 
 class UserPreference(Base, TimestampMixin):
@@ -223,13 +248,18 @@ class ActivityLog(Base):
 
 class ErrorCategory(Base, TimestampMixin):
     __tablename__ = "error_categories"
+    __table_args__ = (UniqueConstraint("owner_id", "name", name="uq_error_category_owner_name"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     severity_level: Mapped[str | None] = mapped_column(String)
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     cards: Mapped[list[Card]] = relationship("Card", back_populates="error_category")
+    owner: Mapped[User] = relationship("User", back_populates="error_categories")
 
 
 class ImprovementInitiative(Base, TimestampMixin):
@@ -243,6 +273,9 @@ class ImprovementInitiative(Base, TimestampMixin):
     target_metrics: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[str | None] = mapped_column(String)
     health: Mapped[str | None] = mapped_column(String)
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     cards: Mapped[list[Card]] = relationship("Card", back_populates="initiative")
     progress_logs: Mapped[list["InitiativeProgressLog"]] = relationship(
@@ -252,6 +285,7 @@ class ImprovementInitiative(Base, TimestampMixin):
         order_by="InitiativeProgressLog.timestamp",
     )
     suggested_actions: Mapped[list["SuggestedAction"]] = relationship("SuggestedAction", back_populates="initiative")
+    owner_user: Mapped[User] = relationship("User", back_populates="initiatives")
 
 
 class InitiativeProgressLog(Base, TimestampMixin):
@@ -417,9 +451,13 @@ class SavedFilter(Base, TimestampMixin):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     name: Mapped[str] = mapped_column(String, nullable=False)
     definition: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_by: Mapped[str | None] = mapped_column(String)
+    created_by: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
     shared: Mapped[bool] = mapped_column(Boolean, default=False)
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    owner: Mapped[User] = relationship("User", back_populates="saved_filters")
 
 
 class SimilarityFeedback(Base, TimestampMixin):

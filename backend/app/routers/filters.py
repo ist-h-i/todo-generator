@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..auth import get_current_user
 from ..database import get_db
 
 router = APIRouter(prefix="/filters", tags=["filters"])
@@ -13,25 +14,27 @@ router = APIRouter(prefix="/filters", tags=["filters"])
 
 @router.get("/", response_model=List[schemas.SavedFilterRead])
 def list_filters(
-    owner_id: Optional[str] = Query(default=None),
     shared: Optional[bool] = Query(default=None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> List[models.SavedFilter]:
-    query = db.query(models.SavedFilter)
-    if owner_id:
-        query = query.filter(models.SavedFilter.created_by == owner_id)
+    query = db.query(models.SavedFilter).filter(models.SavedFilter.created_by == current_user.id)
     if shared is not None:
         query = query.filter(models.SavedFilter.shared == shared)
     return query.order_by(models.SavedFilter.created_at.desc()).all()
 
 
 @router.post("/", response_model=schemas.SavedFilterRead, status_code=status.HTTP_201_CREATED)
-def create_filter(payload: schemas.SavedFilterCreate, db: Session = Depends(get_db)) -> models.SavedFilter:
+def create_filter(
+    payload: schemas.SavedFilterCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> models.SavedFilter:
     saved_filter = models.SavedFilter(
         name=payload.name,
         definition=payload.definition,
         shared=payload.shared,
-        created_by=payload.created_by,
+        created_by=current_user.id,
     )
     db.add(saved_filter)
     db.commit()
@@ -40,9 +43,13 @@ def create_filter(payload: schemas.SavedFilterCreate, db: Session = Depends(get_
 
 
 @router.get("/{filter_id}", response_model=schemas.SavedFilterRead)
-def get_filter(filter_id: str, db: Session = Depends(get_db)) -> models.SavedFilter:
+def get_filter(
+    filter_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> models.SavedFilter:
     saved_filter = db.get(models.SavedFilter, filter_id)
-    if not saved_filter:
+    if not saved_filter or saved_filter.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Filter not found")
     return saved_filter
 
@@ -53,9 +60,10 @@ def update_filter(
     filter_id: str,
     payload: schemas.SavedFilterUpdate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> models.SavedFilter:
     saved_filter = db.get(models.SavedFilter, filter_id)
-    if not saved_filter:
+    if not saved_filter or saved_filter.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Filter not found")
 
     for key, value in payload.model_dump(exclude_unset=True).items():
@@ -72,9 +80,13 @@ def update_filter(
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
 )
-def delete_filter(filter_id: str, db: Session = Depends(get_db)) -> Response:
+def delete_filter(
+    filter_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> Response:
     saved_filter = db.get(models.SavedFilter, filter_id)
-    if not saved_filter:
+    if not saved_filter or saved_filter.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Filter not found")
 
     db.delete(saved_filter)

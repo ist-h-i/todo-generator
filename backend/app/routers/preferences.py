@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..auth import get_current_user
 from ..database import get_db
 
 router = APIRouter(prefix="/board-layouts", tags=["board-layouts"])
@@ -11,14 +12,14 @@ router = APIRouter(prefix="/board-layouts", tags=["board-layouts"])
 
 @router.get("/", response_model=schemas.UserPreferenceRead)
 def get_board_layout(
-    user_id: str = Query(..., description="Identifier of the requesting user"),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ) -> models.UserPreference:
-    preference = db.get(models.UserPreference, user_id)
+    preference = db.get(models.UserPreference, current_user.id)
     if preference:
         return preference
 
-    preference = models.UserPreference(user_id=user_id)
+    preference = models.UserPreference(user_id=current_user.id)
     db.add(preference)
     db.commit()
     db.refresh(preference)
@@ -26,12 +27,16 @@ def get_board_layout(
 
 
 @router.put("/", response_model=schemas.UserPreferenceRead)
-def update_board_layout(payload: schemas.BoardLayoutUpdate, db: Session = Depends(get_db)) -> models.UserPreference:
-    preference = db.get(models.UserPreference, payload.user_id)
+def update_board_layout(
+    payload: schemas.BoardLayoutUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+) -> models.UserPreference:
+    preference = db.get(models.UserPreference, current_user.id)
     if not preference:
-        preference = models.UserPreference(user_id=payload.user_id)
+        preference = models.UserPreference(user_id=current_user.id)
 
-    update_data = payload.model_dump(exclude={"user_id"}, exclude_unset=True)
+    update_data = payload.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(preference, key, value)
 

@@ -298,7 +298,7 @@ class SavedFilterBase(BaseModel):
 
 
 class SavedFilterCreate(SavedFilterBase):
-    created_by: Optional[str] = None
+    pass
 
 
 class SavedFilterUpdate(BaseModel):
@@ -382,7 +382,7 @@ class UserPreferenceRead(UserPreferenceBase):
 
 
 class BoardLayoutUpdate(UserPreferenceBase):
-    user_id: str
+    pass
 
 
 class CommentBase(BaseModel):
