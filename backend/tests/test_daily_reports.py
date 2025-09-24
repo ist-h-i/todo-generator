@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date
 
 from fastapi.testclient import TestClient
 
-from app import models, schemas
+from app import schemas
 from app.main import app
 from app.services.chatgpt import get_chatgpt_client
-
-from backend.tests.conftest import TestingSessionLocal
 
 DEFAULT_PASSWORD = "Register123!"
 
@@ -38,18 +36,43 @@ class StubChatGPT:
                     summary="日報の重要事項を整理して改善案をまとめる",
                     priority="high",
                     due_in_days=1,
-                    subtasks=[schemas.AnalysisSubtask(title="MTG で共有", description="次回定例で共有する")],
+                    subtasks=[
+                        schemas.AnalysisSubtask(
+                            title="MTG で共有",
+                            description="次回定例で共有する",
+                        )
+                    ],
                 )
             ],
         )
 
 
-def _daily_report_payload(report_date: date, *, auto_ticket_enabled: bool = True) -> dict:
+class SequencedStubChatGPT:
+    def __init__(self) -> None:
+        self.call_count = 0
+
+    def analyze(self, request: schemas.AnalysisRequest) -> schemas.AnalysisResponse:
+        self.call_count += 1
+        suffix = f" #{self.call_count}"
+        return schemas.AnalysisResponse(
+            model="stub-model",
+            proposals=[
+                schemas.AnalysisCard(
+                    title=f"フォローアップタスク{suffix}",
+                    summary=f"提案{suffix}の要約",
+                    priority="medium",
+                    due_in_days=None,
+                    subtasks=[],
+                )
+            ],
+        )
+
+
+def _daily_report_payload(report_date: date) -> dict:
     return {
         "report_date": report_date.isoformat(),
         "shift_type": "remote",
         "tags": ["backend", "daily"],
-        "auto_ticket_enabled": auto_ticket_enabled,
         "sections": [
             {"title": "対応内容", "body": "バッチ監視のアラート設定を調整し、テストを追加。"},
             {"title": "課題", "body": "顧客向けダッシュボードのレスポンス改善が必要。"},
@@ -76,9 +99,10 @@ def test_create_and_list_daily_reports(client: TestClient) -> None:
     assert len(items) == 1
     assert items[0]["status"] == "draft"
     assert items[0]["card_count"] == 0
+    assert items[0]["proposal_count"] == 0
 
 
-def test_submit_daily_report_creates_cards(client: TestClient) -> None:
+def test_submit_daily_report_returns_proposals(client: TestClient) -> None:
     headers = register_and_login(client, "analysis@example.com")
 
     create_response = client.post(
@@ -97,72 +121,47 @@ def test_submit_daily_report_creates_cards(client: TestClient) -> None:
     assert submit_response.status_code == 200, submit_response.text
     detail = submit_response.json()
     assert detail["status"] == "completed"
-    assert len(detail["cards"]) == 1
-    card = detail["cards"][0]
-    assert card["title"].startswith("フォローアップタスク")
-    assert len(card["subtasks"]) == 1
-
-    cards_response = client.get("/cards", headers=headers)
-    assert cards_response.status_code == 200
-    cards = cards_response.json()
-    assert len(cards) == 1
-    assert cards[0]["title"].startswith("フォローアップタスク")
-
-
-def test_submit_with_auto_ticket_disabled_returns_proposals(client: TestClient) -> None:
-    headers = register_and_login(client, "proposal@example.com")
-
-    create_response = client.post(
-        "/daily-reports",
-        json=_daily_report_payload(date(2024, 4, 3), auto_ticket_enabled=False),
-        headers=headers,
-    )
-    report_id = create_response.json()["id"]
-
-    app.dependency_overrides[get_chatgpt_client] = lambda: StubChatGPT()
-    try:
-        submit_response = client.post(f"/daily-reports/{report_id}/submit", headers=headers)
-    finally:
-        app.dependency_overrides.pop(get_chatgpt_client, None)
-
-    assert submit_response.status_code == 200
-    detail = submit_response.json()
-    assert detail["status"] == "completed"
     assert detail["cards"] == []
     assert len(detail["pending_proposals"]) == 1
     assert detail["pending_proposals"][0]["title"].startswith("フォローアップタスク")
 
-    cards_response = client.get("/cards", headers=headers)
-    assert cards_response.status_code == 200
-    assert cards_response.json() == []
+    list_response = client.get("/daily-reports", headers=headers)
+    list_response.raise_for_status()
+    items = list_response.json()
+    assert items[0]["proposal_count"] == 1
 
 
-def test_daily_report_submission_uses_submission_day_for_quota(client: TestClient) -> None:
-    headers = register_and_login(client, "quota@example.com")
+def test_retry_daily_report_replaces_pending_proposals(client: TestClient) -> None:
+    headers = register_and_login(client, "retry@example.com")
 
-    report_date = date(2000, 1, 1)
     create_response = client.post(
         "/daily-reports",
-        json=_daily_report_payload(report_date),
+        json=_daily_report_payload(date(2024, 4, 3)),
         headers=headers,
     )
-    assert create_response.status_code == 201, create_response.text
     report_id = create_response.json()["id"]
 
-    app.dependency_overrides[get_chatgpt_client] = lambda: StubChatGPT()
+    stub = SequencedStubChatGPT()
+    app.dependency_overrides[get_chatgpt_client] = lambda: stub
     try:
-        submit_response = client.post(f"/daily-reports/{report_id}/submit", headers=headers)
+        first_response = client.post(f"/daily-reports/{report_id}/submit", headers=headers)
+        assert first_response.status_code == 200, first_response.text
+        first_detail = first_response.json()
+        first_title = first_detail["pending_proposals"][0]["title"]
+
+        retry_response = client.post(f"/daily-reports/{report_id}/retry", headers=headers)
     finally:
         app.dependency_overrides.pop(get_chatgpt_client, None)
 
-    assert submit_response.status_code == 200, submit_response.text
+    assert retry_response.status_code == 200, retry_response.text
+    retry_detail = retry_response.json()
+    assert retry_detail["status"] == "completed"
+    assert retry_detail["cards"] == []
+    assert len(retry_detail["pending_proposals"]) == 1
+    retry_title = retry_detail["pending_proposals"][0]["title"]
+    assert retry_title != first_title
+    assert retry_title.endswith("#2")
+    assert stub.call_count == 2
 
-    today = datetime.now(timezone.utc).date()
-    with TestingSessionLocal() as session:
-        user = session.query(models.User).filter_by(email="quota@example.com").one()
-        quotas = session.query(models.DailyCardQuota).filter_by(owner_id=user.id).all()
-
-    assert len(quotas) == 1
-    assert quotas[0].quota_date == today
-    assert quotas[0].quota_date != report_date
-
+    event_types = {event["event_type"] for event in retry_detail["events"]}
+    assert "proposals_recorded" in event_types

@@ -39,7 +39,6 @@ export class DailyReportsPage {
     report_date: [this.todayString(), Validators.required],
     shift_type: [''],
     tags: [''],
-    auto_ticket_enabled: [true],
     sections: this.fb.array([this.createSectionGroup()]),
   });
 
@@ -90,7 +89,7 @@ export class DailyReportsPage {
       const created = await firstValueFrom(this.gateway.createReport(payload));
       const detail = await firstValueFrom(this.gateway.submitReport(created.id));
       this.selectedDetail.set(detail);
-      this.successState.set('AI 解析が完了しました。生成されたタスクを確認してください。');
+      this.successState.set('AI 解析が完了しました。提案されたタスクを確認してください。');
       this.updateReportsCollection(detail);
       this.resetForm();
     } catch (error) {
@@ -156,7 +155,7 @@ export class DailyReportsPage {
       shift_type: value.shift_type?.trim() || null,
       tags: this.parseTags(value.tags ?? ''),
       sections,
-      auto_ticket_enabled: value.auto_ticket_enabled ?? true,
+      auto_ticket_enabled: false,
     } satisfies DailyReportCreateRequest;
   }
 
@@ -176,7 +175,6 @@ export class DailyReportsPage {
       report_date: this.todayString(),
       shift_type: '',
       tags: '',
-      auto_ticket_enabled: true,
     });
   }
 
@@ -192,6 +190,7 @@ export class DailyReportsPage {
       created_at: detail.created_at,
       updated_at: detail.updated_at,
       card_count: detail.cards.length,
+      proposal_count: detail.pending_proposals.length,
       summary,
     };
     const filtered = this.reportsState().filter((report) => report.id !== detail.id);

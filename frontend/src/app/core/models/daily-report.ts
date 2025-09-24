@@ -83,6 +83,7 @@ export interface DailyReportListItem {
   readonly created_at: string;
   readonly updated_at: string;
   readonly card_count: number;
+  readonly proposal_count: number;
   readonly summary: string | null;
 }
 

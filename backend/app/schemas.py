@@ -454,6 +454,7 @@ class DailyReportEventType(str, Enum):
     UPDATED = "updated"
     SUBMITTED = "submitted"
     ANALYSIS_STARTED = "analysis_started"
+    PROPOSALS_RECORDED = "proposals_recorded"
     ANALYSIS_COMPLETED = "analysis_completed"
     ANALYSIS_FAILED = "analysis_failed"
     CARDS_LINKED = "cards_linked"
@@ -477,7 +478,7 @@ class DailyReportBase(BaseModel):
     shift_type: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     sections: List[DailyReportSection]
-    auto_ticket_enabled: bool = True
+    auto_ticket_enabled: bool = Field(default=False)
 
 
 class DailyReportCreate(DailyReportBase):
@@ -502,6 +503,7 @@ class DailyReportListItem(BaseModel):
     created_at: datetime
     updated_at: datetime
     card_count: int = 0
+    proposal_count: int = 0
     summary: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

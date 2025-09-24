@@ -44,11 +44,6 @@
         <button type="button" class="add" (click)="addSection()">セクションを追加</button>
       </div>
 
-      <div class="field checkbox">
-        <input id="autoTicket" type="checkbox" formControlName="auto_ticket_enabled" />
-        <label for="autoTicket">解析結果から自動でタスクを起票する</label>
-      </div>
-
       <div class="actions">
         <button type="submit" [disabled]="pending()">解析を実行</button>
       </div>
@@ -68,7 +63,7 @@
             <span class="date">{{ report.report_date }}</span>
             <span class="status" [attr.data-status]="report.status">{{ report.status }}</span>
             <span class="summary">{{ report.summary || '本文なし' }}</span>
-            <span class="count">タスク: {{ report.card_count }}</span>
+            <span class="count">提案: {{ report.proposal_count }}</span>
           </button>
         </li>
       </ul>

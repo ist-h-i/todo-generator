@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Iterable, Sequence
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
-from .card_limits import reserve_daily_card_quota
 from .chatgpt import ChatGPTClient, ChatGPTError
 
 _MAX_GENERATED_CARDS = 5
@@ -17,7 +16,6 @@ _MAX_GENERATED_CARDS = 5
 @dataclass
 class DailyReportProcessResult:
     report: models.DailyReport
-    created_cards: list[models.Card]
     proposals: list[schemas.AnalysisCard]
     error: str | None = None
 
@@ -187,7 +185,6 @@ class DailyReportService:
         sections = self._sections_from_content(report)
         analysis_text = self._compose_analysis_prompt(report, sections)
         proposals: list[schemas.AnalysisCard] = []
-        created_cards: list[models.Card] = []
         error_message: str | None = None
 
         try:
@@ -211,50 +208,32 @@ class DailyReportService:
                 {"message": error_message},
             )
             self.db.flush()
-            return DailyReportProcessResult(report=report, created_cards=[], proposals=[], error=error_message)
+            return DailyReportProcessResult(report=report, proposals=[], error=error_message)
 
-        if not proposals:
-            report.status = schemas.DailyReportStatus.COMPLETED.value
-            report.analysis_completed_at = datetime.now(timezone.utc)
-            self._record_event(
-                report,
-                schemas.DailyReportEventType.ANALYSIS_COMPLETED,
-                {"cards_created": 0},
-            )
-            self.db.flush()
-            return DailyReportProcessResult(report=report, created_cards=[], proposals=[], error=None)
-
-        if report.auto_ticket_enabled:
-            created_cards = self._create_cards_from_proposals(report, proposals[:max_cards])
-            self._update_processing_meta(
-                report,
-                created_card_ids=[card.id for card in created_cards],
-            )
-            report.status = schemas.DailyReportStatus.COMPLETED.value
-            report.analysis_completed_at = datetime.now(timezone.utc)
-            self._record_event(
-                report,
-                schemas.DailyReportEventType.CARDS_LINKED,
-                {"card_ids": [card.id for card in created_cards]},
-            )
-        else:
-            self._update_processing_meta(
-                report,
-                proposals=[proposal.model_dump() for proposal in proposals[:max_cards]],
-            )
-            report.status = schemas.DailyReportStatus.COMPLETED.value
-            report.analysis_completed_at = datetime.now(timezone.utc)
+        stored_proposals = proposals[:max_cards]
+        self._update_processing_meta(
+            report,
+            proposals=[proposal.model_dump() for proposal in stored_proposals],
+            created_card_ids=[],
+            last_error=None,
+        )
+        report.status = schemas.DailyReportStatus.COMPLETED.value
+        report.analysis_completed_at = datetime.now(timezone.utc)
 
         self._record_event(
             report,
+            schemas.DailyReportEventType.PROPOSALS_RECORDED,
+            {"proposal_count": len(stored_proposals)},
+        )
+        self._record_event(
+            report,
             schemas.DailyReportEventType.ANALYSIS_COMPLETED,
-            {"cards_created": len(created_cards)},
+            {"cards_created": 0, "proposals_recorded": len(stored_proposals)},
         )
         self.db.flush()
         return DailyReportProcessResult(
             report=report,
-            created_cards=created_cards,
-            proposals=proposals[:max_cards],
+            proposals=stored_proposals,
             error=None,
         )
 
@@ -283,6 +262,7 @@ class DailyReportService:
     def to_list_item(self, report: models.DailyReport) -> schemas.DailyReportListItem:
         sections = self._sections_from_content(report)
         summary = next((section.body for section in sections if section.body), None)
+        pending = self._pending_proposals(report.processing_meta)
         return schemas.DailyReportListItem(
             id=report.id,
             report_date=report.report_date,
@@ -293,6 +273,7 @@ class DailyReportService:
             created_at=report.created_at,
             updated_at=report.updated_at,
             card_count=len(report.cards or []),
+            proposal_count=len(pending),
             summary=summary,
         )
 
@@ -397,60 +378,6 @@ class DailyReportService:
             lines.append(section.body)
             lines.append("")
         return "\n".join(lines).strip()
-
-    def _create_cards_from_proposals(
-        self,
-        report: models.DailyReport,
-        proposals: Sequence[schemas.AnalysisCard],
-    ) -> list[models.Card]:
-        created_cards: list[models.Card] = []
-        now = datetime.now(timezone.utc)
-        submission_day = now.date()
-        for proposal in proposals:
-            card = models.Card(
-                title=proposal.title,
-                summary=proposal.summary,
-                description=proposal.summary,
-                priority=proposal.priority,
-                assignees=[report.owner_id],
-                due_date=(now + timedelta(days=proposal.due_in_days))
-                if proposal.due_in_days is not None
-                else None,
-                owner_id=report.owner_id,
-                custom_fields={
-                    "origin": "daily_report",
-                    "daily_report_id": report.id,
-                    "daily_report_date": report.report_date.isoformat(),
-                },
-            )
-            card.subtasks = [
-                models.Subtask(
-                    title=subtask.title,
-                    description=subtask.description,
-                    status=subtask.status,
-                    assignee=report.owner_id,
-                )
-                for subtask in proposal.subtasks
-            ]
-
-            reserve_daily_card_quota(
-                db=self.db,
-                owner_id=report.owner_id,
-                quota_day=submission_day,
-            )
-
-            self.db.add(card)
-            self.db.flush()
-
-            link = models.DailyReportCardLink(
-                report_id=report.id,
-                card_id=card.id,
-                link_role="primary",
-            )
-            report.cards.append(link)
-            self.db.add(link)
-            created_cards.append(card)
-        return created_cards
 
     def _ensure_processing_meta(self, report: models.DailyReport) -> dict:
         if not isinstance(report.processing_meta, dict):

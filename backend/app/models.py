@@ -421,7 +421,7 @@ class DailyReport(Base, TimestampMixin):
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     content: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String, nullable=False, default="draft")
-    auto_ticket_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    auto_ticket_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     analysis_model: Mapped[str | None] = mapped_column(String)
     analysis_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     analysis_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -48,17 +48,6 @@ form {
   resize: vertical;
 }
 
-.field.checkbox {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.field.checkbox input[type='checkbox'] {
-  width: 18px;
-  height: 18px;
-}
-
 .sections {
   display: flex;
   flex-direction: column;
