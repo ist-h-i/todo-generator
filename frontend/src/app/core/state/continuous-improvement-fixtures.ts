@@ -122,6 +122,8 @@ export const CONTINUOUS_IMPROVEMENT_ANALYSES: readonly RootCauseAnalysis[] = [
         evidence: ['deploy-review-18'],
         recommendedMetrics: ['release_checklist_adoption'],
         tone: 'direct',
+        toneMessage:
+          'チェックリストの確認を省略しており、未検証のまま本番リリースしているメンバーがいます。',
       },
       {
         id: 'node-1b',
@@ -144,6 +146,8 @@ export const CONTINUOUS_IMPROVEMENT_ANALYSES: readonly RootCauseAnalysis[] = [
         evidence: ['handoff-review'],
         recommendedMetrics: ['runbook_freshness_index'],
         tone: 'direct',
+        toneMessage:
+          'ドキュメントの責任者を決めずに放置しており、誰も更新タスクを引き受けていません。',
       },
     ],
     suggestions: [
@@ -223,6 +227,8 @@ export const CONTINUOUS_IMPROVEMENT_ANALYSES: readonly RootCauseAnalysis[] = [
         evidence: ['qa-retro'],
         recommendedMetrics: ['performance_test_coverage'],
         tone: 'direct',
+        toneMessage:
+          '性能テストの時間を確保せずにリリース判断を進めており、障害を自ら招いています。',
       },
       {
         id: 'node-apr-2',
