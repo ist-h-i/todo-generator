@@ -8,16 +8,21 @@ from .database import Base, engine
 from .migrations import run_startup_migrations
 from .routers import (
     activity,
+    admin_settings,
+    admin_users,
     analysis,
     analytics,
     auth,
     cards,
     daily_reports,
     comments,
+    competencies,
+    competency_evaluations,
     error_categories,
     filters,
     initiatives,
     labels,
+    profile,
     preferences,
     reports,
     statuses,
@@ -49,8 +54,13 @@ app.include_router(daily_reports.router)
 app.include_router(labels.router)
 app.include_router(statuses.router)
 app.include_router(preferences.router)
+app.include_router(profile.router)
 app.include_router(comments.router)
 app.include_router(activity.router)
+app.include_router(admin_users.router)
+app.include_router(admin_settings.router)
+app.include_router(competencies.router)
+app.include_router(competency_evaluations.router)
 app.include_router(error_categories.router)
 app.include_router(filters.router)
 app.include_router(initiatives.router)

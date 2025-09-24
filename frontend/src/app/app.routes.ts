@@ -40,9 +40,18 @@ export const appRoutes: Routes = [
         loadComponent: () => import('@features/analytics/page').then((mod) => mod.AnalyticsPage),
       },
       {
+        path: 'profile/evaluations',
+        loadComponent: () =>
+          import('@features/profile/evaluations/page').then((mod) => mod.ProfileEvaluationsPage),
+      },
+      {
         path: 'settings',
-        canActivate: [adminGuard],
         loadComponent: () => import('@features/settings/page').then((mod) => mod.SettingsPage),
+      },
+      {
+        path: 'admin',
+        canActivate: [adminGuard],
+        loadComponent: () => import('@features/admin/page').then((mod) => mod.AdminPage),
       },
       {
         path: '**',

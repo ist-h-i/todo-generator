@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import { RouterLink } from '@angular/router';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
 import {
@@ -99,7 +100,7 @@ const RESOLVED_SUBTASK_STATUSES = new Set<SubtaskStatus>(['done', 'non-issue']);
 @Component({
   selector: 'app-board-page',
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [CommonModule, DragDropModule, RouterLink],
   templateUrl: './page.html',
   styleUrl: './page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

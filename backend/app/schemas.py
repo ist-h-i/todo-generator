@@ -26,6 +26,27 @@ class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserProfile(UserRead):
+    nickname: Optional[str] = None
+    experience_years: Optional[int] = Field(default=None, ge=0, le=50)
+    roles: List[str] = Field(default_factory=list)
+    bio: Optional[str] = None
+    location: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_roles(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            roles = data.get("roles")
+            if roles is None:
+                normalized = dict(data)
+                normalized["roles"] = []
+                return normalized
+        return data
+
+
 def _normalize_email_input(value: str | EmailStr) -> str:
     normalized = unicodedata.normalize("NFKC", str(value))
     return normalized.strip()
@@ -60,7 +81,7 @@ class RegistrationRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
-    user: UserRead
+    user: UserProfile
 
 
 class LabelBase(BaseModel):
@@ -745,6 +766,195 @@ class ReportGenerateRequest(BaseModel):
 
 class ReportGenerateResponse(GeneratedReportRead):
     pass
+
+
+# --- Competency management schemas ----------------------------------------------------------
+
+
+class CompetencyCriterionBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    weight: Optional[float] = None
+    intentionality_prompt: Optional[str] = None
+    behavior_prompt: Optional[str] = None
+    is_active: bool = True
+    order_index: Optional[int] = None
+
+
+class CompetencyCriterionCreate(CompetencyCriterionBase):
+    pass
+
+
+class CompetencyCriterionUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    weight: Optional[float] = None
+    intentionality_prompt: Optional[str] = None
+    behavior_prompt: Optional[str] = None
+    is_active: Optional[bool] = None
+    order_index: Optional[int] = None
+
+
+class CompetencyCriterionRead(CompetencyCriterionBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CompetencyBase(BaseModel):
+    name: str
+    level: Literal["junior", "intermediate"]
+    description: Optional[str] = None
+    rubric: Dict[str, Any] = Field(default_factory=dict)
+    sort_order: int = 0
+    is_active: bool = True
+
+
+class CompetencyCreate(CompetencyBase):
+    criteria: List[CompetencyCriterionCreate] = Field(default_factory=list)
+
+
+class CompetencyUpdate(BaseModel):
+    name: Optional[str] = None
+    level: Optional[Literal["junior", "intermediate"]] = None
+    description: Optional[str] = None
+    rubric: Optional[Dict[str, Any]] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
+    criteria: Optional[List[CompetencyCriterionCreate]] = None
+
+
+class CompetencyRead(CompetencyBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+    criteria: List[CompetencyCriterionRead] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CompetencySummary(BaseModel):
+    id: str
+    name: str
+    level: Literal["junior", "intermediate"]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CompetencyEvaluationItemRead(BaseModel):
+    id: str
+    criterion_id: Optional[str] = None
+    score_value: int
+    score_label: str
+    rationale: Optional[str] = None
+    attitude_actions: List[str] = Field(default_factory=list)
+    behavior_actions: List[str] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CompetencyEvaluationRead(BaseModel):
+    id: str
+    competency_id: str
+    user_id: str
+    period_start: date
+    period_end: date
+    scale: int
+    score_value: int
+    score_label: str
+    rationale: Optional[str] = None
+    attitude_actions: List[str] = Field(default_factory=list)
+    behavior_actions: List[str] = Field(default_factory=list)
+    ai_model: Optional[str] = None
+    triggered_by: str
+    created_at: datetime
+    updated_at: datetime
+    competency: Optional[CompetencySummary] = None
+    items: List[CompetencyEvaluationItemRead] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EvaluationTriggerRequest(BaseModel):
+    user_id: str
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+    triggered_by: Literal["manual", "auto"] = "manual"
+
+    @model_validator(mode="after")
+    def ensure_period(cls, values: "EvaluationTriggerRequest") -> "EvaluationTriggerRequest":
+        if values.period_start and values.period_end:
+            if values.period_start > values.period_end:
+                raise ValueError("period_start must be on or before period_end")
+        return values
+
+
+class AdminUserRead(BaseModel):
+    id: str
+    email: EmailStr
+    is_admin: bool
+    is_active: bool
+    card_daily_limit: Optional[int] = None
+    evaluation_daily_limit: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminUserUpdate(BaseModel):
+    is_admin: Optional[bool] = None
+    is_active: Optional[bool] = None
+    card_daily_limit: Optional[int] = Field(default=None, ge=0)
+    evaluation_daily_limit: Optional[int] = Field(default=None, ge=0)
+
+
+class ApiCredentialRead(BaseModel):
+    provider: str
+    secret_hint: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ApiCredentialUpdate(BaseModel):
+    secret: str
+    is_active: Optional[bool] = None
+
+
+class QuotaDefaultsRead(BaseModel):
+    card_daily_limit: int
+    evaluation_daily_limit: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuotaDefaultsUpdate(BaseModel):
+    card_daily_limit: int = Field(ge=0)
+    evaluation_daily_limit: int = Field(ge=0)
+
+
+class UserQuotaRead(BaseModel):
+    user_id: str
+    card_daily_limit: Optional[int] = None
+    evaluation_daily_limit: Optional[int] = None
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserQuotaUpdate(BaseModel):
+    card_daily_limit: Optional[int] = Field(default=None, ge=0)
+    evaluation_daily_limit: Optional[int] = Field(default=None, ge=0)
+
+
+# --------------------------------------------------------------------------------------------
 
 
 # Resolve forward references for nested models defined later in the module.

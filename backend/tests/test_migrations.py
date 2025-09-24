@@ -76,8 +76,7 @@ def test_run_startup_migrations_adds_column_and_promotes_first_user() -> None:
         ).all()
 
     assert rows, "Expected at least one user row"
-    assert bool(rows[0].is_admin) is True
-    assert all(bool(row.is_admin) is False for row in rows[1:])
+    assert [bool(row.is_admin) for row in rows] == [True, False]
 
 
 def test_run_startup_migrations_is_noop_when_column_exists() -> None:

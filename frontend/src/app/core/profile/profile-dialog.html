@@ -1,0 +1,259 @@
+<div class="profile-dialog" (click)="onBackdropClick()">
+  <div class="profile-dialog__backdrop" aria-hidden="true"></div>
+  <article
+    #panel
+    class="profile-dialog__panel focus-ring"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="profile-dialog-title"
+    (click)="$event.stopPropagation()"
+    tabindex="-1"
+  >
+    <header class="profile-dialog__header">
+      <div>
+        <p class="profile-dialog__eyebrow">アカウント設定</p>
+        <h2 class="profile-dialog__title" id="profile-dialog-title">プロフィールを編集</h2>
+        <p class="profile-dialog__description">
+          表示名やアイコン、担当領域などのプロフィール情報を更新できます。
+        </p>
+      </div>
+      <button
+        type="button"
+        class="profile-dialog__close focus-ring"
+        (click)="onCancelClick()"
+        aria-label="プロフィール設定を閉じる"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6l-12 12" />
+        </svg>
+      </button>
+    </header>
+
+    @if (loading()) {
+      <div class="profile-dialog__loading" role="status" aria-live="polite">
+        プロフィールを読み込んでいます…
+      </div>
+    } @else {
+      <form class="profile-dialog__form" (submit)="onSubmit($event)" novalidate>
+        @if (error(); as errorMessage) {
+          <div class="profile-dialog__alert" role="alert" aria-live="assertive">
+            {{ errorMessage }}
+          </div>
+        }
+
+        <section class="profile-dialog__section" aria-labelledby="profile-avatar-section">
+          <div class="profile-dialog__section-header">
+            <h3 id="profile-avatar-section">アイコン画像</h3>
+            <p class="profile-dialog__section-description">
+              正方形の画像をアップロードすると、中央を円形にトリミングして表示します。
+            </p>
+          </div>
+          <div class="profile-dialog__avatar">
+            <div
+              class="profile-dialog__avatar-preview"
+              [class.profile-dialog__avatar-preview--empty]="!avatarPreview()"
+            >
+              @if (avatarPreview(); as preview) {
+                <img [src]="preview" alt="選択中のアイコン" />
+              } @else {
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.6"
+                    fill="none"
+                    d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0"
+                  />
+                </svg>
+              }
+            </div>
+            <div class="profile-dialog__avatar-actions">
+              <input
+                #fileInput
+                type="file"
+                class="profile-dialog__file-input"
+                accept="image/png,image/jpeg,image/webp"
+                (change)="onAvatarChange($event)"
+              />
+              <button type="button" class="profile-dialog__button focus-ring" (click)="triggerAvatarPicker()">
+                画像を選択
+              </button>
+              @if (avatarSelected()) {
+                <button type="button" class="profile-dialog__link-button focus-ring" (click)="onAvatarRemove()">
+                  画像を削除
+                </button>
+              }
+            </div>
+            <p class="profile-dialog__hint">PNG / JPEG / WebP 形式、5MB 以内のファイルが利用できます。</p>
+          </div>
+        </section>
+
+        <section class="profile-dialog__section" aria-labelledby="profile-basic-section">
+          <div class="profile-dialog__section-header">
+            <h3 id="profile-basic-section">基本情報</h3>
+            <p class="profile-dialog__section-description">チームに表示される名前や経験年数を設定します。</p>
+          </div>
+          <div class="profile-dialog__grid">
+            <label class="profile-dialog__field" for="profile-nickname">
+              <span class="profile-dialog__label">ニックネーム <span class="profile-dialog__required">必須</span></span>
+              <input
+                id="profile-nickname"
+                type="text"
+                maxlength="60"
+                [value]="form.controls.nickname.value()"
+                (input)="onNicknameInput($event)"
+                class="profile-dialog__input"
+                [class.profile-dialog__input--invalid]="nicknameError()"
+                aria-required="true"
+                [attr.aria-invalid]="nicknameError() ? 'true' : null"
+                [attr.aria-describedby]="nicknameError() ? 'profile-nickname-error' : null"
+                autocomplete="name"
+              />
+              @if (nicknameError(); as nicknameMessage) {
+                <p id="profile-nickname-error" class="profile-dialog__error" aria-live="polite">
+                  {{ nicknameMessage }}
+                </p>
+              }
+            </label>
+
+            <label class="profile-dialog__field" for="profile-experience">
+              <span class="profile-dialog__label">経験年数</span>
+              <input
+                id="profile-experience"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="50"
+                [value]="experienceDisplay()"
+                (input)="onExperienceInput($event)"
+                class="profile-dialog__input"
+                [class.profile-dialog__input--invalid]="experienceError()"
+                [attr.aria-invalid]="experienceError() ? 'true' : null"
+                [attr.aria-describedby]="experienceError() ? 'profile-experience-error' : null"
+              />
+              @if (experienceError(); as experienceMessage) {
+                <p id="profile-experience-error" class="profile-dialog__error" aria-live="polite">
+                  {{ experienceMessage }}
+                </p>
+              }
+            </label>
+          </div>
+        </section>
+
+        <section class="profile-dialog__section" aria-labelledby="profile-role-section">
+          <div class="profile-dialog__section-header">
+            <h3 id="profile-role-section">担当領域</h3>
+            <p class="profile-dialog__section-description">現在担当している業務内容を選択してください（最大5件）。</p>
+          </div>
+          <div class="profile-dialog__role-grid" role="group" aria-labelledby="profile-role-section">
+            @for (role of roleOptions; track role) {
+              <label class="profile-dialog__role-option">
+                <input
+                  type="checkbox"
+                  [checked]="form.controls.roles.value().includes(role)"
+                  (change)="onRoleToggle(role)"
+                />
+                <span>{{ role }}</span>
+              </label>
+            }
+          </div>
+          @if (rolesError(); as rolesMessage) {
+            <p class="profile-dialog__error" aria-live="assertive">{{ rolesMessage }}</p>
+          }
+        </section>
+
+        <section class="profile-dialog__section" aria-labelledby="profile-bio-section">
+          <div class="profile-dialog__section-header">
+            <h3 id="profile-bio-section">自己紹介</h3>
+            <p class="profile-dialog__section-description">得意分野や担当プロジェクトなどを自由に記載できます。</p>
+          </div>
+          <label class="profile-dialog__field" for="profile-bio">
+            <span class="profile-dialog__label">自己紹介（任意）</span>
+            <textarea
+              id="profile-bio"
+              rows="4"
+              maxlength="500"
+              [value]="form.controls.bio.value()"
+              (input)="onBioInput($event)"
+              class="profile-dialog__textarea"
+              [class.profile-dialog__textarea--invalid]="bioError()"
+              [attr.aria-invalid]="bioError() ? 'true' : null"
+              [attr.aria-describedby]="bioError() ? 'profile-bio-error' : null"
+            ></textarea>
+            <div class="profile-dialog__counter" aria-hidden="true">
+              {{ bioLength() }} / {{ maxBioLength }}
+            </div>
+            @if (bioError(); as bioMessage) {
+              <p id="profile-bio-error" class="profile-dialog__error" aria-live="polite">{{ bioMessage }}</p>
+            }
+          </label>
+        </section>
+
+        <section class="profile-dialog__section" aria-labelledby="profile-additional-section">
+          <div class="profile-dialog__section-header">
+            <h3 id="profile-additional-section">追加情報</h3>
+            <p class="profile-dialog__section-description">
+              拠点やポートフォリオURLを設定すると、メンバーが連絡を取りやすくなります。
+            </p>
+          </div>
+          <div class="profile-dialog__grid">
+            <label class="profile-dialog__field" for="profile-location">
+              <span class="profile-dialog__label">拠点（任意）</span>
+              <select
+                id="profile-location"
+                class="profile-dialog__select"
+                [value]="form.controls.location.value() || '未設定'"
+                (change)="onLocationChange($event)"
+              >
+                @for (location of locationOptions; track location) {
+                  <option [value]="location">{{ location }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="profile-dialog__field" for="profile-portfolio">
+              <span class="profile-dialog__label">ポートフォリオURL（任意）</span>
+              <input
+                id="profile-portfolio"
+                type="url"
+                inputmode="url"
+                [value]="form.controls.portfolioUrl.value()"
+                (input)="onPortfolioInput($event)"
+                class="profile-dialog__input"
+                [class.profile-dialog__input--invalid]="portfolioError()"
+                [attr.aria-invalid]="portfolioError() ? 'true' : null"
+                [attr.aria-describedby]="portfolioError() ? 'profile-portfolio-error' : null"
+                placeholder="https://example.com"
+              />
+              @if (portfolioError(); as portfolioMessage) {
+                <p id="profile-portfolio-error" class="profile-dialog__error" aria-live="polite">
+                  {{ portfolioMessage }}
+                </p>
+              }
+            </label>
+          </div>
+        </section>
+
+        <footer class="profile-dialog__footer">
+          <button type="button" class="profile-dialog__button-secondary focus-ring" (click)="onCancelClick()">
+            キャンセル
+          </button>
+          <button
+            type="submit"
+            class="profile-dialog__button-primary focus-ring"
+            [disabled]="!canSubmit()"
+            [attr.aria-disabled]="!canSubmit() ? 'true' : null"
+          >
+            @if (saving()) {
+              <span class="profile-dialog__spinner" aria-hidden="true"></span>
+              保存中…
+            } @else {
+              保存する
+            }
+          </button>
+        </footer>
+      </form>
+    }
+  </article>
+</div>

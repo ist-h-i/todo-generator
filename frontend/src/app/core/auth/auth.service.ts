@@ -122,6 +122,10 @@ export class AuthService {
     this.persistToken(token);
   }
 
+  public applyUserProfile(user: AuthenticatedUser): void {
+    this.userStore.set(user);
+  }
+
   private clearSession(): void {
     this.tokenStore.set(null);
     this.userStore.set(null);
