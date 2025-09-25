@@ -1,10 +1,10 @@
-<section class="app-page admin-page">
-  <header class="page-hero">
-    <h1 class="page-title">管理コンソール</h1>
-    <p class="page-subtitle">
-      コンピテンシー設定・判定・ユーザ権限・API キーをまとめて管理できます。
-    </p>
-  </header>
+<app-page-layout
+  class="admin-page app-page-layout--wide"
+  eyebrow="Admin Console"
+  title="管理コンソール"
+  description="コンピテンシー設定・判定・ユーザ権限・API キーをまとめて管理できます。"
+  headingLevel="h1"
+>
 
   @if (error(); as message) {
     <div class="app-alert app-alert--error" role="alert">
@@ -475,4 +475,4 @@
       </form>
     </section>
   }
-</section>
+</app-page-layout>

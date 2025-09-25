@@ -5,7 +5,7 @@ import { AnalysisGateway } from '@core/api/analysis-gateway';
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { AnalysisProposal, AnalysisRequest } from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
-import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
+import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 
 /**
  * Analyzer page allowing users to submit notes and review ChatGPT-style proposals.
@@ -13,7 +13,7 @@ import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
 @Component({
   selector: 'app-analyze-page',
   standalone: true,
-  imports: [CommonModule, PageHeaderComponent],
+  imports: [CommonModule, PageLayoutComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

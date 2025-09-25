@@ -7,12 +7,12 @@ import { RouterLink } from '@angular/router';
 
 import { DailyReportsGateway } from '@core/api/daily-reports-gateway';
 import { DailyReportDetail, DailyReportCreateRequest } from '@core/models';
-import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
+import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 
 @Component({
   selector: 'app-daily-reports-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, PageHeaderComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, PageLayoutComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

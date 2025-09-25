@@ -1,12 +1,11 @@
 app-profile-evaluations-page {
   display: block;
   color: var(--text-primary);
-  padding: var(--page-padding-block-start) 0 var(--page-padding-block-end);
   --page-content-gap: clamp(1.75rem, 2vw, 2.5rem);
   --panel-gap: clamp(1.25rem, 2vw, 1.75rem);
 }
 
-app-profile-evaluations-page .evaluations-page {
+app-profile-evaluations-page .app-page-layout {
   display: flex;
   flex-direction: column;
   gap: var(--page-content-gap);
