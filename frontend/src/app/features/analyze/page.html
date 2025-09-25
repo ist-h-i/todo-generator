@@ -9,15 +9,15 @@
     <div class="form-grid form-grid--two analyze-page__composer">
       <label class="form-field analyze-page__notes">
         <span class="form-field__label">ノート</span>
+        <p class="form-note analyze-page__notes-hint">
+          具体的な課題や観察した事実をまとめると、より正確なカード案が生成されます。
+        </p>
         <textarea
           class="form-control form-control--textarea analyze-page__notes-input"
           placeholder="例: ユーザーからのフィードバックや不具合の状況を貼り付けてください"
           [value]="analyzeForm.controls.notes.value()"
           (input)="analyzeForm.controls.notes.setValue($any($event.target).value)"
         ></textarea>
-        <p class="form-note">
-          具体的な課題や観察した事実をまとめると、より正確なカード案が生成されます。
-        </p>
       </label>
 
       <div class="analyze-page__objective">
