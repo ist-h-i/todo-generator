@@ -10,13 +10,13 @@ import { DailyReportDetail, DailyReportCreateRequest } from '@core/models';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 
 @Component({
-  selector: 'app-daily-reports-page',
+  selector: 'app-report-assistant-page',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink, PageLayoutComponent],
-  templateUrl: './page.html',
+  templateUrl: './reports-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DailyReportsPage {
+export class ReportAssistantPageComponent {
   private readonly gateway = inject(DailyReportsGateway);
   private readonly fb = inject(FormBuilder);
 

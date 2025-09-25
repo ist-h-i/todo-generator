@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  DestroyRef,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
@@ -279,10 +273,7 @@ export class AdminPage {
     user.card_daily_limit = Number(value);
   }
 
-  public onEvaluationLimitChange(
-    user: AdminUser,
-    value: string | number | null,
-  ): void {
+  public onEvaluationLimitChange(user: AdminUser, value: string | number | null): void {
     if (value === null || value === '') {
       user.evaluation_daily_limit = null;
       return;
