@@ -158,39 +158,32 @@
                   </section>
                 }
 
-                <section class="evaluations-page__latest-actions-grid">
-                  <article class="evaluations-page__latest-action">
-                    <header>
-                      <h3>姿勢・意識面でのアクション</h3>
-                      <p>モチベーションやコミュニケーションの観点で意識したいポイントです。</p>
-                    </header>
-                    @if (hasActions(evaluation.attitude_actions)) {
-                      <ul>
-                        @for (action of evaluation.attitude_actions; track action) {
-                          <li>{{ action }}</li>
-                        }
-                      </ul>
-                    } @else {
-                      <p class="evaluations-page__latest-empty">推奨事項は特にありません。</p>
-                    }
-                  </article>
-                  <article class="evaluations-page__latest-action">
-                    <header>
-                      <h3>具体的な行動プラン</h3>
-                      <p>すぐに実行できるタスクや振り返りポイントをまとめています。</p>
-                    </header>
-                    @if (hasActions(evaluation.behavior_actions)) {
-                      <ul>
-                        @for (action of evaluation.behavior_actions; track action) {
-                          <li>{{ action }}</li>
-                        }
-                      </ul>
-                    } @else {
-                      <p class="evaluations-page__latest-empty">
-                        特筆すべきアクションはありません。
-                      </p>
-                    }
-                  </article>
+                <section class="evaluations-page__latest-section evaluations-page__next-actions">
+                  <header class="evaluations-page__next-actions-header">
+                    <h3>ネクストアクション</h3>
+                    <p>
+                      モチベーションやコミュニケーションで意識したいポイントと、すぐに実行できる行動プランを
+                      まとめています。
+                    </p>
+                  </header>
+
+                  @if (latestNextActions().length > 0) {
+                    <ul class="evaluations-page__next-actions-grid" role="list">
+                      @for (action of latestNextActions(); track action.id) {
+                        <li class="evaluations-page__next-action-card">
+                          <span
+                            class="evaluations-page__next-action-category"
+                            [attr.title]="action.description"
+                          >
+                            {{ action.categoryLabel }}
+                          </span>
+                          <p class="evaluations-page__next-action-text">{{ action.text }}</p>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="evaluations-page__latest-empty">推奨事項は特にありません。</p>
+                  }
                 </section>
 
                 @if (evaluation.items.length > 0) {
