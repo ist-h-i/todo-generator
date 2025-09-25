@@ -1,38 +1,37 @@
-# Analytics & Continuous Improvement 詳細設計
+# Analytics & Continuous Improvement Detailed Design
 
-## 1. 目的
-Analytics & Continuous Improvement は、カードボードの絞り込みから管理者向けの分析・改善ダッシュボードまでを横断的に支える機能群です。保存フィルターやスナップショット、Why-Why 分析、提案アクション、イニシアチブ管理を連携させ、AI が生成するレポート草案まで一貫して提供します。【F:frontend/src/app/features/analytics/page.ts†L1-L112】【F:backend/app/routers/analytics.py†L1-L200】
+## 1. Purpose
+Analytics & Continuous Improvement is the cross-cutting capability that supports everything from board filtering to administrator dashboards. It links saved filters, snapshots, Why-Why analyses, suggested actions, initiative management, and AI-generated report drafts into one consistent experience.【F:frontend/src/app/features/analytics/page.ts†L1-L112】【F:backend/app/routers/analytics.py†L1-L200】
 
-## 2. コンポーネント概要
-- **WorkspaceStore** – カード・ラベル・ステータスを Signal ベースで保持し、フィルターやグルーピングをローカルストレージに同期します。【F:frontend/src/app/core/state/workspace-store.ts†L1-L200】
-- **BoardPage** – クイックフィルター、カードグルーピング、ドラッグ＆ドロップを提供し、WorkspaceStore の状態を UI にマッピングします。【F:frontend/src/app/features/board/page.ts†L1-L160】
-- **ContinuousImprovementStore** – 分析スナップショット、原因ツリー、提案アクション、イニシアチブ、レポート草案を統合的に管理します。【F:frontend/src/app/core/state/continuous-improvement-store.ts†L1-L200】
-- **Analytics Router** – スナップショット CRUD と Why-Why 分析生成、提案アクション展開、イニシアチブ更新を行います。【F:backend/app/routers/analytics.py†L16-L200】
-- **Filters Router** – 保存フィルターの CRUD を提供し、ユーザー単位でアクセス制御します。【F:backend/app/routers/filters.py†L1-L78】
-- **SQLAlchemy モデル** – `AnalyticsSnapshot`、`RootCauseAnalysis`、`RootCauseNode`、`SuggestedAction`、`ImprovementInitiative`、`InitiativeProgressLog` が継続的改善データを保持します。【F:backend/app/models.py†L301-L439】
+## 2. Component Overview
+- **WorkspaceStore** – Maintains cards, labels, and statuses with Signals and syncs filters and grouping preferences to local storage.【F:frontend/src/app/core/state/workspace-store.ts†L1-L200】
+- **BoardPage** – Offers quick filters, card grouping, and drag-and-drop interactions while mapping WorkspaceStore state to the UI.【F:frontend/src/app/features/board/page.ts†L1-L160】
+- **ContinuousImprovementStore** – Manages analytics snapshots, cause trees, suggested actions, initiatives, and report drafts in one place.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L1-L200】
+- **Analytics Router** – Handles snapshot CRUD, Why-Why generation, suggested action expansion, and initiative updates.【F:backend/app/routers/analytics.py†L16-L200】
+- **Filters Router** – Provides saved filter CRUD with per-user access control.【F:backend/app/routers/filters.py†L1-L78】
+- **SQLAlchemy models** – `AnalyticsSnapshot`, `RootCauseAnalysis`, `RootCauseNode`, `SuggestedAction`, `ImprovementInitiative`, and `InitiativeProgressLog` persist continuous improvement data.【F:backend/app/models.py†L301-L439】
 
-## 3. ボードフィルタリング設計
-WorkspaceStore はフィルター・グルーピング・テンプレート設定を `signal` で保持し、変化時にボード列やサマリーメトリクスを再計算します。クイックフィルターは定義済み ID をマップし、選択に応じた説明文を UI に提供します。【F:frontend/src/app/core/state/workspace-store.ts†L83-L160】【F:frontend/src/app/features/board/page.ts†L29-L145】
-保存フィルターは `/filters` API と連携し、作成者以外のアクセスは 404 で遮断されます。【F:backend/app/routers/filters.py†L33-L78】
+## 3. Board Filtering Design
+WorkspaceStore keeps filter, grouping, and template settings in Signals and recomputes board columns and summary metrics whenever they change. Quick filters map predefined IDs to explanations rendered in the UI.【F:frontend/src/app/core/state/workspace-store.ts†L83-L160】【F:frontend/src/app/features/board/page.ts†L29-L145】 Saved filters integrate with the `/filters` API, and any request from a non-owner returns 404.【F:backend/app/routers/filters.py†L33-L78】
 
-## 4. Analytics API フロー
-### 4.1 スナップショット
-管理者は `/analytics/snapshots` に対して期間・メトリクス・ナラティブを送信し、レコードが作成されます。クエリ時には `period_start` / `period_end` で重なり期間をフィルタリングします。【F:backend/app/routers/analytics.py†L16-L64】スナップショットはメトリクス JSON、ナラティブ、生成者情報を保存します。【F:backend/app/models.py†L301-L318】
+## 4. Analytics API Flows
+### 4.1 Snapshots
+Administrators send date ranges, metrics, and narratives to `/analytics/snapshots` to create records. Querying uses `period_start` and `period_end` overlap logic to filter results.【F:backend/app/routers/analytics.py†L16-L64】 Snapshots persist metrics JSON, narratives, and creator information.【F:backend/app/models.py†L301-L318】
 
-### 4.2 Why-Why 分析
-`POST /analytics/{target}/why-why` では対象となるスナップショット/カードを解決し、原因ノードと提案アクションを生成して保存します。【F:backend/app/routers/analytics.py†L65-L200】ノードは深さ・信頼度・証拠・推奨メトリクスを保持し、提案アクションはタイトル・説明・労力・インパクト・担当ロール・期限候補を含みます。【F:backend/app/models.py†L318-L427】提案アクションは追加ヒントから最大 2 件の追加アクションを派生させます。【F:backend/app/routers/analytics.py†L80-L163】
+### 4.2 Why-Why Analyses
+`POST /analytics/{target}/why-why` resolves the snapshot or card target, generates cause nodes and suggested actions, and saves them.【F:backend/app/routers/analytics.py†L65-L200】 Nodes store depth, confidence, evidence, and recommended metrics, while suggested actions capture title, description, effort, impact, owner role, and due-date hints.【F:backend/app/models.py†L318-L427】 Suggested actions can spawn up to two additional actions from follow-up hints.【F:backend/app/routers/analytics.py†L80-L163】
 
-### 4.3 イニシアチブ
-`ImprovementInitiative` は提案アクションと関連し、進捗ログを持ちます。Why-Why 分析からカードを起票すると、進捗にイベントが追加されます。【F:backend/app/models.py†L332-L364】【F:frontend/src/app/core/state/continuous-improvement-store.ts†L148-L200】
+### 4.3 Initiatives
+`ImprovementInitiative` records link to suggested actions and maintain progress logs. When a card is created from a Why-Why analysis, a progress event is appended.【F:backend/app/models.py†L332-L364】【F:frontend/src/app/core/state/continuous-improvement-store.ts†L148-L200】
 
-## 5. フロントエンドダッシュボード
-AnalyticsPage は WorkspaceStore と ContinuousImprovementStore を統合し、ステータス・ラベルの枚数、ストーリーポイント合計、スナップショット情報、原因ツリー、提案アクション、レポート草案を描画します。【F:frontend/src/app/features/analytics/page.ts†L1-L112】提案アクションのカード化やスナップショット切り替えは Store のメソッドを呼び出し、Signals を通じて UI を即時更新します。【F:frontend/src/app/core/state/continuous-improvement-store.ts†L75-L200】
+## 5. Frontend Dashboard
+`AnalyticsPage` combines WorkspaceStore and ContinuousImprovementStore to display counts by status and label, story point totals, snapshot data, cause trees, suggested actions, and report drafts.【F:frontend/src/app/features/analytics/page.ts†L1-L112】 Card conversion and snapshot switching call store methods so Signals immediately update the UI.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L75-L200】
 
-## 6. レポート草案生成
-ContinuousImprovementStore はユーザー入力の指示文を保持し、選択中のスナップショットや原因ノード、提案アクションをテンプレート化して Markdown ベースのレポート草案を生成します。スナップショットを切り替えると自動的に草案を再構築します。【F:frontend/src/app/core/state/continuous-improvement-store.ts†L130-L147】
+## 6. Report Draft Generation
+ContinuousImprovementStore stores user prompts and assembles Markdown-based report drafts from the selected snapshot, cause nodes, and suggested actions. Switching snapshots automatically rebuilds the draft.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L130-L147】
 
-## 7. データモデル
-| モデル | 主要フィールド |
+## 7. Data Model
+| Model | Key Fields |
 | --- | --- |
 | `AnalyticsSnapshot` | `period_start`, `period_end`, `metrics`, `narrative`, `generated_by`【F:backend/app/models.py†L301-L318】 |
 | `RootCauseAnalysis` | `target_type`, `version`, `status`, `summary`, `nodes`, `suggestions`【F:backend/app/models.py†L318-L363】 |
@@ -40,15 +39,15 @@ ContinuousImprovementStore はユーザー入力の指示文を保持し、選�
 | `SuggestedAction` | `title`, `description`, `effort_estimate`, `impact_score`, `owner_role`, `due_date_hint`, `status`, `initiative_id`, `created_card_id`【F:backend/app/models.py†L381-L427】 |
 | `ImprovementInitiative` | `status`, `health`, `progress_logs`, `suggested_actions`【F:backend/app/models.py†L332-L364】 |
 
-## 8. セキュリティとアクセス制御
-Analytics ルーターは管理者専用ガード `require_admin` を依存関係として利用し、一般ユーザーからのアクセスを拒否します。【F:backend/app/routers/analytics.py†L16-L32】保存フィルターは作成者 ID によるチェックで不正アクセスを防ぎます。【F:backend/app/routers/filters.py†L33-L78】
+## 8. Security & Access Control
+The Analytics router requires the `require_admin` dependency so only administrators can access it.【F:backend/app/routers/analytics.py†L16-L32】 Saved filters rely on creator ID checks to block unauthorized access.【F:backend/app/routers/filters.py†L33-L78】
 
-## 9. テレメトリ
-- スナップショット作成・更新はイベントログに記録され、期間別の利用率や失敗率を監視します。
-- 提案アクションのカード化時には `created_card_id` が保存されるため、転換率とリードタイムの算出が可能です。【F:backend/app/models.py†L381-L427】
-- フロントでは Signals の更新を活用し、ユーザー行動を analytics SDK で計測できるようセクション分割しています。【F:frontend/src/app/features/analytics/page.ts†L65-L112】
+## 9. Telemetry
+- Log snapshot creation and updates to monitor usage by period and track failure rates.
+- Persist `created_card_id` when converting suggested actions so we can measure conversion rate and lead time.【F:backend/app/models.py†L381-L427】
+- Segment the frontend with Signals so the analytics SDK can capture user behavior per section.【F:frontend/src/app/features/analytics/page.ts†L65-L112】
 
-## 10. テスト戦略
-- **ユニットテスト** – WorkspaceStore/ContinuousImprovementStore の状態変換、フィルター復元、レポート生成ロジックを検証。
-- **API テスト** – `/filters` と `/analytics` の CRUD、期間フィルタ、Why-Why 生成、提案アクション派生、アクセス制御を網羅。
-- **エンドツーエンドシナリオ** – スナップショット選択から提案アクションカード化、レポート草案更新までを UI 経由で確認。
+## 10. Test Strategy
+- **Unit tests** – Validate WorkspaceStore/ContinuousImprovementStore state transitions, filter restoration, and report generation logic.
+- **API tests** – Cover `/filters` and `/analytics` CRUD, date filtering, Why-Why generation, suggested action branching, and access control.
+- **End-to-end scenarios** – Verify the flow from choosing a snapshot through card conversion and report draft updates via the UI.

@@ -1,110 +1,109 @@
-# 開発時のルール
+# Development Rules
 
-開発を円滑に進め、品質を担保するために、以下のルールを必ず遵守してください。  
-
----
-
-## 推奨開発フロー
-
-1. **最新の `main` ブランチを取り込んで作業ブランチを準備する**  
-   - 作業開始前や途中で `git pull origin main` を実行し、差分を早めに解消する。  
-
-2. **実装とセルフレビューを進める**  
-   - 仕様やチケット条件を確認しながら小さなコミットを積み上げる。  
-   - レビュー前に差分を読み直し、セルフチェックを行う。  
-
-3. **品質チェックを実行する**  
-   - **実際に修正を加えた領域のみ対象**とし、必要なケースだけテスト・チェックを走らせる。  
-   - 実行対象は以下のとおり。  
-    - バックエンド: `pytest backend/tests`
-    - フロントエンド: `cd frontend && npm test`
-      - Karma は環境変数 `CHROME_BIN=/usr/bin/chromium-browser` に設定された Chromium を利用する。
-     - コードフォーマット: `black --check`（変更ファイルのみを対象とする）  
-     - 静的解析: `ruff check`（変更ファイルのみを対象とする）  
-     - フロントエンドフォーマット: `cd frontend && npm run format:check`（変更ファイルのみを対象とする）  
-     - ビルド: `cd frontend && npm run build`  
-   - コメントやドキュメント修正のみの場合は **テスト・フォーマット・ビルドをスキップ可能**。ただし、コードへ影響の可能性があれば実行する。  
-   - いずれかが失敗した場合は修正し、**再度全ての必要チェックを通過するまで繰り返す**。  
-
-4. **ドキュメントを最新化する**  
-   - `README.md` や `docs/` 配下の仕様・ルールを更新する。  
-   - ドキュメントの矛盾を残さないよう確認する。  
-
-5. **UI 変更時のスクリーンショット取得**  
-   - `cd frontend && npm start` でプレビューを確認し、スクリーンショットを取得。  
-   - マージリクエストに添付し、必要に応じて注釈を追加する。  
-
-6. **タスク完了前に最新の `main` を取り込む**  
-   - `git fetch origin main && git merge origin/main`（またはリベース手順）を実行。  
-   - コンフリクトが発生した場合は解消後、再度必要なビルド・テストを行う。  
+Follow these rules to keep delivery smooth and maintain quality.
 
 ---
 
-## マージ前の必須ルール
+## Recommended Workflow
 
-1. **修正の種類に応じたチェックの完了**  
-   - **コード修正がある場合** → 上記の必要な品質チェックをすべて通過していること。  
-   - **コメント／ドキュメント修正のみの場合** → 品質チェックは不要。内容の妥当性を確認すること。  
+1. **Start from the latest `main` branch**
+   - Run `git pull origin main` before you begin and periodically during development so you resolve differences early.
 
-2. **最新の `main` を取り込むこと**  
-   - コンフリクトが発生した場合は必ず解消する。  
-   - 解消後は必要に応じて再ビルド・再テストを実行する。  
+2. **Implement in small steps and self-review**
+   - Confirm requirements or ticket conditions and commit in small increments.
+   - Read through your diff before requesting review and perform a self-check.
 
-3. **コンフリクト修正ルール**  
-   - 未解消の状態ではマージ不可。  
-   - 修正後は動作確認を行い、チェックが必要な場合は再実行する。  
+3. **Run the necessary quality checks**
+   - Only run checks for the areas you actually changed.
+   - Execute the following as needed:
+     - Backend: `pytest backend/tests`
+     - Frontend: `cd frontend && npm test` (Karma uses Chromium configured with `CHROME_BIN=/usr/bin/chromium-browser`).
+     - Code formatting: `black --check` (limit to the files you modified).
+     - Static analysis: `ruff check` (limit to the files you modified).
+     - Frontend formatting: `cd frontend && npm run format:check` (limit to the files you modified).
+     - Build: `cd frontend && npm run build`
+   - If you only changed comments or documentation, you may skip tests, formatting, and builds—but run them whenever the change might affect code.
+   - When any check fails, fix the issue and rerun the required checks until everything passes.
 
-4. **UI 変更時の対応**  
-   - 画面サイズや状態ごとのスクリーンショットを網羅する。  
-   - 新旧比較が可能な場合は並べて提示し、確認者が差分を把握しやすくする。  
+4. **Keep documentation current**
+   - Update `README.md` and the materials under `docs/` to reflect the latest specifications and rules.
+   - Double-check that the documents remain consistent.
+
+5. **Capture screenshots for UI changes**
+   - Preview the UI with `cd frontend && npm start` and take screenshots.
+   - Attach the images to the merge request and add annotations when needed.
+
+6. **Rebase on the latest `main` before completion**
+   - Run `git fetch origin main && git merge origin/main` (or rebase) near the end of the task.
+   - Resolve any conflicts and rerun builds or tests as necessary.
+
+---
+
+## Pre-merge Requirements
+
+1. **Finish the checks appropriate for the change**
+   - **Code changes** → All required quality checks must pass.
+   - **Comment or documentation-only changes** → Quality checks are optional; focus on content accuracy.
+
+2. **Bring in the latest `main`**
+   - Resolve every conflict.
+   - After resolving conflicts, rerun builds and tests when needed.
+
+3. **Conflict resolution rules**
+   - Unresolved conflicts block merging.
+   - After resolving, verify functionality and rerun checks if required.
+
+4. **Expectations for UI updates**
+   - Capture screenshots that cover relevant screen sizes and states.
+   - Provide side-by-side comparisons when possible so reviewers can easily see the differences.
 
 ```json
 {
   "development_rules": {
     "workflow": [
-      "作業開始前や途中で最新の main を取り込み、差分を早めに解消する。",
-      "仕様を確認しながら小さなコミットを積み重ね、セルフレビューを行う。",
-      "レビュー依頼前に差分を読み直しセルフチェックを行う。"
+      "Pull the latest main branch at the start and during development to resolve differences early.",
+      "Confirm requirements, commit in small increments, and perform self-review.",
+      "Re-read your diff before requesting review and complete a self-check."
     ],
     "quality_checks": {
       "normal_changes": {
         "backend_tests": "pytest backend/tests",
         "frontend_tests": "cd frontend && npm test",
         "formatting": [
-          "black --check （変更ファイルのみ）",
-          "cd frontend && npm run format:check （変更ファイルのみ）"
+          "black --check (only changed files)",
+          "cd frontend && npm run format:check (only changed files)"
         ],
-        "lint": "ruff check （変更ファイルのみ）",
+        "lint": "ruff check (only changed files)",
         "build": "cd frontend && npm run build",
         "rules": [
-          "対象領域に応じて必要なケースのみ実行する。",
-          "失敗した場合は修正後、全て通過するまで再実行する。"
+          "Run only the checks required for the affected areas.",
+          "Fix issues and rerun every required check until they pass."
         ]
       },
       "doc_or_comment_changes": {
         "skip_checks": true,
         "rules": [
-          "コメントやドキュメント修正のみの場合はテスト・フォーマット・ビルドをスキップ可能。",
-          "ただしコードに影響の可能性がある場合は通常チェックを実行する。"
+          "You may skip tests, formatting, and builds when only documentation or comments change.",
+          "Run the normal checks if the documentation change might affect code behavior."
         ]
       }
     },
     "documentation_and_ui": [
-      "README.md や docs/ 配下を最新仕様に更新する。",
-      "UI に変更がある場合はプレビューで確認しスクリーンショットを取得、マージリクエストに添付する。",
-      "画面バリエーションがある場合は網羅的にキャプチャし、新旧比較も提示する。"
+      "Keep README.md and docs/ aligned with the latest specifications.",
+      "Preview UI changes, capture screenshots, and attach them to the merge request.",
+      "Capture every relevant screen variation and share before/after comparisons."
     ],
     "pre_merge_requirements": {
       "normal_changes": [
-        "コード修正がある場合は全ての必要チェックを通過していること。"
+        "All required checks must pass for code changes."
       ],
       "doc_or_comment_changes": [
-        "コメントやドキュメント修正のみの場合は品質チェック不要。内容確認に集中すること。"
+        "Documentation-only or comment-only changes do not require automated checks; focus on accuracy."
       ],
       "common": [
-        "最新の main を取り込み、コンフリクトがあれば解消すること。",
-        "解消後は必要に応じて再ビルド・再テストを行うこと。",
-        "UI 変更がある場合はスクリーンショットを必ず掲載すること。"
+        "Sync with the latest main and resolve any conflicts.",
+        "Rerun builds or tests after resolving conflicts when needed.",
+        "Always provide screenshots when UI changes are present."
       ]
     }
   }
