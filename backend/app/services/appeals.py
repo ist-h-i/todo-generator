@@ -54,7 +54,16 @@ class AppealGenerationService:
     def __init__(self, db: Session, chatgpt: ChatGPTClient | None = None) -> None:
         self._db = db
         self._chatgpt = chatgpt
-        self._prompt_builder = AppealPromptBuilder()
+        self._prompt_builder_error: RuntimeError | None = None
+        try:
+            self._prompt_builder = AppealPromptBuilder()
+        except RuntimeError as exc:  # pragma: no cover - depends on optional dependency availability
+            logger.warning(
+                "Appeal prompt templates are unavailable; generation will fall back to deterministic content. %s",
+                exc,
+            )
+            self._prompt_builder = None
+            self._prompt_builder_error = exc
         self._fallback_builder = AppealFallbackBuilder()
         self._repository = AppealGenerationRepository(db)
 
@@ -105,7 +114,7 @@ class AppealGenerationService:
         token_usage = {fmt: payload.tokens_used or 0 for fmt, payload in fallback_formats.items()}
         generation_status = "fallback"
 
-        if self._chatgpt is not None:
+        if self._chatgpt is not None and self._prompt_builder is not None:
             try:
                 prompt = self._prompt_builder.build(
                     subject=sanitized_subject,
@@ -127,6 +136,11 @@ class AppealGenerationService:
                 )
             except ChatGPTError:
                 logger.warning("Appeal generation via ChatGPT failed; using fallback content", exc_info=True)
+        elif self._chatgpt is not None and self._prompt_builder is None:
+            logger.info(
+                "Skipping ChatGPT appeal generation because the prompt templates could not be loaded: %s",
+                self._prompt_builder_error,
+            )
 
         record = self._repository.create(
             owner_id=owner.id,
