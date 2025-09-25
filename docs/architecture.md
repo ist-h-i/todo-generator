@@ -25,7 +25,7 @@ daily reports, profile evaluations, settings, and admin tooling—behind authent
 signed-in users reach workspace experiences and administrators access protected areas.【F:frontend/src/app/app.routes.ts†L9-L66】【F:frontend/src/app/core/auth/auth.guard.ts†L1-L21】【F:frontend/src/app/core/auth/admin.guard.ts†L1-L23】
 Feature modules coordinate complex UI workflows: the analyzer submits notes for AI review and filters
 the resulting proposals, the board renders grouped cards with drag-and-drop interactions, and the
-daily report page captures shift notes then immediately submits them for AI processing.【F:frontend/src/app/features/analyze/page.ts†L1-L76】【F:frontend/src/app/features/board/page.ts†L1-L199】【F:frontend/src/app/features/daily-reports/page.ts†L1-L159】
+daily report page captures shift notes then immediately submits them for AI processing.【F:frontend/src/app/features/analyze/page.ts†L1-L76】【F:frontend/src/app/features/board/page.ts†L1-L199】【F:frontend/src/app/features/reports/reports-page.component.ts†L1-L157】
 
 ### Backend (FastAPI Services)
 FastAPI mounts routers for analysis, cards, analytics, daily reports, initiatives, saved filters,
@@ -61,7 +61,7 @@ the frontend filters and publishes the approved items into the workspace store.�
 ### Daily Reporting & Auto Ticketing
 Users compile shift sections on the daily reports page, create drafts via the API, and optionally
 submit them for immediate AI processing; the backend service validates quotas, records events,
-requests ChatGPT proposals, and links generated cards back to each report for review.【F:frontend/src/app/features/daily-reports/page.ts†L1-L159】【F:backend/app/routers/daily_reports.py†L1-L117】【F:backend/app/services/daily_reports.py†L23-L199】
+requests ChatGPT proposals, and links generated cards back to each report for review.【F:frontend/src/app/features/reports/reports-page.component.ts†L1-L157】【F:backend/app/routers/daily_reports.py†L1-L117】【F:backend/app/services/daily_reports.py†L23-L199】
 
 ### Analytics & Continuous Improvement
 Administrators generate analytics snapshots, run root-cause analyses that create tree-structured
