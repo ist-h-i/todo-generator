@@ -16,8 +16,9 @@
 3. **品質チェックを実行する**  
    - **実際に修正を加えた領域のみ対象**とし、必要なケースだけテスト・チェックを走らせる。  
    - 実行対象は以下のとおり。  
-     - バックエンド: `pytest backend/tests`  
-     - フロントエンド（Chrome 不要環境対応）: `cd frontend && npm test -- --watchAll=false --runInBand --testEnvironment=jsdom`  
+    - バックエンド: `pytest backend/tests`
+    - フロントエンド: `cd frontend && npm test`
+      - Karma は環境変数 `CHROME_BIN=/usr/bin/chromium-browser` に設定された Chromium を利用する。
      - コードフォーマット: `black --check`（変更ファイルのみを対象とする）  
      - 静的解析: `ruff check`（変更ファイルのみを対象とする）  
      - フロントエンドフォーマット: `cd frontend && npm run format:check`（変更ファイルのみを対象とする）  
@@ -68,7 +69,7 @@
     "quality_checks": {
       "normal_changes": {
         "backend_tests": "pytest backend/tests",
-        "frontend_tests": "cd frontend && npm test -- --watchAll=false --runInBand --testEnvironment=jsdom",
+        "frontend_tests": "cd frontend && npm test",
         "formatting": [
           "black --check （変更ファイルのみ）",
           "cd frontend && npm run format:check （変更ファイルのみ）"
