@@ -12,6 +12,7 @@ from .routers import (
     admin_users,
     analysis,
     analytics,
+    appeals,
     auth,
     cards,
     comments,
@@ -48,6 +49,7 @@ app.add_middleware(
 
 app.include_router(analysis.router)
 app.include_router(analytics.router)
+app.include_router(appeals.router)
 app.include_router(auth.router)
 app.include_router(cards.router)
 app.include_router(daily_reports.router)
