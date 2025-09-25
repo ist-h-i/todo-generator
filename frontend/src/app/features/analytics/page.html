@@ -5,7 +5,6 @@
   description="完了率やポイント配分に加え、指摘の傾向や原因、改善活動の進捗までひと目で確認できます。"
   headingLevel="h1"
 >
-
   <section class="page-section analytics-page__intro">
     <div class="analytics-page__intro-content">
       <p>
@@ -219,16 +218,16 @@
   <section class="surface-panel space-y-6 px-6 py-6">
     <header class="flex items-center justify-between">
       <div>
-        <h3 class="text-lg font-semibold text-on-surface">次のアクション</h3>
+        <h3 class="text-lg font-semibold text-on-surface">ネクストアクション</h3>
         <p class="text-xs text-slate-500">
           原因ごとの推奨アクションをワンクリックでタスクにできます。
         </p>
       </div>
       <span class="text-xs text-slate-500">{{ actionPlan().length }} 件</span>
     </header>
-    <ul class="space-y-4">
+    <ul class="analytics-action-plan__list">
       @for (action of actionPlan(); track action.id) {
-        <li class="action-card">
+        <li class="analytics-action-plan__item action-card">
           <div class="flex items-start justify-between gap-4">
             <div class="space-y-2">
               <p class="text-sm font-semibold text-on-surface">{{ action.title }}</p>
@@ -272,9 +271,7 @@
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article class="metric-card">
           <p class="text-xs uppercase tracking-[0.2em] text-slate-400">再発率</p>
-          <p class="metric-card__value">
-            {{ overview.recurrenceRate * 100 | number: '1.0-0' }}%
-          </p>
+          <p class="metric-card__value">{{ overview.recurrenceRate * 100 | number: '1.0-0' }}%</p>
           <p class="text-xs text-slate-500">前期比 {{ formatChange(overview.recurrenceDelta) }}</p>
         </article>
         <article class="metric-card">

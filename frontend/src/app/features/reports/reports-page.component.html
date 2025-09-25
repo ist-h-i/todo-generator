@@ -1,5 +1,5 @@
 <app-page-layout
-  class="daily-report-page"
+  class="report-assistant-page"
   eyebrow="AI レポートアシスタント"
   title="日報・週報解析"
   description="タグと本文を入力すると、AI がカード候補と振り返りの観点を提案します。"
@@ -9,12 +9,12 @@
     分析ダッシュボードを見る
   </a>
 
-  <div class="app-alert app-alert--notice daily-report-page__notice" role="status">
+  <div class="app-alert app-alert--notice report-assistant-page__notice" role="status">
     解析に使用した本文はカード作成後に破棄され、ワークスペースに保存されません。
   </div>
 
-  <div class="page-grid page-grid--two daily-report-page__layout">
-    <section class="surface-panel page-panel daily-report-page__form">
+  <div class="page-grid page-grid--two report-assistant-page__layout">
+    <section class="surface-panel page-panel report-assistant-page__form">
       <header class="page-section__header">
         <h2 class="page-section__title">解析に送る内容を整理する</h2>
         <p class="page-section__subtitle">
@@ -37,7 +37,7 @@
           </div>
         </div>
 
-        <div class="form-collection daily-report-page__sections" formArrayName="sections">
+        <div class="form-collection report-assistant-page__sections" formArrayName="sections">
           <header class="page-section__header">
             <h3 class="page-section__title">日報・週報セクション</h3>
             <p class="page-section__subtitle">
@@ -62,7 +62,7 @@
               </button>
             </div>
 
-            <div class="form-grid form-grid--two daily-report-page__section-grid">
+            <div class="form-grid form-grid--two report-assistant-page__section-grid">
               <div class="form-field">
                 <label class="form-field__label">タイトル</label>
                 <input
@@ -109,9 +109,9 @@
       </form>
     </section>
 
-    <aside class="daily-report-page__insights">
+    <aside class="report-assistant-page__insights">
       <section
-        class="surface-panel page-panel daily-report-page__results"
+        class="surface-panel page-panel report-assistant-page__results"
         *ngIf="detail() as active; else emptyState"
       >
         <header class="page-section__header">
@@ -121,7 +121,7 @@
           </p>
         </header>
 
-        <div class="daily-report-page__status-group">
+        <div class="report-assistant-page__status-group">
           <span class="page-badge page-badge--accent">ステータス {{ active.status }}</span>
           <span class="page-badge">カード {{ active.cards.length }} 件</span>
           <span class="page-badge">提案 {{ active.pending_proposals.length }} 件</span>
@@ -131,8 +131,8 @@
           失敗理由: {{ active.failure_reason }}
         </div>
 
-        <section class="daily-report-page__group">
-          <header class="daily-report-page__group-header">
+        <section class="report-assistant-page__group">
+          <header class="report-assistant-page__group-header">
             <h3 class="page-section__title">日報・週報本文</h3>
           </header>
           <ul class="page-list" aria-label="送信した日報の内容">
@@ -147,8 +147,8 @@
           </ul>
         </section>
 
-        <section class="daily-report-page__group" *ngIf="active.cards.length > 0">
-          <header class="daily-report-page__group-header">
+        <section class="report-assistant-page__group" *ngIf="active.cards.length > 0">
+          <header class="report-assistant-page__group-header">
             <h3 class="page-section__title">生成されたタスク</h3>
           </header>
           <ul class="page-list" aria-label="生成されたタスク">
@@ -160,7 +160,7 @@
                 </span>
               </div>
               <p class="page-list__description">{{ card.summary }}</p>
-              <div class="daily-report-page__subtasks" *ngIf="card.subtasks.length > 0">
+              <div class="report-assistant-page__subtasks" *ngIf="card.subtasks.length > 0">
                 <span class="surface-pill px-3 py-1" *ngFor="let subtask of card.subtasks">
                   {{ subtask.title }}
                 </span>
@@ -170,10 +170,10 @@
         </section>
 
         <section
-          class="daily-report-page__group"
+          class="report-assistant-page__group"
           *ngIf="active.cards.length === 0 && active.pending_proposals.length > 0"
         >
-          <header class="daily-report-page__group-header">
+          <header class="report-assistant-page__group-header">
             <h3 class="page-section__title">提案中のタスク</h3>
           </header>
           <ul class="page-list" aria-label="提案中のタスク">
@@ -182,7 +182,7 @@
                 <p class="page-list__title">{{ proposal.title }}</p>
               </div>
               <p class="page-list__description">{{ proposal.summary }}</p>
-              <div class="daily-report-page__subtasks" *ngIf="proposal.subtasks.length > 0">
+              <div class="report-assistant-page__subtasks" *ngIf="proposal.subtasks.length > 0">
                 <span class="surface-pill px-3 py-1" *ngFor="let sub of proposal.subtasks">
                   {{ sub.title }}
                 </span>
@@ -191,8 +191,8 @@
           </ul>
         </section>
 
-        <section class="daily-report-page__group">
-          <header class="daily-report-page__group-header">
+        <section class="report-assistant-page__group">
+          <header class="report-assistant-page__group-header">
             <h3 class="page-section__title">イベント履歴</h3>
           </header>
           <ul class="page-list" aria-label="イベント履歴">
@@ -209,7 +209,7 @@
       </section>
 
       <ng-template #emptyState>
-        <section class="surface-panel page-panel daily-report-page__results">
+        <section class="surface-panel page-panel report-assistant-page__results">
           <header class="page-section__header">
             <h2 class="page-section__title">解析結果</h2>
             <p class="page-section__subtitle">

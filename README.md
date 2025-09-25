@@ -1,63 +1,42 @@
 # Verbalize Yourself
 
-Verbalize Yourself is a full-stack productivity workspace that pairs an Angular 20 single-page
-application with a FastAPI backend and ChatGPT-powered automation to turn free-form notes into
-structured work, analytics artefacts, and coaching workflows.【F:frontend/src/app/app.routes.ts†L9-L66】【F:backend/app/main.py†L1-L69】【F:backend/app/services/chatgpt.py†L43-L190】【F:backend/app/models.py†L120-L439】
+Verbalize Yourself is an AI-guided reflection workspace that pairs an Angular 20 frontend with a FastAPI backend. The platform centralizes card capture, analysis, and reporting while using ChatGPT to streamline each reflection cycle.【F:frontend/src/app/app.routes.ts†L1-L73】【F:backend/app/main.py†L1-L69】
 
 ## Feature Highlights
-- **AI-assisted intake & reporting** – The `/analysis` endpoint enriches user context and invokes the
-  ChatGPT client to transform notes into validated proposals, while the daily report service reuses the
-  integration to summarise shifts and draft follow-up cards automatically.【F:backend/app/routers/analysis.py†L1-L27】【F:backend/app/services/chatgpt.py†L43-L190】【F:backend/app/services/daily_reports.py†L23-L199】
-- **Workspace task management** – Cards capture priorities, statuses, labels, initiatives, and nested
-  subtasks in the database, and the Angular board groups, filters, and drags tasks with quick filters
-  and subtask rollups for collaboration.【F:backend/app/models.py†L120-L167】【F:frontend/src/app/features/board/page.ts†L1-L199】
-- **Analytics & improvement loops** – Admin routes manage analytics snapshots, root-cause analyses,
-  and suggested actions that tie back to cards and initiatives so continuous-improvement work stays
-  measurable.【F:backend/app/routers/analytics.py†L1-L200】【F:backend/app/models.py†L301-L439】
-- **Competency development & evaluations** – Competency APIs let administrators curate rubrics,
-  enforce daily evaluation quotas, and trigger assessments that feed profile insights in the frontend
-  workspace.【F:backend/app/routers/competencies.py†L1-L120】【F:frontend/src/app/app.routes.ts†L33-L46】
-- **Admin & security controls** – Encrypted API credential storage, quota overrides, and session token
-  management keep AI keys and automation limits under administrative control while the frontend guards
-  protect privileged routes.【F:backend/app/routers/admin_settings.py†L1-L140】【F:backend/app/auth.py†L1-L123】【F:frontend/src/app/core/auth/admin.guard.ts†L1-L23】
+- **Workspace task board** – Group cards by label or status, reprioritize them with drag and drop, and rely on quick filters and templates to keep the workflow organized.【F:frontend/src/app/features/board/page.ts†L1-L160】【F:frontend/src/app/core/state/workspace-store.ts†L1-L200】
+- **AI-assisted intake & daily reporting** – Convert free-form reflection notes into structured proposals, generate follow-up tasks from report sections, and send daily or weekly updates automatically.【F:backend/app/routers/analysis.py†L1-L27】【F:backend/app/services/chatgpt.py†L43-L190】【F:backend/app/routers/daily_reports.py†L1-L108】【F:frontend/src/app/features/reports/reports-page.component.ts†L1-L157】
+- **Analytics & continuous improvement** – Administrators create analytics snapshots, run Why-Why investigations, capture root causes, and track initiatives on dashboards that stay connected to workspace data.【F:backend/app/routers/analytics.py†L1-L200】【F:backend/app/models.py†L301-L439】【F:frontend/src/app/features/analytics/page.ts†L1-L112】【F:frontend/src/app/core/state/continuous-improvement-store.ts†L1-L200】
+- **Appeal narrative generation** – Produce suggested flows and multi-format narratives that blend ChatGPT output with fallback templates so appeal stories remain consistent.【F:backend/app/routers/appeals.py†L1-L27】【F:backend/app/services/appeals.py†L1-L200】【F:backend/app/services/appeal_prompts.py†L1-L180】
+- **Governance & competency management** – Encrypt external API credentials, configure evaluation rubrics, and manage quotas to establish operational guardrails.【F:backend/app/routers/admin_settings.py†L1-L140】【F:backend/app/routers/competencies.py†L1-L120】
 
 ## Technology Stack
-- **Frontend** – Angular 20 with CDK drag-and-drop, reactive forms, and lazy-loaded feature modules.
-  Scripts for development, testing, linting, and formatting live in `package.json`.【F:frontend/package.json†L1-L60】【F:frontend/src/app/app.routes.ts†L9-L66】
-- **Backend** – FastAPI application that wires routers for analysis, cards, analytics, initiatives,
-  reporting, auth, and admin operations at startup.【F:backend/app/main.py†L1-L69】
-- **Persistence** – SQLAlchemy models map users, cards, subtasks, analytics artefacts, daily reports,
-  suggested actions, competencies, and quotas to a relational database (SQLite by default).【F:backend/app/models.py†L120-L439】【F:backend/app/config.py†L10-L33】
-- **AI services** – A typed ChatGPT client wraps the Responses API with schema validation so
-  automation returns predictable proposals for intake and reporting flows.【F:backend/app/services/chatgpt.py†L43-L190】
+- **Frontend** – Angular 20 standalone components with CDK Drag & Drop, signal-based state management, and ESLint/Prettier tooling.【F:frontend/package.json†L1-L60】【F:frontend/src/app/features/board/page.ts†L1-L160】
+- **Backend** – FastAPI and SQLAlchemy expose REST routers and schemas, and a ChatGPT client wraps the Responses API with JSON schema validation.【F:backend/app/main.py†L1-L69】【F:backend/app/schemas.py†L1-L1080】【F:backend/app/services/chatgpt.py†L43-L190】
+- **Persistence & background models** – Cards, analytics, Why-Why analyses, suggested actions, daily reports, and appeal content are stored in relational models with JSON columns.【F:backend/app/models.py†L120-L780】
 
 ## Repository Layout
 ```
 .
-├── backend/                # FastAPI service, SQLAlchemy models, and pytest suite
+├── backend/                # FastAPI application and ChatGPT integration services
 ├── frontend/               # Angular 20 single-page application
-├── docs/                   # Architecture, development rules, and product requirements
-├── scripts/                # Automation helpers (auto-resolve workflow)
-└── start-localhost.bat     # Windows convenience script to boot backend + frontend
+├── docs/                   # Architecture, development rules, and feature specifications
+├── scripts/                # Automation scripts
+└── start-localhost.bat     # Windows bootstrap script
 ```
-Key documentation lives under `docs/`, including system architecture, development rules, and extended
-feature requirements.
+The primary documentation lives under `docs/`, with feature requirements and detailed designs in `docs/features/`.
 
 ## Getting Started
 ### Prerequisites
-- Python 3.11+ for the backend toolchain and lint configuration.【F:pyproject.toml†L1-L28】
-- Node.js and npm to run the Angular CLI scripts defined in the frontend project.【F:frontend/package.json†L1-L60】
-- An OpenAI API key to enable ChatGPT-powered analysis; configure it through the admin settings so the
-  backend ChatGPT client can decrypt and call the Responses API.【F:backend/app/services/chatgpt.py†L111-L157】【F:backend/app/routers/admin_settings.py†L22-L81】
+- Python 3.11 or later (used with FastAPI, Ruff, and Black).【F:pyproject.toml†L1-L28】
+- Node.js / npm (for the Angular CLI and build/test scripts).【F:frontend/package.json†L1-L60】
+- OpenAI API key (save it from the admin UI so the ChatGPT client can decrypt and use it).【F:backend/app/services/chatgpt.py†L111-L157】【F:backend/app/routers/admin_settings.py†L22-L81】
 
 ### One-click startup on Windows
-Run the bundled script from the repository root to provision a virtual environment, install
-dependencies, and launch both services:
+Run the bundled script from the repository root to create a virtual environment, install dependencies, and start both the backend and frontend:
 ```
 start-localhost.bat
 ```
-The script boots the FastAPI backend at <http://localhost:8000> and the Angular frontend at
-<http://localhost:4200>.【F:start-localhost.bat†L1-L41】
+The script launches FastAPI at <http://localhost:8000> and the Angular dev server at <http://localhost:4200>.【F:start-localhost.bat†L1-L41】
 
 ### Manual startup (macOS/Linux)
 1. **Backend**
@@ -65,52 +44,44 @@ The script boots the FastAPI backend at <http://localhost:8000> and the Angular 
    python -m venv .venv
    source .venv/bin/activate
    pip install -r backend/requirements.txt
-   # Optional: linting/formatting helpers
+   # Optional: lint/format toolchain
    pip install -r backend/requirements-dev.txt
    uvicorn app.main:app --app-dir backend --reload
    ```
-   Install dependencies from `backend/requirements.txt` and run the FastAPI app with reload enabled
-   during development.【F:backend/requirements.txt†L1-L13】【F:backend/app/main.py†L1-L69】
+   Install the dependencies and run the FastAPI app with hot reload enabled.【F:backend/requirements.txt†L1-L13】【F:backend/app/main.py†L1-L69】
 
-2. **Frontend** (in a separate terminal)
+2. **Frontend** (run in a separate terminal)
    ```bash
    cd frontend
    npm install
    npm start
    ```
-   The Angular dev server runs on port 4200 with hot module replacement via `npm start`.【F:frontend/package.json†L4-L12】
+   `npm start` launches the Angular dev server on port 4200.【F:frontend/package.json†L4-L12】
 
 ### Environment variables
-The backend uses Pydantic settings to read configuration from the environment. Common overrides
-include the database URL, debug mode, allowed origins, and ChatGPT defaults.【F:backend/app/config.py†L10-L39】
-- `DATABASE_URL` – SQLAlchemy connection string (default `sqlite:///./todo.db`).
-- `DEBUG` – Enable FastAPI debug mode (default `false`).
-- `CHATGPT_MODEL` – Logical model name surfaced by the analysis and reporting services.
-- `ALLOWED_ORIGINS` – Comma-separated list of allowed CORS origins.
-- `SECRET_ENCRYPTION_KEY` – Optional key used to encrypt stored API credentials.
+The backend loads environment variables with Pydantic Settings (database connections, CORS, ChatGPT defaults, encryption keys, and more).【F:backend/app/config.py†L10-L39】
 
 ## Running Tests & Quality Checks
-Run automated checks before sending a pull request:
+Execute the automated checks before opening a pull request.
 ```bash
-# Backend API tests and linting
+# Backend
 pytest backend/tests
 ruff check backend
 black --check backend/app backend/tests
 
-# Frontend unit tests (Karma) and formatting
+# Frontend
 cd frontend
-npm test
+npm test -- --watch=false
 npm run lint
 npm run format:check
 ```
-`npm test` は Angular CLI (`ng test`) を実行し、Karma は環境変数 `CHROME_BIN=/usr/bin/chromium-browser` に設定された Chromium を利用します。
-Backend dependencies include pytest, while linting/formatting rules are configured via Ruff and
-Black. Frontend scripts rely on the npm commands declared in `package.json`.【F:backend/requirements.txt†L1-L13】【F:pyproject.toml†L1-L28】【F:frontend/package.json†L4-L12】
+`npm test` relies on the Angular CLI (Karma), and ESLint plus Prettier enforce consistent formatting.【F:frontend/package.json†L4-L18】
 
 ## Documentation & Architecture
-- `docs/architecture.md` – System context, component responsibilities, interaction diagram, and key
-  flows across frontend, backend, and AI services.【F:docs/architecture.md†L1-L76】
-- `docs/development-rules.md` – Detailed engineering workflow expectations and required quality
-  checks.【F:docs/development-rules.md†L1-L35】
-- `docs/feature-expansion-requirements.md` – Product vision and analytics/reporting requirements for
-  upcoming roadmap work.【F:docs/feature-expansion-requirements.md†L1-L40】
+- `docs/architecture.md` – System context and major components.
+- `docs/development-rules.md` – Development workflow and quality expectations.
+- `docs/features/appeal-generation/requirements.md` – Requirements for appeal narrative generation.
+- `docs/features/appeal-generation/detail-design.md` – Detailed design for appeal narrative generation.
+- `docs/features/analytics-insights/requirements.md` – Requirements for analytics and continuous improvement.
+- `docs/features/analytics-insights/detail-design.md` – Detailed design for analytics and continuous improvement.
+- `docs/ui-design-system.md` – UI guidelines for shared components.

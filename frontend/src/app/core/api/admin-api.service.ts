@@ -28,10 +28,7 @@ export class AdminApiService {
     return this.http.post<Competency>(buildApiUrl('/admin/competencies'), payload);
   }
 
-  public updateCompetency(
-    id: string,
-    payload: Partial<CompetencyInput>,
-  ): Observable<Competency> {
+  public updateCompetency(id: string, payload: Partial<CompetencyInput>): Observable<Competency> {
     return this.http.patch<Competency>(buildApiUrl(`/admin/competencies/${id}`), payload);
   }
 

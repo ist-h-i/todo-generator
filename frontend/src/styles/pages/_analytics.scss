@@ -180,6 +180,19 @@
     box-shadow 150ms ease;
 }
 
+.analytics-page .analytics-action-plan__list {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.analytics-page .analytics-action-plan__item {
+  height: 100%;
+}
+
 .analytics-page .metric-card__value {
   margin-top: 0.75rem;
   font-size: clamp(1.5rem, 1.2rem + 1vw, 2.25rem);
