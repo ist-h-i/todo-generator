@@ -115,7 +115,7 @@
   gap: 0.85rem;
   border-radius: 1.25rem;
   border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
   padding: 1.1rem 1.2rem;
   box-shadow: var(--shadow-soft);
 }
@@ -326,8 +326,8 @@
   gap: clamp(1.1rem, 1.6vw, 1.6rem);
   padding: var(--panel-padding);
   border-radius: var(--radius-xl);
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  border: 1px solid var(--border-card);
+  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
   box-shadow: var(--shadow-soft);
 }
 
@@ -364,6 +364,7 @@
   padding: 0;
   display: grid;
   gap: 1.1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
 }
 
 .page-list__item {
@@ -375,6 +376,8 @@
   background: color-mix(in srgb, var(--surface-card) 85%, transparent);
   padding: 1.1rem 1.2rem;
   box-shadow: var(--shadow-soft);
+  min-width: 0;
+  height: 100%;
 }
 
 .page-list__heading {
@@ -540,7 +543,7 @@
   padding: 0.6rem 0.85rem;
   border-radius: 0.85rem;
   border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-card) 82%, transparent);
+  background: var(--surface-layer-3);
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
@@ -557,8 +560,8 @@
 .page-table__wrapper {
   overflow-x: auto;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  border: 1px solid var(--border-card);
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
   box-shadow: var(--shadow-soft);
 }
 

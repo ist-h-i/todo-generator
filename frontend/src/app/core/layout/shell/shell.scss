@@ -147,7 +147,7 @@
 
 .shell-nav__link:hover {
   color: var(--text-primary);
-  background-color: var(--surface-card-muted);
+  background-color: var(--surface-layer-3);
 }
 
 .shell-nav__link--active {
@@ -164,8 +164,8 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 0.75rem;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  background: var(--surface-layer-1);
   color: var(--text-muted);
   box-shadow: none;
   transition:
@@ -177,7 +177,7 @@
 .shell-help-button:hover,
 .shell-icon-action:hover {
   border-color: var(--border-overlay);
-  background: var(--surface-card-muted);
+  background: var(--surface-layer-2);
   color: var(--text-primary);
 }
 
@@ -245,8 +245,8 @@
   gap: 0.75rem;
   padding: 0.55rem 0.9rem;
   border-radius: 0.85rem;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-card);
+  border: 1px solid var(--border-card);
+  background: var(--surface-layer-1);
   box-shadow: none;
   color: var(--text-primary);
   font-size: 0.88rem;
@@ -260,7 +260,7 @@
 
 .shell-user:hover {
   border-color: var(--border-overlay);
-  background: var(--surface-card-muted);
+  background: var(--surface-layer-2);
 }
 
 .shell-user__avatar {
@@ -326,7 +326,7 @@
   padding: 0.6rem 1.1rem;
   border-radius: 0.85rem;
   border: 1px solid color-mix(in srgb, var(--success) 42%, transparent);
-  background: color-mix(in srgb, var(--success) 20%, var(--surface-card));
+  background: color-mix(in srgb, var(--success) 20%, var(--surface-layer-1));
   color: color-mix(in srgb, var(--success-strong) 92%, var(--text-primary));
   font-size: 0.82rem;
   font-weight: 600;

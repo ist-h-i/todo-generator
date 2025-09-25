@@ -108,6 +108,15 @@ class ChatGPTClient:
         " metadata provided in the request."
     )
 
+    _APPEAL_SYSTEM_PROMPT: ClassVar[str] = (
+        "You are Verbalize Yourself's narrative assistant."
+        " Craft compelling yet factual Japanese appeal narratives that emphasise"
+        " causal relationships between challenges, actions, and results."
+        " Always incorporate the required connective phrases naturally, avoid"
+        " fabrication, and mirror the formal tone used by professionals."
+        " Respond strictly using the provided JSON schema."
+    )
+
     def __init__(
         self,
         model: str | None = None,
@@ -156,6 +165,56 @@ class ChatGPTClient:
 
         model_name = payload.get("model") if isinstance(payload, dict) else None
         return AnalysisResponse(model=model_name or self.model, proposals=proposals[: request.max_cards])
+
+    def generate_appeal(
+        self,
+        *,
+        prompt: str,
+        response_schema: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Invoke the Responses API to craft appeal narratives."""
+
+        if not prompt.strip():
+            raise ChatGPTError("Prompt for appeal generation must not be empty.")
+
+        try:
+            response = self._client.responses.create(
+                model=self.model,
+                instructions=self._APPEAL_SYSTEM_PROMPT,
+                input=prompt,
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "appeal_generation_response",
+                        "strict": True,
+                        "schema": response_schema,
+                    },
+                },
+            )
+        except OpenAIError as exc:
+            logger.exception("ChatGPT appeal generation failed")
+            raise ChatGPTError("ChatGPT request failed.") from exc
+
+        content = self._extract_content(response)
+        data = self._parse_json_payload(content)
+        if not isinstance(data, dict):
+            raise ChatGPTError("ChatGPT response must be a JSON object.")
+
+        payload = dict(data)
+        if not payload.get("model") and getattr(response, "model", None):
+            payload["model"] = response.model
+
+        usage = self._extract_usage(response)
+        if usage:
+            existing_usage = payload.get("token_usage")
+            if isinstance(existing_usage, dict):
+                merged = dict(existing_usage)
+                merged.update({key: value for key, value in usage.items() if key not in merged})
+                payload["token_usage"] = merged
+            else:
+                payload["token_usage"] = usage
+
+        return payload
 
     def _request_analysis(
         self,
@@ -213,6 +272,34 @@ class ChatGPTClient:
             sections.append("Engineer profile:\n" + profile_metadata)
         sections.append("Notes:\n" + text)
         return "\n\n".join(sections)
+
+    def _extract_usage(self, response: Any) -> dict[str, int]:
+        usage = getattr(response, "usage", None)
+        if not usage:
+            return {}
+
+        def _value(source: Any, key: str) -> Any:
+            if isinstance(source, dict):
+                return source.get(key)
+            return getattr(source, key, None)
+
+        result: dict[str, int] = {}
+        for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+            value = _value(usage, key)
+            if value is None and hasattr(usage, "get"):
+                value = usage.get(key)
+            if value is None and hasattr(usage, "to_dict"):
+                try:
+                    value = usage.to_dict().get(key)  # type: ignore[call-arg]
+                except Exception:  # pragma: no cover - defensive
+                    value = None
+            if value is None:
+                continue
+            try:
+                result[key] = int(value)
+            except (TypeError, ValueError):
+                continue
+        return result
 
     def _build_profile_metadata(self, profile: UserProfile | None) -> str:
         if profile is None:
@@ -399,3 +486,10 @@ def get_chatgpt_client(db: Session = Depends(get_db)) -> ChatGPTClient:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
+
+
+def get_optional_chatgpt_client(db: Session = Depends(get_db)) -> ChatGPTClient | None:
+    try:
+        return get_chatgpt_client(db)
+    except HTTPException:
+        return None
