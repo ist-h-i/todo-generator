@@ -85,3 +85,4 @@ npm run format:check
 - `docs/features/analytics-insights/requirements.md` – 分析・継続的改善機能の要件。
 - `docs/features/analytics-insights/detail-design.md` – 分析・継続的改善機能の実装設計。
 - `docs/ui-design-system.md` – コンポーネントの UI ガイドライン。
+- `docs/ui-layout-requirements.md` – 画面レイアウトの要件定義と余白・グリッドの統一ルール。
