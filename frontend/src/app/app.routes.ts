@@ -32,8 +32,15 @@ export const appRoutes: Routes = [
       },
       {
         path: 'daily-reports',
+        pathMatch: 'full',
+        redirectTo: 'reports',
+      },
+      {
+        path: 'reports',
         loadComponent: () =>
-          import('@features/daily-reports/page').then((mod) => mod.DailyReportsPage),
+          import('@features/reports/reports-page.component').then(
+            (mod) => mod.ReportAssistantPageComponent,
+          ),
       },
       {
         path: 'analytics',

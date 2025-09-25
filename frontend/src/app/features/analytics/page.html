@@ -5,7 +5,6 @@
   description="完了率やポイント配分に加え、指摘の傾向や原因、改善活動の進捗までひと目で確認できます。"
   headingLevel="h1"
 >
-
   <section class="page-section analytics-page__intro">
     <div class="analytics-page__intro-content">
       <p>
@@ -272,9 +271,7 @@
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article class="metric-card">
           <p class="text-xs uppercase tracking-[0.2em] text-slate-400">再発率</p>
-          <p class="metric-card__value">
-            {{ overview.recurrenceRate * 100 | number: '1.0-0' }}%
-          </p>
+          <p class="metric-card__value">{{ overview.recurrenceRate * 100 | number: '1.0-0' }}%</p>
           <p class="text-xs text-slate-500">前期比 {{ formatChange(overview.recurrenceDelta) }}</p>
         </article>
         <article class="metric-card">

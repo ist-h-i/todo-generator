@@ -140,10 +140,7 @@ const ROLE_TREE_DEFINITION = [
       {
         label: 'フルスタック',
         valuePrefix: 'フルスタック',
-        options: [
-          { label: 'フルスタック開発' },
-          { label: '技術選定・アーキテクチャ' },
-        ],
+        options: [{ label: 'フルスタック開発' }, { label: '技術選定・アーキテクチャ' }],
       },
     ],
   },
@@ -418,12 +415,7 @@ export class ProfileDialogComponent implements AfterViewInit {
   });
 
   public readonly hasValidationErrors = computed(() =>
-    Boolean(
-      this.nicknameError() ||
-        this.experienceError() ||
-        this.bioError() ||
-        this.rolesError(),
-    ),
+    Boolean(this.nicknameError() || this.experienceError() || this.bioError() || this.rolesError()),
   );
 
   public readonly experienceDisplay = computed(() => {
