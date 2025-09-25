@@ -253,6 +253,12 @@
   font-size: 0.9rem;
 }
 
+.board-page__subtasks {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 2.5vw, 2.5rem);
+}
+
 .board-page__task-board,
 .board-page__subtask-board {
   display: flex;
