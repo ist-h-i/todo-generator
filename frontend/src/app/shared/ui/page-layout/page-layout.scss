@@ -1,9 +1,16 @@
 :host {
   display: block;
+  --app-page-layout-max-width: 76rem;
 }
 
 :host(.shell-container) {
   padding-inline: 0;
+}
+
+.app-page-layout__header {
+  max-width: var(--app-page-layout-max-width);
+  width: 100%;
+  margin-inline: auto;
 }
 
 .app-page-layout__body {
@@ -23,9 +30,17 @@
 .app-page-layout__content {
   display: grid;
   gap: var(--page-content-gap);
-  max-width: 76rem;
+  max-width: var(--app-page-layout-max-width);
   width: 100%;
   margin-inline: auto;
+}
+
+:host(.app-page-layout--wide) {
+  --app-page-layout-max-width: none;
+}
+
+:host(.app-page-layout--wide) .app-page-layout__header {
+  margin-inline: 0;
 }
 
 :host(.app-page-layout--wide) .app-page-layout__content {
