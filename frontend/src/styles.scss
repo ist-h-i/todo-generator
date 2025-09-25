@@ -19,6 +19,10 @@
   --surface-strong: #e2e8f0;
   --surface-card: #ffffff;
   --surface-card-muted: #f1f5f9;
+  --surface-layer-1: color-mix(in srgb, var(--surface-card) 96%, var(--surface-card-muted) 4%);
+  --surface-layer-2: color-mix(in srgb, var(--surface-card) 88%, var(--surface-card-muted) 12%);
+  --surface-layer-3: color-mix(in srgb, var(--surface-card) 78%, var(--surface-card-muted) 22%);
+  --surface-layer-4: color-mix(in srgb, var(--surface-card) 68%, var(--surface-card-muted) 32%);
   --on-surface: #0b1220;
   --surface-inverse: #0f172a;
   --on-surface-inverse: #f8fafc;
@@ -64,6 +68,7 @@
   --surface-overlay-subtle: color-mix(in srgb, var(--surface-card) 72%, transparent);
   --border-subtle: color-mix(in srgb, var(--surface-inverse) 8%, transparent);
   --border-card: color-mix(in srgb, var(--surface-inverse) 14%, transparent);
+  --border-card-strong: color-mix(in srgb, var(--surface-inverse) 18%, transparent);
   --border-overlay: color-mix(in srgb, var(--text-tertiary) 24%, transparent);
   --border-overlay-strong: color-mix(in srgb, var(--text-tertiary) 32%, transparent);
   --shadow-soft: 0 8px 20px color-mix(in srgb, var(--surface-inverse) 4%, transparent);
@@ -84,6 +89,10 @@
   --surface-strong: #1e293b;
   --surface-card: #1e293b;
   --surface-card-muted: #111c2f;
+  --surface-layer-1: color-mix(in srgb, var(--surface-card) 94%, var(--surface-card-muted) 6%);
+  --surface-layer-2: color-mix(in srgb, var(--surface-card) 86%, var(--surface-card-muted) 14%);
+  --surface-layer-3: color-mix(in srgb, var(--surface-card) 76%, var(--surface-card-muted) 24%);
+  --surface-layer-4: color-mix(in srgb, var(--surface-card) 66%, var(--surface-card-muted) 34%);
   --on-surface: #f1f5f9;
   --surface-inverse: #e2e8f0;
   --on-surface-inverse: #0f172a;
@@ -129,6 +138,7 @@
   --surface-overlay-subtle: color-mix(in srgb, var(--surface-card) 68%, transparent);
   --border-subtle: color-mix(in srgb, var(--surface-inverse) 12%, transparent);
   --border-card: color-mix(in srgb, var(--surface-inverse) 28%, transparent);
+  --border-card-strong: color-mix(in srgb, var(--surface-inverse) 36%, transparent);
   --border-overlay: color-mix(in srgb, var(--text-inverse-tertiary) 32%, transparent);
   --border-overlay-strong: color-mix(in srgb, var(--text-inverse-tertiary) 42%, transparent);
   --shadow-soft: 0 6px 18px color-mix(in srgb, var(--surface-inverse) 14%, transparent);
@@ -214,14 +224,14 @@ a:hover {
 .surface-card {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
   box-shadow: var(--shadow-soft);
 }
 
 .surface-panel {
   border-radius: var(--radius-xl);
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, var(--neutral-surface), var(--neutral-surface-strong));
+  border: 1px solid var(--border-card);
+  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(12px);
 }
@@ -231,7 +241,7 @@ a:hover {
   align-items: center;
   border-radius: 9999px;
   border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-card) 75%, transparent);
+  background: var(--surface-layer-3);
   color: var(--text-secondary);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 8%, transparent);
 }

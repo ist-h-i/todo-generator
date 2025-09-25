@@ -507,8 +507,8 @@
   height: 100%;
   padding: 1.5rem;
   border-radius: var(--radius-xl);
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  border: 1px solid var(--border-card);
+  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
   box-shadow: var(--shadow-soft);
   transition:
     border-color 150ms ease,
@@ -516,11 +516,7 @@
 }
 
 .dark .board-page .board-column {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--surface-strong) 88%, transparent),
-    color-mix(in srgb, var(--surface) 92%, transparent)
-  );
+  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
 }
 
 .board-column__title {
@@ -960,7 +956,7 @@
   padding: 0.25rem 0.65rem;
   border-radius: 9999px;
   border: 1px solid var(--neutral-border);
-  background: color-mix(in srgb, var(--surface-card) 75%, transparent);
+  background: var(--surface-layer-3);
   font-weight: 600;
 }
 
@@ -969,8 +965,8 @@
   display: block;
   padding: var(--panel-padding);
   border-radius: var(--radius-xl);
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  border: 1px solid var(--border-card);
+  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
   box-shadow: var(--shadow-soft);
 }
 
@@ -1353,8 +1349,8 @@
   gap: 1rem;
   padding: 1.5rem;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  border: 1px solid var(--border-card);
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
   box-shadow: var(--shadow-soft);
 }
 
