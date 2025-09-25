@@ -12,7 +12,7 @@ _VISIBLE_SEGMENT_LENGTH = 4
 def get_secret_cipher() -> SecretCipher:
     """Return a cipher configured for encrypting stored secrets."""
 
-    key = settings.secret_encryption_key or "todo-generator"
+    key = settings.secret_encryption_key or "verbalize-yourself"
     return SecretCipher(key)
 
 

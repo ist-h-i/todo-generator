@@ -19,8 +19,10 @@ import {
 } from '@core/models';
 import { createId } from '@core/utils/create-id';
 
-const STORAGE_NAMESPACE = 'todo-generator/workspace-settings';
-const PREFERENCES_STORAGE_NAMESPACE = 'todo-generator/workspace-preferences';
+const STORAGE_NAMESPACE = 'verbalize-yourself/workspace-settings';
+const PREFERENCES_STORAGE_NAMESPACE = 'verbalize-yourself/workspace-preferences';
+const LEGACY_STORAGE_NAMESPACE = 'todo-generator/workspace-settings';
+const LEGACY_PREFERENCES_STORAGE_NAMESPACE = 'todo-generator/workspace-preferences';
 
 const cloneStatus = (status: Status): Status => ({
   id: status.id,
@@ -1446,8 +1448,16 @@ export class WorkspaceStore {
     return `${STORAGE_NAMESPACE}/${userId}`;
   }
 
+  private buildLegacyStorageKey(userId: string): string {
+    return `${LEGACY_STORAGE_NAMESPACE}/${userId}`;
+  }
+
   private buildPreferencesKey(userId: string): string {
     return `${PREFERENCES_STORAGE_NAMESPACE}/${userId}`;
+  }
+
+  private buildLegacyPreferencesKey(userId: string): string {
+    return `${LEGACY_PREFERENCES_STORAGE_NAMESPACE}/${userId}`;
   }
 
   private buildDefaultPreferences(): BoardPreferences {
@@ -1464,7 +1474,11 @@ export class WorkspaceStore {
     }
 
     const key = this.buildPreferencesKey(userId);
-    const stored = this.storage.getItem(key);
+    let stored = this.storage.getItem(key);
+
+    if (!stored) {
+      stored = this.migrateLegacyPreferences(userId, key);
+    }
 
     if (!stored) {
       this.persistPreferencesForUser(userId, defaults);
@@ -1491,7 +1505,11 @@ export class WorkspaceStore {
     }
 
     const key = this.buildStorageKey(userId);
-    const stored = this.storage.getItem(key);
+    let stored = this.storage.getItem(key);
+
+    if (!stored) {
+      stored = this.migrateLegacySettings(userId, key);
+    }
 
     if (!stored) {
       const defaults = cloneSettings(INITIAL_SETTINGS);
@@ -1520,6 +1538,33 @@ export class WorkspaceStore {
     this.persistSettingsForUser(userId, settings);
   }
 
+  private migrateLegacySettings(userId: string, targetKey: string): string | null {
+    if (!this.storage) {
+      return null;
+    }
+
+    const legacyKey = this.buildLegacyStorageKey(userId);
+    const legacyValue = this.storage.getItem(legacyKey);
+
+    if (!legacyValue) {
+      return null;
+    }
+
+    try {
+      this.storage.setItem(targetKey, legacyValue);
+    } catch {
+      // Ignore quota or serialization issues when migrating legacy data.
+    }
+
+    try {
+      this.storage.removeItem(legacyKey);
+    } catch {
+      // Removing the legacy key is best-effort only.
+    }
+
+    return legacyValue;
+  }
+
   private persistSettingsForUser(userId: string, settings: WorkspaceSettings): void {
     if (!this.storage) {
       return;
@@ -1539,6 +1584,33 @@ export class WorkspaceStore {
     }
 
     this.persistPreferencesForUser(userId, preferences);
+  }
+
+  private migrateLegacyPreferences(userId: string, targetKey: string): string | null {
+    if (!this.storage) {
+      return null;
+    }
+
+    const legacyKey = this.buildLegacyPreferencesKey(userId);
+    const legacyValue = this.storage.getItem(legacyKey);
+
+    if (!legacyValue) {
+      return null;
+    }
+
+    try {
+      this.storage.setItem(targetKey, legacyValue);
+    } catch {
+      // Ignore quota or serialization issues when migrating legacy data.
+    }
+
+    try {
+      this.storage.removeItem(legacyKey);
+    } catch {
+      // Removing the legacy key is best-effort only.
+    }
+
+    return legacyValue;
   }
 
   private persistPreferencesForUser(userId: string, preferences: BoardPreferences): void {

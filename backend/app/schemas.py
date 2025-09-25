@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import unicodedata
 from datetime import date, datetime
 from enum import Enum
 from typing import Any, Dict, List, Literal, Mapping, Optional
 from uuid import uuid4
-import unicodedata
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
@@ -78,7 +78,7 @@ class RegistrationRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: Literal["bearer"] = "bearer"
+    token_type: Literal["bearer"] = "bearer"  # noqa: S105
     user: UserProfile
 
 
@@ -283,8 +283,8 @@ class CardRead(CardBase):
                 data["label_ids"] = label_ids
             else:
                 try:
-                    setattr(values, "label_ids", label_ids)
-                except Exception:
+                    setattr(values, "label_ids", label_ids)  # noqa: B010
+                except Exception:  # noqa: S110
                     pass
 
         return data if data is not None else values
@@ -575,6 +575,7 @@ class DailyReportDetail(DailyReportRead):
     events: List[DailyReportEventRead] = Field(default_factory=list)
     processing_meta: Dict[str, Any] = Field(default_factory=dict)
     pending_proposals: List[AnalysisCard] = Field(default_factory=list)
+
 
 class ActivityCreate(BaseModel):
     card_id: Optional[str] = None
@@ -967,6 +968,113 @@ class UserQuotaRead(BaseModel):
 class UserQuotaUpdate(BaseModel):
     card_daily_limit: Optional[int] = Field(default=None, ge=0)
     evaluation_daily_limit: Optional[int] = Field(default=None, ge=0)
+
+
+# --------------------------------------------------------------------------------------------
+# Appeal generation schemas
+
+
+class AppealSubject(BaseModel):
+    type: Literal["label", "custom"]
+    value: str = Field(min_length=1, max_length=256)
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def _normalize_value(cls, value: str) -> str:
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                raise ValueError("value must not be empty")
+            return stripped
+        raise ValueError("value must be a string")
+
+    @model_validator(mode="after")
+    def _validate_custom_length(self) -> "AppealSubject":
+        if self.type == "custom" and len(self.value) > 120:
+            raise ValueError("Custom subject must be 120 characters or less.")
+        return self
+
+
+class AppealAchievement(BaseModel):
+    id: str
+    title: str
+    summary: Optional[str] = None
+
+
+class AppealLabelConfig(BaseModel):
+    id: str
+    name: str
+    color: Optional[str] = None
+    description: Optional[str] = None
+    achievements: List[AppealAchievement] = Field(default_factory=list)
+
+
+class AppealFormatDefinition(BaseModel):
+    id: str
+    name: str
+    description: str
+    editor_mode: Literal["markdown", "csv"]
+
+
+class AppealConfigResponse(BaseModel):
+    labels: List[AppealLabelConfig]
+    recommended_flow: List[str]
+    formats: List[AppealFormatDefinition]
+
+
+class AppealGeneratedFormat(BaseModel):
+    content: str
+    tokens_used: Optional[int] = None
+
+
+class AppealGenerationRequest(BaseModel):
+    subject: AppealSubject
+    flow: List[str] = Field(min_length=1, max_length=5)
+    formats: List[str] = Field(min_length=1, max_length=4)
+    achievements: Optional[List[AppealAchievement]] = None
+
+    @field_validator("flow")
+    @classmethod
+    def _validate_flow(cls, value: List[str]) -> List[str]:
+        seen: set[str] = set()
+        normalized: List[str] = []
+        for step in value:
+            if not isinstance(step, str):
+                raise ValueError("Flow steps must be strings.")
+            cleaned = step.strip()
+            if not cleaned:
+                raise ValueError("Flow steps must not be empty.")
+            if cleaned in seen:
+                raise ValueError("Flow steps must be unique.")
+            seen.add(cleaned)
+            normalized.append(cleaned)
+        return normalized
+
+    @field_validator("formats")
+    @classmethod
+    def _validate_formats(cls, value: List[str]) -> List[str]:
+        seen: set[str] = set()
+        normalized: List[str] = []
+        for fmt in value:
+            if not isinstance(fmt, str):
+                raise ValueError("Formats must be strings.")
+            cleaned = fmt.strip()
+            if not cleaned:
+                raise ValueError("Formats must not be empty.")
+            lowered = cleaned.lower()
+            if lowered in seen:
+                raise ValueError("Formats must be unique.")
+            seen.add(lowered)
+            normalized.append(cleaned)
+        return normalized
+
+
+class AppealGenerationResponse(BaseModel):
+    generation_id: str
+    subject_echo: str
+    flow: List[str]
+    warnings: List[str] = Field(default_factory=list)
+    formats: Dict[str, AppealGeneratedFormat]
 
 
 # --------------------------------------------------------------------------------------------
