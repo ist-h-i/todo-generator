@@ -320,7 +320,6 @@ app-page-layout .app-page-layout__header {
 
 app-page-layout .app-page-layout__body {
   display: grid;
-  gap: var(--page-content-gap);
   margin-top: var(--page-content-gap);
 }
 
@@ -334,7 +333,6 @@ app-page-layout.shell-container .app-page-layout__body--bleed {
 
 app-page-layout .app-page-layout__content {
   display: grid;
-  gap: var(--page-content-gap);
   max-width: var(--app-page-layout-max-width);
   width: 100%;
   margin-inline: auto;
