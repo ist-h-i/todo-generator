@@ -1,94 +1,126 @@
-# UI デザイン再設計ガイド
+# UI デザインシステム（シンプル&モダン版）
 
-## 背景と課題
-- カードボード画面ではメトリクス、フィルター、ドラッグ＆ドロップ列が個別に組まれており、ヘッダーや操作チップのレイアウトが他画面と共有されていません。【F:frontend/src/app/features/board/page.html†L1-L210】
-- 分析ダッシュボードは共有コンポーネントの `app-page-header` を用いているものの、統計カードやフィルター群の見た目・余白が他ページのセクションと揃っておらず、アクセントカラーの使い方も独自です。【F:frontend/src/app/features/analytics/page.html†L1-L200】
-- 日報・週報解析は独自の `page-title` とサイドバー構成で、同じフォーム要素でもボタンやフィードバックのスタイルが他画面と異なるため、フォーム体験に一貫性がありません。【F:frontend/src/app/features/daily-reports/page.html†L1-L152】
-- ワークスペース設定や管理コンソールは一覧・フォームを個別レイアウトで構築しており、共通のセクションやバッジの扱いがページごとにばらついています。【F:frontend/src/app/features/settings/page.html†L1-L240】【F:frontend/src/app/features/admin/page.html†L1-L200】
-- プロフィール評価や認証フローも独自のヘッダー・ボタン設計を持ち、ページ遷移時に視覚トーンが変わってしまいます。【F:frontend/src/app/features/profile/evaluations/page.html†L1-L200】【F:frontend/src/app/features/auth/login/page.html†L1-L200】
+アプリ全体にミニマルでモダン、そして洗練されたトーンを行き渡らせるため、視覚構造・タイポグラフィ・コンポーネントの仕様を下記の方針で再整理しました。光と影のコントラスト、配色トークン、操作状態の一貫性を軸にライト／ダーク両テーマで同じ質感を保ちます。各画面の改修や新機能追加時は、本ドキュメントを基準に UI を設計してください。
 
-## 目的と設計原則
-1. **視覚的一貫性** – 共通トークンとコンポーネントで色・余白・角丸・影を揃え、画面ごとの文脈だけを差分として表現する。
-2. **情報の階層化** – ページヘッダーで文脈、サーフェスパネルで主要操作、カード／リストで詳細を段階的に提示する。
-3. **操作性の維持** – 既存のフォームやドラッグ操作をそのまま活かしつつ、新しい見た目を段階的に適用できる構造にする。
-4. **アクセスビリティ** – フォーカスリング、ARIA 属性、読み上げ順が各ページで統一されるよう、共通部品にガイドラインをまとめる。
+## コアデザイン原則
+1. **余白で魅せる** – 情報密度を抑え、広めの余白と明瞭なグリッドで呼吸感のあるレイアウトを構築する。
+2. **コントラストを厳選する** – ベースはニュートラルカラーで構成し、アクセントカラーは重要なアクションや状態のみに限定する。ライト/ダーク双方で背景とテキストのコントラスト比 4.5:1 以上（大きなテキストは 3:1 以上）を確保する。
+3. **操作の迷いを無くす** – ボタンやナビゲーションをシンプルな形状・配色で揃え、どこで操作できるかを即座に判断できるようにする。
+4. **アクセシブルであること** – 十分なコントラスト、明瞭なフォーカス、スクリーンリーダー向けの構造化を標準仕様とする。
 
 ## ビジュアルファウンデーション
-- **カラートークン** – 既存の `:root` と `.dark` に定義されたサーフェス、テキスト、アクセント、フィードバック色を唯一のカラーパレットとし、画面固有の色指定はアクセントトークンの組み合わせで行う。【F:frontend/src/styles.scss†L15-L136】
-- **タイポグラフィ** – ベースフォントは `Inter` と `Noto Sans JP` の組み合わせを採用し、ルートの 80% フォントサイズを基準に見出し・本文のサイズスケールを設定する。本文はデフォルトの `body` 定義、見出しは後述のヘッダー／セクションコンポーネントに従う。【F:frontend/src/styles.scss†L138-L150】
-- **スペーシング・角丸** – `--panel-padding`、`--panel-gap`、`--radius-lg`/`--radius-xl` のトークンを用い、要素間隔は `clamp` ベースの変数で統一する。各ページで独自の余白を設定せず、トークンの上書きが必要な場合はページルートで限定的に行う。【F:frontend/src/styles.scss†L70-L76】【F:frontend/src/styles/pages/_base.scss†L1-L40】
-- **サーフェスと影** – `surface-panel`、`surface-card`、`surface-pill` クラスで角丸・グラデーション・シャドウを統一し、情報の階層に応じて使い分ける。フォームや統計カードもこのレイヤー上で表現する。【F:frontend/src/styles.scss†L213-L235】
+### カラーパレット
+- **トークン構成**: すべての色は `--color-{semantic}-{state}-{theme}` の命名で管理し、テーマ（`light` / `dark`）と状態（`default` / `hover` / `active` / `disabled`）を明示する。
+- **ベース**: `--color-surface`、`--color-surface-alt` を主に使用し、段差を穏やかなドロップシャドウで表現。ライトテーマはニュートラル 50〜200、ダークテーマはニュートラル 800〜950 を中心にする。
+- **テキスト**: `--color-text-primary`、`--color-text-secondary` を使い分け、見出しは濃度 90%、補助テキストは 60% を目安にする。ダークテーマでは透過度ではなく明度差で調整し、背景との差を 60 以上（Lab 値換算）確保する。
+- **アクセント**: プライマリアクションは `--color-accent`、肯定/警告/エラーは `--color-success` / `--color-warning` / `--color-danger` を用いる。アクセントの乱用を避けるため、ページごとの固有色はトークンのトーン差（濃淡）で表現する。
 
-## レイアウトシステム
-- **アプリシェル** – 各画面のルートは `.app-page` を用い、上下余白を共通トークンから取得する。主コンテンツブロックは `page-panel` または `page-section` に収めて視覚的一貫性を確保する。【F:frontend/src/styles/pages/_base.scss†L1-L120】【F:frontend/src/styles/pages/_base.scss†L323-L352】
-- **ページヘッダー** – ページ導入部は `app-page-header`（Angular コンポーネント）または `.page-header` スタイルを必ず利用し、眉（eyebrow）、タイトル、説明、アクションの配置を共通化する。必要に応じて `headingLevel` 入力で見出し階層を調整する。【F:frontend/src/app/shared/ui/page-header/page-header.html†L1-L28】【F:frontend/src/app/shared/ui/page-header/page-header.scss†L1-L38】
-- **グリッドとレスポンシブ** – 2 カラム構成が必要なページは `page-grid page-grid--two` と `form-grid--two` を用い、ブレークポイントに応じて縦積みに戻す。ドラッグ領域や詳細パネルはグリッド内のカラムとして配置し、同じ余白・角丸を適用する。【F:frontend/src/styles/pages/_base.scss†L515-L533】【F:frontend/src/styles/pages/_base.scss†L625-L633】
-- **補助レイアウト** – タブ、トグル、空状態、バッジなどは `_base.scss` の `page-tabs`、`form-toggle`、`page-state`、`page-badge` を利用し、任意のページで同一動作・見た目を実現する。【F:frontend/src/styles/pages/_base.scss†L274-L321】【F:frontend/src/styles/pages/_base.scss†L530-L623】【F:frontend/src/styles/pages/_base.scss†L417-L449】
+### テーマ & コントラスト指針
+| 対象 | ライトテーマ | ダークテーマ | メモ |
+| --- | --- | --- | --- |
+| ページ背景 | `--color-surface-light-default` #F8FAFC | `--color-surface-dark-default` #0F172A | いずれもテキストとのコントラスト 4.5:1 以上を担保する。
+| カード背景 | `--color-surface-alt-light-default` #FFFFFF | `--color-surface-alt-dark-default` #1E293B | シャドウではなく明度差でレイヤーを表現。
+| プライマリテキスト | `--color-text-primary-light` #0F172A | `--color-text-primary-dark` #F8FAFC | 大文字見出しも 3:1 以上を厳守。
+| セカンダリテキスト | `--color-text-secondary-light` rgba(15,23,42,0.65) | `--color-text-secondary-dark` rgba(248,250,252,0.70) | 透明度ではなくコントラスト比を都度計測する。 |
 
-## コアコンポーネント仕様
-- **ボタン** – `.button` 系クラスを標準化し、主要動作は `button--primary`、サブは `button--secondary`、テキストのみは `button--ghost` を採用する。ボードや認証画面で独自に指定しているボタンはこのスタイルに移行する。【F:frontend/src/styles/pages/_base.scss†L451-L507】
-- **フォーム** – `.form-field` と `.form-control`、`.form-collection` を組み合わせ、入力・テキストエリア・集合フォームは共通余白とフォーカス挙動を持つ。バリデーション表示は `.form-feedback` を用いて統一し、既存の ARIA 属性は維持する。【F:frontend/src/styles/pages/_base.scss†L27-L156】【F:frontend/src/app/features/auth/login/page.html†L20-L190】
-- **カード / パネル** – データサマリーは `surface-panel`、詳細アイテムは `surface-card` をベースに、タイトル、メタ情報、ラベルを `board` や `analytics` と同じ順序で配置する。ドラッグ可能なカードも視覚構造は `surface-card` を継承し、インタラクションスタイルのみ個別に付与する。【F:frontend/src/app/features/board/page.html†L167-L240】【F:frontend/src/app/features/analytics/page.html†L32-L178】
-- **チップ / バッジ** – フィルターや ID 表示は `surface-pill` と `page-badge` を使い分け、アクセント色が必要な場合は `page-badge--accent` などを適用する。設定画面のラベルやテンプレート ID も同一スタイルに揃える。【F:frontend/src/styles.scss†L228-L250】【F:frontend/src/styles/pages/_base.scss†L417-L437】【F:frontend/src/app/features/settings/page.html†L167-L220】
-- **タブ / トグル** – 管理コンソールで利用するタブやトグルは `_base.scss` の定義を標準とし、他画面でタブ切り替えが必要な場合も同じクラスを適用する。【F:frontend/src/app/features/admin/page.html†L27-L120】【F:frontend/src/styles/pages/_base.scss†L274-L356】
-- **テーブル / リスト** – リスト項目は `page-list`、テーブルは `page-table__wrapper` と `page-table` を使用し、列ヘッダーやメタ情報のタイポグラフィを統一する。設定・管理・分析レポートに同じスタイルを適用する。【F:frontend/src/styles/pages/_base.scss†L361-L590】
-- **アラート / ステート** – 成功・エラーなどのフィードバックは `app-alert` と `page-state` を利用し、アクセントカラーに依存しない読みやすい配色で統一する。【F:frontend/src/styles/pages/_base.scss†L188-L213】【F:frontend/src/app/features/admin/page.html†L9-L25】
+> **チェックルール**: 主要コンポーネントの各状態（デフォルト/ホバー/アクティブ/フォーカス/ディスエーブル）は、背景と文字色、背景とボーダー色のコントラスト比を 3:1 以上（可能な限り 4.5:1 以上）に保つ。ダークテーマでは彩度よりも明度差を優先し、アクセントカラーの WCAG AA 適合を確認する。
 
-## インタラクションとアクセシビリティ
-- **フォーカスリング** – `.focus-ring` のユーティリティでフォーカスの見え方を統一し、全ボタン・インタラクティブ要素に適用する。色覚多様性に配慮したコントラストの確保を必須とする。【F:frontend/src/styles.scss†L252-L260】
-- **ARIA / ライブリージョン** – 認証や評価画面が持つ `aria-live`、`aria-invalid` 属性を共通フォームコンポーネントでも保持できるようにし、バリデーション／ステータスメッセージが読み上げられる構造を維持する。【F:frontend/src/app/features/profile/evaluations/page.html†L12-L92】【F:frontend/src/app/features/auth/login/page.html†L20-L190】
-- **ドラッグ＆ドロップ** – カードボードの CDK ドラッグ機能は視覚的に強調しすぎず、カード背景や枠線のアクセント濃度で状態を示す。アクセシブルな代替操作（メニューによるステータス変更）も保持する。【F:frontend/src/app/features/board/page.html†L167-L240】
+### インタラクション状態マトリクス
+| コンポーネント | 状態 | ライトテーマ | ダークテーマ | コントラスト指標 |
+| --- | --- | --- | --- | --- |
+| ボタン primary | Default / Hover / Active | #2563EB / #1D4ED8 / #1E40AF | #3B82F6 / #2563EB / #1D4ED8 | テキストは常に #FFFFFF（7:1 以上） |
+| ボタン secondary | Default / Hover / Active | #FFFFFF + #CBD5F5 ボーダー / 背景+4% トーン / 背景+8% トーン | #1E293B + #3B4B65 ボーダー / 背景-6% / 背景-10% | テキストは #1E293B or #F8FAFC、最低 4.5:1 |
+| ゴーストボタン | Default / Hover / Active | テキスト #1E293B / 背景 rgba(30,41,59,0.06) / rgba(30,41,59,0.10) | テキスト #E2E8F0 / 背景 rgba(226,232,240,0.12) / rgba(226,232,240,0.18) | 背景との差 3:1 以上 |
+| カード | Default / Hover | #FFFFFF / #F1F5F9 | #1E293B / #243044 | コンテンツテキストは 4.5:1 以上 |
+| ステータスピル | Default / Hover | 背景 #E0F2FE〜#FEE2E2 / テキスト #0369A1 など | 背景 #0F2F49〜#3F1D2B / テキスト #E0F2FE など | 背景と文字差 4.5:1 以上 |
+| Disabled 要素 | 全テーマ | 背景は隣接トーンとの差 12 以上、文字は #94A3B8（ライト）/#475569（ダーク）で 3:1 を担保 | - |
 
-## 画面別適用方針
-### カードボード
-1. ページ冒頭に `app-page-header` を配置し、現状のタイトル・フィルタサマリーをヘッダーアクションへ統合する。【F:frontend/src/app/features/board/page.html†L49-L156】
-2. フィルター列は `surface-panel` を利用した 2 カラムの `page-grid--two` に再構成し、検索、表示形式、クイックフィルターを統一パターンで並べる。
-3. カード列とサブタスク列は同一 `board-columns` グリッドを維持しつつ、ヘッダーとカードの装飾を `surface-card` 基準に揃える。
+### タイポグラフィ
+- ベースフォントは `Inter` + `Noto Sans JP`、本文サイズは 16px（rem 基準）。
+- 見出しは 3 段階のスケールを採用し、`--font-size-heading-lg`（ページタイトル）、`--font-size-heading-md`（セクション）、`--font-size-heading-sm`（カード/リスト）を基準にする。
+- 行間は本文 1.6、見出し 1.3 を目安とし、段落間スペースは `1em` 以上を確保する。
 
-### AI タスク起票（Analyze）
-1. フォーム全体を `page-grid--two` に切り分け、ノート入力とゴール設定を並列に配置する。【F:frontend/src/app/features/analyze/page.html†L1-L120】
-2. 推奨度やサブタスク案のカードは `surface-panel` を継承し、ステータス／ラベル推奨は `surface-pill` で表現する。
-3. エラー・読み込み表示は `app-alert` と `page-state` を共通使用し、トースト的な色分けを避けて読みやすさを優先する。【F:frontend/src/app/features/analyze/page.html†L120-L200】
+### スペーシング & 角丸
+- ベース余白は 8px グリッド。カードやパネル内は `24px`、コンポーネント間は `16px` を基準とし、セクション間は `32px` を目安にする。
+- 角丸は `--radius-md`（8px）をデフォルト、カードコンテナやモーダルは `--radius-lg`（16px）を使用し、統一感を持たせる。
+- シャドウは 1 段のみ（例: `0 12px 32px rgba(15, 23, 42, 0.12)`）を基本とし、浮遊感を控えめに演出する。
 
-### 分析ダッシュボード
-1. 統計サマリーやリストは `surface-panel` + `page-list` を採用し、カード余白と角丸をボード・設定画面と揃える。【F:frontend/src/app/features/analytics/page.html†L32-L178】
-2. スナップショットチップや推奨アクションは `surface-pill` を使い、選択状態は `surface-primary-muted` で表現する。
-3. コンピテンシー評価リンクなどのアクションは `appPageHeaderActions` スロットに寄せ、ページ導線の一貫性を担保する。【F:frontend/src/app/features/analytics/page.html†L1-L30】
+### アイコノグラフィ & フォーカス
+- アイコンはストローク 1.5px のラインアイコンで統一し、サイズは 20px / 24px を基準にする。
+- フォーカスリングは `outline: 2px solid var(--color-accent); outline-offset: 2px;` を標準化し、全インタラクティブ要素に適用する。
 
-### 日報・週報解析
-1. 既存のフォームと解析結果サイドバーを `page-grid--two` の 2 カラムに配置し、双方 `surface-panel` で装飾する。【F:frontend/src/app/features/daily-reports/page.html†L1-L152】
-2. 解析結果のカードやイベント履歴は `page-list` / `surface-card` に統一し、タイトル、優先度、サマリーを共通レイアウトで表示する。
-3. 成功・エラーメッセージは `app-alert` スタイルへ変更し、フォーム下部に集約してフィードバック位置を固定する。
+## レイアウトテンプレート
+### アプリケーションシェル
+- 全ページは `.app-page` をルートに使用し、上下左右の余白は `clamp(40px, 8vw, 72px)` を基準に確保する。
+- シェル内の構造は「固定ヘッダー（ロゴ・主要ナビ）」「コンテンツラッパー」「フッター」で統一。サイドバーが必要な画面もコンテンツラッパー内の 2 カラム構造として定義する。
 
-### ワークスペース設定
-1. 上部ヘッダーに `app-page-header` を挿入し、現在 `page-section` 内にある説明をヘッダー説明へ移す。【F:frontend/src/app/features/settings/page.html†L1-L32】
-2. ステータス／ラベル／テンプレート一覧は `page-list` パターンを活用し、メタ情報やアクションボタンを共通配置に揃える。【F:frontend/src/app/features/settings/page.html†L17-L220】
-3. 追加フォームは `form-grid` と `button--primary` を利用し、二重線や点線境界は `_base.scss` のフォームスタイルへ統合する。
+### ページタイトル（Page Header）
+- `app-page-header` コンポーネントを全ページで共通利用する。構造は以下の 4 エリアで構成する:
+  - **Eyebrow**: カテゴリ名やパンくずを小さなサンセリフで表示。
+  - **Title**: ページ固有タイトル。28px/700 を基本。
+  - **Description**: 1〜2 行の補足説明。テキスト濃度 60%。
+  - **Actions**: 右側にプライマリ・セカンダリボタン、タブやフィルタが続く場合は下部に整列する。
+- バックグラウンドはフラット（サーフェスと同色）とし、ボーダーで区切らない。
 
-### 管理コンソール
-1. ヒーローセクションを `app-page-header` ベースへ置き換え、タブメニューをその直下に配置する。【F:frontend/src/app/features/admin/page.html†L1-L64】
-2. 各タブの内容は `page-section` / `page-list` / `form-grid` に合わせ、判定履歴やユーザ管理などのテーブルは `page-table` を利用する。【F:frontend/src/app/features/admin/page.html†L66-L200】
-3. アラートとトグルは `_base.scss` の共通定義へ揃え、アクセント色の過剰使用を避ける。
+### グリッド & コンテナ
+- セクション分割は `.page-section` を使用。ヘッダ（タイトル、説明、アクション）とボディの 2 パートで構成し、セクション間は 32px の余白を置く。
+- 複数列が必要な場合は `.page-grid` を使用し、ブレークポイント 1024px を境に 2 カラム → 1 カラムへ変化させる。
+- サイドバーやフィルタ列も `.page-grid--sidebar` として実装し、カード群と余白を揃える。
 
-### コンピテンシー評価
-1. ヘッダーを `app-page-header` コンポーネントに置き換え、評価実行ボタン群は `appPageHeaderActions` スロットで整理する。【F:frontend/src/app/features/profile/evaluations/page.html†L1-L68】
-2. 最新評価カードと詳細リストは `surface-panel` / `surface-card` を利用し、スコアや推奨アクションを共通タイポグラフィで整列させる。【F:frontend/src/app/features/profile/evaluations/page.html†L110-L200】
-3. 空状態・エラー・ローディングは `page-state` と `app-alert` を統一的に使用する。【F:frontend/src/app/features/profile/evaluations/page.html†L71-L109】
+## コンポーネント仕様
+### シンプルボタン（Button）
+- ベースクラス `.button` は高さ 44px、横幅はコンテンツに合わせる。フォントは 15px/600。パディングは `0 20px`、文字と背景のコントラスト比は常に 4.5:1 以上。
+- バリエーション:
+  - `.button--primary`: 背景 `--color-accent-{state}`, テキストは `--color-text-on-accent-{state}`。ホバー時は 8% 暗く、アクティブ時は 12% 暗くする。ライトテーマでは最小 4.8:1、ダークテーマでは 7:1 のコントラストを確保する。
+  - `.button--secondary`: 背景 `--color-surface-alt`, 枠線 `--color-border`. ホバーで枠線とテキストを 10% 濃くし、アクティブでは背景に 6% のトーンを追加。ディスエーブル時はボーダーを 30% の濃度に落としつつ 3:1 を維持。
+  - `.button--ghost`: 背景透明、テキストはプライマリ。ホバー時は `rgba(surface, 0.08)`、アクティブ時は `rgba(surface, 0.12)` のオーバーレイで必ず 3:1 以上の差を取る。
+  - `.button--pill`: 角丸 `999px`。フィルタやタグ選択に使用し、選択状態はアクセント背景、非選択状態はゴーストを踏襲する。
+- アイコンを含む場合は 8px のギャップを保ち、アイコンは 20px サイズ。
+- フォーカス状態では背景色を変えず、2px のアクセントアウトラインを追加する。
+- ローディングやディスエーブル状態でも文字色の透明度を下げず、背景トーンを調整して 3:1 のコントラストを保持する。
 
-### 認証フロー
-1. ログイン・新規登録カードのヘッダーを `app-page-header` に揃え、フォームボタンは `.button--primary` / `.button--secondary` を適用する。【F:frontend/src/app/features/auth/login/page.html†L1-L200】
-2. フォームフィールドは共通 `form-field` スタイルをそのまま活用し、バリデーションメッセージの位置・色を統一する。
-3. 補助説明やヒントは `page-list` / `page-badge` を用いて視覚的に整理し、アクセントカラーの乱立を避ける。
+### カード（Card）
+- `.surface-card` を基準に高さ可変のカードを定義。内側余白は 24px、角丸 12px、シャドウ薄め。
+- ヘッダー（タイトル + メタ情報）、ボディ（本文）、フッター（操作）の 3 パートを推奨。ヘッダーは Flex で左右配置し、タイトルは 18px/600。
+- 状態ラベルは右上に `surface-pill` を配置し、背景はアクセントの 12% トーンを使用する。
+- ホバー時は背景トーンを 6% 明るく（ダークでは 6% 暗く）し、アクションの存在を示す。文字色は変えずに 4.5:1 を維持する。
 
-## 実装ロードマップ
-1. **デザイントークン整理** – `styles.scss` と `_base.scss` を確認し、未使用トークンの整理とコメント整備を行う（変更の影響が大きいため最初に合意形成）。【F:frontend/src/styles.scss†L15-L260】【F:frontend/src/styles/pages/_base.scss†L1-L640】
-2. **共通コンポーネント拡張** – `app-page-header` にアクションスロット、サブタイトル、補助テキストのパターンを追加し、`surface-panel` などのユーティリティクラスを Angular コンポーネントから使いやすいよう整理する。【F:frontend/src/app/shared/ui/page-header/page-header.html†L1-L28】
-3. **フォーム／ボタンの統合** – 認証・日報・設定フォームで `.button` と `.form-field` を導入し、余白やバリデーションの見た目を揃える。段階的に画面ごとにコミットしてリグレッションを防ぐ。【F:frontend/src/app/features/daily-reports/page.html†L1-L152】【F:frontend/src/app/features/settings/page.html†L1-L220】
-4. **データ表示パターンの適用** – ボード、分析、評価のカード／リストを `surface-panel` / `page-list` に置き換え、追加で必要なバリエーション（ステップカード、統計カードなど）をデザイン定義する。【F:frontend/src/app/features/board/page.html†L1-L240】【F:frontend/src/app/features/analytics/page.html†L32-L200】
-5. **画面単位での移行** – 影響範囲が小さいページ（認証 → 日報 → 分析 → ボード → 設定 → 管理 → プロフィール）の順に適用し、各ステップで E2E/ユニットテストと手動確認を行う。
-6. **QA とアクセシビリティ検証** – フォーカス遷移、キーボード操作、ダークテーマ表示を画面ごとに確認し、不整合があればトークンまたはコンポーネント定義へフィードバックする。
+### カードコンテナ（Card Container）
+- 複数のカードを並べる場合は `.card-collection` を用意し、`display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;` を基本とする。
+- カンバン形式では `.board-columns` を使用し、列ヘッダーもカードと同じスタイルで揃える。列間余白は 24px。
 
-## ドキュメンテーションと運用
-- 本ガイドを `docs` ディレクトリに保守し、UI 変更時は該当セクションへ追記する。
-- 新規画面を追加する際は「背景」→「レイアウト」→「コンポーネント」→「アクセシビリティ」の順でガイドライン準拠を確認するチェックリストを運用する。
-- デザイン変更は `design-review` ラベルの Issue / PR で議論し、主要コンポーネントの Storybook 化（将来の導入想定）を検討して UI 回帰を防ぐ。
+### リスト & テーブル
+- `.page-list` は縦方向のカード群を軽量に表現するスタイル。各アイテムは 16px の上下余白とボーダーで区切る。
+- テーブルは `.page-table` を基準に、ヘッダ背景を `--color-surface-alt`、セル余白は 16px とする。斜線や濃い罫線は使用せず、ストライプで視認性を確保。
+
+### フォーム
+- 各入力は `.form-field`（ラベル、説明、入力）の構造を守る。ラベルは 14px/600、説明文は 12px/60% トーン。
+- 入力コントロールは高さ 44px、角丸 8px、ボーダーは `1px solid var(--color-border)`。フォーカス時はボーダーをアクセントカラーに変更。
+- 複数項目を並べる場合は `.form-grid` を用い、2 カラム時は `minmax(240px, 1fr)` を基本とする。
+- バリデーションメッセージは赤系のテキストで入力直下に表示し、`role="alert"` を付与する。
+- Disabled 状態では背景を 8% トーンアップ/ダウンし、文字色はセカンダリトーンを維持することで 3:1 を確保する。
+
+### ステータスチップ & バッジ
+- `.surface-pill` をベースに、丸み 999px、余白は `8px 12px`。テキストは 13px/600。
+- 状態ごとに `--pill-success`、`--pill-warning`、`--pill-danger` を用意し、背景は 16% トーン、テキストは濃色でコントラストを確保。
+- カード内の補助ラベルは `.page-badge` を使用し、角丸 6px のフラットなラベルとして表示する。
+
+### タブ & トグル
+- `.page-tabs` は水平方向に配置し、アクティブタブはアクセント色の下線 + テキスト色 100%。非アクティブは 60% トーン。
+- トグルは `.form-toggle` を使用し、チェック時のみアクセント色、未チェック時はボーダーのみのミニマルな見た目とする。
+- 各状態の配色はライト/ダークともに 3:1 以上のコントラストとなるよう、背景トーンとラベル色をセットで定義する。ホバー時は下線を 2px に強調し、アクティブ状態は背景に 8% のトーンを加える。
+
+### フィードバック & 空状態
+- 成功/警告/エラーのメッセージは `app-alert` を使用し、アイコン + タイトル + 説明文 + アクションの 4 パート構成。
+- 空状態やロード中は `.page-state` を採用し、イラストやアイコンは 64px 程度の単色ラインアイコンで統一する。
+
+### ダイアログ / モーダル
+- `.app-dialog` をベースに最大幅 480px、角丸 16px。ヘッダー（タイトル + クローズ）、ボディ（テキスト or フォーム）、フッター（アクション）を明確に分ける。
+- オーバーレイは 40% のブラックで画面全体を覆い、背景スクロールを禁止する。
+
+## 運用ルール
+1. 新規 UI を追加する際は上記コンポーネントを優先的に利用し、独自スタイルを定義する場合はデザインチームと合意する。
+2. Figma などのデザインファイルは本ガイドラインと同期し、差異が生じた場合は双方を更新する。
+3. ダークテーマは同じ構造を維持し、色トークンのみの差し替えで成立するようにする。新規トークンを追加する場合はライト/ダーク両テーマと各状態のコントラスト値（WCAG AA 適合）を記録する。
+4. 変更履歴を `docs/ui-design-system.md` に追記し、主要コンポーネントの更新内容を開発チームと共有する。
+
