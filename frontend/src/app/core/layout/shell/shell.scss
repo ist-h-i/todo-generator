@@ -1,6 +1,6 @@
 :host {
   display: block;
-  --shell-inline-padding: clamp(1rem, 3vw, 2.5rem);
+  --shell-inline-padding: clamp(0.75rem, 1.75vw, 2rem);
   --shell-max-width: min(100%, 120rem);
 }
 
