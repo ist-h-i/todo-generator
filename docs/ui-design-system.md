@@ -86,11 +86,11 @@
 - ホバー時は背景トーンを 6% 明るく（ダークでは 6% 暗く）し、アクションの存在を示す。文字色は変えずに 4.5:1 を維持する。
 
 ### カードコンテナ（Card Container）
-- 複数のカードを並べる場合は `.card-collection` を用意し、`display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;` を基本とする。
-- カンバン形式では `.board-columns` を使用し、列ヘッダーもカードと同じスタイルで揃える。列間余白は 24px。
+- 複数のカードを並べる場合は `.card-collection` を用意し、`display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 24px;` を基本とする。これにより画面幅に応じて 1〜3 列まで自然にリフローし、余白を保ちながら情報密度を最適化する。
+- カンバン形式では `.board-columns` を使用し、`repeat(auto-fit, minmax(19rem, 1fr))` のグリッドで列幅を自動調整する。列ヘッダーもカードと同じスタイルで揃え、列間余白は 24px を目安にする。
 
 ### リスト & テーブル
-- `.page-list` は縦方向のカード群を軽量に表現するスタイル。各アイテムは 16px の上下余白とボーダーで区切る。
+- `.page-list` は縦方向のカード群を軽量に表現するスタイル。`grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr))` で最大 3 列まで展開し、ビューポートに応じて 1 列へ自動的に戻る。各アイテムは 16px の上下余白とボーダーで区切る。
 - テーブルは `.page-table` を基準に、ヘッダ背景を `--color-surface-alt`、セル余白は 16px とする。斜線や濃い罫線は使用せず、ストライプで視認性を確保。
 
 ### フォーム
