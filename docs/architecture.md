@@ -1,7 +1,7 @@
 # Architecture Overview
 
 ## System Context
-Todo Generator combines an Angular single-page application with a FastAPI backend that exposes
+Verbalize Yourself combines an Angular single-page application with a FastAPI backend that exposes
 modular routers for cards, analytics, initiatives, competencies, reporting, and administration while
 sharing a common SQLAlchemy model layer.【F:frontend/package.json†L1-L60】【F:frontend/src/app/app.routes.ts†L9-L66】【F:backend/app/main.py†L1-L69】【F:backend/app/models.py†L120-L439】
 AI assistance is woven into the platform through a dedicated ChatGPT client that structures proposals

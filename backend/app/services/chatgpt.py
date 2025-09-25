@@ -98,7 +98,7 @@ class ChatGPTClient:
     }
 
     _SYSTEM_PROMPT: ClassVar[str] = (
-        "You are Todo Generator's analysis assistant."
+        "You are Verbalize Yourself's analysis assistant."
         " Extract actionable work items from free-form product notes and respond"
         " using the requested JSON schema. Each proposal must contain a concise"
         " title, a summary that elaborates on the goal, optional labels,"

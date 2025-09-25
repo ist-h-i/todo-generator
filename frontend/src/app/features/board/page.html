@@ -164,7 +164,7 @@
       <div class="board-columns" cdkDropListGroup>
         @for (column of columnsSignal(); track column.id) {
           <section
-            class="board-column"
+            class="board-column surface-panel"
             cdkDropList
             [cdkDropListData]="column.cards"
             [cdkDropListDisabled]="groupingSignal() !== 'status'"
@@ -286,7 +286,7 @@
       <div class="board-columns subtask-columns" cdkDropListGroup>
         @for (column of subtaskColumnsSignal(); track column.id) {
           <section
-            class="board-column subtask-column"
+            class="board-column subtask-column surface-panel"
             cdkDropList
             [cdkDropListData]="column.subtasks"
             (cdkDropListDropped)="handleSubtaskDrop(column.id, $event)"
@@ -369,271 +369,263 @@
     </section>
 
     @if (selectedCardSignal(); as active) {
-      <aside class="surface-panel grid min-w-0 gap-8 px-8 py-8 lg:grid-cols-[2fr_1fr]">
-        <div class="min-w-0 space-y-6">
-          <div class="card-detail-header">
-            <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-slate-400">カード編集</p>
-              <h3 class="text-xl font-semibold text-on-surface">
-                {{ active.title }}
-              </h3>
+      <aside class="surface-panel page-panel board-detail" aria-labelledby="board-detail-title">
+        <div class="board-detail__header">
+          <div>
+            <p class="board-detail__eyebrow">カード編集</p>
+            <h3 id="board-detail-title" class="board-detail__title">
+              {{ active.title }}
+            </h3>
+          </div>
+          <button type="button" class="button button--ghost button--pill" (click)="openCard(null)">
+            閉じる
+          </button>
+        </div>
+        <form class="card-editor" (submit)="saveCardDetails($event)">
+          <div class="grid gap-4">
+            <label class="card-editor__field">
+              <span class="card-editor__field-label">タイトル</span>
+              <input
+                type="text"
+                class="card-editor__input"
+                placeholder="カード名を入力"
+                [value]="cardForm.controls.title.value()"
+                (input)="cardForm.controls.title.setValue($any($event.target).value)"
+              />
+            </label>
+            <label class="card-editor__field">
+              <span class="card-editor__field-label">概要</span>
+              <textarea
+                class="card-editor__textarea"
+                rows="3"
+                placeholder="タスクの背景や目的を記入"
+                [value]="cardForm.controls.summary.value()"
+                (input)="cardForm.controls.summary.setValue($any($event.target).value)"
+              ></textarea>
+            </label>
+          </div>
+          <div class="card-editor__grid">
+            <label class="card-editor__field">
+              <span class="card-editor__field-label">ステータス</span>
+              <select
+                class="card-editor__input"
+                [value]="cardForm.controls.statusId.value()"
+                (change)="cardForm.controls.statusId.setValue($any($event.target).value)"
+              >
+                @for (status of statusesSignal(); track status.id) {
+                  <option [value]="status.id">{{ status.name }}</option>
+                }
+              </select>
+            </label>
+            <label class="card-editor__field">
+              <span class="card-editor__field-label">優先度</span>
+              <select
+                class="card-editor__input"
+                [value]="cardForm.controls.priority.value()"
+                (change)="cardForm.controls.priority.setValue($any($event.target).value)"
+              >
+                @for (priority of cardPriorities; track priority.id) {
+                  <option [value]="priority.id">{{ priority.label }}</option>
+                }
+              </select>
+            </label>
+          </div>
+          <div class="card-editor__grid">
+            <label class="card-editor__field">
+              <span class="card-editor__field-label">担当者</span>
+              <input
+                type="text"
+                class="card-editor__input"
+                placeholder="例: 田中太郎"
+                [value]="cardForm.controls.assignee.value()"
+                (input)="cardForm.controls.assignee.setValue($any($event.target).value)"
+              />
+            </label>
+            <label class="card-editor__field">
+              <span class="card-editor__field-label">ストーリーポイント</span>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                class="card-editor__input"
+                placeholder="例: 5"
+                [value]="cardForm.controls.storyPoints.value()"
+                (input)="cardForm.controls.storyPoints.setValue($any($event.target).value)"
+              />
+            </label>
+          </div>
+          <div class="card-editor__labels">
+            <span class="card-editor__section-label">ラベル</span>
+            <div class="card-editor__labels-grid">
+              @for (label of labelsSignal(); track label.id) {
+                <label class="card-editor__label-option">
+                  <input
+                    type="checkbox"
+                    [checked]="isLabelApplied(active, label.id)"
+                    (change)="handleLabelToggle(active, label.id, $any($event.target).checked)"
+                  />
+                  <span>{{ label.name }}</span>
+                </label>
+              }
             </div>
+          </div>
+          <div class="card-editor__actions">
             <button
-              type="button"
-              class="surface-pill focus-ring px-4 py-2 text-xs font-semibold"
-              (click)="openCard(null)"
+              type="submit"
+              class="button button--primary button--pill"
+              [disabled]="!isCardFormValid()"
             >
-              閉じる
+              カード情報を保存
             </button>
           </div>
-          <form class="card-editor" (submit)="saveCardDetails($event)">
-            <div class="grid gap-4">
-              <label class="card-editor__field">
-                <span class="card-editor__field-label">タイトル</span>
+        </form>
+        <section class="subtask-editor space-y-4">
+          <div class="space-y-1">
+            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">サブタスク管理</p>
+            <h4 class="text-lg font-semibold text-on-surface">カード配下のタスクを編集</h4>
+            <p class="text-xs text-slate-500">
+              タイトルや担当者を直接修正し、不要になったサブタスクは削除できます。
+            </p>
+          </div>
+          <ul class="subtask-editor__list space-y-3">
+            @if (active.subtasks.length === 0) {
+              <li
+                class="rounded-2xl border border-dashed border-subtle bg-surface px-4 py-6 text-sm text-slate-500"
+              >
+                サブタスクはまだありません。
+              </li>
+            } @else {
+              @for (task of active.subtasks; track task.id) {
+                <li class="subtask-editor__item">
+                  <div class="subtask-editor__grid">
+                    <label class="subtask-editor__field">
+                      <span class="subtask-editor__field-label">タイトル</span>
+                      <input
+                        type="text"
+                        class="subtask-editor__input"
+                        [value]="task.title"
+                        (change)="updateSubtaskTitle(active.id, task.id, $any($event.target).value)"
+                      />
+                    </label>
+                    <label class="subtask-editor__field">
+                      <span class="subtask-editor__field-label">ステータス</span>
+                      <select
+                        class="subtask-editor__input"
+                        [value]="task.status"
+                        (change)="
+                          changeSubtaskStatus(active.id, task.id, $any($event.target).value)
+                        "
+                      >
+                        @for (status of statusesSignal(); track status.id) {
+                          <option [value]="status.id">{{ status.name }}</option>
+                        }
+                      </select>
+                    </label>
+                  </div>
+                  <div class="subtask-editor__grid">
+                    <label class="subtask-editor__field">
+                      <span class="subtask-editor__field-label">担当者</span>
+                      <input
+                        type="text"
+                        class="subtask-editor__input"
+                        placeholder="任意"
+                        [value]="task.assignee ?? ''"
+                        (change)="
+                          updateSubtaskAssignee(active.id, task.id, $any($event.target).value)
+                        "
+                      />
+                    </label>
+                    <label class="subtask-editor__field">
+                      <span class="subtask-editor__field-label">工数 (h)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        class="subtask-editor__input"
+                        placeholder="任意"
+                        [value]="task.estimateHours ?? ''"
+                        (change)="
+                          updateSubtaskEstimate(active.id, task.id, $any($event.target).value)
+                        "
+                      />
+                    </label>
+                  </div>
+                  <div class="subtask-editor__actions">
+                    <button
+                      type="button"
+                      class="surface-pill focus-ring px-4 py-2 text-xs font-semibold text-red-600 dark:text-red-400"
+                      (click)="deleteSubtask(active.id, task.id)"
+                    >
+                      サブタスクを削除
+                    </button>
+                  </div>
+                </li>
+              }
+            }
+          </ul>
+          <form class="subtask-editor__form" (submit)="addSubtask($event)">
+            <h5 class="text-sm font-semibold text-on-surface">サブタスクを追加</h5>
+            <div class="subtask-editor__grid">
+              <label class="subtask-editor__field">
+                <span class="subtask-editor__field-label">タイトル</span>
                 <input
                   type="text"
-                  class="card-editor__input"
-                  placeholder="カード名を入力"
-                  [value]="cardForm.controls.title.value()"
-                  (input)="cardForm.controls.title.setValue($any($event.target).value)"
+                  class="subtask-editor__input"
+                  placeholder="作業内容を入力"
+                  [value]="newSubtaskForm.controls.title.value()"
+                  (input)="newSubtaskForm.controls.title.setValue($any($event.target).value)"
                 />
               </label>
-              <label class="card-editor__field">
-                <span class="card-editor__field-label">概要</span>
-                <textarea
-                  class="card-editor__textarea"
-                  rows="3"
-                  placeholder="タスクの背景や目的を記入"
-                  [value]="cardForm.controls.summary.value()"
-                  (input)="cardForm.controls.summary.setValue($any($event.target).value)"
-                ></textarea>
-              </label>
-            </div>
-            <div class="card-editor__grid">
-              <label class="card-editor__field">
-                <span class="card-editor__field-label">ステータス</span>
+              <label class="subtask-editor__field">
+                <span class="subtask-editor__field-label">ステータス</span>
                 <select
-                  class="card-editor__input"
-                  [value]="cardForm.controls.statusId.value()"
-                  (change)="cardForm.controls.statusId.setValue($any($event.target).value)"
+                  class="subtask-editor__input"
+                  [value]="newSubtaskForm.controls.status.value()"
+                  (change)="newSubtaskForm.controls.status.setValue($any($event.target).value)"
                 >
                   @for (status of statusesSignal(); track status.id) {
                     <option [value]="status.id">{{ status.name }}</option>
                   }
                 </select>
               </label>
-              <label class="card-editor__field">
-                <span class="card-editor__field-label">優先度</span>
-                <select
-                  class="card-editor__input"
-                  [value]="cardForm.controls.priority.value()"
-                  (change)="cardForm.controls.priority.setValue($any($event.target).value)"
-                >
-                  @for (priority of cardPriorities; track priority.id) {
-                    <option [value]="priority.id">{{ priority.label }}</option>
-                  }
-                </select>
-              </label>
             </div>
-            <div class="card-editor__grid">
-              <label class="card-editor__field">
-                <span class="card-editor__field-label">担当者</span>
+            <div class="subtask-editor__grid">
+              <label class="subtask-editor__field">
+                <span class="subtask-editor__field-label">担当者</span>
                 <input
                   type="text"
-                  class="card-editor__input"
-                  placeholder="例: 田中太郎"
-                  [value]="cardForm.controls.assignee.value()"
-                  (input)="cardForm.controls.assignee.setValue($any($event.target).value)"
+                  class="subtask-editor__input"
+                  placeholder="任意"
+                  [value]="newSubtaskForm.controls.assignee.value()"
+                  (input)="newSubtaskForm.controls.assignee.setValue($any($event.target).value)"
                 />
               </label>
-              <label class="card-editor__field">
-                <span class="card-editor__field-label">ストーリーポイント</span>
+              <label class="subtask-editor__field">
+                <span class="subtask-editor__field-label">工数 (h)</span>
                 <input
                   type="number"
                   min="0"
                   step="0.5"
-                  class="card-editor__input"
-                  placeholder="例: 5"
-                  [value]="cardForm.controls.storyPoints.value()"
-                  (input)="cardForm.controls.storyPoints.setValue($any($event.target).value)"
+                  class="subtask-editor__input"
+                  placeholder="任意"
+                  [value]="newSubtaskForm.controls.estimateHours.value()"
+                  (input)="
+                    newSubtaskForm.controls.estimateHours.setValue($any($event.target).value)
+                  "
                 />
               </label>
             </div>
-            <div class="card-editor__labels">
-              <span class="card-editor__section-label">ラベル</span>
-              <div class="card-editor__labels-grid">
-                @for (label of labelsSignal(); track label.id) {
-                  <label class="card-editor__label-option">
-                    <input
-                      type="checkbox"
-                      [checked]="isLabelApplied(active, label.id)"
-                      (change)="handleLabelToggle(active, label.id, $any($event.target).checked)"
-                    />
-                    <span>{{ label.name }}</span>
-                  </label>
-                }
-              </div>
-            </div>
-            <div class="card-editor__actions">
+            <div class="subtask-editor__actions">
               <button
                 type="submit"
                 class="surface-primary focus-ring rounded-full px-5 py-3 text-sm font-semibold disabled:pointer-events-none disabled:opacity-60"
-                [disabled]="!isCardFormValid()"
+                [disabled]="!isNewSubtaskFormValid()"
               >
-                カード情報を保存
+                サブタスクを追加
               </button>
             </div>
           </form>
-          <section class="subtask-editor space-y-4">
-            <div class="space-y-1">
-              <p class="text-xs uppercase tracking-[0.3em] text-slate-400">サブタスク管理</p>
-              <h4 class="text-lg font-semibold text-on-surface">カード配下のタスクを編集</h4>
-              <p class="text-xs text-slate-500">
-                タイトルや担当者を直接修正し、不要になったサブタスクは削除できます。
-              </p>
-            </div>
-            <ul class="subtask-editor__list space-y-3">
-              @if (active.subtasks.length === 0) {
-                <li
-                  class="rounded-2xl border border-dashed border-subtle bg-surface px-4 py-6 text-sm text-slate-500"
-                >
-                  サブタスクはまだありません。
-                </li>
-              } @else {
-                @for (task of active.subtasks; track task.id) {
-                  <li class="subtask-editor__item">
-                    <div class="subtask-editor__grid">
-                      <label class="subtask-editor__field">
-                        <span class="subtask-editor__field-label">タイトル</span>
-                        <input
-                          type="text"
-                          class="subtask-editor__input"
-                          [value]="task.title"
-                          (change)="
-                            updateSubtaskTitle(active.id, task.id, $any($event.target).value)
-                          "
-                        />
-                      </label>
-                      <label class="subtask-editor__field">
-                        <span class="subtask-editor__field-label">ステータス</span>
-                        <select
-                          class="subtask-editor__input"
-                          [value]="task.status"
-                          (change)="
-                            changeSubtaskStatus(active.id, task.id, $any($event.target).value)
-                          "
-                        >
-                          @for (status of statusesSignal(); track status.id) {
-                            <option [value]="status.id">{{ status.name }}</option>
-                          }
-                        </select>
-                      </label>
-                    </div>
-                    <div class="subtask-editor__grid">
-                      <label class="subtask-editor__field">
-                        <span class="subtask-editor__field-label">担当者</span>
-                        <input
-                          type="text"
-                          class="subtask-editor__input"
-                          placeholder="任意"
-                          [value]="task.assignee ?? ''"
-                          (change)="
-                            updateSubtaskAssignee(active.id, task.id, $any($event.target).value)
-                          "
-                        />
-                      </label>
-                      <label class="subtask-editor__field">
-                        <span class="subtask-editor__field-label">工数 (h)</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          class="subtask-editor__input"
-                          placeholder="任意"
-                          [value]="task.estimateHours ?? ''"
-                          (change)="
-                            updateSubtaskEstimate(active.id, task.id, $any($event.target).value)
-                          "
-                        />
-                      </label>
-                    </div>
-                    <div class="subtask-editor__actions">
-                      <button
-                        type="button"
-                        class="surface-pill focus-ring px-4 py-2 text-xs font-semibold text-red-600 dark:text-red-400"
-                        (click)="deleteSubtask(active.id, task.id)"
-                      >
-                        サブタスクを削除
-                      </button>
-                    </div>
-                  </li>
-                }
-              }
-            </ul>
-            <form class="subtask-editor__form" (submit)="addSubtask($event)">
-              <h5 class="text-sm font-semibold text-on-surface">サブタスクを追加</h5>
-              <div class="subtask-editor__grid">
-                <label class="subtask-editor__field">
-                  <span class="subtask-editor__field-label">タイトル</span>
-                  <input
-                    type="text"
-                    class="subtask-editor__input"
-                    placeholder="作業内容を入力"
-                    [value]="newSubtaskForm.controls.title.value()"
-                    (input)="newSubtaskForm.controls.title.setValue($any($event.target).value)"
-                  />
-                </label>
-                <label class="subtask-editor__field">
-                  <span class="subtask-editor__field-label">ステータス</span>
-                  <select
-                    class="subtask-editor__input"
-                    [value]="newSubtaskForm.controls.status.value()"
-                    (change)="newSubtaskForm.controls.status.setValue($any($event.target).value)"
-                  >
-                    @for (status of statusesSignal(); track status.id) {
-                      <option [value]="status.id">{{ status.name }}</option>
-                    }
-                  </select>
-                </label>
-              </div>
-              <div class="subtask-editor__grid">
-                <label class="subtask-editor__field">
-                  <span class="subtask-editor__field-label">担当者</span>
-                  <input
-                    type="text"
-                    class="subtask-editor__input"
-                    placeholder="任意"
-                    [value]="newSubtaskForm.controls.assignee.value()"
-                    (input)="newSubtaskForm.controls.assignee.setValue($any($event.target).value)"
-                  />
-                </label>
-                <label class="subtask-editor__field">
-                  <span class="subtask-editor__field-label">工数 (h)</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    class="subtask-editor__input"
-                    placeholder="任意"
-                    [value]="newSubtaskForm.controls.estimateHours.value()"
-                    (input)="
-                      newSubtaskForm.controls.estimateHours.setValue($any($event.target).value)
-                    "
-                  />
-                </label>
-              </div>
-              <div class="subtask-editor__actions">
-                <button
-                  type="submit"
-                  class="surface-primary focus-ring rounded-full px-5 py-3 text-sm font-semibold disabled:pointer-events-none disabled:opacity-60"
-                  [disabled]="!isNewSubtaskFormValid()"
-                >
-                  サブタスクを追加
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
+        </section>
         <div class="min-w-0 space-y-6">
           <section class="comment-editor space-y-4">
             <div class="space-y-1">

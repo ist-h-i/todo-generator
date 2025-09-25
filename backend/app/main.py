@@ -12,18 +12,19 @@ from .routers import (
     admin_users,
     analysis,
     analytics,
+    appeals,
     auth,
     cards,
-    daily_reports,
     comments,
     competencies,
     competency_evaluations,
+    daily_reports,
     error_categories,
     filters,
     initiatives,
     labels,
-    profile,
     preferences,
+    profile,
     reports,
     statuses,
     suggested_actions,
@@ -33,7 +34,7 @@ run_startup_migrations(engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Todo Generator Backend",
+    title="Verbalize Yourself Backend",
     description="API for transforming unstructured input into actionable task boards.",
     version="0.1.0",
 )
@@ -48,6 +49,7 @@ app.add_middleware(
 
 app.include_router(analysis.router)
 app.include_router(analytics.router)
+app.include_router(appeals.router)
 app.include_router(auth.router)
 app.include_router(cards.router)
 app.include_router(daily_reports.router)

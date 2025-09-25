@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@a
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { RouterLink } from '@angular/router';
+import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
 
 import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
 
