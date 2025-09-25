@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import logging
+import re
 from collections import defaultdict
 from typing import ClassVar, Iterable
 
@@ -10,6 +11,17 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from ..repositories.appeals import AppealGenerationRepository
+from ..services.appeal_prompts import (
+    CAUSAL_CONNECTORS,
+    AppealFallbackBuilder,
+    AppealPromptBuilder,
+)
+from ..services.chatgpt import (
+    ChatGPTClient,
+    ChatGPTError,
+    get_optional_chatgpt_client,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +51,12 @@ class AppealGenerationService:
         ),
     ]
 
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, chatgpt: ChatGPTClient | None = None) -> None:
         self._db = db
+        self._chatgpt = chatgpt
+        self._prompt_builder = AppealPromptBuilder()
+        self._fallback_builder = AppealFallbackBuilder()
+        self._repository = AppealGenerationRepository(db)
 
     def load_configuration(self, *, owner: models.User) -> schemas.AppealConfigResponse:
         labels = self._load_labels_with_achievements(owner_id=owner.id)
@@ -75,41 +91,99 @@ class AppealGenerationService:
 
         sanitized_subject = self._sanitize_subject(subject_text)
         achievements = self._resolve_achievements(owner_id=owner.id, label_id=subject_label_id, request=request)
+        sanitized_achievements = self._sanitize_achievements(achievements)
         warnings = self._derive_flow_warnings(request.flow)
-        generated_formats = {}
-        for format_id in request.formats:
-            content = self._build_fallback_content(format_id, sanitized_subject, request.flow, achievements)
-            generated_formats[format_id] = schemas.AppealGeneratedFormat(content=content, tokens_used=0)
 
-        generation = models.AppealGeneration(
+        fallback_formats = self._build_fallback_formats(
+            request.formats,
+            subject=sanitized_subject,
+            flow=request.flow,
+            achievements=sanitized_achievements,
+        )
+
+        generated_formats = dict(fallback_formats)
+        token_usage = {fmt: payload.tokens_used or 0 for fmt, payload in fallback_formats.items()}
+        generation_status = "fallback"
+
+        if self._chatgpt is not None:
+            try:
+                prompt = self._prompt_builder.build(
+                    subject=sanitized_subject,
+                    subject_type=request.subject.type,
+                    flow=request.flow,
+                    achievements=sanitized_achievements,
+                    formats=[
+                        self._format_definitions[fmt] for fmt in request.formats if fmt in self._format_definitions
+                    ],
+                    workspace_profile=self._build_workspace_profile(owner),
+                )
+                response_schema = self._prompt_builder.build_response_schema(request.formats)
+                payload = self._chatgpt.generate_appeal(prompt=prompt, response_schema=response_schema)
+                generated_formats, token_usage, generation_status = self._merge_ai_payload(
+                    requested_formats=request.formats,
+                    payload=payload,
+                    fallback_formats=fallback_formats,
+                    subject=sanitized_subject,
+                )
+            except ChatGPTError:
+                logger.warning("Appeal generation via ChatGPT failed; using fallback content", exc_info=True)
+
+        record = self._repository.create(
             owner_id=owner.id,
             subject_type=request.subject.type,
             subject_value=sanitized_subject,
             flow=request.flow,
             formats=request.formats,
-            content_json={key: value.model_dump() for key, value in generated_formats.items()},
-            token_usage={key: value.tokens_used or 0 for key, value in generated_formats.items()},
+            formats_payload=generated_formats,
+            token_usage=token_usage,
             warnings=warnings,
-            generation_status="fallback",
+            generation_status=generation_status,
         )
-        self._db.add(generation)
-        self._db.commit()
-        self._db.refresh(generation)
 
         return schemas.AppealGenerationResponse(
-            generation_id=generation.id,
+            generation_id=record.id,
             subject_echo=sanitized_subject,
             flow=request.flow,
             warnings=warnings,
             formats=generated_formats,
         )
 
+    @property
+    def _format_definitions(self) -> dict[str, schemas.AppealFormatDefinition]:
+        return {item.id: item for item in self._AVAILABLE_FORMATS}
+
     def _sanitize_subject(self, value: str) -> str:
-        sanitized = html.escape(value.strip())
+        masked = self._mask_sensitive_text(value.strip())
+        sanitized = html.escape(masked)
         if len(sanitized) > 120:
             logger.debug("Truncating subject to 120 characters for appeal generation")
             return sanitized[:120]
         return sanitized
+
+    def _sanitize_achievements(
+        self, achievements: Iterable[schemas.AppealAchievement]
+    ) -> list[schemas.AppealAchievement]:
+        sanitized: list[schemas.AppealAchievement] = []
+        for achievement in achievements:
+            title = html.escape(self._mask_sensitive_text(achievement.title))
+            summary = html.escape(self._mask_sensitive_text(achievement.summary)) if achievement.summary else None
+            sanitized.append(
+                schemas.AppealAchievement(
+                    id=achievement.id,
+                    title=title,
+                    summary=summary,
+                )
+            )
+        return sanitized
+
+    def _mask_sensitive_text(self, value: str | None) -> str:
+        if not value:
+            return ""
+        text = value
+        text = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+", "[redacted-email]", text)
+        text = re.sub(r"\d{3}-\d{4}-\d{4}", "[redacted-phone]", text)
+        text = re.sub(r"\d{4,}", "[redacted-number]", text)
+        return text
 
     def _resolve_achievements(
         self,
@@ -145,7 +219,7 @@ class AppealGenerationService:
                     name=label.name,
                     color=label.color,
                     description=label.description,
-                    achievements=achievement_map.get(label.id, []),
+                    achievements=self._sanitize_achievements(achievement_map.get(label.id, [])),
                 )
             )
         return results
@@ -190,67 +264,140 @@ class AppealGenerationService:
             warnings.append("課題ステップが設定されていないため、因果関係が伝わりづらくなる可能性があります。")
         return warnings
 
-    def _build_fallback_content(
+    def _build_workspace_profile(self, owner: models.User) -> dict[str, object]:
+        profile: dict[str, object] = {
+            "workspace_id": owner.id,
+        }
+        if owner.roles:
+            profile["roles"] = owner.roles
+        if owner.experience_years is not None:
+            profile["experience_years"] = owner.experience_years
+        if owner.nickname:
+            profile["display_name"] = owner.nickname
+        return profile
+
+    def _build_fallback_formats(
         self,
-        format_id: str,
+        format_ids: Iterable[str],
+        *,
         subject: str,
         flow: list[str],
-        achievements: list[schemas.AppealAchievement],
-    ) -> str:
-        connectors = {"link": "そのため", "result": "結果として"}
-        normalized_flow = [step.strip() for step in flow if step.strip()]
-        if format_id == "markdown":
-            lines: list[str] = [f"# {subject} のアピール"]
-            previous_step: str | None = None
-            for step in normalized_flow:
-                lines.append(f"## {step}")
-                if previous_step is None:
-                    lines.append(f"{connectors['link']}、{subject}に関する{step}の背景を整理しました。")
+        achievements: Iterable[schemas.AppealAchievement],
+    ) -> dict[str, schemas.AppealGeneratedFormat]:
+        results: dict[str, schemas.AppealGeneratedFormat] = {}
+        for format_id in format_ids:
+            content = self._fallback_builder.build(
+                format_id,
+                subject=subject,
+                flow=flow,
+                achievements=achievements,
+            )
+            results[format_id] = schemas.AppealGeneratedFormat(content=content, tokens_used=0)
+        return results
+
+    def _merge_ai_payload(
+        self,
+        *,
+        requested_formats: list[str],
+        payload: dict[str, object],
+        fallback_formats: dict[str, schemas.AppealGeneratedFormat],
+        subject: str,
+    ) -> tuple[dict[str, schemas.AppealGeneratedFormat], dict[str, int], str]:
+        raw_formats = payload.get("formats", {})
+        if not isinstance(raw_formats, dict):
+            raw_formats = {}
+
+        usage_info = payload.get("token_usage")
+        usage_map: dict[str, int] = {}
+        if isinstance(usage_info, dict):
+            for key, value in usage_info.items():
+                coerced = self._coerce_int(value)
+                if coerced is not None:
+                    usage_map[str(key)] = coerced
+
+        generated: dict[str, schemas.AppealGeneratedFormat] = {}
+        tokens: dict[str, int] = {}
+        used_ai = False
+        used_fallback = False
+
+        for format_id in requested_formats:
+            entry = raw_formats.get(format_id)
+            if isinstance(entry, dict) and entry.get("content"):
+                content = str(entry["content"]).strip()
+                if not content:
+                    generated_format = fallback_formats[format_id]
+                    used_fallback = True
                 else:
-                    lines.append(f"{connectors['link']}、{previous_step}を踏まえて{step}を推進しました。")
-                previous_step = step
-            if achievements:
-                lines.append("## 実績ハイライト")
-                for item in achievements:
-                    summary = item.summary or "価値提供につながりました。"
-                    lines.append(f"- {connectors['result']}、{item.title}を達成し、{summary}")
-            lines.append(f"{connectors['result']}、{subject}の強みを示すことができました。")
-            return "\n".join(lines)
-
-        if format_id == "bullet_list":
-            items: list[str] = []
-            for step in normalized_flow:
-                prefix = f"{connectors['link']}、"
-                items.append(f"- {prefix}{step}に取り組みました。")
-            if achievements:
-                highlight = achievements[0]
-                summary = highlight.summary or "価値提供につながりました。"
-                items.append(f"- {connectors['result']}、{highlight.title}を示し、{summary}")
+                    normalized = self._ensure_connectors(format_id, content, subject)
+                    tokens_used = self._coerce_int(entry.get("tokens_used") if isinstance(entry, dict) else None)
+                    if tokens_used is None:
+                        tokens_used = usage_map.get(format_id) or usage_map.get("total_tokens") or 0
+                    generated_format = schemas.AppealGeneratedFormat(
+                        content=normalized,
+                        tokens_used=tokens_used,
+                    )
+                    tokens[format_id] = tokens_used
+                    used_ai = True
             else:
-                items.append(f"- {connectors['result']}、{subject}の成長を証明しました。")
-            return "\n".join(items)
+                generated_format = fallback_formats[format_id]
+                used_fallback = True
 
-        if format_id == "table":
-            rows = ["Step,Summary"]
-            previous_step = None
-            for step in normalized_flow:
-                if previous_step is None:
-                    summary = f"{connectors['link']}、{subject}に関する{step}の背景整理"
-                else:
-                    summary = f"{connectors['link']}、{previous_step}を踏まえて{step}を推進"
-                rows.append(f"{step},{summary}")
-                previous_step = step
-            if achievements:
-                combined = achievements[0]
-                summary = combined.summary or "価値提供につながりました"
-                rows.append(f"{connectors['result']},{combined.title} - {summary}")
+            generated.setdefault(format_id, generated_format)
+            tokens.setdefault(format_id, generated_format.tokens_used or 0)
+
+        if not used_ai:
+            status = "fallback"
+        elif used_fallback:
+            status = "partial"
+        else:
+            status = "success"
+        if "total_tokens" in usage_map:
+            tokens.setdefault("total_tokens", usage_map["total_tokens"])
+        return generated, tokens, status
+
+    def _coerce_int(self, value: object) -> int | None:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str) and value.strip():
+            try:
+                return int(float(value))
+            except ValueError:
+                return None
+        return None
+
+    def _ensure_connectors(self, format_id: str, content: str, subject: str) -> str:
+        link = CAUSAL_CONNECTORS["link"]
+        result = CAUSAL_CONNECTORS["result"]
+        normalized = content
+        if link not in normalized:
+            if format_id == "table":
+                rows = normalized.splitlines()
+                if rows:
+                    if rows[0].lower().startswith("step"):
+                        rows.insert(1, f"{link},{subject}に関する背景整理")
+                    else:
+                        rows.insert(0, f"{link},{subject}に関する背景整理")
+                normalized = "\n".join(rows)
+            elif format_id == "bullet_list":
+                normalized = f"- {link}、{subject}に関する取り組みを整理しました。\n" + normalized
             else:
-                rows.append(f"{connectors['result']},{subject}の成果を共有")
-            return "\n".join(rows)
+                normalized = f"{link}、{subject}に関する背景を整理しました。\n{normalized}"
+        if result not in normalized:
+            if format_id == "table":
+                normalized = normalized.rstrip("\n") + f"\n{result},{subject}の価値を示しました。"
+            elif format_id == "bullet_list":
+                normalized = normalized.rstrip("\n") + f"\n- {result}、{subject}の価値を示しました。"
+            else:
+                normalized = normalized.rstrip("\n") + f"\n{result}、{subject}の価値を示しました。"
+        return normalized
 
-        # Default fallback mirrors markdown to ensure connectors are present.
-        return self._build_fallback_content("markdown", subject, flow, achievements)
 
-
-def get_appeal_service(db: Session = Depends(get_db)) -> AppealGenerationService:
-    return AppealGenerationService(db)
+def get_appeal_service(
+    db: Session = Depends(get_db),
+    chatgpt: ChatGPTClient | None = Depends(get_optional_chatgpt_client),
+) -> AppealGenerationService:
+    return AppealGenerationService(db, chatgpt)

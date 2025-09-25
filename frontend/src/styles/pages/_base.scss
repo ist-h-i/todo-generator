@@ -364,6 +364,7 @@
   padding: 0;
   display: grid;
   gap: 1.1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
 }
 
 .page-list__item {
@@ -375,6 +376,8 @@
   background: color-mix(in srgb, var(--surface-card) 85%, transparent);
   padding: 1.1rem 1.2rem;
   box-shadow: var(--shadow-soft);
+  min-width: 0;
+  height: 100%;
 }
 
 .page-list__heading {
