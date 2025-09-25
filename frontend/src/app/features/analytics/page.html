@@ -272,24 +272,24 @@
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article class="metric-card">
           <p class="text-xs uppercase tracking-[0.2em] text-slate-400">再発率</p>
-          <p class="mt-3 text-3xl font-semibold">
+          <p class="metric-card__value">
             {{ overview.recurrenceRate * 100 | number: '1.0-0' }}%
           </p>
           <p class="text-xs text-slate-500">前期比 {{ formatChange(overview.recurrenceDelta) }}</p>
         </article>
         <article class="metric-card">
           <p class="text-xs uppercase tracking-[0.2em] text-slate-400">フィードバック件数</p>
-          <p class="mt-3 text-3xl font-semibold">{{ overview.totalFeedback }}</p>
+          <p class="metric-card__value">{{ overview.totalFeedback }}</p>
           <p class="text-xs text-slate-500">ヒアリングとインシデントの総数</p>
         </article>
         <article class="metric-card">
           <p class="text-xs uppercase tracking-[0.2em] text-slate-400">タスク化した提案</p>
-          <p class="mt-3 text-3xl font-semibold">{{ overview.convertedActions }}</p>
+          <p class="metric-card__value">{{ overview.convertedActions }}</p>
           <p class="text-xs text-slate-500">残り {{ overview.pendingActions }} 件がレビュー待ち</p>
         </article>
         <article class="metric-card">
           <p class="text-xs uppercase tracking-[0.2em] text-slate-400">改善イニシアチブ</p>
-          <p class="mt-3 text-3xl font-semibold">{{ overview.completedInitiatives }}</p>
+          <p class="metric-card__value">{{ overview.completedInitiatives }}</p>
           <p class="text-xs text-slate-500">進行中 {{ overview.activeInitiatives }} 件</p>
         </article>
       </div>
