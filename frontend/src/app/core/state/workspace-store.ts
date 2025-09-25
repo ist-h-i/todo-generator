@@ -697,6 +697,32 @@ export class WorkspaceStore {
     );
   };
 
+  /**
+   * Permanently removes a card from the workspace.
+   *
+   * @param cardId - Identifier of the card to delete.
+   */
+  public readonly removeCard = (cardId: string): void => {
+    let removed = false;
+
+    this.cardsSignal.update((cards) => {
+      const next = cards.filter((card) => {
+        if (card.id === cardId) {
+          removed = true;
+          return false;
+        }
+
+        return true;
+      });
+
+      return removed ? next : cards;
+    });
+
+    if (removed && this.selectedCardIdSignal() === cardId) {
+      this.selectedCardIdSignal.set(null);
+    }
+  };
+
   public readonly updateSubtaskStatus = (
     cardId: string,
     subtaskId: string,

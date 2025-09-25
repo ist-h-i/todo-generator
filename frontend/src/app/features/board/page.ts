@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
-import { RouterLink } from '@angular/router';
 import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
@@ -58,11 +57,6 @@ const QUICK_FILTER_LABEL_LOOKUP = new Map(
   QUICK_FILTER_OPTIONS.map((option) => [option.id, option.label] as const),
 );
 
-interface CardPriorityOption {
-  readonly id: Card['priority'];
-  readonly label: string;
-}
-
 interface CardFormState {
   readonly title: string;
   readonly summary: string;
@@ -71,13 +65,6 @@ interface CardFormState {
   readonly storyPoints: string;
   readonly priority: Card['priority'];
 }
-
-const CARD_PRIORITIES: readonly CardPriorityOption[] = [
-  { id: 'low', label: '低' },
-  { id: 'medium', label: '中' },
-  { id: 'high', label: '高' },
-  { id: 'urgent', label: '緊急' },
-];
 
 type SubtaskStatus = Subtask['status'];
 
@@ -122,14 +109,13 @@ const RESOLVED_SUBTASK_STATUSES = new Set<SubtaskStatus>(['done', 'non-issue']);
 @Component({
   selector: 'app-board-page',
   standalone: true,
-  imports: [CommonModule, DragDropModule, RouterLink, PageHeaderComponent],
+  imports: [CommonModule, DragDropModule, PageHeaderComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BoardPage {
   private readonly workspace = inject(WorkspaceStore);
 
-  public readonly summarySignal = this.workspace.summary;
   public readonly groupingSignal = this.workspace.grouping;
   public readonly groupingLabelSignal = computed(() =>
     this.groupingSignal() === 'status' ? 'ステータス別' : 'ラベル別',
@@ -141,7 +127,6 @@ export class BoardPage {
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
   public readonly templatesSignal = computed(() => this.workspace.settings().templates);
   public readonly quickFilters = QUICK_FILTER_OPTIONS;
-  public readonly cardPriorities = CARD_PRIORITIES;
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();
@@ -335,6 +320,18 @@ export class BoardPage {
    */
   public readonly openCard = (cardId: string | null): void => {
     this.workspace.selectCard(cardId);
+  };
+
+  /**
+   * Requests confirmation before deleting the provided card.
+   *
+   * @param card - Card slated for deletion.
+   */
+  public readonly confirmDeleteCard = (card: Card): void => {
+    const message = `カード「${card.title}」を削除しますか？この操作は取り消せません。`;
+    if (window.confirm(message)) {
+      this.workspace.removeCard(card.id);
+    }
   };
 
   /**

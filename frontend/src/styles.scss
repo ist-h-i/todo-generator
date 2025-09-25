@@ -76,10 +76,13 @@
   --radius-xl: 1.75rem;
   --page-padding-block-start: clamp(1.5rem, 2vw, 2.5rem);
   --page-padding-block-end: 4rem;
+  --page-padding-inline-scale: 1.5;
   --page-content-gap: clamp(1.5rem, 3vw, 2.5rem);
   --panel-padding: clamp(1.5rem, 2vw, 2.2rem);
   --panel-gap: clamp(1.25rem, 2vw, 1.75rem);
-  --page-padding-inline: clamp(1.5rem, 4vw, 4.5rem);
+  --page-padding-inline: calc(
+    var(--page-padding-block-start) * var(--page-padding-inline-scale)
+  );
   color-scheme: light;
 }
 
@@ -163,12 +166,6 @@ body {
 .app-page {
   padding-block: var(--page-padding-block-start) var(--page-padding-block-end);
   padding-inline: var(--page-padding-inline);
-}
-
-@media (min-width: 80rem) {
-  :root {
-    --page-padding-inline: clamp(3rem, 6vw, 6rem);
-  }
 }
 
 a {
@@ -1085,7 +1082,6 @@ app-help-dialog .help-dialog__secondary:hover {
   border-color: var(--border-overlay-strong);
   color: var(--text-primary);
 }
-
 
 /* Profile dialog */
 app-profile-dialog .profile-dialog {
