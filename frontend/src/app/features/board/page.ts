@@ -58,11 +58,6 @@ const QUICK_FILTER_LABEL_LOOKUP = new Map(
   QUICK_FILTER_OPTIONS.map((option) => [option.id, option.label] as const),
 );
 
-interface CardPriorityOption {
-  readonly id: Card['priority'];
-  readonly label: string;
-}
-
 interface CardFormState {
   readonly title: string;
   readonly summary: string;
@@ -71,13 +66,6 @@ interface CardFormState {
   readonly storyPoints: string;
   readonly priority: Card['priority'];
 }
-
-const CARD_PRIORITIES: readonly CardPriorityOption[] = [
-  { id: 'low', label: '低' },
-  { id: 'medium', label: '中' },
-  { id: 'high', label: '高' },
-  { id: 'urgent', label: '緊急' },
-];
 
 type SubtaskStatus = Subtask['status'];
 
@@ -141,7 +129,6 @@ export class BoardPage {
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
   public readonly templatesSignal = computed(() => this.workspace.settings().templates);
   public readonly quickFilters = QUICK_FILTER_OPTIONS;
-  public readonly cardPriorities = CARD_PRIORITIES;
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();
