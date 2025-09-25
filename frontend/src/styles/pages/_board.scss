@@ -260,6 +260,10 @@
   gap: clamp(1rem, 1.6vw, 1.5rem);
 }
 
+.board-page__task-board + .board-page__subtask-board {
+  margin-block-start: clamp(1.5rem, 2.5vw, 2.5rem);
+}
+
 .board-page__task-header {
   display: flex;
   flex-direction: column;
