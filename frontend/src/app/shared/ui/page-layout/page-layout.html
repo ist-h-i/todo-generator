@@ -1,12 +1,14 @@
-<app-page-header
-  [eyebrow]="eyebrow"
-  [title]="title"
-  [description]="description"
-  [headingLevel]="headingLevel"
->
-  <ng-content select="[pageHeaderMeta]"></ng-content>
-  <ng-content select="[appPageHeaderActions]"></ng-content>
-</app-page-header>
+<div class="app-page-layout__header">
+  <app-page-header
+    [eyebrow]="eyebrow"
+    [title]="title"
+    [description]="description"
+    [headingLevel]="headingLevel"
+  >
+    <ng-content select="[pageHeaderMeta]"></ng-content>
+    <ng-content select="[appPageHeaderActions]"></ng-content>
+  </app-page-header>
+</div>
 
 <div class="app-page-layout__body" [class.app-page-layout__body--bleed]="bleed">
   <div class="app-page-layout__content">
