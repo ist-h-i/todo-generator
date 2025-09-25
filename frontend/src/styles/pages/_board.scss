@@ -582,6 +582,14 @@
   color: var(--text-primary);
 }
 
+.card-detail-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
 .card-detail-header__subtitle {
   margin: 0;
   font-size: 1rem;

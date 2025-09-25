@@ -353,13 +353,22 @@
               <p class="card-detail-header__eyebrow">カード編集</p>
               <h3 class="card-detail-header__title">{{ active.title }}</h3>
             </div>
-            <button
-              type="button"
-              class="button button--ghost button--pill"
-              (click)="openCard(null)"
-            >
-              閉じる
-            </button>
+            <div class="card-detail-header__actions">
+              <button
+                type="button"
+                class="button button--danger button--pill"
+                (click)="confirmDeleteCard(active)"
+              >
+                カードを削除
+              </button>
+              <button
+                type="button"
+                class="button button--ghost button--pill"
+                (click)="openCard(null)"
+              >
+                閉じる
+              </button>
+            </div>
           </div>
 
           <section class="subtask-editor space-y-4">
