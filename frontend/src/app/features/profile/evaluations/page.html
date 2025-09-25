@@ -1,303 +1,334 @@
 <app-page-layout
-  class="evaluations-page shell-container"
+  class="evaluations-page"
   eyebrow="Competency Insights"
   title="コンピテンシー評価の履歴"
   description="直近のコンピテンシー判定とアクションプランを確認できます。姿勢面と行動面それぞれの推奨事項を振り返り、次のスプリント計画に活用しましょう。"
   headingLevel="h1"
 >
-  <section appPageHeaderActions class="quota-card" aria-live="polite">
-    <p class="quota-card__label">本日の評価判定可能回数</p>
+  <section appPageHeaderActions class="evaluations-page__header">
+    <article class="surface-panel page-panel evaluations-page__quota" aria-live="polite">
+      <p class="evaluations-page__quota-label">本日の評価判定可能回数</p>
 
-    @if (quotaLoading()) {
-      <p class="quota-card__loading">計算中…</p>
-    } @else if (quotaError(); as message) {
-      <p class="quota-card__warning">{{ message }}</p>
-    } @else {
-      <div class="quota-card__values">
-        <span class="quota-card__value">{{ limitLabel(quota()) }}</span>
-        <span class="quota-card__separator">／</span>
-        <span class="quota-card__value quota-card__value--remaining">
-          {{ remainingLabel(quota()) }}
-        </span>
-      </div>
-      <p class="quota-card__meta">実行済み {{ quota()?.used ?? 0 }} 回</p>
+      @if (quotaLoading()) {
+        <p class="evaluations-page__quota-loading">計算中…</p>
+      } @else if (quotaError(); as message) {
+        <p class="evaluations-page__quota-warning">{{ message }}</p>
+      } @else {
+        <div class="evaluations-page__quota-values">
+          <span class="evaluations-page__quota-value">{{ limitLabel(quota()) }}</span>
+          <span class="evaluations-page__quota-separator">／</span>
+          <span class="evaluations-page__quota-value evaluations-page__quota-value--remaining">
+            {{ remainingLabel(quota()) }}
+          </span>
+        </div>
+        <p class="evaluations-page__quota-meta">実行済み {{ quota()?.used ?? 0 }} 回</p>
 
-      @if (limitReached()) {
-        <p class="quota-card__warning">本日の上限に達しました。</p>
+        @if (limitReached()) {
+          <p class="evaluations-page__quota-warning">本日の上限に達しました。</p>
+        }
       }
-    }
+    </article>
+
+    <div class="evaluations-page__actions">
+      <button
+        type="button"
+        class="button button--primary button--pill focus-ring"
+        (click)="runEvaluation()"
+        [disabled]="runningEvaluation() || loading() || !canRunEvaluation()"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          class="evaluations-page__action-icon"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 3v2m0 14v2m9-9h-2M5 12H3m12.364-5.364-1.414 1.414M6.05 17.95l-1.414 1.414m12.728 0-1.414-1.414M6.05 6.05 4.636 4.636M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z"
+          />
+        </svg>
+        評価を実行
+      </button>
+
+      <button
+        type="button"
+        class="button button--secondary button--pill focus-ring"
+        (click)="exportLatestAsJson()"
+        [disabled]="!latestEvaluation()"
+      >
+        JSON で出力
+      </button>
+    </div>
   </section>
 
-  <div appPageHeaderActions class="page-header__buttons">
-    <button
-      type="button"
-      class="refresh-button focus-ring"
-      (click)="runEvaluation()"
-      [disabled]="runningEvaluation() || loading() || !canRunEvaluation()"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        class="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.8"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M12 3v2m0 14v2m9-9h-2M5 12H3m12.364-5.364-1.414 1.414M6.05 17.95l-1.414 1.414m12.728 0-1.414-1.414M6.05 6.05 4.636 4.636M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z"
-        />
-      </svg>
-      評価を実行
-    </button>
-
-    <button
-      type="button"
-      class="secondary-button focus-ring"
-      (click)="exportLatestAsJson()"
-      [disabled]="!latestEvaluation()"
-    >
-      JSON で出力
-    </button>
-  </div>
-
   @if (actionError(); as message) {
-    <p class="page-alert page-alert--error" role="alert">{{ message }}</p>
+    <div class="app-alert app-alert--error" role="alert">{{ message }}</div>
   }
 
   @if (feedback(); as message) {
-    <p class="page-alert page-alert--success" role="status">{{ message }}</p>
+    <div class="app-alert app-alert--success" role="status">{{ message }}</div>
   }
 
   @if (loading()) {
-    <div class="state state--loading">
-      <span class="state__spinner" aria-hidden="true"></span>
-      <p>評価履歴を読み込んでいます…</p>
-    </div>
+    <section class="page-section">
+      <div class="surface-panel page-panel page-state evaluations-page__state" role="status">
+        <span class="evaluations-page__spinner" aria-hidden="true"></span>
+        <p>評価履歴を読み込んでいます…</p>
+      </div>
+    </section>
   } @else {
     @if (error(); as message) {
-      <div class="state state--error" role="alert">
-        <h2>取得に失敗しました</h2>
-        <p>{{ message }}</p>
-        <button type="button" class="retry-button focus-ring" (click)="refresh()">
-          再試行する
-        </button>
-      </div>
+      <section class="page-section">
+        <div class="surface-panel page-panel page-state page-state--error" role="alert">
+          <h2>取得に失敗しました</h2>
+          <p>{{ message }}</p>
+          <button type="button" class="button button--secondary focus-ring" (click)="refresh()">
+            再試行する
+          </button>
+        </div>
+      </section>
     } @else {
       @if (!hasEvaluations()) {
-        <div class="state state--empty">
-          <svg aria-hidden="true" viewBox="0 0 24 24" class="h-12 w-12 text-slate-400">
-            <path
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 3c3.866 0 7 3.134 7 7 0 2.93-1.877 5.42-4.5 6.4L12 21l-2.5-4.6C6.877 15.42 5 12.93 5 10c0-3.866 3.134-7 7-7Z"
-            />
-          </svg>
-          <h2>まだ評価はありません</h2>
-          <p>コンピテンシー評価が実行されると、ここに結果が表示されます。</p>
-        </div>
+        <section class="page-section">
+          <div class="surface-panel page-panel page-state evaluations-page__state">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="evaluations-page__empty-icon">
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 3c3.866 0 7 3.134 7 7 0 2.93-1.877 5.42-4.5 6.4L12 21l-2.5-4.6C6.877 15.42 5 12.93 5 10c0-3.866 3.134-7 7-7Z"
+              />
+            </svg>
+            <h2>まだ評価はありません</h2>
+            <p>コンピテンシー評価が実行されると、ここに結果が表示されます。</p>
+          </div>
+        </section>
       } @else {
         @if (latestEvaluation(); as evaluation) {
-          <section class="latest surface-panel">
-            <header class="latest__header">
-              <div class="latest__summary">
-                <p class="latest__eyebrow">最新の評価</p>
-                <h2 class="latest__title">
-                  {{ evaluation.competency?.name || 'コンピテンシー評価' }}
-                </h2>
-                <p class="latest__meta">
-                  評価期間
-                  <span>{{ evaluation.period_start | date: 'yyyy/MM/dd' }}</span>
-                  〜
-                  <span>{{ evaluation.period_end | date: 'yyyy/MM/dd' }}</span>
-                </p>
-                <p class="latest__meta">
-                  判定種別: {{ triggeredLabel(evaluation.triggered_by) }} / モデル:
-                  {{ evaluation.ai_model || '未設定' }}
-                </p>
-              </div>
-              <div class="latest__score" aria-label="評価スコア">
-                <div class="latest__score-value">
-                  <span aria-hidden="true">{{ evaluation.score_value }}</span>
-                  <span class="latest__score-scale" aria-hidden="true"
-                    >/ {{ evaluation.scale }}</span
-                  >
+          <section class="page-section">
+            <article class="surface-panel page-panel evaluations-page__latest">
+              <header class="evaluations-page__latest-header">
+                <div class="evaluations-page__latest-summary">
+                  <p class="evaluations-page__latest-eyebrow">最新の評価</p>
+                  <h2 class="evaluations-page__latest-title">
+                    {{ evaluation.competency?.name || 'コンピテンシ評価' }}
+                  </h2>
+                  <p class="evaluations-page__latest-meta">
+                    評価期間
+                    <span>{{ evaluation.period_start | date: 'yyyy/MM/dd' }}</span>
+                    〜
+                    <span>{{ evaluation.period_end | date: 'yyyy/MM/dd' }}</span>
+                  </p>
+                  <p class="evaluations-page__latest-meta">
+                    判定種別: {{ triggeredLabel(evaluation.triggered_by) }} / モデル:
+                    {{ evaluation.ai_model || '未設定' }}
+                  </p>
                 </div>
-                <p class="latest__score-label">{{ evaluation.score_label }}</p>
-                <p class="latest__score-percent">達成率 {{ scorePercent(evaluation) }}%</p>
-              </div>
-            </header>
-
-            <div class="latest__progress" role="presentation">
-              <div class="latest__progress-bar" [style.width.%]="scorePercent(evaluation)"></div>
-            </div>
-
-            <div class="latest__body">
-              @if (evaluation.rationale) {
-                <section class="latest__section">
-                  <h3>総合所見</h3>
-                  <p class="latest__text">{{ evaluation.rationale }}</p>
-                </section>
-              }
-
-              <section class="latest__actions-grid">
-                <article class="latest__action">
-                  <header>
-                    <h3>姿勢・意識面でのアクション</h3>
-                    <p>モチベーションやコミュニケーションの観点で意識したいポイントです。</p>
-                  </header>
-                  @if (hasActions(evaluation.attitude_actions)) {
-                    <ul>
-                      @for (action of evaluation.attitude_actions; track action) {
-                        <li>{{ action }}</li>
-                      }
-                    </ul>
-                  } @else {
-                    <p class="latest__empty">推奨事項は特にありません。</p>
-                  }
-                </article>
-                <article class="latest__action">
-                  <header>
-                    <h3>具体的な行動プラン</h3>
-                    <p>すぐに実行できるタスクや振り返りポイントをまとめています。</p>
-                  </header>
-                  @if (hasActions(evaluation.behavior_actions)) {
-                    <ul>
-                      @for (action of evaluation.behavior_actions; track action) {
-                        <li>{{ action }}</li>
-                      }
-                    </ul>
-                  } @else {
-                    <p class="latest__empty">特筆すべきアクションはありません。</p>
-                  }
-                </article>
-              </section>
-
-              @if (evaluation.items.length > 0) {
-                <section class="latest__details">
-                  <h3>評価項目の内訳</h3>
-                  <div class="latest__items">
-                    @for (item of evaluation.items; track item.id; let index = $index) {
-                      <article class="latest__item surface-card">
-                        <header>
-                          <p class="latest__item-title">{{ '評価項目 ' + (index + 1) }}</p>
-                          <p class="latest__item-score">
-                            {{ item.score_label }} ({{ item.score_value }} 点)
-                          </p>
-                        </header>
-                        <div class="latest__item-body">
-                          <p class="latest__item-text">
-                            {{ item.rationale || '根拠メモは記録されていません。' }}
-                          </p>
-
-                          @if (hasActions(item.attitude_actions)) {
-                            <div class="latest__item-actions">
-                              <h4>姿勢・意識</h4>
-                              <ul>
-                                @for (action of item.attitude_actions; track action) {
-                                  <li>{{ action }}</li>
-                                }
-                              </ul>
-                            </div>
-                          }
-
-                          @if (hasActions(item.behavior_actions)) {
-                            <div class="latest__item-actions">
-                              <h4>行動プラン</h4>
-                              <ul>
-                                @for (action of item.behavior_actions; track action) {
-                                  <li>{{ action }}</li>
-                                }
-                              </ul>
-                            </div>
-                          }
-                        </div>
-                      </article>
-                    }
+                <div class="evaluations-page__latest-score" aria-label="評価スコア">
+                  <div class="evaluations-page__latest-score-value">
+                    <span aria-hidden="true">{{ evaluation.score_value }}</span>
+                    <span class="evaluations-page__latest-score-scale" aria-hidden="true"
+                      >/ {{ evaluation.scale }}</span
+                    >
                   </div>
+                  <p class="evaluations-page__latest-score-label">{{ evaluation.score_label }}</p>
+                  <p class="evaluations-page__latest-score-percent">
+                    達成率 {{ scorePercent(evaluation) }}%
+                  </p>
+                </div>
+              </header>
+
+              <div class="evaluations-page__latest-progress" role="presentation">
+                <div
+                  class="evaluations-page__latest-progress-bar"
+                  [style.width.%]="scorePercent(evaluation)"
+                ></div>
+              </div>
+
+              <div class="evaluations-page__latest-body">
+                @if (evaluation.rationale) {
+                  <section class="evaluations-page__latest-section">
+                    <h3>総合所見</h3>
+                    <p class="evaluations-page__latest-text">{{ evaluation.rationale }}</p>
+                  </section>
+                }
+
+                <section class="evaluations-page__latest-actions-grid">
+                  <article class="evaluations-page__latest-action">
+                    <header>
+                      <h3>姿勢・意識面でのアクション</h3>
+                      <p>モチベーションやコミュニケーションの観点で意識したいポイントです。</p>
+                    </header>
+                    @if (hasActions(evaluation.attitude_actions)) {
+                      <ul>
+                        @for (action of evaluation.attitude_actions; track action) {
+                          <li>{{ action }}</li>
+                        }
+                      </ul>
+                    } @else {
+                      <p class="evaluations-page__latest-empty">推奨事項は特にありません。</p>
+                    }
+                  </article>
+                  <article class="evaluations-page__latest-action">
+                    <header>
+                      <h3>具体的な行動プラン</h3>
+                      <p>すぐに実行できるタスクや振り返りポイントをまとめています。</p>
+                    </header>
+                    @if (hasActions(evaluation.behavior_actions)) {
+                      <ul>
+                        @for (action of evaluation.behavior_actions; track action) {
+                          <li>{{ action }}</li>
+                        }
+                      </ul>
+                    } @else {
+                      <p class="evaluations-page__latest-empty">
+                        特筆すべきアクションはありません。
+                      </p>
+                    }
+                  </article>
                 </section>
-              }
-            </div>
+
+                @if (evaluation.items.length > 0) {
+                  <section class="evaluations-page__latest-details">
+                    <h3>評価項目の内訳</h3>
+                    <div class="evaluations-page__latest-items">
+                      @for (item of evaluation.items; track item.id; let index = $index) {
+                        <article class="surface-card evaluations-page__latest-item">
+                          <header>
+                            <p class="evaluations-page__latest-item-title">
+                              {{ '評価項目 ' + (index + 1) }}
+                            </p>
+                            <p class="evaluations-page__latest-item-score">
+                              {{ item.score_label }} ({{ item.score_value }} 点)
+                            </p>
+                          </header>
+                          <div class="evaluations-page__latest-item-body">
+                            <p class="evaluations-page__latest-item-text">
+                              {{ item.rationale || '根拠メモは記録されていません。' }}
+                            </p>
+
+                            @if (hasActions(item.attitude_actions)) {
+                              <div class="evaluations-page__latest-item-actions">
+                                <h4>姿勢・意識</h4>
+                                <ul>
+                                  @for (action of item.attitude_actions; track action) {
+                                    <li>{{ action }}</li>
+                                  }
+                                </ul>
+                              </div>
+                            }
+
+                            @if (hasActions(item.behavior_actions)) {
+                              <div class="evaluations-page__latest-item-actions">
+                                <h4>行動プラン</h4>
+                                <ul>
+                                  @for (action of item.behavior_actions; track action) {
+                                    <li>{{ action }}</li>
+                                  }
+                                </ul>
+                              </div>
+                            }
+                          </div>
+                        </article>
+                      }
+                    </div>
+                  </section>
+                }
+              </div>
+            </article>
           </section>
         }
 
-        <section class="history surface-panel">
-          <header class="history__header">
-            <div>
-              <h2>過去の評価履歴</h2>
-              <p>最大 12 件まで表示します。詳細を開いて改善ポイントを再確認できます。</p>
-            </div>
-            <span class="history__count">{{ evaluations().length }} 件表示中</span>
-          </header>
+        <section class="page-section">
+          <article class="surface-panel page-panel evaluations-page__history">
+            <header class="evaluations-page__history-header">
+              <div>
+                <h2>過去の評価履歴</h2>
+                <p>最大 12 件まで表示します。詳細を開いて改善ポイントを再確認できます。</p>
+              </div>
+              <span class="evaluations-page__history-count"
+                >{{ evaluations().length }} 件表示中</span
+              >
+            </header>
 
-          @if (history().length === 0) {
-            <p class="history__empty">最新の判定のみが登録されています。</p>
-          } @else {
-            <ul class="history__list">
-              @for (item of history(); track item.id) {
-                <li class="history__entry">
-                  <details>
-                    <summary>
-                      <div class="history__summary">
-                        <div class="history__summary-text">
-                          <span class="history__period"
-                            >{{ item.period_start | date: 'yyyy/MM/dd' }} 〜
-                            {{ item.period_end | date: 'yyyy/MM/dd' }}</span
-                          >
-                          <span class="history__label">{{
-                            item.competency?.name || 'コンピテンシー評価'
-                          }}</span>
+            @if (history().length === 0) {
+              <p class="evaluations-page__history-empty">最新の判定のみが登録されています。</p>
+            } @else {
+              <ul class="evaluations-page__history-list">
+                @for (item of history(); track item.id) {
+                  <li class="evaluations-page__history-entry">
+                    <details>
+                      <summary>
+                        <div class="evaluations-page__history-summary">
+                          <div class="evaluations-page__history-summary-text">
+                            <span class="evaluations-page__history-period"
+                              >{{ item.period_start | date: 'yyyy/MM/dd' }} 〜
+                              {{ item.period_end | date: 'yyyy/MM/dd' }}</span
+                            >
+                            <span class="evaluations-page__history-label">{{
+                              item.competency?.name || 'コンピテンシー評価'
+                            }}</span>
+                          </div>
+                          <div class="evaluations-page__history-score">
+                            <span class="evaluations-page__history-score-value">{{
+                              item.score_value
+                            }}</span>
+                            <span class="evaluations-page__history-score-scale">
+                              / {{ item.scale }}
+                            </span>
+                            <span class="evaluations-page__history-score-label">{{
+                              item.score_label
+                            }}</span>
+                          </div>
                         </div>
-                        <div class="history__score">
-                          <span class="history__score-value">{{ item.score_value }}</span>
-                          <span class="history__score-scale">/ {{ item.scale }}</span>
-                          <span class="history__score-label">{{ item.score_label }}</span>
+                      </summary>
+                      <div class="evaluations-page__history-content">
+                        @if (item.rationale) {
+                          <p class="evaluations-page__history-text">{{ item.rationale }}</p>
+                        }
+                        <div class="evaluations-page__history-meta">
+                          <span>判定種別: {{ triggeredLabel(item.triggered_by) }}</span>
+                          <span>モデル: {{ item.ai_model || '未設定' }}</span>
+                          <span>記録日時: {{ item.created_at | date: 'yyyy/MM/dd HH:mm' }}</span>
                         </div>
+                        @if (
+                          hasActions(item.attitude_actions) || hasActions(item.behavior_actions)
+                        ) {
+                          <div class="evaluations-page__history-actions">
+                            @if (hasActions(item.attitude_actions)) {
+                              <div>
+                                <h4>姿勢・意識</h4>
+                                <ul>
+                                  @for (action of item.attitude_actions; track action) {
+                                    <li>{{ action }}</li>
+                                  }
+                                </ul>
+                              </div>
+                            }
+                            @if (hasActions(item.behavior_actions)) {
+                              <div>
+                                <h4>行動プラン</h4>
+                                <ul>
+                                  @for (action of item.behavior_actions; track action) {
+                                    <li>{{ action }}</li>
+                                  }
+                                </ul>
+                              </div>
+                            }
+                          </div>
+                        }
                       </div>
-                    </summary>
-                    <div class="history__content">
-                      @if (item.rationale) {
-                        <p class="history__text">{{ item.rationale }}</p>
-                      }
-                      <div class="history__meta">
-                        <span>判定種別: {{ triggeredLabel(item.triggered_by) }}</span>
-                        <span>モデル: {{ item.ai_model || '未設定' }}</span>
-                        <span>記録日時: {{ item.created_at | date: 'yyyy/MM/dd HH:mm' }}</span>
-                      </div>
-                      @if (hasActions(item.attitude_actions) || hasActions(item.behavior_actions)) {
-                        <div class="history__actions">
-                          @if (hasActions(item.attitude_actions)) {
-                            <div>
-                              <h4>姿勢・意識</h4>
-                              <ul>
-                                @for (action of item.attitude_actions; track action) {
-                                  <li>{{ action }}</li>
-                                }
-                              </ul>
-                            </div>
-                          }
-                          @if (hasActions(item.behavior_actions)) {
-                            <div>
-                              <h4>行動プラン</h4>
-                              <ul>
-                                @for (action of item.behavior_actions; track action) {
-                                  <li>{{ action }}</li>
-                                }
-                              </ul>
-                            </div>
-                          }
-                        </div>
-                      }
-                    </div>
-                  </details>
-                </li>
-              }
-            </ul>
-          }
+                    </details>
+                  </li>
+                }
+              </ul>
+            }
+          </article>
         </section>
       }
     }

@@ -1,87 +1,32 @@
-app-profile-evaluations-page {
-  display: block;
-  color: var(--text-primary);
+.evaluations-page {
   --page-content-gap: clamp(1.75rem, 2vw, 2.5rem);
   --panel-gap: clamp(1.25rem, 2vw, 1.75rem);
-}
-
-app-profile-evaluations-page .app-page-layout {
-  display: flex;
-  flex-direction: column;
-  gap: var(--page-content-gap);
-}
-
-app-profile-evaluations-page .page-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--panel-gap);
-  padding: clamp(1.75rem, 3vw, 2.5rem);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-subtle);
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--accent) 14%, var(--surface-card)),
-    color-mix(in srgb, var(--info) 10%, var(--surface-card))
-  );
-  box-shadow: var(--shadow-soft);
-}
-
-app-profile-evaluations-page .page-header__content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  max-width: 48rem;
-}
-
-app-profile-evaluations-page .page-eyebrow {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--accent) 80%, transparent);
-}
-
-app-profile-evaluations-page .page-title {
-  margin: 0;
-  font-size: clamp(2rem, 1.6rem + 1vw, 2.4rem);
-  font-weight: 700;
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .page-description {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.7;
-  color: var(--text-tertiary);
-}
-
-app-profile-evaluations-page .page-header__actions {
+.evaluations-page__header {
   display: flex;
   flex-direction: column;
   gap: clamp(1rem, 2vw, 1.5rem);
 }
 
-@media (min-width: 48rem) {
-  app-profile-evaluations-page .page-header__actions {
+@media (min-width: 64rem) {
+  .evaluations-page__header {
     flex-direction: row;
     justify-content: space-between;
     align-items: stretch;
+    gap: clamp(1.25rem, 2vw, 1.75rem);
   }
 }
 
-app-profile-evaluations-page .quota-card {
+.evaluations-page__quota {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
-  background: color-mix(in srgb, var(--surface-card) 82%, transparent);
-  padding: 1.25rem 1.5rem;
-  box-shadow: var(--shadow-soft);
   min-width: 0;
 }
 
-app-profile-evaluations-page .quota-card__label {
+.evaluations-page__quota-label {
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -89,7 +34,7 @@ app-profile-evaluations-page .quota-card__label {
   color: color-mix(in srgb, var(--accent) 85%, transparent);
 }
 
-app-profile-evaluations-page .quota-card__values {
+.evaluations-page__quota-values {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
@@ -98,150 +43,85 @@ app-profile-evaluations-page .quota-card__values {
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .quota-card__separator {
+.evaluations-page__quota-value--remaining {
+  color: color-mix(in srgb, var(--success) 80%, transparent);
+}
+
+.evaluations-page__quota-separator {
   font-size: 1rem;
   color: color-mix(in srgb, var(--accent) 65%, transparent);
 }
 
-app-profile-evaluations-page .quota-card__value--remaining {
-  color: color-mix(in srgb, var(--success) 80%, transparent);
-}
-
-app-profile-evaluations-page .quota-card__meta {
+.evaluations-page__quota-meta {
   font-size: 0.85rem;
   color: var(--text-muted);
 }
 
-app-profile-evaluations-page .quota-card__warning {
+.evaluations-page__quota-warning {
   font-size: 0.85rem;
   font-weight: 600;
   color: color-mix(in srgb, var(--danger) 85%, transparent);
 }
 
-app-profile-evaluations-page .quota-card__loading {
+.evaluations-page__quota-loading {
   font-size: 0.9rem;
   color: var(--text-secondary);
 }
 
-app-profile-evaluations-page .page-header__buttons {
+.evaluations-page__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
+  justify-content: flex-start;
 }
 
-app-profile-evaluations-page .refresh-button,
-app-profile-evaluations-page .secondary-button,
-app-profile-evaluations-page .retry-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.65rem 1.4rem;
-  border-radius: 9999px;
-  border: 1px solid transparent;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    transform 150ms ease,
-    box-shadow 150ms ease,
-    filter 150ms ease;
+@media (min-width: 64rem) {
+  .evaluations-page__actions {
+    align-self: stretch;
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
 }
 
-app-profile-evaluations-page .refresh-button,
-app-profile-evaluations-page .retry-button {
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  color: var(--on-surface-inverse);
-  box-shadow: 0 18px 40px -28px var(--accent-shadow-strong-color);
+.evaluations-page__action-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
-app-profile-evaluations-page .secondary-button {
-  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
-  background: color-mix(in srgb, var(--surface-card) 86%, transparent);
-  color: color-mix(in srgb, var(--accent-strong) 85%, var(--text-secondary));
+.evaluations-page__state {
+  gap: 1rem;
 }
 
-app-profile-evaluations-page .refresh-button:hover:not(:disabled),
-app-profile-evaluations-page .retry-button:hover:not(:disabled),
-app-profile-evaluations-page .secondary-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  filter: brightness(1.05);
-}
-
-app-profile-evaluations-page .refresh-button:disabled,
-app-profile-evaluations-page .secondary-button:disabled,
-app-profile-evaluations-page .retry-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-app-profile-evaluations-page .page-alert {
-  margin: 0;
-  padding: 0.85rem 1.1rem;
-  border-radius: 1rem;
-  border: 1px solid transparent;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-app-profile-evaluations-page .page-alert--error {
-  border-color: color-mix(in srgb, var(--danger) 38%, transparent);
-  background: color-mix(in srgb, var(--danger) 18%, transparent);
-  color: color-mix(in srgb, var(--danger-strong) 92%, var(--text-primary));
-}
-
-app-profile-evaluations-page .page-alert--success {
-  border-color: color-mix(in srgb, var(--success) 38%, transparent);
-  background: color-mix(in srgb, var(--success) 18%, transparent);
-  color: color-mix(in srgb, var(--success-strong) 92%, var(--text-primary));
-}
-
-app-profile-evaluations-page .state {
-  display: grid;
-  gap: 0.75rem;
-  place-items: center;
-  padding: 3rem 1.75rem;
-  border-radius: var(--radius-xl);
-  border: 2px dashed var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-card) 82%, transparent);
-  text-align: center;
-  color: var(--text-secondary);
-}
-
-app-profile-evaluations-page .state--error {
-  border-style: solid;
-  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
-  background: color-mix(in srgb, var(--danger) 22%, transparent);
-  color: color-mix(in srgb, var(--danger-strong) 92%, var(--text-primary));
-}
-
-app-profile-evaluations-page .state__spinner {
+.evaluations-page__spinner {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 9999px;
   border: 3px solid color-mix(in srgb, var(--text-tertiary) 35%, transparent);
   border-top-color: var(--accent);
-  animation: spin 1s linear infinite;
+  animation: evaluations-page-spin 1s linear infinite;
 }
 
-app-profile-evaluations-page .latest {
+.evaluations-page__empty-icon {
+  width: 3rem;
+  height: 3rem;
+  color: var(--text-muted);
+}
+
+.evaluations-page__latest {
   display: flex;
   flex-direction: column;
   gap: var(--panel-gap);
 }
 
-app-profile-evaluations-page .latest__header {
+.evaluations-page__latest-header {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
 @media (min-width: 54rem) {
-  app-profile-evaluations-page .latest__header {
+  .evaluations-page__latest-header {
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-start;
@@ -249,14 +129,14 @@ app-profile-evaluations-page .latest__header {
   }
 }
 
-app-profile-evaluations-page .latest__summary {
+.evaluations-page__latest-summary {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   color: var(--text-secondary);
 }
 
-app-profile-evaluations-page .latest__eyebrow {
+.evaluations-page__latest-eyebrow {
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.24em;
@@ -264,14 +144,14 @@ app-profile-evaluations-page .latest__eyebrow {
   color: color-mix(in srgb, var(--accent) 75%, transparent);
 }
 
-app-profile-evaluations-page .latest__title {
+.evaluations-page__latest-title {
   margin: 0;
   font-size: clamp(1.4rem, 1.2rem + 0.8vw, 1.8rem);
   font-weight: 700;
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .latest__meta {
+.evaluations-page__latest-meta {
   margin: 0;
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -280,7 +160,7 @@ app-profile-evaluations-page .latest__meta {
   gap: 0.35rem 0.65rem;
 }
 
-app-profile-evaluations-page .latest__score {
+.evaluations-page__latest-score {
   display: grid;
   gap: 0.5rem;
   padding: 1.35rem 1.5rem;
@@ -295,28 +175,28 @@ app-profile-evaluations-page .latest__score {
   min-width: 14rem;
 }
 
-app-profile-evaluations-page .latest__score-value {
+.evaluations-page__latest-score-value {
   font-size: clamp(1.8rem, 1.4rem + 1vw, 2.4rem);
   font-weight: 700;
 }
 
-app-profile-evaluations-page .latest__score-scale {
+.evaluations-page__latest-score-scale {
   margin-left: 0.15em;
   font-size: 1rem;
   font-weight: 600;
 }
 
-app-profile-evaluations-page .latest__score-label {
+.evaluations-page__latest-score-label {
   font-size: 0.9rem;
   font-weight: 600;
 }
 
-app-profile-evaluations-page .latest__score-percent {
+.evaluations-page__latest-score-percent {
   font-size: 0.8rem;
   color: color-mix(in srgb, var(--accent) 85%, transparent);
 }
 
-app-profile-evaluations-page .latest__progress {
+.evaluations-page__latest-progress {
   height: 0.5rem;
   border-radius: 9999px;
   background: color-mix(in srgb, var(--surface-card) 82%, transparent);
@@ -324,49 +204,49 @@ app-profile-evaluations-page .latest__progress {
   overflow: hidden;
 }
 
-app-profile-evaluations-page .latest__progress-bar {
+.evaluations-page__latest-progress-bar {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent), var(--accent-strong));
 }
 
-app-profile-evaluations-page .latest__body {
+.evaluations-page__latest-body {
   display: flex;
   flex-direction: column;
   gap: clamp(1.2rem, 2vw, 1.8rem);
 }
 
-app-profile-evaluations-page .latest__section {
+.evaluations-page__latest-section {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-app-profile-evaluations-page .latest__section h3 {
+.evaluations-page__latest-section h3 {
   margin: 0;
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .latest__text {
+.evaluations-page__latest-text {
   margin: 0;
   color: var(--text-secondary);
   line-height: 1.7;
 }
 
-app-profile-evaluations-page .latest__actions-grid {
+.evaluations-page__latest-actions-grid {
   display: grid;
   gap: 1rem;
 }
 
 @media (min-width: 50rem) {
-  app-profile-evaluations-page .latest__actions-grid {
+  .evaluations-page__latest-actions-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-app-profile-evaluations-page .latest__action {
+.evaluations-page__latest-action {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -376,27 +256,27 @@ app-profile-evaluations-page .latest__action {
   padding: 1rem 1.2rem;
 }
 
-app-profile-evaluations-page .latest__action header {
+.evaluations-page__latest-action header {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
 }
 
-app-profile-evaluations-page .latest__action header h3 {
+.evaluations-page__latest-action header h3 {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .latest__action header p {
+.evaluations-page__latest-action header p {
   margin: 0;
   font-size: 0.85rem;
   color: var(--text-muted);
   line-height: 1.6;
 }
 
-app-profile-evaluations-page .latest__action ul {
+.evaluations-page__latest-action ul {
   margin: 0;
   padding-left: 1.1rem;
   display: grid;
@@ -404,30 +284,30 @@ app-profile-evaluations-page .latest__action ul {
   color: var(--text-secondary);
 }
 
-app-profile-evaluations-page .latest__empty {
+.evaluations-page__latest-empty {
   margin: 0;
   font-size: 0.9rem;
   color: var(--text-muted);
 }
 
-app-profile-evaluations-page .latest__details {
+.evaluations-page__latest-details {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-app-profile-evaluations-page .latest__items {
+.evaluations-page__latest-items {
   display: grid;
   gap: 1rem;
 }
 
 @media (min-width: 60rem) {
-  app-profile-evaluations-page .latest__items {
+  .evaluations-page__latest-items {
     grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
   }
 }
 
-app-profile-evaluations-page .latest__item {
+.evaluations-page__latest-item {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -437,25 +317,25 @@ app-profile-evaluations-page .latest__item {
   padding: 1rem 1.2rem;
 }
 
-app-profile-evaluations-page .latest__item header {
+.evaluations-page__latest-item header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 0.75rem;
 }
 
-app-profile-evaluations-page .latest__item-title {
+.evaluations-page__latest-item-title {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .latest__item-score {
+.evaluations-page__latest-item-score {
   font-size: 0.85rem;
   color: var(--text-muted);
 }
 
-app-profile-evaluations-page .latest__item-body {
+.evaluations-page__latest-item-body {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -463,24 +343,24 @@ app-profile-evaluations-page .latest__item-body {
   line-height: 1.6;
 }
 
-app-profile-evaluations-page .latest__item-text {
+.evaluations-page__latest-item-text {
   margin: 0;
 }
 
-app-profile-evaluations-page .latest__item-actions {
+.evaluations-page__latest-item-actions {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 }
 
-app-profile-evaluations-page .latest__item-actions h4 {
+.evaluations-page__latest-item-actions h4 {
   margin: 0;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .latest__item-actions ul {
+.evaluations-page__latest-item-actions ul {
   margin: 0;
   padding-left: 1.1rem;
   display: grid;
@@ -488,54 +368,52 @@ app-profile-evaluations-page .latest__item-actions ul {
   color: var(--text-secondary);
 }
 
-app-profile-evaluations-page .history {
+.evaluations-page__history {
   display: flex;
   flex-direction: column;
   gap: clamp(1.2rem, 2vw, 1.6rem);
 }
 
-app-profile-evaluations-page .history__header {
+.evaluations-page__history-header {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
 }
 
 @media (min-width: 54rem) {
-  app-profile-evaluations-page .history__header {
+  .evaluations-page__history-header {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
   }
 }
 
-app-profile-evaluations-page .history__header h2 {
+.evaluations-page__history-header h2 {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .history__header p {
+.evaluations-page__history-header p {
   margin: 0;
   font-size: 0.9rem;
   color: var(--text-muted);
 }
 
-app-profile-evaluations-page .history__count {
+.evaluations-page__history-count {
   font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-app-profile-evaluations-page .history__empty {
-  margin: 0;
-  padding: 0.85rem 1rem;
-  border-radius: 1rem;
-  border: 1px dashed var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-card) 82%, transparent);
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
-app-profile-evaluations-page .history__list {
+.evaluations-page__history-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.evaluations-page__history-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -543,7 +421,7 @@ app-profile-evaluations-page .history__list {
   gap: 1rem;
 }
 
-app-profile-evaluations-page .history__entry details {
+.evaluations-page__history-entry details {
   border-radius: 1.25rem;
   border: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--surface-card) 85%, transparent);
@@ -551,48 +429,48 @@ app-profile-evaluations-page .history__entry details {
   box-shadow: var(--shadow-soft);
 }
 
-app-profile-evaluations-page .history__entry summary {
+.evaluations-page__history-entry summary {
   cursor: pointer;
   list-style: none;
   padding: 1rem 1.2rem;
 }
 
-app-profile-evaluations-page .history__entry summary::-webkit-details-marker {
+.evaluations-page__history-entry summary::-webkit-details-marker {
   display: none;
 }
 
-app-profile-evaluations-page .history__summary {
+.evaluations-page__history-summary {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
 @media (min-width: 48rem) {
-  app-profile-evaluations-page .history__summary {
+  .evaluations-page__history-summary {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
   }
 }
 
-app-profile-evaluations-page .history__summary-text {
+.evaluations-page__history-summary-text {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   color: var(--text-secondary);
 }
 
-app-profile-evaluations-page .history__period {
+.evaluations-page__history-period {
   font-weight: 600;
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .history__label {
+.evaluations-page__history-label {
   font-size: 0.85rem;
   color: var(--text-muted);
 }
 
-app-profile-evaluations-page .history__score {
+.evaluations-page__history-score {
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
@@ -600,21 +478,21 @@ app-profile-evaluations-page .history__score {
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .history__score-value {
+.evaluations-page__history-score-value {
   font-size: 1.2rem;
 }
 
-app-profile-evaluations-page .history__score-scale {
+.evaluations-page__history-score-scale {
   font-size: 0.9rem;
   color: var(--text-muted);
 }
 
-app-profile-evaluations-page .history__score-label {
+.evaluations-page__history-score-label {
   font-size: 0.8rem;
   color: color-mix(in srgb, var(--accent-strong) 80%, transparent);
 }
 
-app-profile-evaluations-page .history__content {
+.evaluations-page__history-content {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -622,12 +500,12 @@ app-profile-evaluations-page .history__content {
   color: var(--text-secondary);
 }
 
-app-profile-evaluations-page .history__text {
+.evaluations-page__history-text {
   margin: 0;
   line-height: 1.6;
 }
 
-app-profile-evaluations-page .history__meta {
+.evaluations-page__history-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem 0.85rem;
@@ -635,28 +513,38 @@ app-profile-evaluations-page .history__meta {
   color: var(--text-muted);
 }
 
-app-profile-evaluations-page .history__actions {
+.evaluations-page__history-actions {
   display: grid;
   gap: 1rem;
 }
 
 @media (min-width: 40rem) {
-  app-profile-evaluations-page .history__actions {
+  .evaluations-page__history-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-app-profile-evaluations-page .history__actions h4 {
+.evaluations-page__history-actions h4 {
   margin: 0 0 0.35rem;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-app-profile-evaluations-page .history__actions ul {
+.evaluations-page__history-actions ul {
   margin: 0;
   padding-left: 1.1rem;
   display: grid;
   gap: 0.3rem;
   color: var(--text-secondary);
+}
+
+@keyframes evaluations-page-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
