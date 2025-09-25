@@ -31,7 +31,15 @@
 }
 
 .board-page__overview {
-  align-items: stretch;
+  display: grid;
+  gap: clamp(1.2rem, 2vw, 1.8rem);
+  align-items: start;
+}
+
+.board-summary.surface-panel,
+.board-filters.surface-panel {
+  border-color: var(--border-card);
+  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
 }
 
 .board-summary {
