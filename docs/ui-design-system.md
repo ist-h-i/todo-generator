@@ -1,6 +1,6 @@
 # UI Design System (Simple & Modern)
 
-To deliver a minimal, modern, and polished tone across the app, the visual structure, typography, and component specifications follow the guidelines below. By balancing light and shadow, shared color tokens, and consistent interaction states, both light and dark themes maintain the same texture. Use this document as the reference whenever you redesign screens or ship new features.
+To deliver a minimal, modern, and polished tone across the app, the visual structure, typography, and component specifications follow the guidelines below. By layering tones with crisp borders, shared color tokens, and consistent interaction states, both light and dark themes maintain the same texture. Use this document as the reference whenever you redesign screens or ship new features.
 
 ## Core Design Principles
 1. **Let whitespace breathe** – Keep information density low and rely on generous spacing plus a clear grid for layouts that feel calm.

@@ -41,8 +41,6 @@
   --accent-secondary-muted: color-mix(in srgb, var(--accent-secondary) 16%, transparent);
   --accent-glow-soft: color-mix(in srgb, var(--accent) 12%, transparent);
   --accent-glow-strong: color-mix(in srgb, var(--accent-strong) 8%, transparent);
-  --accent-shadow-color: color-mix(in srgb, var(--accent) 28%, transparent);
-  --accent-shadow-strong-color: color-mix(in srgb, var(--accent-strong) 36%, transparent);
   --info: #0ea5e9;
   --info-strong: #0284c7;
   --info-muted: color-mix(in srgb, var(--info) 18%, transparent);
@@ -70,8 +68,6 @@
   --border-card-strong: color-mix(in srgb, var(--surface-inverse) 18%, transparent);
   --border-overlay: color-mix(in srgb, var(--text-tertiary) 24%, transparent);
   --border-overlay-strong: color-mix(in srgb, var(--text-tertiary) 32%, transparent);
-  --shadow-soft: 0 8px 20px color-mix(in srgb, var(--surface-inverse) 4%, transparent);
-  --shadow-strong: 0 12px 30px color-mix(in srgb, var(--surface-inverse) 6%, transparent);
   --radius-lg: 1.5rem;
   --radius-xl: 1.75rem;
   --page-padding-block-start: clamp(1.5rem, 2vw, 2.5rem);
@@ -80,9 +76,7 @@
   --page-content-gap: clamp(1.5rem, 3vw, 2.5rem);
   --panel-padding: clamp(1.5rem, 2vw, 2.2rem);
   --panel-gap: clamp(1.25rem, 2vw, 1.75rem);
-  --page-padding-inline: calc(
-    var(--page-padding-block-start) * var(--page-padding-inline-scale)
-  );
+  --page-padding-inline: calc(var(--page-padding-block-start) * var(--page-padding-inline-scale));
   color-scheme: light;
 }
 
@@ -115,8 +109,6 @@
   --accent-secondary-muted: color-mix(in srgb, var(--accent-secondary) 20%, transparent);
   --accent-glow-soft: color-mix(in srgb, var(--accent) 18%, transparent);
   --accent-glow-strong: color-mix(in srgb, var(--accent-strong) 12%, transparent);
-  --accent-shadow-color: color-mix(in srgb, var(--accent) 32%, transparent);
-  --accent-shadow-strong-color: color-mix(in srgb, var(--accent-strong) 40%, transparent);
   --info: #38bdf8;
   --info-strong: #0ea5e9;
   --info-muted: color-mix(in srgb, var(--info) 22%, transparent);
@@ -144,8 +136,6 @@
   --border-card-strong: color-mix(in srgb, var(--surface-inverse) 36%, transparent);
   --border-overlay: color-mix(in srgb, var(--text-inverse-tertiary) 32%, transparent);
   --border-overlay-strong: color-mix(in srgb, var(--text-inverse-tertiary) 42%, transparent);
-  --shadow-soft: 0 6px 18px color-mix(in srgb, var(--surface-inverse) 14%, transparent);
-  --shadow-strong: 0 10px 26px color-mix(in srgb, var(--surface-inverse) 18%, transparent);
   color-scheme: dark;
 }
 
@@ -217,14 +207,6 @@ a:hover {
   background-color: var(--accent-muted);
 }
 
-.shadow-soft {
-  box-shadow: var(--shadow-soft);
-}
-
-.shadow-strong {
-  box-shadow: var(--shadow-strong);
-}
-
 .border-subtle {
   border-color: var(--border-subtle);
 }
@@ -233,14 +215,12 @@ a:hover {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-card);
   background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
-  box-shadow: var(--shadow-soft);
 }
 
 .surface-panel {
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-card);
   background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
-  box-shadow: var(--shadow-soft);
   backdrop-filter: blur(12px);
 }
 
@@ -251,7 +231,6 @@ a:hover {
   border: 1px solid var(--border-subtle);
   background: var(--surface-layer-3);
   color: var(--text-secondary);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 8%, transparent);
 }
 
 .surface-primary {
@@ -763,7 +742,6 @@ app-shell .shell-toast {
   color: color-mix(in srgb, var(--success-strong) 92%, var(--text-primary));
   font-size: 0.82rem;
   font-weight: 600;
-  box-shadow: 0 18px 40px -28px color-mix(in srgb, var(--success) 30%, transparent);
   pointer-events: none;
 }
 
@@ -831,7 +809,6 @@ app-help-dialog .help-dialog__panel {
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-overlay);
   background: linear-gradient(180deg, var(--surface-overlay-strong), var(--surface-overlay));
-  box-shadow: var(--shadow-soft);
   padding: clamp(1.5rem, 3vw, 2.5rem);
   display: flex;
   flex-direction: column;
@@ -933,7 +910,6 @@ app-help-dialog .help-dialog__usecase-card {
   border-radius: 1.25rem;
   border: 1px solid var(--border-overlay);
   background: color-mix(in srgb, var(--surface-overlay) 94%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 25%, transparent);
 }
 
 app-help-dialog .help-dialog__usecase-title {
@@ -981,7 +957,6 @@ app-help-dialog .help-dialog__card {
   border-radius: 1.25rem;
   border: 1px solid var(--border-overlay);
   background: color-mix(in srgb, var(--surface-overlay) 92%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 30%, transparent);
   overflow: hidden;
 }
 
@@ -1023,7 +998,6 @@ app-help-dialog .help-dialog__faq-item {
   border-radius: 1.25rem;
   border: 1px solid var(--border-overlay);
   background: color-mix(in srgb, var(--surface-overlay) 94%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 18%, transparent);
 }
 
 app-help-dialog .help-dialog__faq-question {
@@ -1110,7 +1084,6 @@ app-profile-dialog .profile-dialog__panel {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-overlay);
   background: linear-gradient(180deg, var(--surface-overlay-strong), var(--surface-overlay));
-  box-shadow: var(--shadow-soft);
   padding: 2.25rem 2.5rem;
   display: flex;
   flex-direction: column;
@@ -1286,7 +1259,6 @@ app-profile-dialog .profile-dialog__link-button {
   padding: 0.6rem 1.1rem;
   transition:
     transform 150ms ease,
-    box-shadow 150ms ease,
     background-color 150ms ease,
     color 150ms ease;
 }
@@ -1303,7 +1275,6 @@ app-profile-dialog .profile-dialog__button {
 
 app-profile-dialog .profile-dialog__button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 18px 36px -24px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 app-profile-dialog .profile-dialog__link-button {
@@ -1360,15 +1331,15 @@ app-profile-dialog .profile-dialog__textarea {
   color: var(--text-primary);
   transition:
     border-color 150ms ease,
-    box-shadow 150ms ease;
+    background-color 150ms ease;
 }
 
 app-profile-dialog .profile-dialog__input:focus,
 app-profile-dialog .profile-dialog__select:focus,
 app-profile-dialog .profile-dialog__textarea:focus {
-  outline: none;
+  outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  outline-offset: 2px;
   border-color: color-mix(in srgb, var(--accent) 60%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 app-profile-dialog .profile-dialog__textarea {
@@ -1447,8 +1418,7 @@ app-profile-dialog .profile-dialog__role-option {
   transition:
     border-color 150ms ease,
     background-color 150ms ease,
-    color 150ms ease,
-    box-shadow 150ms ease;
+    color 150ms ease;
 }
 
 app-profile-dialog .profile-dialog__role-option input {
@@ -1470,7 +1440,6 @@ app-profile-dialog .profile-dialog__role-option:has(input:checked) {
   border-color: var(--accent);
   background: var(--accent-muted);
   color: var(--text-primary);
-  box-shadow: 0 10px 24px -18px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 app-profile-dialog .profile-dialog__role-option:has(input:checked) span {
@@ -1815,7 +1784,6 @@ app-profile-dialog .profile-dialog__button-secondary:hover {
   transform: translateY(-1px);
   border-color: var(--border-overlay-strong);
   background: var(--surface-overlay-strong);
-  box-shadow: 0 14px 30px -24px color-mix(in srgb, var(--surface-inverse) 35%, transparent);
   color: var(--text-primary);
 }
 

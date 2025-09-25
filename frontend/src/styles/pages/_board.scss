@@ -299,7 +299,6 @@
   border-radius: 9999px;
   padding: 0.5rem 1.25rem;
   border: 1px solid var(--border-subtle);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--on-surface-inverse) 8%, transparent);
 }
 
 .board-column__header {
@@ -373,10 +372,9 @@
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-card);
   background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
-  box-shadow: var(--shadow-soft);
   transition:
     border-color 150ms ease,
-    box-shadow 150ms ease;
+    background-color 150ms ease;
 }
 
 .dark .board-page .board-column {
@@ -449,16 +447,23 @@
   flex-direction: column;
   gap: 0.75rem;
   padding: 1.25rem;
-  border-width: 1px;
+  border: 1px solid var(--border-card);
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
   overflow: hidden;
   transition:
     transform 150ms ease,
-    box-shadow 150ms ease;
+    border-color 150ms ease,
+    background-color 150ms ease;
 }
 
 .board-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-strong);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-card));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-layer-1) 90%, var(--accent-muted) 10%),
+    color-mix(in srgb, var(--surface-layer-2) 86%, var(--accent-muted) 14%)
+  );
 }
 
 .board-card__select {
@@ -562,7 +567,8 @@
 
 .board-page .cdk-drag-preview {
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-strong);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-card));
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
 }
 
 .board-page .cdk-drag-placeholder {
@@ -592,7 +598,6 @@
 .subtask-card--highlight {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  box-shadow: var(--shadow-strong);
 }
 
 .subtask-card--compact {
@@ -616,7 +621,6 @@
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-card);
   background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
-  box-shadow: var(--shadow-soft);
 }
 
 .board-detail__grid {
@@ -699,15 +703,15 @@
   font-size: 0.875rem;
   transition:
     border-color 150ms ease,
-    box-shadow 150ms ease;
+    background-color 150ms ease;
 }
 
 .subtask-editor__input:focus,
 .comment-editor__input:focus,
 .comment-editor__textarea:focus {
-  outline: none;
+  outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  outline-offset: 2px;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .comment-editor__textarea {
@@ -746,7 +750,6 @@
   border-radius: 1.75rem;
   border: 1px solid var(--border-subtle);
   background: var(--surface);
-  box-shadow: var(--shadow-soft);
 }
 
 .subtask-editor__grid {
@@ -845,7 +848,6 @@
   border-radius: 1.5rem;
   border: 1px solid var(--border-subtle);
   background: var(--surface);
-  box-shadow: var(--shadow-soft);
 }
 
 .comment-list__meta {
@@ -894,7 +896,6 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-card);
   background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
-  box-shadow: var(--shadow-soft);
 }
 
 .board-detail__section-header {
