@@ -31,7 +31,15 @@
 }
 
 .board-page__overview {
-  align-items: stretch;
+  display: grid;
+  gap: clamp(1.2rem, 2vw, 1.8rem);
+  align-items: start;
+}
+
+.board-summary.surface-panel,
+.board-filters.surface-panel {
+  border-color: var(--border-card);
+  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
 }
 
 .board-summary {
@@ -485,25 +493,18 @@
 }
 
 .board-columns {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  align-items: stretch;
-}
-
-.board-columns {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: clamp(1rem, 2vw, 1.5rem);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  align-items: stretch;
 }
 
 .board-column {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  flex: 1 1 20rem;
-  min-width: min(20rem, 100%);
-  max-width: min(24rem, 100%);
+  min-width: 0;
+  height: 100%;
   padding: 1.5rem;
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-subtle);
@@ -874,10 +875,12 @@
   opacity: 0;
 }
 
+.subtask-columns {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+
 .subtask-columns .board-column {
-  flex: 1 1 18rem;
-  min-width: min(18rem, 100%);
-  max-width: min(22rem, 100%);
+  min-width: 0;
 }
 
 .subtask-card {
