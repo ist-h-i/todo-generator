@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
-import { RouterLink } from '@angular/router';
 import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
@@ -110,14 +109,13 @@ const RESOLVED_SUBTASK_STATUSES = new Set<SubtaskStatus>(['done', 'non-issue']);
 @Component({
   selector: 'app-board-page',
   standalone: true,
-  imports: [CommonModule, DragDropModule, RouterLink, PageHeaderComponent],
+  imports: [CommonModule, DragDropModule, PageHeaderComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BoardPage {
   private readonly workspace = inject(WorkspaceStore);
 
-  public readonly summarySignal = this.workspace.summary;
   public readonly groupingSignal = this.workspace.grouping;
   public readonly groupingLabelSignal = computed(() =>
     this.groupingSignal() === 'status' ? 'ステータス別' : 'ラベル別',
