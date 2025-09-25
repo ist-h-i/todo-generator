@@ -1,22 +1,18 @@
 import { CommonModule } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { RouterLink } from '@angular/router';
 
 import { DailyReportsGateway } from '@core/api/daily-reports-gateway';
 import { DailyReportDetail, DailyReportCreateRequest } from '@core/models';
+import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
 
 @Component({
   selector: 'app-daily-reports-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, PageHeaderComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -158,5 +154,4 @@ export class DailyReportsPage {
     }
     return null;
   }
-
 }
