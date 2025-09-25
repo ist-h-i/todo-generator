@@ -1,7 +1,7 @@
 # Appeal Narrative Generation 詳細設計
 
 ## 1. 目的と範囲
-本書は「Appeal Narrative Generation Requirements v0.1」で定義された要件を実装に落とし込むための詳細設計を示す。対象は FastAPI ベースのバックエンド、Angular SPA フロントエンド、OpenAI Responses API を利用した生成基盤、および関連するデータ永続化とテレメトリである。MVP リリースで提供するサブジェクト選択、フロー構築、フォーマット別生成、編集・エクスポート、失敗時フォールバックを対象とし、将来拡張 (フロープリセット保存等) は考慮しつつ実装外とする。
+本書は「Appeal Narrative Generation Requirements v0.1」で定義された要件を実装に落とし込むための詳細設計を示す。対象は AIガイドのリフレクションワークスペース Verbalize Yourself の FastAPI ベースのバックエンド、Angular SPA フロントエンド、OpenAI Responses API を利用した生成基盤、および関連するデータ永続化とテレメトリである。MVP リリースで提供するサブジェクト選択、フロー構築、フォーマット別生成、編集・エクスポート、失敗時フォールバックを対象とし、将来拡張 (フロープリセット保存等) は考慮しつつ実装外とする。
 
 ## 2. 全体アーキテクチャ
 ```

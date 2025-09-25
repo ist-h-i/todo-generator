@@ -9,7 +9,7 @@
 | Status | For stakeholder review |
 
 ## 1. Background & Objectives
-Verbalize Yourself currently converts free-form input into structured tasks and persists them on a collaborative board. Foundational capabilities such as basic filtering, card management, and webhook-based integrations are already in place. However, teams relying on the product for continuous improvement workflows need deeper insight into recurring mistakes, faster knowledge discovery, and actionable follow-through. The feature expansion outlined in this document pursues three top-level objectives:
+Verbalize Yourself is an AI-guided reflection workspace (AIガイドのリフレクションワークスペース) that currently converts free-form input into structured tasks and persists them on a collaborative board. Foundational capabilities such as basic filtering, card management, and webhook-based integrations are already in place. However, people relying on the product for deep self-reflection workflows need deeper insight into recurring patterns, faster knowledge discovery, and actionable follow-through. The feature expansion outlined in this document pursues three top-level objectives:
 
 1. **Insight Acceleration:** surface meaningful patterns about mistakes, their drivers, and high-impact improvement opportunities without requiring manual spreadsheet work.
 2. **Execution Guidance:** guide teams from analytics into concrete actions via AI-assisted recommendations, streamlined conversion to tickets, and initiative tracking.
@@ -52,7 +52,7 @@ Verbalize Yourself currently converts free-form input into structured tasks and 
 | Engineering Lead | Prioritize remediation work and avoid repeating mistakes | Similar task discovery, initiative progress tracking |
 | QA / Support Specialist | Correlate new reports with historic incidents | Fast filtering, related card discovery, trend visualization |
 | Team Member | Action insights with minimal overhead | One-click conversion of suggestions to tasks, lightweight approvals |
-| Executive / Compliance Officer | Validate continuous improvement | Narrative reports, audit history, evidence of impact |
+| Executive / Compliance Officer | Validate reflective programs | Narrative reports, audit history, evidence of impact |
 
 ## 5. Glossary
 - **Card:** Primary task entity containing metadata, subtasks, comments, and links to analytics artifacts.

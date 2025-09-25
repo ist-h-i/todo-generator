@@ -9,11 +9,11 @@
 | Status | For internal review |
 
 ## 1. Background & Objectives
-Continuous improvement programs within Verbalize Yourself rely on card histories to demonstrate progress and communicate lessons learned. Stakeholders often request concise narratives that explain what challenges were faced, the actions taken, and how those actions delivered results. Currently, teams manually craft these narratives using disparate documents, leading to inconsistent messaging and slow reporting cycles. The Appeal Narrative Generation capability will automate narrative creation from existing card achievements while giving users granular control over structure and tone.
+Verbalize Yourself is an AI-guided reflection workspace (AIガイドのリフレクションワークスペース) that helps people turn abstract inputs into clear narratives and visualised insights so they can understand themselves more precisely. Its reflection programs rely on card histories to capture evolving perspectives and communicate breakthroughs. Stakeholders often request concise narratives that explain what challenges were faced, the actions taken, and how those actions deepened self-understanding. Currently, teams manually craft these narratives using disparate documents, leading to inconsistent messaging and slow reporting cycles. The Appeal Narrative Generation capability will automate narrative creation from existing card achievements while giving users granular control over structure and tone.
 
 Objectives:
 1. Enable users to produce coherent, causal narratives based on existing card accomplishments without rewriting raw data.
-2. Provide a configurable storytelling flow aligned with continuous improvement practices (e.g., issue → action → outcome).
+2. Provide a configurable storytelling flow aligned with reflective practices (e.g., experience → insight → action plan).
 3. Support multiple output formats so teams can quickly reuse narratives in reports, chats, or presentations.
 
 ## 2. Problem Statement & Success Metrics
