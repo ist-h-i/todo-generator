@@ -1,194 +1,189 @@
-<section class="app-page analyze-page space-y-10">
-  <form class="surface-panel space-y-6 px-8 py-8" (submit)="handleSubmit($event)">
-    <app-page-header
-      eyebrow="AI Task Creator"
-      title="メモからタスクを起票"
-      description="作業メモやアイデアを貼り付けると、AI がカード案とサブタスクを提案します。内容を確認し、必要なものだけボードへ追加しましょう。"
-    ></app-page-header>
+<section class="app-page analyze-page">
+  <app-page-header
+    eyebrow="AI Task Creator"
+    title="メモからタスクを起票"
+    description="作業メモやアイデアを貼り付けると、AI がカード案とサブタスクを提案します。内容を確認し、必要なものだけボードへ追加しましょう。"
+  ></app-page-header>
 
-    <div class="grid gap-4 lg:grid-cols-2">
-      <label class="flex h-full flex-col gap-2">
-        <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">ノート</span>
+  <form class="surface-panel page-panel analyze-page__form" (submit)="handleSubmit($event)">
+    <div class="form-grid form-grid--two analyze-page__composer">
+      <label class="form-field analyze-page__notes">
+        <span class="form-field__label">ノート</span>
         <textarea
-          class="min-h-[260px] flex-1 rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+          class="form-control form-control--textarea analyze-page__notes-input"
           placeholder="例: ユーザーからのフィードバックや不具合の状況を貼り付けてください"
           [value]="analyzeForm.controls.notes.value()"
           (input)="analyzeForm.controls.notes.setValue($any($event.target).value)"
         ></textarea>
+        <p class="form-note">
+          具体的な課題や観察した事実をまとめると、より正確なカード案が生成されます。
+        </p>
       </label>
-      <div class="flex h-full flex-col gap-4">
-        <div class="space-y-3 rounded-2xl border border-dashed border-subtle px-4 py-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            ゴールの決め方
-          </p>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500">
-            タスク案を作成するときのゴールの決め方を選んでください。
-          </p>
-          <label class="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
+
+      <div class="analyze-page__objective">
+        <p class="analyze-page__objective-eyebrow">ゴールの決め方</p>
+        <p class="analyze-page__objective-hint">
+          タスク案を作成するときのゴールの決め方を選んでください。
+        </p>
+
+        <div class="analyze-page__options" role="radiogroup" aria-label="ゴールの決め方">
+          <label
+            class="analyze-page__option"
+            [class.analyze-page__option--active]="isAutoObjectiveEnabled()"
+          >
             <input
               type="radio"
               name="autoObjective"
               [checked]="isAutoObjectiveEnabled()"
               (change)="analyzeForm.controls.autoObjective.setValue(true)"
-              class="mt-1 h-4 w-4 text-accent focus-ring"
+              class="analyze-page__option-input focus-ring"
             />
-            <span class="space-y-1">
-              <span class="block font-semibold text-on-surface">AIにおまかせ</span>
-              <span class="block text-xs text-slate-500 dark:text-slate-400">
+            <span class="analyze-page__option-body">
+              <span class="analyze-page__option-title">AIにおまかせ</span>
+              <span class="analyze-page__option-description">
                 ノートの内容から AI がおすすめのゴールを自動設定します。
               </span>
             </span>
           </label>
-          <label class="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300">
+
+          <label
+            class="analyze-page__option"
+            [class.analyze-page__option--active]="!isAutoObjectiveEnabled()"
+          >
             <input
               type="radio"
               name="autoObjective"
               [checked]="!isAutoObjectiveEnabled()"
               (change)="analyzeForm.controls.autoObjective.setValue(false)"
-              class="mt-1 h-4 w-4 text-accent focus-ring"
+              class="analyze-page__option-input focus-ring"
             />
-            <span class="space-y-1">
-              <span class="block font-semibold text-on-surface">自分で指定</span>
-              <span class="block text-xs text-slate-500 dark:text-slate-400">
+            <span class="analyze-page__option-body">
+              <span class="analyze-page__option-title">自分で指定</span>
+              <span class="analyze-page__option-description">
                 ゴールを詳しく入力して AI に具体的な提案を依頼します。
               </span>
             </span>
           </label>
         </div>
+
         @if (isAutoObjectiveEnabled()) {
-          <div
-            class="min-h-[260px] rounded-2xl border border-subtle bg-surface px-4 py-3 text-xs text-slate-600 dark:text-slate-300"
-          >
-            <p class="text-sm font-semibold text-on-surface">AIが推定したゴール候補</p>
-            <p class="mt-1 leading-relaxed">{{ autoObjectivePreview() }}</p>
-            <p class="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
+          <div class="surface-card analyze-page__objective-preview" aria-live="polite">
+            <h3 class="analyze-page__preview-title">AIが推定したゴール候補</h3>
+            <p class="analyze-page__preview-body">{{ autoObjectivePreview() }}</p>
+            <p class="analyze-page__preview-hint">
               提案を作成すると、このゴールを前提にカード案が作成されます。
             </p>
           </div>
         } @else {
-          <label class="flex flex-1 flex-col gap-2">
-            <span class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-              >ゴール</span
-            >
+          <label class="form-field analyze-page__objective-manual">
+            <span class="form-field__label">ゴール</span>
             <textarea
-              class="min-h-[260px] flex-1 rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm focus-ring"
+              class="form-control form-control--textarea"
               placeholder="例: 新規登録フローの離脱率を20%改善する"
               [value]="analyzeForm.controls.objective.value()"
               (input)="analyzeForm.controls.objective.setValue($any($event.target).value)"
             ></textarea>
+            <p class="form-note">
+              ゴールは AI
+              がタスク案を組み立てる際の到達点になります。できるだけ具体的に記載してください。
+            </p>
           </label>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500">
-            ゴールは AI
-            がタスク案を組み立てる際の到達点になります。できるだけ具体的に記載してください。
-          </p>
         }
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-3">
-      <button
-        type="submit"
-        class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold"
-      >
-        タスク案を作成
-      </button>
-      <button
-        type="button"
-        (click)="resetForm()"
-        class="surface-pill focus-ring px-6 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300"
-      >
+    <div class="form-actions analyze-page__form-actions">
+      <button type="submit" class="button button--primary">タスク案を作成</button>
+      <button type="button" class="button button--ghost" (click)="resetForm()">
         入力をリセット
       </button>
     </div>
   </form>
 
-  <section class="space-y-4">
-    <header class="flex items-center justify-between">
+  <section class="page-section analyze-page__results">
+    <header class="page-section__header analyze-page__results-header">
       <div>
-        <p class="text-xs uppercase tracking-[0.3em] text-slate-400">AI Suggestions</p>
-        <h3 class="text-xl font-semibold text-on-surface">AI が作成したタスク案</h3>
+        <p class="analyze-page__results-eyebrow">AI Suggestions</p>
+        <h3 class="page-section__title">AI が作成したタスク案</h3>
+        <p class="page-section__subtitle">
+          ノートとゴールをもとに、優先度付きのカード案とサブタスクを提案します。
+        </p>
       </div>
-      <button
-        type="button"
-        class="surface-pill focus-ring px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-        (click)="resetForm()"
-      >
-        結果をクリア
-      </button>
+      <div class="page-section__actions">
+        <button type="button" class="button button--ghost button--pill" (click)="resetForm()">
+          結果をクリア
+        </button>
+      </div>
     </header>
 
     @if (analysisResource.status() === 'loading') {
-      <div class="surface-panel animate-pulse space-y-3 px-6 py-6 text-sm text-slate-500">
-        AI がタスク案を準備しています...
+      <div class="page-state analyze-page__state">
+        <h2>タスク案を生成しています</h2>
+        <p>AI がタスク案を準備しています...</p>
       </div>
     }
 
     @if (analysisResource.error()) {
-      <div
-        class="surface-panel border-red-300 bg-red-50 px-6 py-6 text-sm text-red-700 dark:border-red-500 dark:bg-red-950/40 dark:text-red-200"
-      >
+      <p class="app-alert app-alert--error">
         タスク起票の処理中にエラーが発生しました。内容を確認してからもう一度お試しください。
-      </div>
+      </p>
     }
 
     @if (analysisResource.value()) {
       @if (hasEligibleProposals()) {
-        <div class="grid gap-4 lg:grid-cols-2">
+        <ul class="page-list analyze-page__proposal-list">
           @for (proposal of eligibleProposals(); track proposal.id) {
-            <article class="surface-panel flex flex-col gap-4 px-6 py-6">
-              <div class="flex items-center justify-between">
-                <h4 class="text-lg font-semibold text-on-surface">{{ proposal.title }}</h4>
-                <span class="surface-pill px-3 py-1 text-xs font-semibold text-accent-strong">
+            <li class="page-list__item analyze-page__proposal">
+              <div class="analyze-page__proposal-header">
+                <h4 class="analyze-page__proposal-title">{{ proposal.title }}</h4>
+                <span class="page-badge page-badge--accent">
                   おすすめ度 {{ proposal.confidence * 100 | number: '1.0-0' }}%
                 </span>
               </div>
-              <p class="text-sm text-slate-600 dark:text-slate-300">{{ proposal.summary }}</p>
-              <div class="flex flex-wrap gap-2 text-xs text-slate-500">
-                <span class="surface-pill px-3 py-1"
-                  >推奨ステータス: {{ proposal.suggestedStatusId }}</span
-                >
-                <span class="surface-pill px-3 py-1"
-                  >推奨ラベル: {{ proposal.suggestedLabelIds.join(', ') }}</span
-                >
+              <p class="analyze-page__proposal-summary">{{ proposal.summary }}</p>
+              <div class="analyze-page__proposal-tags">
+                <span class="page-badge"> 推奨ステータス: {{ proposal.suggestedStatusId }} </span>
+                <span class="page-badge">
+                  推奨ラベル: {{ proposal.suggestedLabelIds.join(', ') }}
+                </span>
               </div>
-              <div class="space-y-2">
-                <p class="text-xs uppercase tracking-[0.3em] text-slate-400">サブタスク案</p>
-                <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+              <div class="analyze-page__proposal-subtasks">
+                <p class="analyze-page__proposal-subtasks-title">サブタスク案</p>
+                <ul class="analyze-page__proposal-subtasks-list">
                   @for (task of proposal.subtasks; track task) {
-                    <li class="flex items-center gap-2">
-                      <span class="h-2 w-2 rounded-full bg-accent"></span>
-                      <span>{{ task }}</span>
-                    </li>
+                    <li>{{ task }}</li>
                   }
                 </ul>
               </div>
               <button
                 type="button"
-                class="surface-primary focus-ring mt-auto self-start rounded-full px-5 py-2 text-sm font-semibold"
+                class="button button--secondary"
                 (click)="publishProposals([proposal])"
               >
                 この案をカードに追加
               </button>
-            </article>
+            </li>
           }
-        </div>
-        <div class="flex justify-end">
+        </ul>
+        <div class="analyze-page__proposal-actions">
           <button
             type="button"
-            class="surface-primary focus-ring rounded-full px-6 py-3 text-sm font-semibold"
+            class="button button--primary"
             (click)="publishProposals(eligibleProposals())"
           >
             すべての案をボードに追加
           </button>
         </div>
       } @else {
-        <div class="surface-panel px-6 py-6 text-sm text-slate-500 dark:text-slate-400">
-          おすすめ度のしきい値より低い案は表示されません。設定を見直して再度お試しください。
+        <div class="page-state analyze-page__state">
+          <h2>表示できる提案がありません</h2>
+          <p>おすすめ度のしきい値より低い案は表示されません。設定を見直して再度お試しください。</p>
         </div>
       }
     } @else {
-      <div class="surface-panel px-6 py-6 text-sm text-slate-500 dark:text-slate-400">
-        まだ提案がありません。ノートを入力してタスク起票を実行してください。
+      <div class="page-state analyze-page__state">
+        <h2>提案がまだありません</h2>
+        <p>ノートを入力してタスク起票を実行してください。</p>
       </div>
     }
   </section>

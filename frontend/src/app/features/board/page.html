@@ -1,65 +1,50 @@
 <section class="app-page board-page">
-  @let filters = filtersSignal();
-  @let summary = summarySignal();
-  @let groupingLabel = groupingLabelSignal();
-  @let quickSummary = quickFilterSummarySignal();
-
   <app-page-header
     eyebrow="Workspace Board"
     title="カード管理ボード"
-    description="ステータスやラベルでタスクを整理し、サブタスクの進捗をリアルタイムで追跡します。"
+    description="ステータスやラベルでタスクを俯瞰し、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。"
   >
-    <div class="board-page__chip-group" appPageHeaderActions>
-      <span class="surface-pill board-page__chip">
-        {{ filters?.search ? '検索: ' + filters.search : '検索なし' }}
-      </span>
-      <span class="surface-pill board-page__chip">グループ: {{ groupingLabel }}</span>
-      <span class="surface-pill board-page__chip">サブタスク: ステータス別</span>
-      <span class="surface-pill board-page__chip">クイック: {{ quickSummary }}</span>
+    <div appPageHeaderActions class="board-page__header-actions">
+      <span class="page-badge">{{ filtersSignal().search || '検索なし' }}</span>
+      <span class="page-badge">タスク: {{ groupingLabelSignal() }}</span>
+      <span class="page-badge">サブタスク: ステータス別</span>
+      <span class="page-badge">クイック: {{ quickFilterSummarySignal() }}</span>
     </div>
   </app-page-header>
 
-  <div class="board-page__overview page-grid page-grid--two">
-    @if (summary) {
-      <section class="surface-panel page-panel board-summary" aria-labelledby="board-summary-title">
-        <div class="board-summary__header">
-          <p class="board-summary__eyebrow">進捗スナップショット</p>
-          <p id="board-summary-title" class="board-summary__value">
-            {{ summary.progressRatio }}% 完了
-          </p>
-        </div>
-        <dl class="board-summary__stats">
-          <div class="board-summary__metric">
-            <dt>完了カード</dt>
-            <dd>{{ summary.doneCards }}</dd>
-          </div>
-          <div class="board-summary__metric">
-            <dt>総カード数</dt>
-            <dd>{{ summary.totalCards }}</dd>
-          </div>
-          <div class="board-summary__metric">
-            <dt>アクティブラベル</dt>
-            <dd>{{ summary.activeLabels }}</dd>
-          </div>
-        </dl>
-        <div
-          class="board-summary__progress"
-          role="img"
-          [attr.aria-label]="'完了率 ' + summary.progressRatio + '%'"
-        >
-          <div class="board-summary__progress-track">
-            <div class="board-summary__progress-fill" [style.width.%]="summary.progressRatio"></div>
-          </div>
+  <div class="board-page__overview">
+    @if (summarySignal(); as summary) {
+      <section class="surface-panel page-panel board-summary">
+        <header class="board-summary__header">
+          <p class="board-summary__eyebrow">進捗状況</p>
+          <p class="board-summary__progress">{{ summary.progressRatio }}% 完了</p>
+        </header>
+        <ul class="board-summary__metrics">
+          <li>
+            <span>完了カード</span>
+            <strong>{{ summary.doneCards }}</strong>
+          </li>
+          <li>
+            <span>総カード数</span>
+            <strong>{{ summary.totalCards }}</strong>
+          </li>
+          <li>
+            <span>アクティブラベル</span>
+            <strong>{{ summary.activeLabels }}</strong>
+          </li>
+        </ul>
+        <div class="board-summary__progress-bar" role="presentation">
+          <div class="board-summary__progress-value" [style.width.%]="summary.progressRatio"></div>
         </div>
         <a
           routerLink="/profile/evaluations"
-          class="button button--secondary button--pill board-summary__cta focus-ring"
+          class="button button--secondary button--pill board-summary__link"
         >
           最新のコンピテンシー判定を確認
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            class="board-summary__cta-icon"
+            class="board-summary__link-icon"
             fill="none"
             stroke="currentColor"
             stroke-width="1.8"
@@ -69,101 +54,112 @@
         </a>
       </section>
     }
-    <section
-      class="surface-panel page-panel board-controls"
-      [class.board-controls--full]="!summary"
-    >
-      <div class="board-controls__grid">
-        <label class="form-field board-controls__search">
-          <span class="form-field__label">カードを検索</span>
-          <div class="board-controls__search-input">
-            <span class="board-controls__search-icon" aria-hidden="true">
-              <svg
-                class="board-controls__icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20L16.5 16.5" />
-              </svg>
-            </span>
-            <input
-              type="search"
-              class="form-control form-control--search"
-              placeholder="キーワードでカードを検索"
-              [value]="searchForm.controls.search.value()"
-              (input)="updateSearch($any($event.target).value)"
-            />
+    <div class="flex h-full min-w-0 flex-col gap-4">
+      <section class="surface-panel page-panel board-filters">
+        <div class="board-filters__grid page-grid page-grid--two">
+          <div class="board-filters__column">
+            <label class="form-field board-filters__field">
+              <span class="form-field__label">検索</span>
+              <div class="board-filters__search">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  class="board-filters__search-icon"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20L16.5 16.5" />
+                </svg>
+                <input
+                  type="search"
+                  class="form-control board-filters__search-input"
+                  placeholder="キーワードでカードを検索"
+                  [value]="searchForm.controls.search.value()"
+                  (input)="updateSearch($any($event.target).value)"
+                />
+              </div>
+            </label>
+            <div class="board-filters__grouping">
+              <span class="board-filters__grouping-label">表示形式</span>
+              <div class="board-filters__grouping-actions">
+                <button
+                  type="button"
+                  class="button button--pill"
+                  [ngClass]="{
+                    'button--secondary': groupingSignal() === 'status',
+                    'button--ghost': groupingSignal() !== 'status',
+                  }"
+                  [attr.aria-pressed]="groupingSignal() === 'status'"
+                  (click)="selectGrouping('status')"
+                >
+                  ステータス別
+                </button>
+                <button
+                  type="button"
+                  class="button button--pill"
+                  [ngClass]="{
+                    'button--secondary': groupingSignal() === 'label',
+                    'button--ghost': groupingSignal() !== 'label',
+                  }"
+                  [attr.aria-pressed]="groupingSignal() === 'label'"
+                  (click)="selectGrouping('label')"
+                >
+                  ラベル別
+                </button>
+              </div>
+            </div>
           </div>
-        </label>
-        <div class="board-controls__group" role="group" aria-label="カードの表示形式">
-          <span class="board-controls__eyebrow">表示形式</span>
-          <div class="board-controls__chips">
-            <button
-              type="button"
-              class="surface-pill board-controls__chip focus-ring"
-              [class.surface-primary-muted]="groupingSignal() === 'status'"
-              (click)="selectGrouping('status')"
-            >
-              ステータス別
-            </button>
-            <button
-              type="button"
-              class="surface-pill board-controls__chip focus-ring"
-              [class.surface-primary-muted]="groupingSignal() === 'label'"
-              (click)="selectGrouping('label')"
-            >
-              ラベル別
-            </button>
-          </div>
-        </div>
-        <div class="board-controls__group" role="group" aria-label="クイックフィルター">
-          <div class="board-controls__quick-header">
-            <span class="board-controls__eyebrow">クイックフィルター</span>
-            <button
-              type="button"
-              class="button button--ghost button--pill board-controls__clear focus-ring"
-              (click)="clearFilters()"
-            >
-              フィルターをクリア
-            </button>
-          </div>
-          <div class="board-controls__quick-list">
-            @for (filter of quickFilters; track filter.id) {
+          <div class="board-filters__column">
+            <div class="board-filters__quick-header">
+              <span class="board-filters__quick-label">クイックフィルター</span>
               <button
                 type="button"
-                class="surface-pill board-controls__chip focus-ring"
-                [class.surface-primary-muted]="isQuickFilterActive(filter.id)"
-                [attr.aria-pressed]="isQuickFilterActive(filter.id)"
-                [title]="filter.description"
-                (click)="toggleQuickFilter(filter.id)"
+                class="button button--ghost button--pill"
+                (click)="clearFilters()"
               >
-                {{ filter.label }}
+                フィルターをクリア
               </button>
-            }
+            </div>
+            <div class="board-filters__quick-list">
+              @for (filter of quickFilters; track filter.id) {
+                <button
+                  type="button"
+                  class="button button--pill"
+                  [ngClass]="{
+                    'button--secondary': isQuickFilterActive(filter.id),
+                    'button--ghost': !isQuickFilterActive(filter.id),
+                  }"
+                  [attr.aria-pressed]="isQuickFilterActive(filter.id)"
+                  [title]="filter.description"
+                  (click)="toggleQuickFilter(filter.id)"
+                >
+                  {{ filter.label }}
+                </button>
+              }
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+      <p class="page-empty board-page__hint">
+        タスクはラベルやステータスで切り替えながら管理でき、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。選択したタスクに紐づくサブタスクはハイライト表示されます。
+      </p>
+    </div>
   </div>
 
-  <div class="board-page__workspace">
-    <div class="app-alert app-alert--notice board-page__hint" role="status">
-      タスクはラベルやステータスで切り替えながら管理でき、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。選択したタスクに紐づくサブタスクはハイライト表示されます。
-    </div>
-
-    <section class="board-section" aria-labelledby="board-columns-title">
-      <header class="board-section__header">
-        <div class="board-section__header-stack">
-          <h3 id="board-columns-title" class="board-section__title">タスク一覧</h3>
-          <p class="board-section__description">
-            完了または NonIssue のサブタスクのみのタスクは簡易表示になります。
-          </p>
+  <div class="board-page__subtasks">
+    <section class="board-page__task-board">
+      <header class="board-page__task-header">
+        <div>
+          <p class="board-page__task-eyebrow">Task Library</p>
+          <h3 class="board-page__task-title">タスク一覧</h3>
         </div>
+        <p class="board-page__task-description">
+          完了またはNonIssueのサブタスクのみのタスクは簡易表示になります。
+        </p>
       </header>
       <div class="board-columns" cdkDropListGroup>
         @for (column of columnsSignal(); track column.id) {
@@ -181,7 +177,7 @@
                   {{ column.title }}
                 </h3>
               </div>
-              <span class="surface-pill board-column__count">{{ column.count }} 件</span>
+              <span class="page-badge">{{ column.count }} 件</span>
             </header>
             <div class="board-card-list">
               @if (column.cards.length === 0) {
@@ -260,7 +256,7 @@
                           @for (status of statusesSignal(); track status.id) {
                             <button
                               type="button"
-                              class="surface-pill focus-ring px-3 py-1"
+                              class="button button--ghost button--pill"
                               (click)="moveCard(card.id, status.id)"
                             >
                               {{ status.name }}
@@ -278,13 +274,14 @@
       </div>
     </section>
 
-    <section class="board-section" aria-labelledby="subtask-columns-title">
-      <header class="board-section__header">
-        <div class="board-section__header-stack">
-          <h3 id="subtask-columns-title" class="board-section__title">サブタスク一覧</h3>
-          <p class="board-section__description">ステータスごとに並び替え、別に管理します。</p>
+    <section class="board-page__subtask-board">
+      <header class="board-page__task-header board-page__task-header--subtasks">
+        <div>
+          <p class="board-page__task-eyebrow">Subtasks</p>
+          <h3 class="board-page__task-title">サブタスク一覧</h3>
+          <p class="board-page__task-description">ステータスごとに並び替え、個別に管理します。</p>
         </div>
-        <div class="board-section__note">ドラッグ＆ドロップでステータスを更新できます。</div>
+        <p class="board-page__task-hint">ドラッグ＆ドロップでステータスを更新できます。</p>
       </header>
       <div class="board-columns subtask-columns" cdkDropListGroup>
         @for (column of subtaskColumnsSignal(); track column.id) {
@@ -301,9 +298,7 @@
                   {{ column.title }}
                 </h3>
               </div>
-              <span class="surface-pill board-column__count">
-                {{ column.subtasks.length }} 件
-              </span>
+              <span class="page-badge">{{ column.subtasks.length }} 件</span>
             </header>
             <div class="board-card-list">
               @if (column.subtasks.length === 0) {
