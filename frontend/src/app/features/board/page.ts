@@ -338,6 +338,18 @@ export class BoardPage {
   };
 
   /**
+   * Requests confirmation before deleting the provided card.
+   *
+   * @param card - Card slated for deletion.
+   */
+  public readonly confirmDeleteCard = (card: Card): void => {
+    const message = `カード「${card.title}」を削除しますか？この操作は取り消せません。`;
+    if (window.confirm(message)) {
+      this.workspace.removeCard(card.id);
+    }
+  };
+
+  /**
    * Updates the status of a card from the inline menu.
    *
    * @param cardId - Card identifier to update.
