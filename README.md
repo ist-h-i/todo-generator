@@ -103,6 +103,7 @@ npm test
 npm run lint
 npm run format:check
 ```
+`npm test` は Angular CLI (`ng test`) を実行し、Karma は環境変数 `CHROME_BIN=/usr/bin/chromium-browser` に設定された Chromium を利用します。
 Backend dependencies include pytest, while linting/formatting rules are configured via Ruff and
 Black. Frontend scripts rely on the npm commands declared in `package.json`.【F:backend/requirements.txt†L1-L13】【F:pyproject.toml†L1-L28】【F:frontend/package.json†L4-L12】
 
