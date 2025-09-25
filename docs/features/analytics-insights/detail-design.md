@@ -30,7 +30,18 @@ Administrators send date ranges, metrics, and narratives to `/analytics/snapshot
 ## 6. Report Draft Generation
 ContinuousImprovementStore stores user prompts and assembles Markdown-based report drafts from the selected snapshot, cause nodes, and suggested actions. Switching snapshots automatically rebuilds the draft.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L130-L147】
 
-## 7. Data Model
+## 7. Collaboration & Activity Timeline
+- **Drawer experience** – The board detail drawer renders an inline comment editor and list so teammates can leave context, prune outdated notes, and stay aligned within the same workspace view.【F:frontend/src/app/features/board/page.html†L484-L546】
+- **Signal updates** – `WorkspaceStore.addComment` and `WorkspaceStore.removeComment` normalise author/message input, assign timestamps/IDs, and update the card list with immutable signal operations so the UI reacts immediately.【F:frontend/src/app/core/state/workspace-store.ts†L750-L879】
+- **API surfaces** – `/comments` endpoints guard ownership, persist content, and append activity logs on create/delete, while `/activity-log` exposes a feed filtered by actor or card to keep an auditable timeline.【F:backend/app/routers/comments.py†L17-L87】【F:backend/app/routers/activity.py†L17-L62】
+- **Activity helper** – `record_activity` centralises persistence of log entries so both manual events and automated flows share the same schema and storage lifecycle.【F:backend/app/utils/activity.py†L10-L27】
+
+## 8. Competency Evaluation Insights
+- **Profile surface** – The profile evaluations page fetches recent competency runs, quota status, and next-action recommendations, presenting score breakdowns, rationale, and export actions alongside quota warnings.【F:frontend/src/app/features/profile/evaluations/page.ts†L40-L220】【F:frontend/src/app/features/profile/evaluations/page.html†L1-L220】
+- **Quota-aware triggers** – The page blocks additional executions once `limitReached` evaluates true, calling `runMyEvaluation` only when the quota API confirms capacity.【F:frontend/src/app/features/profile/evaluations/page.ts†L114-L220】
+- **Backend orchestration** – Self-evaluation endpoints reserve daily quota, enqueue evaluation jobs, execute the competency evaluator, and expose quota status so the frontend mirrors backend enforcement.【F:backend/app/routers/competency_evaluations.py†L43-L140】【F:backend/app/utils/quotas.py†L17-L190】
+
+## 9. Data Model
 | Model | Key Fields |
 | --- | --- |
 | `AnalyticsSnapshot` | `period_start`, `period_end`, `metrics`, `narrative`, `generated_by`【F:backend/app/models.py†L301-L318】 |
@@ -39,15 +50,15 @@ ContinuousImprovementStore stores user prompts and assembles Markdown-based repo
 | `SuggestedAction` | `title`, `description`, `effort_estimate`, `impact_score`, `owner_role`, `due_date_hint`, `status`, `initiative_id`, `created_card_id`【F:backend/app/models.py†L381-L427】 |
 | `ImprovementInitiative` | `status`, `health`, `progress_logs`, `suggested_actions`【F:backend/app/models.py†L332-L364】 |
 
-## 8. Security & Access Control
+## 10. Security & Access Control
 The Analytics router requires the `require_admin` dependency so only administrators can access it.【F:backend/app/routers/analytics.py†L16-L32】 Saved filters rely on creator ID checks to block unauthorized access.【F:backend/app/routers/filters.py†L33-L78】
 
-## 9. Telemetry
+## 11. Telemetry
 - Log snapshot creation and updates to monitor usage by period and track failure rates.
 - Persist `created_card_id` when converting suggested actions so we can measure conversion rate and lead time.【F:backend/app/models.py†L381-L427】
 - Segment the frontend with Signals so the analytics SDK can capture user behavior per section.【F:frontend/src/app/features/analytics/page.ts†L65-L112】
 
-## 10. Test Strategy
+## 12. Test Strategy
 - **Unit tests** – Validate WorkspaceStore/ContinuousImprovementStore state transitions, filter restoration, and report generation logic.
 - **API tests** – Cover `/filters` and `/analytics` CRUD, date filtering, Why-Why generation, suggested action branching, and access control.
 - **End-to-end scenarios** – Verify the flow from choosing a snapshot through card conversion and report draft updates via the UI.
