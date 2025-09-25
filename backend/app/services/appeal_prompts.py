@@ -4,7 +4,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar, Iterable
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+try:
+    from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+except ModuleNotFoundError as exc:  # pragma: no cover - exercised in import failure environments
+    Environment = FileSystemLoader = StrictUndefined = select_autoescape = None  # type: ignore[assignment]
+    _jinja_import_error = exc
+else:
+    _jinja_import_error: ModuleNotFoundError | None = None
 
 from .. import schemas
 
@@ -32,6 +38,12 @@ class AppealPromptBuilder:
     }
 
     def __init__(self, template_name: str = "appeals.jinja") -> None:
+        if _jinja_import_error is not None:  # pragma: no cover - depends on external environment
+            message = (
+                "Jinja2 is required to render appeal prompts. "
+                "Please install the backend dependencies via 'pip install -r backend/requirements.txt'."
+            )
+            raise RuntimeError(message) from _jinja_import_error
         base_dir = Path(__file__).resolve().parent.parent / "prompts"
         loader = FileSystemLoader(str(base_dir))
         self._environment = Environment(
