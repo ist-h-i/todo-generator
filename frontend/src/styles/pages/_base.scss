@@ -53,7 +53,6 @@
   color: var(--text-primary);
   transition:
     border-color 150ms ease,
-    box-shadow 150ms ease,
     background-color 150ms ease;
 }
 
@@ -62,9 +61,9 @@
 }
 
 .form-control:focus-visible {
-  outline: none;
+  outline: 3px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: 2px;
   border-color: color-mix(in srgb, var(--accent) 50%, var(--border-subtle));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
   background: var(--surface-card);
 }
 
@@ -75,7 +74,8 @@
 
 .form-control--invalid {
   border-color: color-mix(in srgb, var(--danger) 55%, transparent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 18%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--danger) 24%, transparent);
+  outline-offset: 2px;
 }
 
 .form-actions {
@@ -113,7 +113,6 @@
   border: 1px solid var(--border-card);
   background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
   padding: 1.1rem 1.2rem;
-  box-shadow: var(--shadow-soft);
 }
 
 .form-collection__header {
@@ -155,30 +154,26 @@
 
 .form-collection__add {
   align-self: flex-start;
-  border: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
   border-radius: 9999px;
   padding: 0.65rem 1.35rem;
   background: var(--accent);
   color: var(--on-surface-inverse);
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 16px 32px -24px var(--accent-shadow-color);
   transition:
     transform 150ms ease,
-    box-shadow 150ms ease,
     filter 150ms ease;
 }
 
 .form-collection__add:hover {
   transform: translateY(-1px);
-  box-shadow: 0 18px 36px -22px var(--accent-shadow-strong-color);
   filter: brightness(1.05);
 }
 
 .form-collection__add:disabled {
   opacity: 0.65;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 .app-alert {
@@ -221,7 +216,6 @@
     color-mix(in srgb, var(--accent) 14%, var(--surface-card)),
     color-mix(in srgb, var(--info) 10%, var(--surface-card))
   );
-  box-shadow: var(--shadow-soft);
   overflow: hidden;
 }
 
@@ -275,7 +269,6 @@
   border-radius: 9999px;
   border: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--surface-card) 82%, transparent);
-  box-shadow: var(--shadow-soft);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -292,7 +285,7 @@
   gap: 0.4rem;
   padding: 0.6rem 1.35rem;
   border-radius: 9999px;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
   font-size: 0.9rem;
@@ -302,7 +295,7 @@
   transition:
     background-color 150ms ease,
     color 150ms ease,
-    box-shadow 150ms ease;
+    border-color 150ms ease;
 }
 
 .page-tab:hover {
@@ -313,7 +306,7 @@
 .page-tab--active {
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent-strong);
-  box-shadow: 0 12px 24px -16px var(--accent-shadow-color);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .page-section {
@@ -324,7 +317,6 @@
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-card);
   background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
-  box-shadow: var(--shadow-soft);
 }
 
 .page-section__header {
@@ -371,7 +363,6 @@
   border: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--surface-card) 85%, transparent);
   padding: 1.1rem 1.2rem;
-  box-shadow: var(--shadow-soft);
   min-width: 0;
   height: 100%;
 }
@@ -460,7 +451,6 @@
   cursor: pointer;
   transition:
     transform 150ms ease,
-    box-shadow 150ms ease,
     filter 150ms ease;
 }
 
@@ -468,14 +458,12 @@
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   color: var(--on-surface-inverse);
-  box-shadow: 0 18px 40px -28px var(--accent-shadow-strong-color);
 }
 
 .button--secondary {
   border-color: color-mix(in srgb, var(--accent) 35%, transparent);
   background: color-mix(in srgb, var(--surface-card) 86%, transparent);
   color: color-mix(in srgb, var(--accent-strong) 85%, var(--text-secondary));
-  box-shadow: var(--shadow-soft);
 }
 
 .button--ghost {
@@ -488,7 +476,6 @@
   border-color: color-mix(in srgb, var(--danger) 40%, transparent);
   background: color-mix(in srgb, var(--danger) 18%, var(--surface-card));
   color: color-mix(in srgb, var(--danger-strong) 90%, var(--text-primary));
-  box-shadow: 0 18px 40px -30px color-mix(in srgb, var(--danger) 40%, transparent);
 }
 
 .button--pill {
@@ -508,7 +495,6 @@
   cursor: not-allowed;
   transform: none;
   filter: none;
-  box-shadow: none;
 }
 
 .form-grid {
@@ -558,7 +544,6 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-card);
   background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
-  box-shadow: var(--shadow-soft);
 }
 
 .page-table {

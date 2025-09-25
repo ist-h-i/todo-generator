@@ -1,6 +1,6 @@
 # UI Design System (Simple & Modern)
 
-To deliver a minimal, modern, and polished tone across the app, the visual structure, typography, and component specifications follow the guidelines below. By balancing light and shadow, shared color tokens, and consistent interaction states, both light and dark themes maintain the same texture. Use this document as the reference whenever you redesign screens or ship new features.
+To deliver a minimal, modern, and polished tone across the app, the visual structure, typography, and component specifications follow the guidelines below. By layering tones with crisp borders, shared color tokens, and consistent interaction states, both light and dark themes maintain the same texture. Use this document as the reference whenever you redesign screens or ship new features.
 
 ## Core Design Principles
 1. **Let whitespace breathe** – Keep information density low and rely on generous spacing plus a clear grid for layouts that feel calm.
@@ -15,6 +15,7 @@ To deliver a minimal, modern, and polished tone across the app, the visual struc
 - **Text**: Combine `--color-text-primary` and `--color-text-secondary`. Headings target 90% strength, supporting text about 60%. In the dark theme, change lightness instead of opacity and keep at least a 60-point Lab difference from the background.
 - **Accent**: Use `--color-accent` for primary actions and `--color-success` / `--color-warning` / `--color-danger` for feedback states. To avoid overusing accents, differentiate page-specific colors by token tone rather than introducing new hues.
 - **Surfaces**: Define `--surface-layer-{1-4}` tokens for layered surfaces. Apply them to cards, panels, and status pills. Each layer derives from `--surface-card` and `--surface-card-muted`, swapping values consistently between light and dark themes.
+- **No drop shadows**: Remove decorative shadows from interactive elements and elevated surfaces. Express depth with tonal shifts and 1px borders (including inset lines) so both themes stay crisp and accessible.
 
 ### Theme & Contrast Guidance
 | Element | Light Theme | Dark Theme | Notes |
@@ -95,7 +96,7 @@ Use `--border-card` / `--border-card-strong` as the default borders and reserve 
 - Base cards use `.surface-card` with `linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2))`, a `1px solid var(--color-border-strong)` outline, and an inset `color-mix(in srgb, var(--color-surface-alt) 70%, transparent)` line. Padding 24px, radius 12px.
 - Recommended structure: header (title + metadata), body, footer (actions). Header uses flex alignment with 18px/600 titles.
 - Place a `surface-pill` status badge at the top-right; background uses a 12% accent tone.
-- On hover, shift the background tone by ±6% (lighter in light theme, darker in dark) without changing text color, keeping ≥4.5:1 contrast.
+- On hover, shift the background tone by ±6% (lighter in light theme, darker in dark) without changing text color, keeping ≥4.5:1 contrast. Avoid reintroducing drop shadows—use the tone shift and border emphasis instead.
 
 ### Card Containers
 - Use `.card-collection` for grids: `display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;`.
