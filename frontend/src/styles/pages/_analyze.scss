@@ -12,6 +12,10 @@
   min-height: clamp(16rem, 24vw, 20rem);
 }
 
+.analyze-page__notes-hint {
+  margin-bottom: clamp(0.6rem, 1vw, 0.85rem);
+}
+
 .analyze-page__objective {
   display: flex;
   flex-direction: column;
