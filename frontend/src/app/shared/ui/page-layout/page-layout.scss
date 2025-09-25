@@ -6,6 +6,17 @@
   padding-inline: 0;
 }
 
+.app-page-layout__section {
+  display: grid;
+  gap: var(--page-content-gap);
+  width: 100%;
+}
+
+.app-page-layout__section--header {
+  display: block;
+  gap: 0;
+}
+
 .app-page-layout__body {
   display: grid;
   gap: var(--page-content-gap);
@@ -17,19 +28,6 @@
 }
 
 :host(.shell-container) .app-page-layout__body--bleed {
-  margin-inline: 0;
-}
-
-.app-page-layout__content {
-  display: grid;
-  gap: var(--page-content-gap);
-  max-width: 76rem;
-  width: 100%;
-  margin-inline: auto;
-}
-
-:host(.app-page-layout--wide) .app-page-layout__content {
-  max-width: none;
   margin-inline: 0;
 }
 
