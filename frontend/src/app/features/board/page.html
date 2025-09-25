@@ -44,7 +44,7 @@
             <div class="board-summary__progress-fill" [style.width.%]="summary.progressRatio"></div>
           </div>
           <span class="board-summary__progress-caption">達成度</span>
-        </div>
+        </a>
         <a routerLink="/profile/evaluations" class="button button--secondary board-summary__cta">
           最新のコンピテンシー判定を確認
           <svg
@@ -211,36 +211,42 @@
                       [class.board-card--compact]="isCardResolved(card)"
                       [class.board-card--active]="isActiveCard(card.id)"
                     >
-                      <div class="board-card__body">
-                        <div class="board-card__header">
-                          <h4 class="board-card__title">{{ card.title }}</h4>
-                          @if (!isCardResolved(card)) {
-                            <p class="board-card__summary">{{ card.summary }}</p>
-                          } @else {
-                            <p class="board-card-compact-note">
-                              サブタスクはすべて完了または NonIssue です。
-                            </p>
-                          }
-                        </div>
-                        <div class="board-card__meta">
-                          <span class="board-badge" [style.color]="statusColor(card.statusId)">
-                            {{ statusName(card.statusId) }}
-                          </span>
-                          @for (labelId of card.labelIds; track labelId) {
-                            <span class="board-badge">{{ labelName(labelId) }}</span>
-                          }
-                        </div>
-                        @if (!isCardResolved(card)) {
-                          <div class="board-card__footer">
-                            <span>SP: {{ card.storyPoints }}</span>
-                            @if (card.assignee) {
-                              <span>担当: {{ card.assignee }}</span>
-                            }
-                            @if (card.confidence) {
-                              <span>AIおすすめ度: {{ card.confidence * 100 | number: '1.0-0' }}%</span>
+                      <button
+                        type="button"
+                        class="board-card__select"
+                        (click)="openCard(card.id)"
+                      >
+                        <div class="board-card__body">
+                          <div class="board-card__header">
+                            <h4 class="board-card__title">{{ card.title }}</h4>
+                            @if (!isCardResolved(card)) {
+                              <p class="board-card__summary">{{ card.summary }}</p>
+                            } @else {
+                              <p class="board-card-compact-note">
+                                サブタスクはすべて完了または NonIssue です。
+                              </p>
                             }
                           </div>
-                        }
+                          <div class="board-card__meta">
+                            <span class="board-badge" [style.color]="statusColor(card.statusId)">
+                              {{ statusName(card.statusId) }}
+                            </span>
+                            @for (labelId of card.labelIds; track labelId) {
+                              <span class="board-badge">{{ labelName(labelId) }}</span>
+                            }
+                          </div>
+                          @if (!isCardResolved(card)) {
+                            <div class="board-card__footer">
+                              <span>SP: {{ card.storyPoints }}</span>
+                              @if (card.assignee) {
+                                <span>担当: {{ card.assignee }}</span>
+                              }
+                              @if (card.confidence) {
+                                <span>AIおすすめ度: {{ card.confidence * 100 | number: '1.0-0' }}%</span>
+                              }
+                            </div>
+                          }
+                        </div>
                       </button>
                       @if (!isCardResolved(card) && groupingSignal() !== 'status') {
                         <div class="board-card__actions flex flex-wrap gap-2 text-xs">
@@ -345,93 +351,13 @@
                   </article>
                 }
               }
-            }
           </div>
         </section>
       }
     </div>
   </section>
 
-  <section class="page-section board-page__section board-page__subtasks">
-    <div class="page-section__header">
-      <div>
-        <h3 class="page-section__title">サブタスク一覧</h3>
-        <p class="page-section__subtitle">ステータスごとに並び替え、個別に管理します。</p>
-      </div>
-      <div class="page-section__actions">
-        <span class="page-badge">ドラッグ＆ドロップでステータスを更新できます。</span>
-      </div>
-    </div>
-    <div class="board-columns subtask-columns" cdkDropListGroup>
-      @for (column of subtaskColumnsSignal(); track column.id) {
-        <section
-          class="board-column subtask-column"
-          cdkDropList
-          [cdkDropListData]="column.subtasks"
-          (cdkDropListDropped)="handleSubtaskDrop(column.id, $event)"
-        >
-          <header class="board-column__header">
-            <div>
-              <p class="board-column__eyebrow">{{ column.id }}</p>
-              <h3 class="board-column__title" [style.color]="column.accent">
-                {{ column.title }}
-              </h3>
-            </div>
-            <span class="surface-pill board-column__count">{{ column.subtasks.length }} 件</span>
-          </header>
-          <div class="board-card-list">
-            @if (column.subtasks.length === 0) {
-              <p class="board-empty">このステータスのサブタスクはありません。</p>
-            } @else {
-              @for (subtask of column.subtasks; track subtask.id) {
-                <article
-                  class="board-card subtask-card surface-card"
-                  cdkDrag
-                  [cdkDragData]="subtask"
-                  [style.borderColor]="column.accent + '55'"
-                  [style.background]="
-                    'linear-gradient(180deg, '
-                    + column.accent
-                    + '18 0%, var(--surface-card) 55%, var(--surface-card-muted) 100%)'
-                  "
-                  [class.subtask-card--highlight]="subtask.highlight"
-                  [class.subtask-card--compact]="subtask.isCompact"
-                >
-                  <div class="subtask-card__header">
-                    <h4 class="subtask-card__title">{{ subtask.title }}</h4>
-                    <span class="subtask-card__status">{{ column.title }}</span>
-                  </div>
-                  <p class="subtask-card__parent">
-                    親タスク:
-                    <span>{{ subtask.parentTitle }}</span>
-                  </p>
-                  <div class="subtask-card-labels">
-                    @for (labelId of subtask.parentLabels; track labelId) {
-                      <span class="subtask-badge">{{ labelName(labelId) }}</span>
-                    }
-                  </div>
-                  @if (!subtask.isCompact) {
-                    <div class="subtask-card__meta">
-                      @if (subtask.assignee) {
-                        <span>担当: {{ subtask.assignee }}</span>
-                      }
-                      @if (subtask.estimateHours) {
-                        <span>工数: {{ subtask.estimateHours }}h</span>
-                      }
-                    </div>
-                  } @else {
-                    <p class="subtask-card-compact-note">
-                      {{ subtask.status === 'non-issue' ? 'NonIssue として対応済み' : '完了済みのサブタスク' }}
-                    </p>
-                  }
-                </article>
-              }
-            }
-          </div>
-        </section>
-      }
-    </div>
-  </section>
+  </div>
 
   @if (selectedCardSignal(); as active) {
     <aside class="surface-panel board-detail">
@@ -446,153 +372,7 @@
               閉じる
             </button>
           </div>
-        </form>
-        <section class="subtask-editor space-y-4">
-          <div class="space-y-1">
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-400">サブタスク管理</p>
-            <h4 class="text-lg font-semibold text-on-surface">カード配下のタスクを編集</h4>
-            <p class="text-xs text-slate-500">
-              タイトルや担当者を直接修正し、不要になったサブタスクは削除できます。
-            </p>
-          </div>
-          <ul class="subtask-editor__list space-y-3">
-            @if (active.subtasks.length === 0) {
-              <li
-                class="rounded-2xl border border-dashed border-subtle bg-surface px-4 py-6 text-sm text-slate-500"
-              >
-                サブタスクはまだありません。
-              </li>
-            } @else {
-              @for (task of active.subtasks; track task.id) {
-                <li class="subtask-editor__item">
-                  <div class="subtask-editor__grid">
-                    <label class="subtask-editor__field">
-                      <span class="subtask-editor__field-label">タイトル</span>
-                      <input
-                        type="text"
-                        class="subtask-editor__input"
-                        [value]="task.title"
-                        (change)="updateSubtaskTitle(active.id, task.id, $any($event.target).value)"
-                      />
-                    </label>
-                    <label class="subtask-editor__field">
-                      <span class="subtask-editor__field-label">ステータス</span>
-                      <select
-                        class="subtask-editor__input"
-                        [value]="task.status"
-                        (change)="
-                          changeSubtaskStatus(active.id, task.id, $any($event.target).value)
-                        "
-                      >
-                        @for (status of statusesSignal(); track status.id) {
-                          <option [value]="status.id">{{ status.name }}</option>
-                        }
-                      </select>
-                    </label>
-                  </div>
-                  <div class="subtask-editor__grid">
-                    <label class="subtask-editor__field">
-                      <span class="subtask-editor__field-label">担当者</span>
-                      <input
-                        type="text"
-                        class="subtask-editor__input"
-                        placeholder="任意"
-                        [value]="task.assignee ?? ''"
-                        (change)="
-                          updateSubtaskAssignee(active.id, task.id, $any($event.target).value)
-                        "
-                      />
-                    </label>
-                    <label class="subtask-editor__field">
-                      <span class="subtask-editor__field-label">工数 (h)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        class="subtask-editor__input"
-                        placeholder="任意"
-                        [value]="task.estimateHours ?? ''"
-                        (change)="
-                          updateSubtaskEstimate(active.id, task.id, $any($event.target).value)
-                        "
-                      />
-                    </label>
-                  </div>
-                  <div class="subtask-editor__actions">
-                    <button
-                      type="button"
-                      class="surface-pill focus-ring px-4 py-2 text-xs font-semibold text-red-600 dark:text-red-400"
-                      (click)="deleteSubtask(active.id, task.id)"
-                    >
-                      サブタスクを削除
-                    </button>
-                  </div>
-                </li>
-              }
-            }
-          </ul>
-          <form class="subtask-editor__form" (submit)="addSubtask($event)">
-            <h5 class="text-sm font-semibold text-on-surface">サブタスクを追加</h5>
-            <div class="subtask-editor__grid">
-              <label class="subtask-editor__field">
-                <span class="subtask-editor__field-label">タイトル</span>
-                <input
-                  type="text"
-                  class="subtask-editor__input"
-                  placeholder="作業内容を入力"
-                  [value]="newSubtaskForm.controls.title.value()"
-                  (input)="newSubtaskForm.controls.title.setValue($any($event.target).value)"
-                />
-              </label>
-              <label class="subtask-editor__field">
-                <span class="subtask-editor__field-label">ステータス</span>
-                <select
-                  class="subtask-editor__input"
-                  [value]="newSubtaskForm.controls.status.value()"
-                  (change)="newSubtaskForm.controls.status.setValue($any($event.target).value)"
-                >
-                  @for (status of statusesSignal(); track status.id) {
-                    <option [value]="status.id">{{ status.name }}</option>
-                  }
-                </select>
-              </label>
-            </div>
-            <div class="subtask-editor__grid">
-              <label class="subtask-editor__field">
-                <span class="subtask-editor__field-label">担当者</span>
-                <input
-                  type="text"
-                  class="subtask-editor__input"
-                  placeholder="任意"
-                  [value]="newSubtaskForm.controls.assignee.value()"
-                  (input)="newSubtaskForm.controls.assignee.setValue($any($event.target).value)"
-                />
-              </label>
-              <label class="subtask-editor__field">
-                <span class="subtask-editor__field-label">工数 (h)</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  class="subtask-editor__input"
-                  placeholder="任意"
-                  [value]="newSubtaskForm.controls.estimateHours.value()"
-                  (input)="
-                    newSubtaskForm.controls.estimateHours.setValue($any($event.target).value)
-                  "
-                />
-              </label>
-            </div>
-            <div class="subtask-editor__actions">
-              <button
-                type="submit"
-                class="button button--primary"
-                [disabled]="!isCardFormValid()"
-              >
-                サブタスクを追加
-              </button>
-            </div>
-          </form>
+
           <section class="subtask-editor space-y-4">
             <div class="space-y-1">
               <p class="card-detail-header__eyebrow">サブタスク管理</p>
