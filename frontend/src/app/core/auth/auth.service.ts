@@ -5,7 +5,8 @@ import { firstValueFrom } from 'rxjs';
 import { buildApiUrl } from '@core/api/api.config';
 import { AuthenticatedUser, TokenResponse } from '@core/models';
 
-const STORAGE_KEY = 'todo-generator/auth-token';
+const STORAGE_KEY = 'verbalize-yourself/auth-token';
+const LEGACY_STORAGE_KEY = 'todo-generator/auth-token';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -87,7 +88,11 @@ export class AuthService {
   }
 
   private async restoreSession(): Promise<void> {
-    const storedToken = this.storage?.getItem(STORAGE_KEY);
+    let storedToken = this.storage?.getItem(STORAGE_KEY);
+    if (!storedToken) {
+      storedToken = this.migrateLegacyToken();
+    }
+
     if (!storedToken) {
       this.initializedStore.set(true);
       return;
@@ -116,6 +121,35 @@ export class AuthService {
     }
   }
 
+  private migrateLegacyToken(): string | null {
+    if (!this.storage) {
+      return null;
+    }
+
+    try {
+      const legacyToken = this.storage.getItem(LEGACY_STORAGE_KEY);
+      if (!legacyToken) {
+        return null;
+      }
+
+      try {
+        this.storage.setItem(STORAGE_KEY, legacyToken);
+      } catch {
+        // Ignore storage quota issues when copying the legacy token.
+      }
+
+      try {
+        this.storage.removeItem(LEGACY_STORAGE_KEY);
+      } catch {
+        // Removing the legacy key is best-effort only.
+      }
+
+      return legacyToken;
+    } catch {
+      return null;
+    }
+  }
+
   private setSession(token: string, user: AuthenticatedUser): void {
     this.tokenStore.set(token);
     this.userStore.set(user);
@@ -137,10 +171,16 @@ export class AuthService {
       return;
     }
 
-    if (token) {
-      this.storage.setItem(STORAGE_KEY, token);
-    } else {
-      this.storage.removeItem(STORAGE_KEY);
+    try {
+      if (token) {
+        this.storage.setItem(STORAGE_KEY, token);
+      } else {
+        this.storage.removeItem(STORAGE_KEY);
+      }
+
+      this.storage.removeItem(LEGACY_STORAGE_KEY);
+    } catch {
+      // Silently ignore storage quota or availability issues.
     }
   }
 

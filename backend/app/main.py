@@ -14,16 +14,16 @@ from .routers import (
     analytics,
     auth,
     cards,
-    daily_reports,
     comments,
     competencies,
     competency_evaluations,
+    daily_reports,
     error_categories,
     filters,
     initiatives,
     labels,
-    profile,
     preferences,
+    profile,
     reports,
     statuses,
     suggested_actions,
@@ -33,7 +33,7 @@ run_startup_migrations(engine)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Todo Generator Backend",
+    title="Verbalize Yourself Backend",
     description="API for transforming unstructured input into actionable task boards.",
     version="0.1.0",
 )

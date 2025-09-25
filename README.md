@@ -1,6 +1,6 @@
-# Todo Generator
+# Verbalize Yourself
 
-Todo Generator is a full-stack productivity workspace that pairs an Angular 20 single-page
+Verbalize Yourself is a full-stack productivity workspace that pairs an Angular 20 single-page
 application with a FastAPI backend and ChatGPT-powered automation to turn free-form notes into
 structured work, analytics artefacts, and coaching workflows.【F:frontend/src/app/app.routes.ts†L9-L66】【F:backend/app/main.py†L1-L69】【F:backend/app/services/chatgpt.py†L43-L190】【F:backend/app/models.py†L120-L439】
 
