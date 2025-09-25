@@ -39,7 +39,8 @@ export class Shell {
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly themeStorageKey = 'todo-generator:theme-preference';
+  private readonly themeStorageKey = 'verbalize-yourself:theme-preference';
+  private readonly legacyThemeStorageKey = 'todo-generator:theme-preference';
   private readonly helpDialogVisible = signal(false);
   private readonly profileDialogVisible = signal(false);
   private readonly profileToastStore = signal<string | null>(null);
@@ -89,6 +90,7 @@ export class Shell {
     if (typeof window !== 'undefined') {
       try {
         window.localStorage.setItem(this.themeStorageKey, preference);
+        window.localStorage.removeItem(this.legacyThemeStorageKey);
       } catch {
         // Storage might be unavailable (private mode or SSR); ignore errors silently.
       }
@@ -161,15 +163,54 @@ export class Shell {
     }
 
     try {
-      const stored = window.localStorage.getItem(this.themeStorageKey);
-      if (stored === 'dark' || stored === 'light' || stored === 'system') {
+      const storage = window.localStorage;
+      const stored = storage.getItem(this.themeStorageKey);
+      if (this.isThemePreference(stored)) {
         return stored;
+      }
+
+      const legacy = this.migrateLegacyThemePreference(storage);
+      if (legacy) {
+        return legacy;
       }
     } catch {
       // Ignore storage access issues and fallback to system preference.
     }
 
     return 'system';
+  }
+
+  private migrateLegacyThemePreference(storage: Storage): ThemePreference | null {
+    const legacy = storage.getItem(this.legacyThemeStorageKey);
+    if (this.isThemePreference(legacy)) {
+      try {
+        storage.setItem(this.themeStorageKey, legacy);
+      } catch {
+        // Ignore storage errors and continue using the legacy value in-memory.
+      }
+
+      try {
+        storage.removeItem(this.legacyThemeStorageKey);
+      } catch {
+        // Removing the legacy key is best-effort only.
+      }
+
+      return legacy;
+    }
+
+    if (legacy !== null) {
+      try {
+        storage.removeItem(this.legacyThemeStorageKey);
+      } catch {
+        // Ignore removal issues for invalid legacy entries.
+      }
+    }
+
+    return null;
+  }
+
+  private isThemePreference(value: unknown): value is ThemePreference {
+    return value === 'dark' || value === 'light' || value === 'system';
   }
 
   private detectSystemTheme(): 'dark' | 'light' {

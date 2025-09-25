@@ -9,7 +9,7 @@
 | Status | For internal review |
 
 ## 1. Background & Objectives
-Continuous improvement programs within Todo Generator rely on card histories to demonstrate progress and communicate lessons learned. Stakeholders often request concise narratives that explain what challenges were faced, the actions taken, and how those actions delivered results. Currently, teams manually craft these narratives using disparate documents, leading to inconsistent messaging and slow reporting cycles. The Appeal Narrative Generation capability will automate narrative creation from existing card achievements while giving users granular control over structure and tone.
+Continuous improvement programs within Verbalize Yourself rely on card histories to demonstrate progress and communicate lessons learned. Stakeholders often request concise narratives that explain what challenges were faced, the actions taken, and how those actions delivered results. Currently, teams manually craft these narratives using disparate documents, leading to inconsistent messaging and slow reporting cycles. The Appeal Narrative Generation capability will automate narrative creation from existing card achievements while giving users granular control over structure and tone.
 
 Objectives:
 1. Enable users to produce coherent, causal narratives based on existing card accomplishments without rewriting raw data.

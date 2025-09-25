@@ -1,4 +1,4 @@
-# Todo Generator Backend
+# Verbalize Yourself Backend
 
 This FastAPI application implements the backend described in the project requirements. It exposes REST endpoints for analysis, card management, subtasks, labels, statuses, board layouts, comments, and the activity log.
 
