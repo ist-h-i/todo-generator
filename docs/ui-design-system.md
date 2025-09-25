@@ -1,152 +1,138 @@
-# UI デザインシステム（シンプル&モダン版）
+# UI Design System (Simple & Modern)
 
-アプリ全体にミニマルでモダン、そして洗練されたトーンを行き渡らせるため、視覚構造・タイポグラフィ・コンポーネントの仕様を下記の方針で再整理しました。光と影のコントラスト、配色トークン、操作状態の一貫性を軸にライト／ダーク両テーマで同じ質感を保ちます。各画面の改修や新機能追加時は、本ドキュメントを基準に UI を設計してください。
+To deliver a minimal, modern, and polished tone across the app, the visual structure, typography, and component specifications follow the guidelines below. By layering tones with crisp borders, shared color tokens, and consistent interaction states, both light and dark themes maintain the same texture. Use this document as the reference whenever you redesign screens or ship new features.
 
-## コアデザイン原則
-1. **余白で魅せる** – 情報密度を抑え、広めの余白と明瞭なグリッドで呼吸感のあるレイアウトを構築する。
-2. **コントラストを厳選する** – ベースはニュートラルカラーで構成し、アクセントカラーは重要なアクションや状態のみに限定する。ライト/ダーク双方で背景とテキストのコントラスト比 4.5:1 以上（大きなテキストは 3:1 以上）を確保する。
-3. **操作の迷いを無くす** – ボタンやナビゲーションをシンプルな形状・配色で揃え、どこで操作できるかを即座に判断できるようにする。
-4. **アクセシブルであること** – 十分なコントラスト、明瞭なフォーカス、スクリーンリーダー向けの構造化を標準仕様とする。
+## Core Design Principles
+1. **Let whitespace breathe** – Keep information density low and rely on generous spacing plus a clear grid for layouts that feel calm.
+2. **Be intentional with contrast** – Build on neutral base colors and reserve accent colors for the most important actions or states. Ensure 4.5:1 contrast between text and background (3:1 for large text) in both themes.
+3. **Remove hesitation** – Align buttons and navigation with simple shapes and colors so users instantly see where they can take action.
+4. **Stay accessible** – Treat sufficient contrast, clear focus states, and screen-reader-friendly structure as the default.
 
-## ビジュアルファウンデーション
-### カラーパレット
-- **トークン構成**: すべての色は `--color-{semantic}-{state}-{theme}` の命名で管理し、テーマ（`light` / `dark`）と状態（`default` / `hover` / `active` / `disabled`）を明示する。
-- **ベース**: `--color-surface`、`--color-surface-alt` を主に使用し、段差は 1px のボーダーや背景トーンの差で表現する。ライトテーマはニュートラル 50〜200、ダークテーマはニュートラル 800〜950 を中心にし、シャドウの代わりに `color-mix` で調整した縁取りを活用する。
-- **テキスト**: `--color-text-primary`、`--color-text-secondary` を使い分け、見出しは濃度 90%、補助テキストは 60% を目安にする。ダークテーマでは透過度ではなく明度差で調整し、背景との差を 60 以上（Lab 値換算）確保する。
-- **アクセント**: プライマリアクションは `--color-accent`、肯定/警告/エラーは `--color-success` / `--color-warning` / `--color-danger` を用いる。アクセントの乱用を避けるため、ページごとの固有色はトークンのトーン差（濃淡）で表現する。
-- **サーフェス**: `--surface-layer-{1-4}` を階層化トークンとして定義し、カード/パネル/ステータスピルの背景に使用する。各レイヤーは `--surface-card` と `--surface-card-muted` のグラデーション値から生成し、ライト/ダークテーマともに同じ構造で入れ替わる。
+## Visual Foundation
+### Color Palette
+- **Token structure**: Name every color `--color-{semantic}-{state}-{theme}` to clarify the theme (`light` / `dark`) and interaction state (`default` / `hover` / `active` / `disabled`).
+- **Base surfaces**: Use `--color-surface` and `--color-surface-alt`, expressing elevation with 1px borders or subtle tone shifts. The light theme centers on neutrals 50–200; the dark theme centers on neutrals 800–950 and relies on `color-mix` borders instead of heavy shadows.
+- **Text**: Combine `--color-text-primary` and `--color-text-secondary`. Headings target 90% strength, supporting text about 60%. In the dark theme, change lightness instead of opacity and keep at least a 60-point Lab difference from the background.
+- **Accent**: Use `--color-accent` for primary actions and `--color-success` / `--color-warning` / `--color-danger` for feedback states. To avoid overusing accents, differentiate page-specific colors by token tone rather than introducing new hues.
+- **Surfaces**: Define `--surface-layer-{1-4}` tokens for layered surfaces. Apply them to cards, panels, and status pills. Each layer derives from `--surface-card` and `--surface-card-muted`, swapping values consistently between light and dark themes.
+- **No drop shadows**: Remove decorative shadows from interactive elements and elevated surfaces. Express depth with tonal shifts and 1px borders (including inset lines) so both themes stay crisp and accessible.
 
-### テーマ & コントラスト指針
-| 対象 | ライトテーマ | ダークテーマ | メモ |
+### Theme & Contrast Guidance
+| Element | Light Theme | Dark Theme | Notes |
 | --- | --- | --- | --- |
-| ページ背景 | `--color-surface-light-default` #F8FAFC | `--color-surface-dark-default` #0F172A | いずれもテキストとのコントラスト 4.5:1 以上を担保する。
-| カード背景 | `--color-surface-alt-light-default` #FFFFFF | `--color-surface-alt-dark-default` #1E293B | 明度差とヘアラインボーダーでコンテナとの差を明示。
-| プライマリテキスト | `--color-text-primary-light` #0F172A | `--color-text-primary-dark` #F8FAFC | 大文字見出しも 3:1 以上を厳守。
-| セカンダリテキスト | `--color-text-secondary-light` rgba(15,23,42,0.65) | `--color-text-secondary-dark` rgba(248,250,252,0.70) | 透明度ではなくコントラスト比を都度計測する。 |
+| Page background | `--color-surface-light-default` #F8FAFC | `--color-surface-dark-default` #0F172A | Maintain ≥4.5:1 contrast with text. |
+| Card background | `--color-surface-alt-light-default` #FFFFFF | `--color-surface-alt-dark-default` #1E293B | Highlight elevation with subtle borders and tone shifts. |
+| Primary text | `--color-text-primary-light` #0F172A | `--color-text-primary-dark` #F8FAFC | Even uppercase headings must meet 3:1. |
+| Secondary text | `--color-text-secondary-light` rgba(15,23,42,0.65) | `--color-text-secondary-dark` rgba(248,250,252,0.70) | Measure contrast rather than relying on opacity. |
 
-> **チェックルール**: 主要コンポーネントの各状態（デフォルト/ホバー/アクティブ/フォーカス/ディスエーブル）は、背景と文字色、背景とボーダー色のコントラスト比を 3:1 以上（可能な限り 4.5:1 以上）に保つ。ダークテーマでは彩度よりも明度差を優先し、アクセントカラーの WCAG AA 適合を確認する。
+> **Check rule**: For every major component state (default/hover/active/focus/disabled), keep background-to-text and background-to-border contrast at 3:1 or higher (aim for 4.5:1). In the dark theme, emphasize lightness differences and verify that accent colors meet WCAG AA.
 
-### サーフェスレイヤー & ボーダー
-| トークン | ライトテーマ | ダークテーマ | 主な用途 |
+### Surface Layers & Borders
+| Token | Light Theme | Dark Theme | Primary Usage |
 | --- | --- | --- | --- |
-| `--surface-layer-1` | `linear-gradient` の上部色。`--surface-card` を 96% ブレンド | `--surface-card` を 94% ブレンド | 基本カード、フォームフィールド、ユーザバッジ |
-| `--surface-layer-2` | `--surface-card` を 88% ブレンド | `--surface-card` を 86% ブレンド | セクション／パネルの下部色、カードのボトムトーン |
-| `--surface-layer-3` | `--surface-card` を 78% ブレンド | `--surface-card` を 76% ブレンド | ピル、トグル、ホバー時のサーフェス |
-| `--surface-layer-4` | `--surface-card` を 68% ブレンド | `--surface-card` を 66% ブレンド | オーバーレイのニュートラルトーン、階層差を強調したい領域 |
-`--border-card` / `--border-card-strong` を境界線の標準とし、`--border-subtle` は背景トーンとの差が小さいテキストや要素に限定する。ページラッパーやサブコンテナは `1px solid color-mix(in srgb, var(--color-surface-inverse) 14%, transparent)` のような淡い実線で囲み、背景にはカードより 4% 暗いトーンを敷いて階層を示す。カード・モジュールは `var(--color-border-strong)` を用いた 1px 実線で縁取り、内側に 1px の `inset` ラインを加えて視認性を補強する。状態変化時（ホバー/フォーカス）はボーダー色を 8〜10% 変化させ、背景トーンのシフトと組み合わせてシャドウ無しでも浮き上がりを感じさせる。カード間の視覚的な段差はレイヤートークンの組み合わせ（例: `layer-1` → `layer-2`、`layer-2` → `layer-3`）で統一する。
-### ボーダー & レイヤリング
-ライト/ダーク双方で統一した階層感を作るため、以下のサーフェスレイヤートークンを軸に背景のブレンド率を管理する。
+| `--surface-layer-1` | Top of the gradient. Blend `--surface-card` to 96%. | Blend `--surface-card` to 94%. | Base cards, form fields, user badges |
+| `--surface-layer-2` | Blend `--surface-card` to 88%. | Blend `--surface-card` to 86%. | Section/panel lower tones, card bottoms |
+| `--surface-layer-3` | Blend `--surface-card` to 78%. | Blend `--surface-card` to 76%. | Pills, toggles, hover surfaces |
+| `--surface-layer-4` | Blend `--surface-card` to 68%. | Blend `--surface-card` to 66%. | Neutral overlays, areas that need emphasis |
 
-| トークン | ライトテーマ | ダークテーマ | 主な用途 |
-| --- | --- | --- | --- |
-| `--surface-layer-1` | `linear-gradient` の上部色。`--surface-card` を 96% ブレンド | `--surface-card` を 94% ブレンド | 基本カード、フォームフィールド、ユーザバッジ |
-| `--surface-layer-2` | `--surface-card` を 88% ブレンド | `--surface-card` を 86% ブレンド | セクション／パネルの下部色、カードのボトムトーン |
-| `--surface-layer-3` | `--surface-card` を 78% ブレンド | `--surface-card` を 76% ブレンド | ピル、トグル、ホバー時のサーフェス |
-| `--surface-layer-4` | `--surface-card` を 68% ブレンド | `--surface-card` を 66% ブレンド | オーバーレイのニュートラルトーン、階層差を強調したい領域 |
+Use `--border-card` / `--border-card-strong` as the default borders and reserve `--border-subtle` for elements that sit on similar backgrounds. Wrap page wrappers or sub-containers with soft 1px lines such as `1px solid color-mix(in srgb, var(--color-surface-inverse) 14%, transparent)` and set their background about 4% darker than cards to show hierarchy. Outline cards and modules with a 1px `var(--color-border-strong)` line and add a 1px inset line for clarity. When states change (hover/focus), shift the border color by 8–10% and adjust the background tone so cards feel elevated without shadows. Keep column depth consistent by pairing layer tokens (e.g., `layer-1` → `layer-2`).
 
-- ページラッパーやサブコンテナは `1px solid color-mix(in srgb, var(--color-surface-inverse) 14%, transparent)` のような淡い実線で囲み、背景にはカードより 4% 暗いトーンを敷いて階層を示す。
-- カード・モジュールは `var(--color-border-strong)` を用いた 1px 実線で縁取り、内側に 1px の `inset` ラインを加えて視認性を補強する。境界線の標準は `--border-card` / `--border-card-strong` を基本とし、`--border-subtle` は背景トーンとの差が小さいテキストや要素に限定する。
-- 状態変化時（ホバー/フォーカス）はボーダー色を 8〜10% 変化させ、背景トーンのシフトとレイヤートークンの段差（例: `layer-1` → `layer-2`）を組み合わせてシャドウ無しでも浮き上がりを感じさせる。
-
-### インタラクション状態マトリクス
-| コンポーネント | 状態 | ライトテーマ | ダークテーマ | コントラスト指標 |
+### Interaction State Matrix
+| Component | State | Light Theme | Dark Theme | Contrast Guidance |
 | --- | --- | --- | --- | --- |
-| ボタン primary | Default / Hover / Active | #2563EB / #1D4ED8 / #1E40AF | #3B82F6 / #2563EB / #1D4ED8 | テキストは常に #FFFFFF（7:1 以上） |
-| ボタン secondary | Default / Hover / Active | #FFFFFF + #CBD5F5 ボーダー / 背景+4% トーン / 背景+8% トーン | #1E293B + #3B4B65 ボーダー / 背景-6% / 背景-10% | テキストは #1E293B or #F8FAFC、最低 4.5:1 |
-| ゴーストボタン | Default / Hover / Active | テキスト #1E293B / 背景 rgba(30,41,59,0.06) / rgba(30,41,59,0.10) | テキスト #E2E8F0 / 背景 rgba(226,232,240,0.12) / rgba(226,232,240,0.18) | 背景との差 3:1 以上 |
-| カード | Default / Hover | #FFFFFF / #F1F5F9 | #1E293B / #243044 | コンテンツテキストは 4.5:1 以上 |
-| ステータスピル | Default / Hover | 背景 #E0F2FE〜#FEE2E2 / テキスト #0369A1 など | 背景 #0F2F49〜#3F1D2B / テキスト #E0F2FE など | 背景と文字差 4.5:1 以上 |
-| Disabled 要素 | 全テーマ | 背景は隣接トーンとの差 12 以上、文字は #94A3B8（ライト）/#475569（ダーク）で 3:1 を担保 | - |
+| Primary button | Default / Hover / Active | #2563EB / #1D4ED8 / #1E40AF | #3B82F6 / #2563EB / #1D4ED8 | Text stays #FFFFFF (≥7:1). |
+| Secondary button | Default / Hover / Active | #FFFFFF with #CBD5F5 border / background +4% tone / background +8% tone | #1E293B with #3B4B65 border / background −6% / background −10% | Text uses #1E293B or #F8FAFC with ≥4.5:1 contrast. |
+| Ghost button | Default / Hover / Active | Text #1E293B / background rgba(30,41,59,0.06) / rgba(30,41,59,0.10) | Text #E2E8F0 / background rgba(226,232,240,0.12) / rgba(226,232,240,0.18) | Maintain ≥3:1 against the page background. |
+| Card | Default / Hover | #FFFFFF / #F1F5F9 | #1E293B / #243044 | Keep content text ≥4.5:1. |
+| Status pill | Default / Hover | Background #E0F2FE–#FEE2E2 / text #0369A1 etc. | Background #0F2F49–#3F1D2B / text #E0F2FE etc. | Ensure ≥4.5:1 text contrast. |
+| Disabled elements | All states | Background differs by ≥12 lightness points; text #94A3B8 (light) / #475569 (dark) for ≥3:1 | – |
 
-### タイポグラフィ
-- ベースフォントは `Inter` + `Noto Sans JP`、本文サイズは 16px（rem 基準）。
-- 見出しは 3 段階のスケールを採用し、`--font-size-heading-lg`（ページタイトル）、`--font-size-heading-md`（セクション）、`--font-size-heading-sm`（カード/リスト）を基準にする。
-- 行間は本文 1.6、見出し 1.3 を目安とし、段落間スペースは `1em` 以上を確保する。
-- ダッシュボードなどの KPI 数値は `.metric-card__value` を使用し、`font-size: clamp(1.5rem, 1.2rem + 1vw, 2.25rem)` / `font-weight: 600` を標準とする。これにより、モバイル時の過剰な拡大を抑えつつデスクトップでは視認性を維持する。
+### Typography
+- Base fonts: `Inter` with `Noto Sans JP`; body size 16px (rem-based).
+- Heading scale: `--font-size-heading-lg` (page title), `--font-size-heading-md` (section), `--font-size-heading-sm` (cards/lists).
+- Line height: 1.6 for body text, 1.3 for headings. Keep ≥1em spacing between paragraphs.
+- KPI values on dashboards use `.metric-card__value` with `font-size: clamp(1.5rem, 1.2rem + 1vw, 2.25rem)` and `font-weight: 600`, preserving readability on both desktop and mobile.
 
-### スペーシング & 角丸
-- ベース余白は 8px グリッド。カードやパネル内は `24px`、コンポーネント間は `16px` を基準とし、セクション間は `32px` を目安にする。
-- 角丸は `--radius-md`（8px）をデフォルト、カードコンテナやモーダルは `--radius-lg`（16px）を使用し、統一感を持たせる。
-- 影での段差表現は禁止し、境界線（1px）と背景トーンのコントラストで階層を示す。親コンテナは透過率 12% 前後のボーダー、子カードはクリアな実線ボーダーで視覚的に分離する。
+### Spacing & Corner Radius
+- Follow an 8px spacing grid. Within cards and panels use 24px padding; keep 16px between components and about 32px between sections.
+- Default corner radius: `--radius-md` (8px); cards and modals use `--radius-lg` (16px).
+- Avoid shadows for elevation. Instead, use 1px borders and background contrast: parent containers get semi-transparent borders (~12%), and child cards use solid borders to separate layers.
 
-### アイコノグラフィ & フォーカス
-- アイコンはストローク 1.5px のラインアイコンで統一し、サイズは 20px / 24px を基準にする。
-- フォーカスリングは `outline: 2px solid var(--color-accent); outline-offset: 2px;` を標準化し、全インタラクティブ要素に適用する。
+### Iconography & Focus
+- Use 1.5px stroke line icons at 20px or 24px sizes.
+- Standardize focus rings with `outline: 2px solid var(--color-accent); outline-offset: 2px;` across all interactive elements.
 
-## レイアウトテンプレート
-詳細なブレークポイントやページ別レイアウト要件は `docs/ui-layout-requirements.md` を参照し、ここではコンポーネント構造とスタイルの基準のみを示す。
-### アプリケーションシェル
-- 全ページは `.app-page` をルートに使用し、上下左右の余白は `clamp(40px, 8vw, 72px)` を基準に確保する。
-- シェル内の構造は「固定ヘッダー（ロゴ・主要ナビ）」「コンテンツラッパー」「フッター」で統一。サイドバーが必要な画面もコンテンツラッパー内の 2 カラム構造として定義する。
+## Layout Templates
+### Application Shell
+- Every page uses `.app-page` as the root container with padding `clamp(40px, 8vw, 72px)` on all sides.
+- Structure each shell with a fixed header (logo + primary navigation), content wrapper, and footer. Sidebars live inside the content wrapper as a two-column layout.
 
-### ページタイトル（Page Header）
-- `app-page-header` コンポーネントを全ページで共通利用する。構造は以下の 4 エリアで構成する:
-  - **Eyebrow**: カテゴリ名やパンくずを小さなサンセリフで表示。
-  - **Title**: ページ固有タイトル。28px/700 を基本。
-  - **Description**: 1〜2 行の補足説明。テキスト濃度 60%。
-  - **Actions**: 右側にプライマリ・セカンダリボタン、タブやフィルタが続く場合は下部に整列する。
-- バックグラウンドはフラット（サーフェスと同色）とし、ボーダーで区切らない。
+### Page Header
+- Reuse the `app-page-header` component everywhere. It contains four areas:
+  - **Eyebrow** – Category or breadcrumb in small sans-serif text.
+  - **Title** – Page-specific heading, 28px/700 by default.
+  - **Description** – One or two lines of supporting text at 60% tone.
+  - **Actions** – Primary/secondary buttons on the right; tabs or filters align along the bottom when present.
+- Keep the background flat (same as the page surface) without borders.
 
-### グリッド & コンテナ
-- セクション分割は `.page-section` を使用。ヘッダ（タイトル、説明、アクション）とボディの 2 パートで構成し、セクション間は 32px の余白を置く。
-- 複数列が必要な場合は `.page-grid` を使用し、ブレークポイント 1024px を境に 2 カラム → 1 カラムへ変化させる。
-- サイドバーやフィルタ列も `.page-grid--sidebar` として実装し、カード群と余白を揃える。
+### Grid & Containers
+- Use `.page-section` to divide content into a header (title, description, actions) and body. Leave 32px between sections.
+- When multiple columns are needed, use `.page-grid`, switching from two columns to one at the 1024px breakpoint.
+- Implement sidebars or filter panels with `.page-grid--sidebar` so cards and margins stay aligned.
 
-## コンポーネント仕様
-### シンプルボタン（Button）
-- ベースクラス `.button` は高さ 44px、横幅はコンテンツに合わせる。フォントは 15px/600。パディングは `0 20px`、文字と背景のコントラスト比は常に 4.5:1 以上。
-- バリエーション:
-  - `.button--primary`: 背景 `--color-accent-{state}`, テキストは `--color-text-on-accent-{state}`。ホバー時は 8% 暗く、アクティブ時は 12% 暗くする。ライトテーマでは最小 4.8:1、ダークテーマでは 7:1 のコントラストを確保する。
-  - `.button--secondary`: 背景 `--color-surface-alt`, 枠線 `--color-border`. ホバーで枠線とテキストを 10% 濃くし、アクティブでは背景に 6% のトーンを追加。ディスエーブル時はボーダーを 30% の濃度に落としつつ 3:1 を維持。
-  - `.button--ghost`: 背景透明、テキストはプライマリ。ホバー時は `rgba(surface, 0.08)`、アクティブ時は `rgba(surface, 0.12)` のオーバーレイで必ず 3:1 以上の差を取る。
-  - `.button--pill`: 角丸 `999px`。フィルタやタグ選択に使用し、選択状態はアクセント背景、非選択状態はゴーストを踏襲する。
-- アイコンを含む場合は 8px のギャップを保ち、アイコンは 20px サイズ。
-- フォーカス状態では背景色を変えず、2px のアクセントアウトラインを追加する。
-- ローディングやディスエーブル状態でも文字色の透明度を下げず、背景トーンを調整して 3:1 のコントラストを保持する。
+## Component Specifications
+### Buttons
+- Base class `.button` has 44px height, auto width, 15px/600 typography, and `0 20px` padding. Ensure ≥4.5:1 text contrast.
+- Variants:
+  - `.button--primary`: Background `--color-accent-{state}`, text `--color-text-on-accent-{state}`. Darken by 8% on hover and 12% on active, keeping ≥4.8:1 in light theme and ≥7:1 in dark theme.
+  - `.button--secondary`: Background `--color-surface-alt`, border `--color-border`. Intensify border/text by 10% on hover and add a 6% tone to the background on active. Disabled state drops the border to 30% strength while maintaining 3:1 contrast.
+  - `.button--ghost`: Transparent background with primary text. Apply `rgba(surface, 0.08)` on hover and `rgba(surface, 0.12)` on active; always keep ≥3:1 contrast.
+  - `.button--pill`: Fully rounded (999px). Use for filters or tag chips; selected state adopts the accent background, deselected state follows the ghost pattern.
+- Maintain an 8px gap for icon+text buttons and use 20px icons.
+- For focus, keep the background and add a 2px accent outline.
+- Do not reduce text opacity for loading or disabled states; adjust background tone instead to maintain 3:1 contrast.
 
-### カード（Card）
-- `.surface-card` を基準に高さ可変のカードを定義。背景は `linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2))`、外枠は `1px solid var(--color-border-strong)`、角丸内側に `inset 0 0 0 1px color-mix(in srgb, var(--color-surface-alt) 70%, transparent)` の縁取りを追加してレイヤーを強調する。内側余白は 24px、角丸 12px。
-- ヘッダー（タイトル + メタ情報）、ボディ（本文）、フッター（操作）の 3 パートを推奨。ヘッダーは Flex で左右配置し、タイトルは 18px/600。
-- 状態ラベルは右上に `surface-pill` を配置し、背景はアクセントの 12% トーンを使用する。
-- ホバー時は背景トーンを 6% 明るく（ダークでは 6% 暗く）し、アクションの存在を示す。文字色は変えずに 4.5:1 を維持する。
+### Cards
+- Base cards use `.surface-card` with `linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2))`, a `1px solid var(--color-border-strong)` outline, and an inset `color-mix(in srgb, var(--color-surface-alt) 70%, transparent)` line. Padding 24px, radius 12px.
+- Recommended structure: header (title + metadata), body, footer (actions). Header uses flex alignment with 18px/600 titles.
+- Place a `surface-pill` status badge at the top-right; background uses a 12% accent tone.
+- On hover, shift the background tone by ±6% (lighter in light theme, darker in dark) without changing text color, keeping ≥4.5:1 contrast. Avoid reintroducing drop shadows—use the tone shift and border emphasis instead.
 
-### カードコンテナ（Card Container）
-- 複数のカードを並べる場合は `.card-collection` を用意し、`display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;` を基本とする。
-- カンバン形式では `.board-columns` を使用し、列ヘッダーもカードと同じスタイルで揃える。列・サブカラムは `linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3))` を標準とし、カード（`layer-1` → `layer-2`）とのコントラストで段差を表現する。コンテナ全体にはカードより 4% 暗い（ライトテーマ）/明るい（ダークテーマ）トーンを敷き、`1px` の内向きボーダー（`inset` シャープライン）を追加する。カード外枠とのダブルボーダーで階層を際立たせ、ホバー時はカード背景をトーンシフトさせて境界が滲まないようにする。列間余白は 24px。
-- コンテナ全体にはカードより 4% 暗い（ライトテーマ）/明るい（ダークテーマ）トーンを敷き、`1px` の内向きボーダー（`inset` シャープライン）を追加する。カード外枠とのダブルボーダーで階層を際立たせ、ホバー時はカード背景をトーンシフトさせて境界が滲まないようにする。
+### Card Containers
+- Use `.card-collection` for grids: `display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;`.
+- For kanban layouts, use `.board-columns`. Column headers mirror card styling, and columns apply `linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3))`. Lay a surface 4% darker (light theme) or lighter (dark theme) than cards underneath, with a 1px inset border to emphasize hierarchy. Keep 24px gaps between columns.
 
-### リスト & テーブル
-- `.page-list` は縦方向のカード群を軽量に表現するスタイル。`grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr))` で最大 3 列まで展開し、ビューポートに応じて 1 列へ自動的に戻る。各アイテムは 16px の上下余白とボーダーで区切る。
-- テーブルは `.page-table` を基準に、ヘッダ背景を `--color-surface-alt`、セル余白は 16px とする。斜線や濃い罫線は使用せず、ストライプで視認性を確保。
+### Lists & Tables
+- `.page-list` presents stacked cards with `grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr))`, scaling up to three columns and collapsing to one responsively. Each item has 16px vertical padding and dividing borders.
+- Tables use `.page-table` with header backgrounds `--color-surface-alt` and 16px cell padding. Avoid heavy rules or diagonals; use striping for clarity.
 
-### フォーム
-- 各入力は `.form-field`（ラベル、説明、入力）の構造を守る。ラベルは 14px/600、説明文は 12px/60% トーン。
-- 入力コントロールは高さ 44px、角丸 8px、ボーダーは `1px solid var(--color-border)`。フォーカス時はボーダーをアクセントカラーに変更。
-- 複数項目を並べる場合は `.form-grid` を用い、2 カラム時は `minmax(240px, 1fr)` を基本とする。
-- バリデーションメッセージは赤系のテキストで入力直下に表示し、`role="alert"` を付与する。
-- Disabled 状態では `var(--surface-layer-3)` をベースにアクセントトーンを 8% 上乗せし、文字色はセカンダリトーンを維持することで 3:1 を確保する。
+### Forms
+- Structure inputs with `.form-field` (label, description, input). Labels use 14px/600, descriptions 12px at 60% tone.
+- Inputs are 44px tall with 8px radius and `1px solid var(--color-border)` borders. Focus states switch the border to the accent color.
+- Use `.form-grid` for multi-column layouts; default columns use `minmax(240px, 1fr)`.
+- Display validation messages directly under inputs with red-toned text and `role="alert"`.
+- Disabled fields base on `var(--surface-layer-3)` plus 8% accent tint while keeping secondary text color for ≥3:1 contrast.
 
-### ステータスチップ & バッジ
-- `.surface-pill` をベースに、丸み 999px、余白は `8px 12px`。テキストは 13px/600。
-- 状態ごとに `--pill-success`、`--pill-warning`、`--pill-danger` を用意し、背景は 16% トーン、テキストは濃色でコントラストを確保。
-- カード内の補助ラベルは `.page-badge` を使用し、角丸 6px のフラットなラベルとして表示する。
+### Status Chips & Badges
+- `.surface-pill` uses 999px rounding with `8px 12px` padding and 13px/600 text.
+- Provide `--pill-success`, `--pill-warning`, and `--pill-danger`; backgrounds use ~16% tone while text stays dark for contrast.
+- Use `.page-badge` for auxiliary labels inside cards with 6px radius and flat backgrounds.
 
-### タブ & トグル
-- `.page-tabs` は水平方向に配置し、アクティブタブはアクセント色の下線 + テキスト色 100%。非アクティブは 60% トーン。
-- トグルは `.form-toggle` を使用し、チェック時のみアクセント色、未チェック時はボーダーのみのミニマルな見た目とする。
-- 各状態の配色はライト/ダークともに 3:1 以上のコントラストとなるよう、背景トーンとラベル色をセットで定義する。ホバー時は下線を 2px に強調し、アクティブ状態は背景に 8% のトーンを加える。
+### Tabs & Toggles
+- `.page-tabs` align tabs horizontally. Active tabs show an accent underline and full-strength text; inactive tabs use 60% tone.
+- `.form-toggle` keeps toggles minimal: accent color only when checked, border-only when unchecked.
+- Define color sets per state in both themes so background and label combinations always reach ≥3:1 contrast. Increase underline thickness to 2px on hover and add an 8% background tone on active.
 
-### フィードバック & 空状態
-- 成功/警告/エラーのメッセージは `app-alert` を使用し、アイコン + タイトル + 説明文 + アクションの 4 パート構成。
-- 空状態やロード中は `.page-state` を採用し、イラストやアイコンは 64px 程度の単色ラインアイコンで統一する。
+### Feedback & Empty States
+- Use `app-alert` for success/warning/error messages with four parts: icon, title, description, and action.
+- Empty and loading states use `.page-state` with monochrome line icons around 64px.
 
-### ダイアログ / モーダル
-- `.app-dialog` をベースに最大幅 480px、角丸 16px。ヘッダー（タイトル + クローズ）、ボディ（テキスト or フォーム）、フッター（アクション）を明確に分ける。
-- オーバーレイは 40% のブラックで画面全体を覆い、背景スクロールを禁止する。
+### Dialogs / Modals
+- Base on `.app-dialog` with max-width 480px and 16px radius. Separate header (title + close), body (text or form), and footer (actions).
+- Overlays cover the viewport with 40% black and disable background scrolling.
 
-## 運用ルール
-1. 新規 UI を追加する際は上記コンポーネントを優先的に利用し、独自スタイルを定義する場合はデザインチームと合意する。
-2. Figma などのデザインファイルは本ガイドラインと同期し、差異が生じた場合は双方を更新する。
-3. ダークテーマは同じ構造を維持し、色トークンのみの差し替えで成立するようにする。新規トークンを追加する場合はライト/ダーク両テーマと各状態のコントラスト値（WCAG AA 適合）を記録する。
-4. 変更履歴を `docs/ui-design-system.md` に追記し、主要コンポーネントの更新内容を開発チームと共有する。
-
+## Operational Rules
+1. Prioritize these components for new UI; coordinate with design before introducing custom styles.
+2. Keep Figma or other design files in sync with this guide and update both when discrepancies appear.
+3. Maintain the same structure in the dark theme by swapping tokens only. When adding tokens, capture contrast ratios for both themes and every state to ensure WCAG AA compliance.
+4. Append change history to `docs/ui-design-system.md` and share component updates with the development team.

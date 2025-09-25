@@ -39,7 +39,7 @@ app-settings-page .settings-label__swatch {
   width: 0.75rem;
   height: 0.75rem;
   border-radius: 9999px;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface-inverse) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--surface-inverse) 14%, transparent);
 }
 
 app-settings-page .settings-status__category,

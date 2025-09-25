@@ -1,9 +1,9 @@
-# Appeal Narrative Generation 詳細設計
+# Appeal Narrative Generation Detailed Design
 
-## 1. 目的
-`/appeals` API はカードのラベルや自由入力からアピール対象を選び、推奨フローに沿って成果ストーリーを生成するバックエンド機能です。ChatGPT を利用した生成に失敗した場合でもフォールバック文章を返すことで、成果報告を止めない設計としています。【F:backend/app/routers/appeals.py†L1-L27】【F:backend/app/services/appeals.py†L1-L200】
+## 1. Purpose
+The `/appeals` API lets users select an appeal subject from card labels or custom text and generate achievement stories that follow a recommended flow. Even if ChatGPT generation fails, the API returns fallback text so reporting work is never blocked.【F:backend/app/routers/appeals.py†L1-L27】【F:backend/app/services/appeals.py†L1-L200】
 
-## 2. コンポーネント構成
+## 2. Component Structure
 ```mermaid
 sequenceDiagram
     participant Client
@@ -15,62 +15,62 @@ sequenceDiagram
 
     Client->>API: GET /appeals/config
     API->>Service: load_configuration(owner)
-    Service->>DB: ラベルと実績の取得
-    Service-->>Client: 推奨フロー + フォーマット
+    Service->>DB: Fetch labels & achievements
+    Service-->>Client: Recommended flows + formats
 
     Client->>API: POST /appeals/generate
     API->>Service: generate(owner, request)
-    Service->>Repo: fallback コンテンツ初期化
-    alt ChatGPT 利用可
+    Service->>Repo: Initialize fallback content
+    alt ChatGPT available
         Service->>GPT: generate_appeal(prompt, schema)
         GPT-->>Service: formats + token_usage
         Service->>Repo: create(..., generation_status="success")
-    else フォールバックのみ
+    else Fallback only
         Service->>Repo: create(..., generation_status="fallback")
     end
-    Repo-->>DB: レコード保存
+    Repo-->>DB: Persist record
     Service-->>Client: generation_id, formats, warnings
 ```
 
-## 3. API 層
-`backend/app/routers/appeals.py` が FastAPI ルーターを提供し、認証済みユーザーのみが利用できます。【F:backend/app/routers/appeals.py†L1-L27】
-- `GET /appeals/config` – 所有ラベルと推奨フロー、利用可能なフォーマット定義を返却。【F:backend/app/services/appeals.py†L70-L115】
-- `POST /appeals/generate` – 生成要求を受け取り、サニタイズ後に `AppealGenerationService.generate` を呼び出します。【F:backend/app/services/appeals.py†L78-L163】
+## 3. API Layer
+`backend/app/routers/appeals.py` exposes the FastAPI router and only allows authenticated users.【F:backend/app/routers/appeals.py†L1-L27】
+- `GET /appeals/config` – Returns owned labels, the recommended flow, and available format definitions.【F:backend/app/services/appeals.py†L70-L115】
+- `POST /appeals/generate` – Receives requests, sanitizes inputs, and calls `AppealGenerationService.generate`.【F:backend/app/services/appeals.py†L78-L163】
 
-入力スキーマは `AppealGenerationRequest` で、flow/format の一意性と 1～5 ステップ制限をバリデーションします。【F:backend/app/schemas.py†L1015-L1059】
+Requests use the `AppealGenerationRequest` schema, which validates unique flow/format values and enforces the 1–5 step limits.【F:backend/app/schemas.py†L1015-L1059】
 
-## 4. サービス層
-### 4.1 初期化
-`AppealGenerationService` はフォーマット定義、ChatGPT クライアント、フォールバックビルダー、リポジトリを束ねます。Jinja テンプレート読み込みに失敗した場合はフォールバックのみで動作し、警告ログを残します。【F:backend/app/services/appeals.py†L32-L67】
+## 4. Service Layer
+### 4.1 Initialization
+`AppealGenerationService` wires together format definitions, the ChatGPT client, the fallback builder, and the repository. If loading Jinja templates fails, it logs a warning and continues with fallback-only behavior.【F:backend/app/services/appeals.py†L32-L67】
 
-### 4.2 Config 読み込み
-ユーザー所有ラベルを取得し、直近のカード実績を 5 件まで添えて返します。実績は HTML エスケープ済みで UI プレビューにそのまま利用できます。【F:backend/app/services/appeals.py†L219-L270】
+### 4.2 Loading configuration
+The service fetches labels owned by the user and attaches up to five recent achievements. Achievements are HTML-escaped so the UI can preview them directly.【F:backend/app/services/appeals.py†L219-L270】
 
-### 4.3 生成処理
-1. **Subject 解決** – `label` 指定時は所有権チェックを行い、ラベル名を subject として利用。`custom` の場合は HTML エスケープと 120 文字制限を適用します。【F:backend/app/services/appeals.py†L84-L175】
-2. **実績収集とサニタイズ** – ラベル紐付けや明示的な `achievements` から実績を集約し、メール・電話・数値をマスクして二重登録を避けます。【F:backend/app/services/appeals.py†L202-L217】【F:backend/app/services/appeals.py†L169-L199】
-3. **フォールバック生成** – 事前に全フォーマットをフォールバックコンテンツで初期化し、最低限の応答を保証します。【F:backend/app/services/appeals.py†L106-L116】【F:backend/app/services/appeals.py†L293-L310】
-4. **ChatGPT 呼び出し** – テンプレートからプロンプトと JSON スキーマを生成し、レスポンスの `formats` と `token_usage` を検証後に統合します。【F:backend/app/services/appeal_prompts.py†L21-L156】【F:backend/app/services/appeals.py†L117-L138】
-5. **警告判定** – 課題ステップが欠けるなど因果関係が弱まる構成を検出し、警告メッセージを返却します。【F:backend/app/services/appeals.py†L272-L279】
-6. **履歴保存** – 生成 ID、subject、flow、formats、warnings、トークン使用量、ステータスを `AppealGenerationRepository.create` で永続化します。【F:backend/app/repositories/appeals.py†L17-L41】
+### 4.3 Generation flow
+1. **Resolve subject** – For `label` subjects, verify ownership and use the label name; for `custom`, escape HTML and enforce the 120-character limit.【F:backend/app/services/appeals.py†L84-L175】
+2. **Collect and sanitize achievements** – Combine label-linked achievements or explicit `achievements`, mask emails/phones/numbers, and de-duplicate entries.【F:backend/app/services/appeals.py†L202-L217】【F:backend/app/services/appeals.py†L169-L199】
+3. **Prepare fallback content** – Initialize all formats with fallback text to guarantee a baseline response.【F:backend/app/services/appeals.py†L106-L116】【F:backend/app/services/appeals.py†L293-L310】
+4. **Call ChatGPT** – Build prompts and JSON schemas from templates, validate the returned `formats` and `token_usage`, and merge them into the response.【F:backend/app/services/appeal_prompts.py†L21-L156】【F:backend/app/services/appeals.py†L117-L138】
+5. **Evaluate warnings** – Detect structures that weaken causality (e.g., missing problem steps) and return warning messages.【F:backend/app/services/appeals.py†L272-L279】
+6. **Persist history** – Store generation ID, subject, flow, formats, warnings, token usage, and status via `AppealGenerationRepository.create`.【F:backend/app/repositories/appeals.py†L17-L41】
 
-## 5. プロンプト & フォールバック設計
-- **テンプレート** – `appeals.jinja` で subject、フローステップ、実績、要求フォーマット、因果接続詞を指示として組み立てます。【F:backend/app/services/appeal_prompts.py†L21-L96】
-- **レスポンススキーマ** – `formats` オブジェクトにフォーマット ID ごとの `{content, tokens_used}` を要求し、未指定キーを拒否します。【F:backend/app/services/appeal_prompts.py†L120-L156】
-- **フォールバック** – Markdown/箇条書き/CSV で統一された構造を持つテンプレートを用意し、実績がない場合も因果接続詞を含む定型文を返します。【F:backend/app/services/appeal_prompts.py†L96-L173】
+## 5. Prompt & Fallback Design
+- **Templates** – `appeals.jinja` assembles subject details, flow steps, achievements, requested formats, and causal connectors into the prompt.【F:backend/app/services/appeal_prompts.py†L21-L96】
+- **Response schema** – Requires each format entry to provide `{content, tokens_used}` and rejects unspecified keys.【F:backend/app/services/appeal_prompts.py†L120-L156】
+- **Fallbacks** – Provide unified Markdown, bullet list, and CSV templates that include causal connectors even when no achievements are present.【F:backend/app/services/appeal_prompts.py†L96-L173】
 
-## 6. データモデル
-`appeal_generations` テーブルは subject/flow/formats/コンテンツ/トークン使用量/警告/ステータスを JSON カラムで保持し、ユーザーと関連付けます。【F:backend/app/models.py†L708-L723】
+## 6. Data Model
+The `appeal_generations` table stores subject, flow, formats, content, token usage, warnings, and status in JSON columns tied to the user.【F:backend/app/models.py†L708-L723】
 
-## 7. エラーハンドリング
-- ラベル未存在時は 404、処理中の例外はフォールバック応答に切り替えます。【F:backend/app/services/appeals.py†L84-L162】
-- ChatGPT 失敗は警告ログを残し、フォールバックの `generation_status='fallback'` で応答します。【F:backend/app/services/appeals.py†L117-L145】
-- テンプレート読み込み失敗時は ChatGPT 呼び出しをスキップし、ログのみを出力します。【F:backend/app/services/appeals.py†L54-L144】
+## 7. Error Handling
+- Return 404 when labels are missing, and switch to fallback responses for runtime exceptions.【F:backend/app/services/appeals.py†L84-L162】
+- Log warnings when ChatGPT fails and respond with fallback content marked `generation_status='fallback'`.【F:backend/app/services/appeals.py†L117-L145】
+- Skip ChatGPT calls if templates cannot be loaded and rely on logged warnings only.【F:backend/app/services/appeals.py†L54-L144】
 
-## 8. テレメトリ・監視
-生成処理ではトークン使用量とステータスを保存しているため、履歴レコードを基にフォールバック率や平均トークンをダッシュボード化できます。【F:backend/app/repositories/appeals.py†L17-L41】生成時間はアプリケーションログで計測し、p95 8 秒 SLA 監視に利用します。【F:backend/app/services/appeals.py†L117-L145】
+## 8. Telemetry & Monitoring
+Because the service stores token usage and status, the history records enable dashboards that track fallback rate and average token consumption.【F:backend/app/repositories/appeals.py†L17-L41】 Generation time is captured in application logs to monitor the 8-second p95 SLA.【F:backend/app/services/appeals.py†L117-L145】
 
-## 9. テスト方針
-- **単体テスト** – flow/format バリデーション、サニタイズ、フォールバックテンプレート出力を検証。
-- **サービス統合テスト** – ChatGPT モックを用いて成功/失敗/フォールバック経路を網羅し、警告生成と履歴保存を確認。
-- **回帰テスト** – `list_recent` を利用した履歴取得で最新順・件数制限が守られるかを検証。【F:backend/app/repositories/appeals.py†L17-L50】
+## 9. Test Approach
+- **Unit tests** – Cover flow/format validation, sanitization, and fallback template output.
+- **Service integration tests** – Use a mocked ChatGPT client to exercise success, failure, and fallback paths, verifying warnings and history persistence.
+- **Regression tests** – Validate `list_recent` ordering and limit rules when retrieving histories.【F:backend/app/repositories/appeals.py†L17-L50】
