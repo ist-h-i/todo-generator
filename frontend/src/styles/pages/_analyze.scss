@@ -10,8 +10,13 @@
   align-items: stretch;
 }
 
+.analyze-page__notes {
+  height: 100%;
+}
+
 .analyze-page__notes-input {
   min-height: var(--analyze-composer-input-min-block-size);
+  flex: 1 1 var(--analyze-composer-input-min-block-size);
 }
 
 .analyze-page__notes-hint {
@@ -125,8 +130,13 @@
   color: var(--text-muted);
 }
 
+.analyze-page__objective-manual {
+  height: 100%;
+}
+
 .analyze-page__objective-manual textarea {
   min-height: var(--analyze-composer-input-min-block-size);
+  flex: 1 1 var(--analyze-composer-input-min-block-size);
 }
 
 .analyze-page__form-actions {
