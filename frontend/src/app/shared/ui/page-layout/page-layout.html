@@ -1,4 +1,4 @@
-<div class="app-page-layout__header">
+<div class="app-page-layout__section app-page-layout__section--header">
   <app-page-header
     [eyebrow]="eyebrow"
     [title]="title"
@@ -11,7 +11,7 @@
 </div>
 
 <div class="app-page-layout__body" [class.app-page-layout__body--bleed]="bleed">
-  <div class="app-page-layout__content">
+  <div class="app-page-layout__section">
     <ng-content select="[pageTabs]"></ng-content>
     <ng-content></ng-content>
   </div>
