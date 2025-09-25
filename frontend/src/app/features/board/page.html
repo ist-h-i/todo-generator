@@ -17,7 +17,6 @@
       <section class="surface-panel page-panel board-summary">
         <header class="board-summary__header">
           <p class="board-summary__eyebrow">進捗状況</p>
-          <p class="board-summary__progress">{{ summary.progressRatio }}% 完了</p>
         </header>
         <ul class="board-summary__metrics">
           <li>
@@ -33,24 +32,6 @@
             <strong>{{ summary.activeLabels }}</strong>
           </li>
         </ul>
-        <div class="board-summary__progress-bar" role="presentation">
-          <div class="board-summary__progress-value" [style.width.%]="summary.progressRatio"></div>
-        </div>
-        <a
-          routerLink="/profile/evaluations"
-          class="button button--secondary board-summary__progress-button"
-        >
-          <div class="board-summary__progress-meta">
-            <span class="board-summary__progress-label">タスク完了率</span>
-            <strong class="board-summary__progress-percent">{{ summary.progressRatio }}%</strong>
-          </div>
-          <div class="board-summary__progress-track">
-            <div class="board-summary__progress-fill" [style.width.%]="summary.progressRatio"></div>
-          </div>
-          <span class="board-summary__progress-caption"
-            >完了 {{ summary.doneCards }} / 総数 {{ summary.totalCards }}</span
-          >
-        </a>
         <a routerLink="/profile/evaluations" class="button button--secondary board-summary__cta">
           最新のコンピテンシー判定を確認
           <svg
