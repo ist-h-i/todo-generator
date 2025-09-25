@@ -235,53 +235,80 @@
   line-height: 1.7;
 }
 
-.evaluations-page__latest-actions-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-@media (min-width: 50rem) {
-  .evaluations-page__latest-actions-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.evaluations-page__latest-action {
+.evaluations-page__next-actions {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  border-radius: 1.25rem;
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-card) 86%, transparent);
-  padding: 1rem 1.2rem;
 }
 
-.evaluations-page__latest-action header {
+.evaluations-page__next-actions-header {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
-.evaluations-page__latest-action header h3 {
+.evaluations-page__next-actions-header h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.evaluations-page__latest-action header p {
+.evaluations-page__next-actions-header p {
   margin: 0;
   font-size: 0.85rem;
   color: var(--text-muted);
   line-height: 1.6;
 }
 
-.evaluations-page__latest-action ul {
-  margin: 0;
-  padding-left: 1.1rem;
+.evaluations-page__next-actions-grid {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 40rem) {
+  .evaluations-page__next-actions-grid {
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .evaluations-page__next-actions-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.evaluations-page__next-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-card) 88%, transparent);
+  padding: 1rem 1.2rem;
+  min-height: 100%;
+}
+
+.evaluations-page__next-action-category {
+  align-self: flex-start;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: color-mix(in srgb, var(--accent) 90%, transparent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.evaluations-page__next-action-text {
+  margin: 0;
+  font-size: 0.9rem;
   color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 .evaluations-page__latest-empty {

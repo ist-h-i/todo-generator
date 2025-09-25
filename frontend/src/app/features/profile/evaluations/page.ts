@@ -14,6 +14,27 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CompetencyApiService } from '@core/api/competency-api.service';
 import { CompetencyEvaluation, EvaluationQuotaStatus, SelfEvaluationRequest } from '@core/models';
 
+type NextActionCategory = 'attitude' | 'behavior';
+
+interface NextActionCard {
+  id: string;
+  category: NextActionCategory;
+  categoryLabel: string;
+  description: string;
+  text: string;
+}
+
+const NEXT_ACTION_META: Record<NextActionCategory, { label: string; description: string }> = {
+  attitude: {
+    label: '姿勢・意識',
+    description: 'モチベーションやコミュニケーションの観点で意識したいポイントです。',
+  },
+  behavior: {
+    label: '行動プラン',
+    description: 'すぐに実行できるタスクや振り返りポイントをまとめています。',
+  },
+};
+
 const DEFAULT_HISTORY_LIMIT = 12;
 
 /**
@@ -52,6 +73,44 @@ export class ProfileEvaluationsPage {
   });
 
   public readonly hasEvaluations = computed(() => this.evaluations().length > 0);
+  public readonly latestNextActions = computed<NextActionCard[]>(() => {
+    const evaluation = this.latestEvaluation();
+    if (!evaluation) {
+      return [];
+    }
+
+    const cards: NextActionCard[] = [];
+
+    const appendActions = (
+      items: readonly string[] | undefined | null,
+      category: NextActionCategory,
+    ): void => {
+      if (!Array.isArray(items)) {
+        return;
+      }
+
+      items.forEach((value, index) => {
+        const text = typeof value === 'string' ? value.trim() : '';
+        if (!text) {
+          return;
+        }
+
+        const meta = NEXT_ACTION_META[category];
+        cards.push({
+          id: `${category}-${index}`,
+          category,
+          categoryLabel: meta.label,
+          description: meta.description,
+          text,
+        });
+      });
+    };
+
+    appendActions(evaluation.attitude_actions, 'attitude');
+    appendActions(evaluation.behavior_actions, 'behavior');
+
+    return cards;
+  });
   public readonly limitReached = computed<boolean>(() => {
     const quota = this.quota();
     if (!quota || quota.daily_limit <= 0) {
