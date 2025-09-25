@@ -1,6 +1,6 @@
-# Todo Generator Frontend
+# Verbalize Yourself Frontend
 
-Angular 20 single-page application that follows the product specification in the repository root README. It provides the ChatGPT-assisted capture flow, kanban board, analytics, and workspace configuration screens required for the Todo Generator experience.
+Angular 20 single-page application that follows the product specification in the repository root README. It provides the ChatGPT-assisted capture flow, kanban board, analytics, and workspace configuration screens required for the Verbalize Yourself experience.
 
 ## Key Features
 

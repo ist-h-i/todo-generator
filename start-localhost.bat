@@ -25,15 +25,15 @@ if not exist "%FRONTEND_DIR%\node_modules" (
 )
 
 echo.
-echo Launching Todo Generator services...
+echo Launching Verbalize Yourself services...
 echo Close the spawned windows to stop the servers.
 echo.
 
 echo Starting backend on http://localhost:8000/ ...
-start "Todo Generator Backend" cmd /k "cd /d ""%BACKEND_DIR%"" && ""%VENV_PYTHON%"" -m uvicorn app.main:app --reload"
+start "Verbalize Yourself Backend" cmd /k "cd /d ""%BACKEND_DIR%"" && ""%VENV_PYTHON%"" -m uvicorn app.main:app --reload"
 
 echo Starting frontend on http://localhost:4200/ ...
-start "Todo Generator Frontend" cmd /k "cd /d ""%FRONTEND_DIR%"" && npm start"
+start "Verbalize Yourself Frontend" cmd /k "cd /d ""%FRONTEND_DIR%"" && npm start"
 
 echo.
 echo Backend docs:   http://localhost:8000/docs

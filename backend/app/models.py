@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -65,12 +65,8 @@ class User(Base, TimestampMixin):
     daily_evaluation_quotas: Mapped[list["DailyEvaluationQuota"]] = relationship(
         "DailyEvaluationQuota", back_populates="owner", cascade="all, delete-orphan"
     )
-    labels: Mapped[list["Label"]] = relationship(
-        "Label", back_populates="owner", cascade="all, delete-orphan"
-    )
-    statuses: Mapped[list["Status"]] = relationship(
-        "Status", back_populates="owner", cascade="all, delete-orphan"
-    )
+    labels: Mapped[list["Label"]] = relationship("Label", back_populates="owner", cascade="all, delete-orphan")
+    statuses: Mapped[list["Status"]] = relationship("Status", back_populates="owner", cascade="all, delete-orphan")
     error_categories: Mapped[list["ErrorCategory"]] = relationship(
         "ErrorCategory", back_populates="owner", cascade="all, delete-orphan"
     )
@@ -86,6 +82,9 @@ class User(Base, TimestampMixin):
     daily_evaluation_quotas: Mapped[list["DailyEvaluationQuota"]] = relationship(
         "DailyEvaluationQuota", back_populates="owner", cascade="all, delete-orphan"
     )
+    appeal_generations: Mapped[list["AppealGeneration"]] = relationship(
+        "AppealGeneration", back_populates="owner", cascade="all, delete-orphan"
+    )
     quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
         "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
     )
@@ -98,9 +97,7 @@ class User(Base, TimestampMixin):
     quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
         "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
     )
-    api_credentials: Mapped[list["ApiCredential"]] = relationship(
-        "ApiCredential", back_populates="created_by_user"
-    )
+    api_credentials: Mapped[list["ApiCredential"]] = relationship("ApiCredential", back_populates="created_by_user")
 
 
 class SessionToken(Base, TimestampMixin):
@@ -171,17 +168,13 @@ class DailyCardQuota(Base):
     __tablename__ = "daily_card_quotas"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    owner_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     quota_date: Mapped[date] = mapped_column(Date, nullable=False)
     created_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     owner: Mapped[User] = relationship("User", back_populates="daily_card_quotas")
 
-    __table_args__ = (
-        UniqueConstraint("owner_id", "quota_date", name="uq_daily_card_quota_owner_date"),
-    )
+    __table_args__ = (UniqueConstraint("owner_id", "quota_date", name="uq_daily_card_quota_owner_date"),)
 
 
 class Subtask(Base, TimestampMixin):
@@ -218,9 +211,7 @@ class Label(Base):
     color: Mapped[str | None] = mapped_column(String)
     description: Mapped[str | None] = mapped_column(Text)
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)
-    owner_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     cards: Mapped[list[Card]] = relationship("Card", secondary=card_labels, back_populates="labels")
     owner: Mapped[User] = relationship("User", back_populates="labels")
@@ -236,9 +227,7 @@ class Status(Base):
     order: Mapped[int | None] = mapped_column(Integer)
     color: Mapped[str | None] = mapped_column(String)
     wip_limit: Mapped[int | None] = mapped_column(Integer)
-    owner_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     cards: Mapped[list[Card]] = relationship("Card", back_populates="status")
     owner: Mapped[User] = relationship("User", back_populates="statuses")
@@ -290,9 +279,7 @@ class ErrorCategory(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     severity_level: Mapped[str | None] = mapped_column(String)
-    owner_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     cards: Mapped[list[Card]] = relationship("Card", back_populates="error_category")
     owner: Mapped[User] = relationship("User", back_populates="error_categories")
@@ -309,9 +296,7 @@ class ImprovementInitiative(Base, TimestampMixin):
     target_metrics: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[str | None] = mapped_column(String)
     health: Mapped[str | None] = mapped_column(String)
-    owner_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     cards: Mapped[list[Card]] = relationship("Card", back_populates="initiative")
     progress_logs: Mapped[list["InitiativeProgressLog"]] = relationship(
@@ -468,12 +453,8 @@ class DailyReportCardLink(Base, TimestampMixin):
     __tablename__ = "daily_report_cards"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    report_id: Mapped[str] = mapped_column(
-        String, ForeignKey("daily_reports.id", ondelete="CASCADE"), nullable=False
-    )
-    card_id: Mapped[str] = mapped_column(
-        String, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False
-    )
+    report_id: Mapped[str] = mapped_column(String, ForeignKey("daily_reports.id", ondelete="CASCADE"), nullable=False)
+    card_id: Mapped[str] = mapped_column(String, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False)
     link_role: Mapped[str] = mapped_column(String, default="primary")
     confidence: Mapped[float | None] = mapped_column(Float)
 
@@ -485,9 +466,7 @@ class DailyReportEvent(Base, TimestampMixin):
     __tablename__ = "daily_report_events"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    report_id: Mapped[str] = mapped_column(
-        String, ForeignKey("daily_reports.id", ondelete="CASCADE"), nullable=False
-    )
+    report_id: Mapped[str] = mapped_column(String, ForeignKey("daily_reports.id", ondelete="CASCADE"), nullable=False)
     event_type: Mapped[str] = mapped_column(String, nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
 
@@ -543,9 +522,7 @@ class SavedFilter(Base, TimestampMixin):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     name: Mapped[str] = mapped_column(String, nullable=False)
     definition: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_by: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    created_by: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     shared: Mapped[bool] = mapped_column(Boolean, default=False)
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -686,12 +663,8 @@ class CompetencyEvaluationJob(Base, TimestampMixin):
     summary_stats: Mapped[dict] = mapped_column(JSON, default=dict)
 
     competency: Mapped[Optional[Competency]] = relationship("Competency", back_populates="jobs")
-    triggered_by_user: Mapped[Optional[User]] = relationship(
-        "User", foreign_keys=[triggered_by_id]
-    )
-    target_user: Mapped[Optional[User]] = relationship(
-        "User", foreign_keys=[user_id]
-    )
+    triggered_by_user: Mapped[Optional[User]] = relationship("User", foreign_keys=[triggered_by_id])
+    target_user: Mapped[Optional[User]] = relationship("User", foreign_keys=[user_id])
     evaluations: Mapped[list[CompetencyEvaluation]] = relationship(
         "CompetencyEvaluation", back_populates="job", cascade="all, delete-orphan"
     )
@@ -701,17 +674,13 @@ class DailyEvaluationQuota(Base):
     __tablename__ = "daily_evaluation_quotas"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    owner_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     quota_date: Mapped[date] = mapped_column(Date, nullable=False)
     executed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     owner: Mapped[User] = relationship("User", back_populates="daily_evaluation_quotas")
 
-    __table_args__ = (
-        UniqueConstraint("owner_id", "quota_date", name="uq_daily_evaluation_quota_owner_date"),
-    )
+    __table_args__ = (UniqueConstraint("owner_id", "quota_date", name="uq_daily_evaluation_quota_owner_date"),)
 
 
 class QuotaDefaults(Base, TimestampMixin):
@@ -734,6 +703,23 @@ class UserQuotaOverride(Base, TimestampMixin):
     updated_by: Mapped[str | None] = mapped_column(String)
 
     user: Mapped[User] = relationship("User", back_populates="quota_override")
+
+
+class AppealGeneration(Base, TimestampMixin):
+    __tablename__ = "appeal_generations"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    subject_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    subject_value: Mapped[str] = mapped_column(String(255), nullable=False)
+    flow: Mapped[list[str]] = mapped_column(JSON, default=list)
+    formats: Mapped[list[str]] = mapped_column(JSON, default=list)
+    content_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    token_usage: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    warnings: Mapped[list[str]] = mapped_column(JSON, default=list)
+    generation_status: Mapped[str] = mapped_column(String(32), default="success", nullable=False)
+
+    owner: Mapped[User] = relationship("User", back_populates="appeal_generations")
 
 
 class ApiCredential(Base, TimestampMixin):
