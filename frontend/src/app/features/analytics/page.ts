@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { FeedbackSeverity } from '@core/models';
 import { ContinuousImprovementStore } from '@core/state/continuous-improvement-store';
 import { WorkspaceStore } from '@core/state/workspace-store';
-import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
+import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 
 /**
  * Analytics dashboard summarizing board metrics for the workspace.
@@ -13,7 +13,7 @@ import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
 @Component({
   selector: 'app-analytics-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageHeaderComponent],
+  imports: [CommonModule, RouterLink, PageLayoutComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

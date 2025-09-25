@@ -1,9 +1,10 @@
-<section class="app-page analyze-page">
-  <app-page-header
-    eyebrow="AI Task Creator"
-    title="メモからタスクを起票"
-    description="作業メモやアイデアを貼り付けると、AI がカード案とサブタスクを提案します。内容を確認し、必要なものだけボードへ追加しましょう。"
-  ></app-page-header>
+<app-page-layout
+  class="analyze-page"
+  eyebrow="AI Task Creator"
+  title="メモからタスクを起票"
+  description="作業メモやアイデアを貼り付けると、AI がカード案とサブタスクを提案します。内容を確認し、必要なものだけボードへ追加しましょう。"
+  headingLevel="h1"
+>
 
   <form class="surface-panel page-panel analyze-page__form" (submit)="handleSubmit($event)">
     <div class="form-grid form-grid--two analyze-page__composer">
@@ -187,4 +188,4 @@
       </div>
     }
   </section>
-</section>
+</app-page-layout>

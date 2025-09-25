@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 import { Router } from '@angular/router';
 
 import { AuthService } from '@core/auth/auth.service';
@@ -31,7 +32,7 @@ interface RegistrationSubmission {
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PageLayoutComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

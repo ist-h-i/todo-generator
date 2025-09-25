@@ -1,9 +1,10 @@
-<section class="app-page analytics-page">
-  <app-page-header
-    eyebrow="分析ダッシュボード"
-    title="ワークスペース全体の指標"
-    description="完了率やポイント配分に加え、指摘の傾向や原因、改善活動の進捗までひと目で確認できます。"
-  ></app-page-header>
+<app-page-layout
+  class="analytics-page"
+  eyebrow="分析ダッシュボード"
+  title="ワークスペース全体の指標"
+  description="完了率やポイント配分に加え、指摘の傾向や原因、改善活動の進捗までひと目で確認できます。"
+  headingLevel="h1"
+>
 
   <section class="page-section analytics-page__intro">
     <div class="analytics-page__intro-content">
@@ -352,4 +353,4 @@
       <textarea class="report-preview" rows="10" readonly [value]="reportPreview()"></textarea>
     </div>
   </section>
-</section>
+</app-page-layout>

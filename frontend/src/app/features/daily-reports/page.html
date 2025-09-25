@@ -1,13 +1,13 @@
-<section class="app-page daily-report-page">
-  <app-page-header
-    eyebrow="AI レポートアシスタント"
-    title="日報・週報解析"
-    description="タグと本文を入力すると、AI がカード候補と振り返りの観点を提案します。"
-  >
-    <a appPageHeaderActions class="button button--secondary focus-ring" routerLink="/analytics">
-      分析ダッシュボードを見る
-    </a>
-  </app-page-header>
+<app-page-layout
+  class="daily-report-page"
+  eyebrow="AI レポートアシスタント"
+  title="日報・週報解析"
+  description="タグと本文を入力すると、AI がカード候補と振り返りの観点を提案します。"
+  headingLevel="h1"
+>
+  <a appPageHeaderActions class="button button--secondary focus-ring" routerLink="/analytics">
+    分析ダッシュボードを見る
+  </a>
 
   <div class="app-alert app-alert--notice daily-report-page__notice" role="status">
     解析に使用した本文はカード作成後に破棄され、ワークスペースに保存されません。
@@ -225,4 +225,4 @@
       </ng-template>
     </aside>
   </div>
-</section>
+</app-page-layout>

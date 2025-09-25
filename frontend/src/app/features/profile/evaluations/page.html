@@ -1,72 +1,66 @@
-<section class="app-page evaluations-page shell-container">
-  <header class="page-header">
-    <div class="page-header__content">
-      <p class="page-eyebrow">Competency Insights</p>
-      <h1 class="page-title">コンピテンシー評価の履歴</h1>
-      <p class="page-description">
-        直近のコンピテンシー判定とアクションプランを確認できます。姿勢面と行動面それぞれの推奨事項を振り返り、
-        次のスプリント計画に活用しましょう。
-      </p>
-    </div>
-    <div class="page-header__actions">
-      <section class="quota-card" aria-live="polite">
-        <p class="quota-card__label">本日の評価判定可能回数</p>
+<app-page-layout
+  class="evaluations-page shell-container"
+  eyebrow="Competency Insights"
+  title="コンピテンシー評価の履歴"
+  description="直近のコンピテンシー判定とアクションプランを確認できます。姿勢面と行動面それぞれの推奨事項を振り返り、次のスプリント計画に活用しましょう。"
+  headingLevel="h1"
+>
+  <section appPageHeaderActions class="quota-card" aria-live="polite">
+    <p class="quota-card__label">本日の評価判定可能回数</p>
 
-        @if (quotaLoading()) {
-          <p class="quota-card__loading">計算中…</p>
-        } @else if (quotaError(); as message) {
-          <p class="quota-card__warning">{{ message }}</p>
-        } @else {
-          <div class="quota-card__values">
-            <span class="quota-card__value">{{ limitLabel(quota()) }}</span>
-            <span class="quota-card__separator">／</span>
-            <span class="quota-card__value quota-card__value--remaining">
-              {{ remainingLabel(quota()) }}
-            </span>
-          </div>
-          <p class="quota-card__meta">実行済み {{ quota()?.used ?? 0 }} 回</p>
-
-          @if (limitReached()) {
-            <p class="quota-card__warning">本日の上限に達しました。</p>
-          }
-        }
-      </section>
-
-      <div class="page-header__buttons">
-        <button
-          type="button"
-          class="refresh-button focus-ring"
-          (click)="runEvaluation()"
-          [disabled]="runningEvaluation() || loading() || !canRunEvaluation()"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            class="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M12 3v2m0 14v2m9-9h-2M5 12H3m12.364-5.364-1.414 1.414M6.05 17.95l-1.414 1.414m12.728 0-1.414-1.414M6.05 6.05 4.636 4.636M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z"
-            />
-          </svg>
-          評価を実行
-        </button>
-
-        <button
-          type="button"
-          class="secondary-button focus-ring"
-          (click)="exportLatestAsJson()"
-          [disabled]="!latestEvaluation()"
-        >
-          JSON で出力
-        </button>
+    @if (quotaLoading()) {
+      <p class="quota-card__loading">計算中…</p>
+    } @else if (quotaError(); as message) {
+      <p class="quota-card__warning">{{ message }}</p>
+    } @else {
+      <div class="quota-card__values">
+        <span class="quota-card__value">{{ limitLabel(quota()) }}</span>
+        <span class="quota-card__separator">／</span>
+        <span class="quota-card__value quota-card__value--remaining">
+          {{ remainingLabel(quota()) }}
+        </span>
       </div>
-    </div>
-  </header>
+      <p class="quota-card__meta">実行済み {{ quota()?.used ?? 0 }} 回</p>
+
+      @if (limitReached()) {
+        <p class="quota-card__warning">本日の上限に達しました。</p>
+      }
+    }
+  </section>
+
+  <div appPageHeaderActions class="page-header__buttons">
+    <button
+      type="button"
+      class="refresh-button focus-ring"
+      (click)="runEvaluation()"
+      [disabled]="runningEvaluation() || loading() || !canRunEvaluation()"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        class="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 3v2m0 14v2m9-9h-2M5 12H3m12.364-5.364-1.414 1.414M6.05 17.95l-1.414 1.414m12.728 0-1.414-1.414M6.05 6.05 4.636 4.636M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z"
+        />
+      </svg>
+      評価を実行
+    </button>
+
+    <button
+      type="button"
+      class="secondary-button focus-ring"
+      (click)="exportLatestAsJson()"
+      [disabled]="!latestEvaluation()"
+    >
+      JSON で出力
+    </button>
+  </div>
 
   @if (actionError(); as message) {
     <p class="page-alert page-alert--error" role="alert">{{ message }}</p>
@@ -308,4 +302,4 @@
       }
     }
   }
-</section>
+</app-page-layout>
