@@ -157,6 +157,40 @@
       </div>
     </header>
 
+    @if (proposalPublishFeedback(); as feedback) {
+      <div
+        class="analyze-page__toast analyze-page__toast--inline"
+        role="status"
+        aria-live="polite"
+        [attr.data-state]="feedback.status"
+      >
+        @if (feedback.status === 'success') {
+          <svg
+            class="analyze-page__toast-icon"
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            focusable="false"
+          >
+            <path
+              d="M9.5 16.2 5.3 12a1 1 0 0 1 1.4-1.4l2.8 2.79 7.09-7.09a1 1 0 1 1 1.42 1.42l-7.8 7.8a1 1 0 0 1-1.41 0Z"
+            />
+          </svg>
+        } @else {
+          <svg
+            class="analyze-page__toast-icon analyze-page__toast-icon--error"
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            focusable="false"
+          >
+            <path
+              d="M13.41 12 18.7 6.71a1 1 0 1 0-1.41-1.41L12 10.59 6.71 5.3a1 1 0 0 0-1.41 1.41L10.59 12l-5.3 5.29a1 1 0 1 0 1.41 1.41L12 13.41l5.29 5.29a1 1 0 0 0 1.41-1.41Z"
+            />
+          </svg>
+        }
+        <span class="analyze-page__toast-message">{{ feedback.message }}</span>
+      </div>
+    }
+
     @if (analysisResource.status() === 'loading') {
       <div class="page-state analyze-page__state analyze-page__state--loading" role="status">
         <span class="analyze-page__loader" aria-hidden="true"></span>

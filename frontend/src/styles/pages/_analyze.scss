@@ -182,6 +182,19 @@
   box-shadow: 0 20px 40px color-mix(in srgb, var(--success) 24%, transparent);
 }
 
+.analyze-page__toast[data-state='error'] {
+  border-color: color-mix(in srgb, var(--danger) 48%, transparent);
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--danger) 24%, transparent);
+}
+
+.analyze-page__toast--inline {
+  position: static;
+  top: auto;
+  right: auto;
+  margin: 0 0 1rem auto;
+  z-index: auto;
+}
+
 .analyze-page__toast-spinner {
   width: 1.1rem;
   height: 1.1rem;
@@ -196,6 +209,11 @@
   height: 1.1rem;
   fill: var(--success-strong);
   filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--success) 32%, transparent));
+}
+
+.analyze-page__toast-icon--error {
+  fill: var(--danger-strong);
+  filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--danger) 32%, transparent));
 }
 
 .analyze-page__toast-message {

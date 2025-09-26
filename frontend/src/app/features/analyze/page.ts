@@ -39,9 +39,14 @@ export class AnalyzePage {
   private readonly requestSignal = signal<AnalysisRequest | null>(null);
 
   private readonly toastState = signal<'loading' | 'success' | null>(null);
+  private readonly publishFeedback = signal<{
+    status: 'success' | 'error';
+    message: string;
+  } | null>(null);
   private readonly highlightResults = signal(false);
   private toastTimer: number | null = null;
   private highlightTimer: number | null = null;
+  private publishFeedbackTimer: number | null = null;
   private previousStatus: string | null = null;
 
   public readonly analysisResource = this.analysisGateway.createAnalysisResource(
@@ -110,6 +115,8 @@ export class AnalyzePage {
       : '提案の準備が完了しました。設定を見直してください。';
   });
 
+  public readonly proposalPublishFeedback = computed(() => this.publishFeedback());
+
   private readonly dispatchAnalyze = this.analyzeForm.submit((value) => {
     const payload = this.createRequestPayload(value);
     if (!payload) {
@@ -128,6 +135,7 @@ export class AnalyzePage {
       this.showLoadingToast();
       this.highlightResults.set(false);
       this.clearHighlightTimer();
+      this.clearPublishFeedback();
 
       return;
     }
@@ -150,6 +158,7 @@ export class AnalyzePage {
   public constructor() {
     this.destroyRef.onDestroy(() => {
       this.clearVisualTimers();
+      this.clearPublishFeedbackTimer();
     });
   }
 
@@ -172,8 +181,20 @@ export class AnalyzePage {
     if (proposals.length === 0) {
       return;
     }
-    this.workspace.importProposals(proposals);
-    this.resetAnalyzeForm();
+    try {
+      this.workspace.importProposals(proposals);
+      this.showPublishFeedback({
+        status: 'success',
+        message: this.formatPublishSuccessMessage(proposals),
+      });
+      this.resetAnalyzeForm({ preserveFeedback: true });
+    } catch (error) {
+      console.error('Failed to import proposals', error);
+      this.showPublishFeedback({
+        status: 'error',
+        message: 'カード案の追加に失敗しました。時間をおいて再度お試しください。',
+      });
+    }
   };
 
   /**
@@ -220,13 +241,16 @@ export class AnalyzePage {
     } satisfies AnalysisRequest;
   };
 
-  private readonly resetAnalyzeForm = (): void => {
+  private readonly resetAnalyzeForm = (options?: { preserveFeedback?: boolean }): void => {
     this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
     this.requestSignal.set(null);
     this.toastState.set(null);
     this.highlightResults.set(false);
     this.clearVisualTimers();
     this.previousStatus = null;
+    if (!options?.preserveFeedback) {
+      this.clearPublishFeedback();
+    }
   };
 
   private showLoadingToast(): void {
@@ -305,5 +329,48 @@ export class AnalyzePage {
       window.clearTimeout(this.highlightTimer);
       this.highlightTimer = null;
     }
+  }
+
+  private showPublishFeedback(feedback: { status: 'success' | 'error'; message: string }): void {
+    this.publishFeedback.set(feedback);
+    this.startPublishFeedbackTimer();
+  }
+
+  private formatPublishSuccessMessage(proposals: readonly AnalysisProposal[]): string {
+    if (proposals.length === 1) {
+      return `カード「${proposals[0]?.title ?? ''}」をボードに追加しました。`;
+    }
+
+    const [firstProposal] = proposals;
+    return `${proposals.length}件のカード案をボードに追加しました（最初の案: 「${firstProposal?.title ?? ''}」）。`;
+  }
+
+  private startPublishFeedbackTimer(): void {
+    this.clearPublishFeedbackTimer();
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    this.publishFeedbackTimer = window.setTimeout(() => {
+      this.publishFeedback.set(null);
+      this.publishFeedbackTimer = null;
+    }, 4200);
+  }
+
+  private clearPublishFeedbackTimer(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (this.publishFeedbackTimer !== null) {
+      window.clearTimeout(this.publishFeedbackTimer);
+      this.publishFeedbackTimer = null;
+    }
+  }
+
+  private clearPublishFeedback(): void {
+    this.publishFeedback.set(null);
+    this.clearPublishFeedbackTimer();
   }
 }
