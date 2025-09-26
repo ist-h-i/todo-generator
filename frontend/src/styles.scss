@@ -1333,6 +1333,24 @@ app-profile-dialog .profile-dialog__role-category-title {
   color: color-mix(in srgb, var(--surface-strong) 90%, transparent);
 }
 
+app-profile-dialog .profile-dialog__role-category-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+app-profile-dialog .profile-dialog__role-category-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+}
+
 app-profile-dialog .profile-dialog__role-children {
   display: flex;
   flex-direction: column;
@@ -1657,8 +1675,8 @@ app-profile-dialog
 }
 
 .dark app-profile-dialog .profile-dialog__role-category-count {
-  background: color-mix(in srgb, var(--accent) 32%, transparent);
-  color: color-mix(in srgb, var(--accent) 92%, transparent);
+  background: none;
+  color: color-mix(in srgb, var(--text-primary) 82%, transparent);
 }
 
 .dark app-profile-dialog .profile-dialog__role-category-toggle {
