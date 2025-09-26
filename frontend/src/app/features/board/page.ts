@@ -239,6 +239,7 @@ export class BoardPage {
   public readonly commentForm = createSignalForm({
     author: '',
     message: '',
+    target: 'card' as string,
   });
 
   private lastCardFormBaseline: CardFormState | null = null;
@@ -399,7 +400,7 @@ export class BoardPage {
           this.cardForm.reset(fallback);
         }
         this.lastCardFormBaseline = fallback;
-        this.commentForm.reset({ author: '', message: '' });
+        this.commentForm.reset({ author: '', message: '', target: 'card' });
         this.newSubtaskForm.reset({ title: '', assignee: '', estimateHours: '', status: 'todo' });
         this.lastSelectedCardId = null;
         return;
@@ -437,6 +438,7 @@ export class BoardPage {
         this.commentForm.reset({
           author: active.assignee ?? '',
           message: '',
+          target: 'card',
         });
         this.newSubtaskForm.reset({
           title: '',
@@ -492,12 +494,24 @@ export class BoardPage {
     const author = snapshot.author.trim();
     const message = snapshot.message.trim();
 
-    this.workspace.addComment(active.id, { author, message });
+    const target = snapshot.target;
+    const subtaskId =
+      target !== 'card' && active.subtasks.some((subtask) => subtask.id === target)
+        ? target
+        : undefined;
+
+    this.workspace.addComment(active.id, { author, message, subtaskId });
 
     this.commentForm.reset({
       author,
       message: '',
+      target: subtaskId ?? 'card',
     });
+  };
+
+  public readonly getSubtaskTitle = (subtasks: readonly Subtask[], subtaskId: string): string => {
+    const match = subtasks.find((subtask) => subtask.id === subtaskId);
+    return match ? match.title : '不明なサブタスク';
   };
 
   public readonly removeComment = (cardId: string, commentId: string): void => {

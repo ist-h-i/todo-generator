@@ -7,6 +7,7 @@ export interface CardComment {
   readonly message: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly subtaskId?: string;
 }
 
 /**
