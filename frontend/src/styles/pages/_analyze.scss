@@ -151,12 +151,20 @@
   gap: 1.25rem;
 }
 
+@media (min-width: 48rem) {
+  .analyze-page__results-header {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+}
+
 .analyze-page__results {
-  margin-top: 1.1rem;
   position: relative;
+  margin-top: 1.1rem;
+  border-radius: var(--radius-lg);
   outline: 2px solid transparent;
   outline-offset: 6px;
-  border-radius: var(--radius-lg);
   transition: outline-color 220ms ease;
 }
 
@@ -167,14 +175,6 @@
 .analyze-page__results-toast {
   margin-top: 0;
   margin-bottom: 1.25rem;
-}
-
-@media (min-width: 48rem) {
-  .analyze-page__results-header {
-    flex-direction: row;
-    align-items: flex-end;
-    justify-content: space-between;
-  }
 }
 
 .analyze-page__toast {

@@ -202,7 +202,7 @@
       </div>
     }
 
-    @if (analysisResource.status() === 'loading') {
+    @if (isAnalyzing()) {
       <div class="page-state analyze-page__state analyze-page__state--loading" role="status">
         <span class="analyze-page__loader" aria-hidden="true"></span>
         <div class="analyze-page__state-body">
