@@ -13,12 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Codex
-        run: npm install -g codex-cli
+      - name: Install Codex CLI
+        run: npm install -g @openai/codex
 
       - name: Run Codex translator → requirements analyst → detail designer → planner pipeline
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           # イベント種別で入力を切り替え
           if [ "${{ github.event_name }}" = "issues" ]; then
@@ -31,8 +32,12 @@ jobs:
 
           echo "TASK_INPUT: $TASK_INPUT"
           mkdir -p codex_output
-          set -o pipefail
-          codex translator --task "$TASK_INPUT" | tee codex_output/translator.md
+          if ! command -v codex >/dev/null 2>&1; then
+            echo "Codex CLI not installed correctly" >&2
+            exit 1
+          fi
+
+          scripts/run_codex_pipeline.sh "$TASK_INPUT"
 
       - name: Upload Codex outputs
         uses: actions/upload-artifact@v4
