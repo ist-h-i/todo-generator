@@ -54,6 +54,61 @@ export class AnalyzePage {
   private requestVersion = 0;
   private lastResultFingerprint: string | null = null;
 
+  public readonly analysisResource = this.analysisGateway.createAnalysisResource(
+    this.requestSignal,
+  );
+
+  public readonly eligibleProposals = computed<readonly AnalysisProposal[]>(() => {
+    const result = this.analysisResource.value();
+    if (!result) {
+      return [];
+    }
+
+    return result.proposals.filter((proposal) => this.workspace.isProposalEligible(proposal));
+  });
+
+  public readonly hasEligibleProposals = computed(() => this.eligibleProposals().length > 0);
+
+  public readonly hasResult = computed(() => this.analysisResource.value() !== null);
+
+  public readonly isAutoObjectiveEnabled = computed(() =>
+    this.analyzeForm.controls.autoObjective.value(),
+  );
+
+  public readonly autoObjectivePreview = computed(() =>
+    this.generateAutoObjective(this.analyzeForm.controls.notes.value().trim()),
+  );
+
+  public readonly isAnalyzing = computed(() => {
+    const status = this.analysisResource.status();
+
+    return status === 'loading' || status === 'reloading';
+  });
+
+  public readonly canSubmit = computed(() => {
+    const value = this.analyzeForm.value();
+    const notes = value.notes.trim();
+    if (notes.length === 0) {
+      return false;
+    }
+
+    if (!value.autoObjective && value.objective.trim().length === 0) {
+      return false;
+    }
+
+    return true;
+  });
+
+  public readonly isSubmitDisabled = computed(() => this.isAnalyzing() || !this.canSubmit());
+
+  public readonly generationToast = computed(() => this.toastState());
+
+  public readonly shouldHighlightResults = computed(() => this.highlightResults());
+
+  public readonly generationToastMessage = computed(() => this.toastMessageSignal());
+
+  public readonly proposalPublishFeedback = computed(() => this.publishFeedback());
+
   private readonly analyzerLifecycle = effect(
     () => {
       const request = this.requestSignal();
@@ -121,61 +176,6 @@ export class AnalyzePage {
     },
     { allowSignalWrites: true },
   );
-
-  public readonly analysisResource = this.analysisGateway.createAnalysisResource(
-    this.requestSignal,
-  );
-
-  public readonly eligibleProposals = computed<readonly AnalysisProposal[]>(() => {
-    const result = this.analysisResource.value();
-    if (!result) {
-      return [];
-    }
-
-    return result.proposals.filter((proposal) => this.workspace.isProposalEligible(proposal));
-  });
-
-  public readonly hasEligibleProposals = computed(() => this.eligibleProposals().length > 0);
-
-  public readonly hasResult = computed(() => this.analysisResource.value() !== null);
-
-  public readonly isAutoObjectiveEnabled = computed(() =>
-    this.analyzeForm.controls.autoObjective.value(),
-  );
-
-  public readonly autoObjectivePreview = computed(() =>
-    this.generateAutoObjective(this.analyzeForm.controls.notes.value().trim()),
-  );
-
-  public readonly isAnalyzing = computed(() => {
-    const status = this.analysisResource.status();
-
-    return status === 'loading' || status === 'reloading';
-  });
-
-  public readonly canSubmit = computed(() => {
-    const value = this.analyzeForm.value();
-    const notes = value.notes.trim();
-    if (notes.length === 0) {
-      return false;
-    }
-
-    if (!value.autoObjective && value.objective.trim().length === 0) {
-      return false;
-    }
-
-    return true;
-  });
-
-  public readonly isSubmitDisabled = computed(() => this.isAnalyzing() || !this.canSubmit());
-
-  public readonly generationToast = computed(() => this.toastState());
-
-  public readonly shouldHighlightResults = computed(() => this.highlightResults());
-
-  public readonly generationToastMessage = computed(() => this.toastMessageSignal());
-
-  public readonly proposalPublishFeedback = computed(() => this.publishFeedback());
 
   private readonly dispatchAnalyze = this.analyzeForm.submit((value) => {
     const payload = this.createRequestPayload(value);
