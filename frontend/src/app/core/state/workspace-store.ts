@@ -203,6 +203,7 @@ const buildSubtasks = (titles: readonly string[]): Subtask[] =>
     status: index === 0 ? 'in-progress' : 'todo',
     assignee: index === 0 ? '田中太郎' : undefined,
     estimateHours: 3,
+    dueDate: new Date(Date.UTC(2025, 4, 5 + index)).toISOString().slice(0, 10),
   }));
 
 const INITIAL_CARDS: Card[] = [
@@ -946,6 +947,7 @@ export class WorkspaceStore {
       status?: Subtask['status'];
       assignee?: string;
       estimateHours?: number;
+      dueDate?: string;
     },
   ): void => {
     const title = payload.title.trim();
@@ -961,12 +963,17 @@ export class WorkspaceStore {
         ? Math.max(0, payload.estimateHours)
         : undefined;
 
+    const normalizedDueDate = payload.dueDate?.trim();
+    const dueDate =
+      normalizedDueDate && normalizedDueDate.length > 0 ? normalizedDueDate : undefined;
+
     const subtask: Subtask = {
       id: createId(),
       title,
       status: payload.status ?? 'todo',
       assignee,
       estimateHours: estimate,
+      dueDate,
     };
 
     this.cardsSignal.update((cards) =>
@@ -1037,6 +1044,15 @@ export class WorkspaceStore {
             }
             if (estimate !== subtask.estimateHours) {
               next.estimateHours = estimate;
+              subtaskMutated = true;
+            }
+          }
+
+          if ('dueDate' in changes) {
+            const raw = changes.dueDate?.trim();
+            const dueDate = raw && raw.length > 0 ? raw : undefined;
+            if (dueDate !== subtask.dueDate) {
+              next.dueDate = dueDate;
               subtaskMutated = true;
             }
           }
