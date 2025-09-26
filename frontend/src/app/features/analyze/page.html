@@ -100,7 +100,23 @@
     </div>
   </form>
 
-  <section class="page-section analyze-page__results">
+  <section
+    class="page-section analyze-page__results"
+    [class.analyze-page__results--highlight]="shouldHighlightResults()"
+  >
+    @if (analyzerToast(); as toast) {
+      <p
+        class="app-alert analyze-page__results-toast"
+        [class.app-alert--success]="toast.type === 'success'"
+        [class.app-alert--notice]="toast.type === 'notice'"
+        [class.app-alert--error]="toast.type === 'error'"
+        [attr.role]="toast.type === 'error' ? 'alert' : 'status'"
+        [attr.aria-live]="toast.type === 'error' ? 'assertive' : 'polite'"
+      >
+        {{ toast.message }}
+      </p>
+    }
+
     <header class="page-section__header analyze-page__results-header">
       <div>
         <p class="analyze-page__results-eyebrow">AI Suggestions</p>

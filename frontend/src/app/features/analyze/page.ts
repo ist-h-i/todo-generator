@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 import { AnalysisGateway } from '@core/api/analysis-gateway';
@@ -6,6 +14,11 @@ import { WorkspaceStore } from '@core/state/workspace-store';
 import { AnalysisProposal, AnalysisRequest } from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
+
+type AnalyzerToast = {
+  readonly type: 'success' | 'notice' | 'error';
+  readonly message: string;
+};
 
 /**
  * Analyzer page allowing users to submit notes and review ChatGPT-style proposals.
@@ -20,6 +33,15 @@ import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 export class AnalyzePage {
   private readonly analysisGateway = inject(AnalysisGateway);
   private readonly workspace = inject(WorkspaceStore);
+  private readonly destroyRef = inject(DestroyRef);
+
+  private readonly analyzerToastSignal = signal<AnalyzerToast | null>(null);
+  private readonly resultsHighlightSignal = signal(false);
+
+  private highlightTimeoutHandle: number | null = null;
+  private lastTrackedRequest: AnalysisRequest | null | undefined = undefined;
+  private requestVersion = 0;
+  private lastResultFingerprint: string | null = null;
 
   public readonly analyzeForm = createSignalForm<AnalysisRequest>({
     notes: '',
@@ -54,6 +76,74 @@ export class AnalyzePage {
     this.generateAutoObjective(this.analyzeForm.controls.notes.value().trim()),
   );
 
+  public readonly analyzerToast = computed(() => this.analyzerToastSignal());
+  public readonly shouldHighlightResults = computed(() => this.resultsHighlightSignal());
+
+  private readonly monitorAnalysisLifecycle = effect(
+    () => {
+      const request = this.requestSignal();
+      const status = this.analysisResource.status();
+      const error = this.analysisResource.error();
+      const result = this.analysisResource.value();
+      const proposals = this.eligibleProposals();
+
+      const isNewRequest = request !== this.lastTrackedRequest;
+      if (isNewRequest) {
+        this.lastTrackedRequest = request;
+        this.requestVersion += 1;
+        this.lastResultFingerprint = null;
+        this.dismissToast();
+        this.disableResultsHighlight();
+      }
+
+      if (!request) {
+        return;
+      }
+
+      if (status === 'loading' || isNewRequest) {
+        return;
+      }
+
+      if (error) {
+        this.emitAnalyzerToastOnce(
+          'error',
+          'タスク案の生成に失敗しました。内容を確認してからもう一度お試しください。',
+          'error',
+        );
+        this.disableResultsHighlight();
+        return;
+      }
+
+      if (!result) {
+        this.lastResultFingerprint = null;
+        this.dismissToast();
+        this.disableResultsHighlight();
+        return;
+      }
+
+      if (proposals.length === 0) {
+        this.emitAnalyzerToastOnce(
+          'notice',
+          '条件に一致する提案が見つかりませんでした。設定を調整して再度お試しください。',
+          'empty',
+        );
+        this.disableResultsHighlight();
+        return;
+      }
+
+      const fingerprint = this.computeProposalsFingerprint(proposals);
+      if (
+        this.emitSuccessToast(
+          `AI が ${proposals.length} 件のおすすめタスク案を生成しました。`,
+          fingerprint,
+        )
+      ) {
+        this.triggerResultsHighlight();
+      }
+    },
+    { allowSignalWrites: true },
+  );
+
   private readonly dispatchAnalyze = this.analyzeForm.submit((value) => {
     const payload = this.createRequestPayload(value);
     if (!payload) {
@@ -62,6 +152,12 @@ export class AnalyzePage {
 
     this.requestSignal.set(payload);
   });
+
+  public constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.clearHighlightTimer();
+    });
+  }
 
   /**
    * Handles form submission and prevents the default browser behavior.
@@ -92,6 +188,75 @@ export class AnalyzePage {
   public readonly resetForm = (): void => {
     this.resetAnalyzeForm();
   };
+
+  private emitAnalyzerToastOnce(
+    type: Exclude<AnalyzerToast['type'], 'success'>,
+    message: string,
+    detail?: string,
+  ): boolean {
+    const fingerprint = this.buildResultFingerprint(type, detail);
+    if (this.lastResultFingerprint === fingerprint) {
+      return false;
+    }
+
+    this.lastResultFingerprint = fingerprint;
+    this.analyzerToastSignal.set({ type, message });
+    return true;
+  }
+
+  private emitSuccessToast(message: string, proposalsFingerprint: string): boolean {
+    const fingerprint = this.buildResultFingerprint('success', proposalsFingerprint);
+    if (this.lastResultFingerprint === fingerprint) {
+      return false;
+    }
+
+    this.lastResultFingerprint = fingerprint;
+    this.analyzerToastSignal.set({ type: 'success', message });
+    return true;
+  }
+
+  private buildResultFingerprint(type: AnalyzerToast['type'], detail?: string): string {
+    return `${type}:${this.requestVersion}:${detail ?? 'none'}`;
+  }
+
+  private computeProposalsFingerprint(
+    proposals: readonly AnalysisProposal[],
+  ): string {
+    return proposals.map((proposal) => proposal.id).join('|');
+  }
+
+  private dismissToast(): void {
+    this.analyzerToastSignal.set(null);
+  }
+
+  private triggerResultsHighlight(): void {
+    this.clearHighlightTimer();
+    this.resultsHighlightSignal.set(true);
+
+    if (typeof window === 'undefined') {
+      queueMicrotask(() => {
+        this.resultsHighlightSignal.set(false);
+      });
+      return;
+    }
+
+    this.highlightTimeoutHandle = window.setTimeout(() => {
+      this.resultsHighlightSignal.set(false);
+      this.highlightTimeoutHandle = null;
+    }, 2400);
+  }
+
+  private disableResultsHighlight(): void {
+    this.clearHighlightTimer();
+    this.resultsHighlightSignal.set(false);
+  }
+
+  private clearHighlightTimer(): void {
+    if (this.highlightTimeoutHandle !== null && typeof window !== 'undefined') {
+      window.clearTimeout(this.highlightTimeoutHandle);
+    }
+    this.highlightTimeoutHandle = null;
+  }
 
   /**
    * Creates an automatic objective phrase based on the user's notes.
