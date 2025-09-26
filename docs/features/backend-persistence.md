@@ -1,33 +1,33 @@
-# バックエンド永続化が必要な主なユーザー操作
+# Backend-Persisted User Operations
 
-本書では、フロントエンド単体で完結させず FastAPI バックエンドにデータを保存すべき主要操作を領域別に整理する。各操作は既存の REST ルーターとモデルでカバーされており、恒常的なデータ共有や監査証跡を確保するために永続化が前提となる。
+This note inventories the user flows that must persist data through the FastAPI backend instead of handling state only in the Angular client. Each operation relies on the shipped routers and models so that teams share a durable workspace and maintain an auditable history of decisions.
 
-## ボード／タスク管理
-- **カードとサブタスクの CRUD**: 作成・編集・削除・ドラッグ＆ドロップによるステータス変更、完了日時の更新を `/cards` および `/cards/{card_id}/subtasks` で反映する。
-- **コメントと履歴記録**: `/comments` と `/activity-log` を通じて、コメント投稿・編集・削除に伴うアクティビティ履歴を保存する。
-- **手動アクティビティログの追記**: 任意イベントをタイムラインに記録するため `/activity-log` に対して追加エントリを永続化する。
-- **ボードレイアウト設定の保存**: 列幅や表示設定などのレイアウト変更を `/board-layouts` 経由で `UserPreference` として保存・更新する。
-- **保存済みフィルターの管理**: ボード用のクエリ条件と共有設定を `/saved-filters` で作成・更新・削除する。
-- **ラベル／ステータス／エラーカテゴリ管理**: ワークスペース設定として `/labels`、`/statuses`、`/error-categories` を利用し CRUD する。
+## Board & Task Management
+- **Cards and subtasks** – All CRUD operations, drag-and-drop status changes, completion timestamps, and nested subtask actions are handled via `/cards` and `/cards/{card_id}/subtasks` endpoints.【F:backend/app/routers/cards.py†L203-L598】
+- **Comments and timeline history** – Comment creation, edits, deletions, and the associated activity log events persist through `/comments` and `/activity-log` routes.【F:backend/app/routers/comments.py†L14-L174】【F:backend/app/routers/activity.py†L14-L60】
+- **Manual activity logging** – Operators can append ad-hoc timeline entries by posting to `/activity-log`, ensuring notable events remain attached to the workspace record.【F:backend/app/routers/activity.py†L17-L60】
+- **Board layout preferences** – Column widths, grouping choices, and other layout preferences store per user under `/board-layouts`, backed by the `UserPreference` table.【F:backend/app/routers/preferences.py†L11-L39】
+- **Saved filters** – Custom board filter definitions (including sharing flags) persist via `/filters` CRUD endpoints so queries survive browser resets.【F:backend/app/routers/filters.py†L12-L94】
+- **Workspace catalogues** – Labels, statuses, and error categories are managed through `/labels`, `/statuses`, and `/error-categories`, keeping shared taxonomies in sync across the board.【F:backend/app/routers/labels.py†L16-L79】【F:backend/app/routers/statuses.py†L16-L79】【F:backend/app/routers/error_categories.py†L16-L99】
 
-## 継続的改善・分析
-- **改善イニシアチブの管理**: `/improvement-initiatives` に対して登録・更新・進捗ログの追記を行う。
-- **分析スナップショットと Why-Why 分析**: `/analytics/snapshots`、`/analytics/root-causes` 等でスナップショット生成や原因ノード・提案アクションの永続化を実施する。
-- **提案アクションの更新とカード変換**: `/analytics/suggestions` で状態更新し、カード化時には `/cards` へ変換結果を保存しアクティビティを記録する。
+## Continuous Improvement & Analytics
+- **Improvement initiatives** – `/initiatives` stores initiative definitions, progress logs, and linked cards so remediation efforts remain traceable.【F:backend/app/routers/initiatives.py†L17-L173】
+- **Analytics snapshots & root-cause trees** – `/analytics` endpoints persist KPI snapshots, Why-Why analyses, and generated nodes that power the analytics dashboards.【F:backend/app/routers/analytics.py†L13-L370】
+- **Suggested actions** – `/suggested-actions` tracks remediation proposals, status updates, and conversions into board cards while emitting audit activity.【F:backend/app/routers/suggested_actions.py†L13-L130】
 
-## レポート／AI ワークフロー
-- **ステータスレポートの草稿・更新・送信**: `/status-reports` を通じて草稿保存、内容更新、送信、失敗時の再処理を管理する。
-- **レポートテンプレートと生成済みレポート**: テンプレートおよび生成結果の CRUD をバックエンドに保持し、レポート生成処理の履歴を残す。
-- **アピール生成履歴**: `/appeals` ルーターを利用し、生成リクエストとフォーマット別コンテンツ、トークン情報を永続化する。
+## Reporting & AI Workflows
+- **Status reports** – Drafting, updating, submitting, and retrying report analyses go through `/status-reports`, which records lifecycle events and AI output ties to cards.【F:backend/app/routers/status_reports.py†L14-L108】
+- **Report templates & generated outputs** – Administrative `/reports` endpoints persist template catalogs, produced reports, and the analytics context embedded in each deliverable.【F:backend/app/routers/reports.py†L12-L200】
+- **Appeal generation history** – `/appeals` stores generation requests and per-format results alongside subject metadata for compliance reviews.【F:backend/app/routers/appeals.py†L9-L30】
 
-## プロフィールとガバナンス
-- **ユーザープロフィール更新**: `/profile/me` でニックネーム・経歴・ロール・自己紹介・アバター等の変更を保存する。
-- **管理者による API 資格情報管理**: `/admin/api-credentials` で登録・無効化を行い、クォータのデフォルトとユーザー別上限を `/admin/quotas` で設定する。
-- **ユーザー権限・個別クォータ管理**: `/admin/users` で権限やクォータの更新を反映する。
+## Profile & Governance
+- **Profile updates** – `/profile/me` persists nicknames, experience summaries, bios, and avatar uploads after validation and sanitisation.【F:backend/app/routers/profile.py†L19-L67】
+- **API credentials & quota policies** – `/admin/api-credentials` and `/admin/quotas/*` endpoints encrypt provider keys, manage defaults, and capture override history for workspace limits.【F:backend/app/routers/admin_settings.py†L19-L140】
+- **User privileges & per-user quotas** – `/admin/users` lets administrators toggle access rights and adjust individual AI quotas while recording overrides server-side.【F:backend/app/routers/admin_users.py†L18-L100】
 
-## コンピテンシー評価
-- **コンピテンシー定義と評価ジョブ**: `/competencies` と `/evaluation-jobs` で定義の CRUD と対象ユーザーへの手動評価トリガーを永続化する。
-- **自己評価の実行と履歴取得**: `/competency-evaluations` で評価結果を保存し、クォータ確認や消費、履歴取得を行う。
+## Competency Evaluations
+- **Competency definitions & manual jobs** – `/admin/competencies` persists rubrics, criteria, and administrator-triggered evaluations with quota enforcement and audit logging.【F:backend/app/routers/competencies.py†L20-L200】
+- **Self-service evaluations & history** – `/users/me/evaluations` and related endpoints allow members to run self-evaluations, review quotas, and browse their history while ensuring per-day limits are respected.【F:backend/app/routers/competency_evaluations.py†L22-L185】
 
-## 関連ドキュメント
-- 詳細な永続化設計は [永続化処理 詳細設計](../persistence-detail-design.md) を参照。
+## Related Documentation
+- See [Persistence Detailed Design](../persistence-detail-design.md) for table-level schemas and migration strategy.
