@@ -84,7 +84,10 @@ npm run format:check
 - `docs/development-rules.md` – Development workflow and quality expectations.
 - `docs/features/appeal-generation/requirements.md` – Requirements for appeal narrative generation.
 - `docs/features/appeal-generation/detail-design.md` – Detailed design for appeal narrative generation.
+- `docs/features/daily-reporting/requirements.md` – Requirements for daily reporting and AI analysis.
+- `docs/features/daily-reporting/detail-design.md` – Detailed design for daily reporting services and UI workflow.
 - `docs/features/analytics-insights/requirements.md` – Requirements for analytics and continuous improvement.
 - `docs/features/analytics-insights/detail-design.md` – Detailed design for analytics and continuous improvement.
 - `docs/features/governance/requirements.md` – Governance and competency administration requirements.
+- `docs/features/competency-evaluations/requirements.md` – Requirements for the competency evaluation experience.
 - `docs/ui-design-system.md` – UI guidelines for shared components.
