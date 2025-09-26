@@ -332,42 +332,40 @@
         </div>
       </div>
 
-      <article class="card-detail surface-card">
-        <section class="card-detail__meta">
-          <div class="card-detail__summary">
-            <span class="card-detail__summary-label">概要</span>
-            <p class="card-detail__summary-text">
-              {{
-                active.summary.trim().length > 0 ? active.summary : '概要はまだ入力されていません。'
-              }}
-            </p>
-          </div>
-          <dl class="card-detail__fields">
-            <div class="card-detail__field">
+      <div class="board-detail__body">
+        <section class="card-overview">
+          <h4 class="card-overview__heading">カード情報</h4>
+          <p class="card-overview__summary">
+            {{
+              active.summary.trim().length > 0 ? active.summary : '概要はまだ入力されていません。'
+            }}
+          </p>
+          <dl class="card-overview__list">
+            <div class="card-overview__item">
               <dt>ステータス</dt>
               <dd>
-                <span class="card-detail__status" [style.color]="statusColor(active.statusId)">
+                <span class="card-overview__status" [style.color]="statusColor(active.statusId)">
                   {{ statusName(active.statusId) }}
                 </span>
               </dd>
             </div>
-            <div class="card-detail__field">
+            <div class="card-overview__item">
               <dt>優先度</dt>
               <dd>{{ priorityLabel(active.priority) }}</dd>
             </div>
-            <div class="card-detail__field">
+            <div class="card-overview__item">
               <dt>ストーリーポイント</dt>
               <dd>{{ active.storyPoints | number: '1.0-0' }}</dd>
             </div>
-            <div class="card-detail__field">
+            <div class="card-overview__item">
               <dt>担当</dt>
               <dd>{{ active.assignee ?? '未設定' }}</dd>
             </div>
-            <div class="card-detail__field">
+            <div class="card-overview__item">
               <dt>期限</dt>
               <dd>{{ active.dueDate ? (active.dueDate | date: 'yyyy/MM/dd') : '未設定' }}</dd>
             </div>
-            <div class="card-detail__field">
+            <div class="card-overview__item">
               <dt>AIおすすめ度</dt>
               <dd>
                 {{
@@ -379,17 +377,14 @@
             </div>
           </dl>
           @if (active.labelIds.length > 0) {
-            <div class="card-detail__labels">
-              <span class="card-detail__labels-title">ラベル</span>
-              <div class="card-detail__labels-list">
-                @for (labelId of active.labelIds; track labelId) {
-                  <span class="card-detail__label">{{ labelName(labelId) }}</span>
-                }
-              </div>
-            </div>
+            <ul class="card-overview__labels">
+              @for (labelId of active.labelIds; track labelId) {
+                <li>{{ labelName(labelId) }}</li>
+              }
+            </ul>
           }
         </section>
-        <section class="card-detail__comments comment-pane">
+        <section class="card-comments comment-pane">
           <header class="comment-pane__header">
             <h4>カードのコメント</h4>
             <p>カード全体に関する共有事項を残します。</p>
@@ -513,7 +508,7 @@
             </div>
           </form>
         </section>
-      </article>
+      </div>
 
       <section class="subtask-editor space-y-4">
         <div class="space-y-1">

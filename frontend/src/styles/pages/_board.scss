@@ -589,12 +589,13 @@
 
 .board-detail {
   margin-block-start: var(--page-content-gap);
-  display: grid;
-  gap: var(--panel-gap);
-  padding: var(--panel-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: clamp(var(--space-xl), 3vw, var(--space-xxl));
   border-radius: var(--radius-xl);
-  border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
 }
 
 .board-detail__header {
@@ -643,104 +644,91 @@
   line-height: 1.6;
 }
 
-.card-detail {
+.board-detail__body {
   display: grid;
-  gap: clamp(var(--space-lg), 2vw, var(--panel-gap));
-  padding: clamp(var(--space-xl), 3vw, var(--space-xxl));
+  gap: var(--space-lg);
 }
 
 @media (min-width: 62rem) {
-  .card-detail {
-    grid-template-columns: minmax(0, 1.85fr) minmax(0, 1.4fr);
+  .board-detail__body {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr);
+    align-items: start;
   }
 }
 
-.card-detail__meta,
-.card-detail__comments {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(var(--space-md), 1.8vw, var(--space-xl));
-  align-self: stretch;
+.card-overview,
+.card-comments {
+  padding: clamp(var(--space-lg), 2vw, var(--space-xl));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-card) 85%, transparent);
 }
 
-.card-detail__summary {
+.card-overview {
   display: grid;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
-.card-detail__summary-label {
+.card-overview__heading {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 1rem;
   font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-muted) 80%, transparent);
+  color: var(--text-primary);
 }
 
-.card-detail__summary-text {
+.card-overview__summary {
   margin: 0;
   font-size: 0.95rem;
-  line-height: 1.7;
+  line-height: 1.6;
   color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
 }
 
-.card-detail__fields {
+.card-overview__list {
   margin: 0;
   display: grid;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
-.card-detail__field {
-  display: grid;
-  gap: 0.15rem;
+.card-overview__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
-.card-detail__field dt {
+.card-overview__item dt {
   margin: 0;
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--text-muted) 75%, transparent);
 }
 
-.card-detail__field dd {
+.card-overview__item dd {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: color-mix(in srgb, var(--text-secondary) 95%, transparent);
+  color: var(--text-primary);
 }
 
-.card-detail__status {
+.card-overview__status {
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
-.card-detail__labels {
-  display: grid;
-  gap: var(--space-xs);
-}
-
-.card-detail__labels-title {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-muted) 75%, transparent);
-}
-
-.card-detail__labels-list {
+.card-overview__labels {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.card-detail__label {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.1rem 0.75rem;
+.card-overview__labels li {
+  padding: 0.2rem 0.75rem;
   border-radius: 9999px;
   background: color-mix(in srgb, var(--surface-card) 75%, transparent);
   font-size: 0.8rem;
@@ -1150,7 +1138,7 @@
 }
 
 .dark .board-page .board-column,
-.dark .board-page .card-detail__comments,
+.dark .board-page .card-comments,
 .dark .board-page .subtask-comments {
   background: linear-gradient(
     180deg,
@@ -1164,7 +1152,8 @@
 .dark .board-page .subtask-editor__empty,
 .dark .board-page .subtask-editor__form,
 .dark .board-page .subtask-comments,
-.dark .board-page .card-detail {
+.dark .board-page .card-overview,
+.dark .board-page .card-comments {
   background: color-mix(in srgb, var(--surface-card) 70%, transparent);
   border-color: color-mix(in srgb, var(--neutral-border-strong) 80%, transparent);
 }
