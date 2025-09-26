@@ -36,7 +36,7 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep the response concise and scoped to the responsibilities of this stage so that it can feed the following agent."
 
-  # Run codex in headless mode, capturing the final response for this stage.
+  # Run codex in headless mode, capturing the final response for this stage
   #
   # We stream the prompt through stdin with `-` so that any leading `-` tokens in
   # the user-provided task (for example "--task foo") are never interpreted as
