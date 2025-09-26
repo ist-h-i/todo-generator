@@ -316,6 +316,10 @@ app-page-layout .app-page-layout__body {
   margin-top: var(--page-content-gap);
 }
 
+app-page-layout .app-page-layout__section {
+  display: grid;
+}
+
 app-page-layout .app-page-layout__body--bleed {
   margin-inline: calc(var(--page-padding-inline) * -1);
 }
