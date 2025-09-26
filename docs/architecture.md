@@ -34,6 +34,8 @@ The backend issues hashed, expiring session tokens and verifies them on each req
 ### AI-assisted Analysis Intake
 Submitting notes from the analyzer invokes the `/analysis` endpoint, which enriches the request with the current user's profile before delegating to the ChatGPT client to generate structured proposals. The frontend filters and publishes the approved items into the workspace store.【F:backend/app/routers/analysis.py†L1-L27】【F:backend/app/services/chatgpt.py†L43-L190】【F:frontend/src/app/features/analyze/page.ts†L1-L76】
 
+For feature-specific requirements and detailed design artefacts, see `docs/features/analysis-intake/requirements.md` and `docs/features/analysis-intake/detail-design.md`.
+
 ### Collaboration & Activity Timeline
 Card owners post inline comments through the board drawer, where the workspace signal store appends sanitized entries and lets teammates prune outdated notes; each mutation records an accompanying activity log entry via the `/comments` and `/activity-log` APIs so the backend preserves an auditable history of changes.【F:frontend/src/app/features/board/page.html†L484-L543】【F:frontend/src/app/core/state/workspace-store.ts†L750-L879】【F:backend/app/routers/comments.py†L17-L87】【F:backend/app/routers/activity.py†L17-L62】【F:backend/app/utils/activity.py†L10-L27】
 
