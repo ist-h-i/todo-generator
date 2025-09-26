@@ -4,7 +4,7 @@
     title="カード管理ボード"
     description="ステータスやラベルでタスクを俯瞰し、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。"
   >
-    <div appPageHeaderActions class="board-page__header-actions">
+    <div appPageHeaderActions class="flex flex-wrap items-center gap-2">
       <span class="page-badge">{{ filtersSignal().search || '検索なし' }}</span>
       <span class="page-badge">タスク: {{ groupingLabelSignal() }}</span>
       <span class="page-badge">サブタスク: ステータス別</span>
