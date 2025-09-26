@@ -173,6 +173,16 @@ export class Shell {
       if (legacy) {
         return legacy;
       }
+
+      if (stored !== null) {
+        try {
+          storage.removeItem(this.themeStorageKey);
+        } catch {
+          // If removal fails, we still fallback to the system preference in-memory.
+        }
+      }
+
+      this.persistThemePreference(storage, 'system');
     } catch {
       // Ignore storage access issues and fallback to system preference.
     }
@@ -180,14 +190,18 @@ export class Shell {
     return 'system';
   }
 
+  private persistThemePreference(storage: Storage, preference: ThemePreference): void {
+    try {
+      storage.setItem(this.themeStorageKey, preference);
+    } catch {
+      // Ignore storage persistence failures.
+    }
+  }
+
   private migrateLegacyThemePreference(storage: Storage): ThemePreference | null {
     const legacy = storage.getItem(this.legacyThemeStorageKey);
     if (this.isThemePreference(legacy)) {
-      try {
-        storage.setItem(this.themeStorageKey, legacy);
-      } catch {
-        // Ignore storage errors and continue using the legacy value in-memory.
-      }
+      this.persistThemePreference(storage, legacy);
 
       try {
         storage.removeItem(this.legacyThemeStorageKey);
