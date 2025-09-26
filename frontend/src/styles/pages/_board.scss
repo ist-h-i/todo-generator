@@ -638,7 +638,7 @@
 
 @media (min-width: 62rem) {
   .board-detail__body {
-    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr);
     align-items: start;
   }
 }
@@ -833,7 +833,7 @@
 
 @media (min-width: 62rem) {
   .subtask-editor__layout {
-    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+    grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr);
     align-items: start;
   }
 }
