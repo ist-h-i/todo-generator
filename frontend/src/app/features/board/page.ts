@@ -96,6 +96,7 @@ interface SubtaskCardView {
   readonly status: SubtaskStatus;
   readonly assignee?: string;
   readonly estimateHours?: number;
+  readonly dueDate?: string;
   readonly highlight: boolean;
   readonly isCompact: boolean;
 }
@@ -113,6 +114,10 @@ const SUBTASK_STATUS_META: readonly SubtaskStatusMeta[] = [
   { id: 'done', title: '完了', accent: '#16a34a' },
   { id: 'non-issue', title: 'NonIssue', accent: '#f59e0b' },
 ];
+
+const SUBTASK_STATUS_META_LOOKUP = new Map(
+  SUBTASK_STATUS_META.map((meta) => [meta.id, meta] as const),
+);
 
 const RESOLVED_SUBTASK_STATUSES = new Set<SubtaskStatus>(['done', 'non-issue']);
 
@@ -192,6 +197,7 @@ export class BoardPage {
             status: subtask.status,
             assignee: subtask.assignee,
             estimateHours: subtask.estimateHours,
+            dueDate: subtask.dueDate,
             highlight: card.id === selectedCardId,
             isCompact: this.isSubtaskResolved(subtask),
           });
@@ -222,6 +228,7 @@ export class BoardPage {
     title: '',
     assignee: '',
     estimateHours: '',
+    dueDate: '',
     status: 'todo' as SubtaskStatus,
   });
 
@@ -420,7 +427,13 @@ export class BoardPage {
         this.lastCardFormBaseline = fallback;
         this.commentDraftsState.set({ card: '' });
         this.editingCommentState.set(null);
-        this.newSubtaskForm.reset({ title: '', assignee: '', estimateHours: '', status: 'todo' });
+        this.newSubtaskForm.reset({
+          title: '',
+          assignee: '',
+          estimateHours: '',
+          dueDate: '',
+          status: 'todo',
+        });
         this.lastSelectedCardId = null;
         return;
       }
@@ -460,6 +473,7 @@ export class BoardPage {
           title: '',
           assignee: '',
           estimateHours: '',
+          dueDate: '',
           status: 'todo',
         });
       }
@@ -606,6 +620,17 @@ export class BoardPage {
     this.workspace.updateSubtaskDetails(cardId, subtaskId, { estimateHours: parsed });
   };
 
+  public readonly updateSubtaskDueDate = (
+    cardId: string,
+    subtaskId: string,
+    value: string,
+  ): void => {
+    const raw = value.trim();
+    this.workspace.updateSubtaskDetails(cardId, subtaskId, {
+      dueDate: raw.length > 0 ? raw : undefined,
+    });
+  };
+
   public readonly changeSubtaskStatus = (
     cardId: string,
     subtaskId: string,
@@ -630,6 +655,7 @@ export class BoardPage {
     const title = snapshot.title.trim();
     const assignee = snapshot.assignee.trim();
     const rawEstimate = snapshot.estimateHours.trim();
+    const rawDueDate = snapshot.dueDate.trim();
     const parsedEstimate = rawEstimate.length > 0 ? Number(rawEstimate) : undefined;
 
     this.workspace.addSubtask(active.id, {
@@ -640,12 +666,14 @@ export class BoardPage {
         parsedEstimate !== undefined && Number.isFinite(parsedEstimate)
           ? parsedEstimate
           : undefined,
+      dueDate: rawDueDate.length > 0 ? rawDueDate : undefined,
     });
 
     this.newSubtaskForm.reset({
       title: '',
       assignee: '',
       estimateHours: '',
+      dueDate: '',
       status: snapshot.status,
     });
   };
@@ -664,6 +692,12 @@ export class BoardPage {
     const status = this.statusesByIdSignal().get(statusId);
     return status ? status.name : statusId;
   };
+
+  public readonly subtaskStatusLabel = (status: SubtaskStatus): string =>
+    SUBTASK_STATUS_META_LOOKUP.get(status)?.title ?? status;
+
+  public readonly subtaskStatusAccent = (status: SubtaskStatus): string =>
+    SUBTASK_STATUS_META_LOOKUP.get(status)?.accent ?? DEFAULT_STATUS_COLOR;
 
   public readonly priorityLabel = (priority: Card['priority']): string =>
     PRIORITY_LABEL_LOOKUP[priority] ?? priority;
