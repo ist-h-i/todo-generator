@@ -79,20 +79,20 @@
   --space-2xl: 40px;
   --space-3xl: 56px;
   --space-4xl: 72px;
-  --page-padding-block-start: clamp(40px, 8vw, 72px);
-  --page-padding-block-end: var(--space-3xl);
+  --page-padding-block-start: clamp(14px, 2vw, 24px);
+  --page-padding-block-end: calc(var(--space-3xl) / 3);
   --page-content-gap: var(--space-xl);
   --panel-padding: var(--space-lg);
   --panel-gap: var(--space-lg);
-  --page-padding-inline: clamp(40px, 8vw, 72px);
+  --page-padding-inline: clamp(14px, 2vw, 24px);
   color-scheme: light;
 }
 
 @media (max-width: 599px) {
   :root,
   :root.dark {
-    --page-padding-inline: 24px;
-    --page-padding-block-start: 24px;
+    --page-padding-inline: 8px;
+    --page-padding-block-start: 8px;
   }
 }
 
