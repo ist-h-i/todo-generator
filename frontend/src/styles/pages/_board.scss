@@ -563,6 +563,10 @@
   background: var(--surface-card);
 }
 
+.board-detail.surface-panel {
+  --panel-padding: clamp(var(--space-xl), 3vw, var(--space-xxl));
+}
+
 .board-detail__grid {
   display: grid;
   gap: var(--panel-gap);
