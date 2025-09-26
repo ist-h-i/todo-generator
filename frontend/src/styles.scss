@@ -296,7 +296,8 @@ a:hover {
 
 /* Page layout component */
 app-page-layout {
-  display: block;
+  display: grid;
+  gap: var(--page-content-gap);
   --app-page-layout-max-width: 76rem;
 }
 
@@ -313,7 +314,6 @@ app-page-layout .app-page-layout__header {
 app-page-layout .app-page-layout__body {
   display: grid;
   margin: 0;
-  margin-top: var(--page-content-gap);
 }
 
 app-page-layout .app-page-layout__section {
