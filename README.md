@@ -1,6 +1,6 @@
 # Verbalize Yourself
 
-Verbalize Yourself is an AI-assisted operations workspace that converts free-form shift notes into structured tasks, analytics, and competency insights. An Angular 17 single-page application collaborates with a FastAPI backend so teams can analyse feedback, triage tickets, and oversee automation quotas from one control plane.
+Verbalize Yourself is an AI-assisted operations workspace that converts free-form shift notes into structured tasks, analytics, and competency insights. An Angular 20 single-page application collaborates with a FastAPI backend so teams can analyse feedback, triage tickets, and oversee automation quotas from one control plane.
 
 ## Highlights
 - **Task operations hub** – Drag cards across custom board columns, apply quick filters for overdue or unassigned work, and manage subtasks, comments, and activity history from a unified drawer backed by the workspace signal store.
