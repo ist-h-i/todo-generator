@@ -312,6 +312,7 @@ app-page-layout .app-page-layout__header {
 
 app-page-layout .app-page-layout__body {
   display: grid;
+  margin: 0;
   margin-top: var(--page-content-gap);
 }
 
