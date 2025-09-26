@@ -1,0 +1,11 @@
+[mcp_servers.git]
+command = "uvx"
+args = ["mcp-server-git", "--repository", "${workspaceFolder}"]
+
+[mcp_servers.filesystem]
+command = "npx"
+args = ["@modelcontextprotocol/server-filesystem", "${workspaceFolder}"]
+
+[pipelines.auto-dev]
+description = "Translator → Requirements Analyst → Detail Designer → Planner pipeline"
+steps = ["translator", "requirements_analyst", "detail_designer", "planner"]
