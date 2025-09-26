@@ -1,0 +1,33 @@
+name: Codex Auto Dev
+
+on:
+  workflow_dispatch:   # 手動実行
+  issues:              # Issue起票（新規作成時）
+    types: [opened]
+  issue_comment:       # Issueコメントでトリガー
+    types: [created]
+
+jobs:
+  codex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Codex
+        run: npm install -g codex-cli
+
+      - name: Run Codex translator → planner pipeline
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # イベント種別で入力を切り替え
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            TASK_INPUT="${{ github.event.issue.title }}: ${{ github.event.issue.body }}"
+          elif [ "${{ github.event_name }}" = "issue_comment" ]; then
+            TASK_INPUT="Comment on issue #${{ github.event.issue.number }}: ${{ github.event.comment.body }}"
+          else
+            TASK_INPUT="Manual trigger: Please implement the requested feature."
+          fi
+
+          echo "TASK_INPUT: $TASK_INPUT"
+          codex translator --task "$TASK_INPUT"
