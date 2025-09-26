@@ -1038,6 +1038,10 @@ app-profile-dialog .profile-dialog__panel {
   gap: 2rem;
 }
 
+:root.dark app-profile-dialog .profile-dialog__panel {
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-3));
+}
+
 app-profile-dialog .profile-dialog__header {
   display: flex;
   align-items: flex-start;
