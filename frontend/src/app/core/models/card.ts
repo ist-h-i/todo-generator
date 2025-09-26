@@ -20,6 +20,7 @@ export interface Subtask {
   readonly status: 'todo' | 'in-progress' | 'done' | 'non-issue';
   readonly assignee?: string;
   readonly estimateHours?: number;
+  readonly dueDate?: string;
 }
 
 /**
