@@ -88,11 +88,11 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: var(--space-md);
-  flex: 1 1 24rem;
-  min-width: min(24rem, 100%);
+  gap: clamp(0.65rem, 1.2vw, 0.95rem);
+  flex: 1 1 18rem;
+  min-width: min(18rem, 100%);
   max-width: none;
-  width: 100%;
+  width: auto;
   margin: 0;
 }
 
@@ -202,12 +202,6 @@
 @media (max-width: 40rem) {
   .board-filters__toolbar {
     align-items: stretch;
-  }
-
-  .board-filters__search-field {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-xs);
   }
 
   .board-filters__view {
