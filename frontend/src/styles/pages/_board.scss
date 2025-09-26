@@ -563,7 +563,8 @@
   background: var(--surface-card);
 }
 
-.surface-panel.board-detail {
+.board-detail.surface-panel {
+  --panel-padding: clamp(var(--space-xl), 3vw, var(--space-xxl));
   margin: 0;
 }
 
