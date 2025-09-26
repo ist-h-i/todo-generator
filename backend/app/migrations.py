@@ -58,11 +58,7 @@ def _ensure_users_is_admin_column(engine: Engine) -> None:
 
     try:
         with engine.begin() as connection:
-            connection.execute(
-                text(
-                    f"ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT {false_literal}"
-                )
-            )
+            connection.execute(text(f"ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT {false_literal}"))
     except SQLAlchemyError as exc:
         if not _is_duplicate_column_error(exc):
             raise
@@ -97,7 +93,7 @@ def _promote_first_user_to_admin(engine: Engine) -> None:
         column_names = _column_names(inspector, "users")
         ordering_column = "created_at" if "created_at" in column_names else "id"
         first_user = connection.execute(
-            text(f"SELECT id FROM users ORDER BY {ordering_column} ASC LIMIT 1")
+            text(f"SELECT id FROM users ORDER BY {ordering_column} ASC LIMIT 1")  # noqa: S608
         ).first()
         if not first_user:
             return
@@ -141,11 +137,7 @@ def _ensure_user_profile_columns(engine: Engine) -> None:
                 continue
 
             try:
-                connection.execute(
-                    text(
-                        f"ALTER TABLE users ADD COLUMN {column_name} {column_type}"  # noqa: S608
-                    )
-                )
+                connection.execute(text(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}"))
             except SQLAlchemyError as exc:
                 if not _is_duplicate_column_error(exc):
                     raise
@@ -171,9 +163,7 @@ def _ensure_completion_timestamps(engine: Engine) -> None:
     with engine.connect() as connection:
         inspector = inspect(connection)
         tables = {
-            table: _column_names(inspector, table)
-            for table in ("cards", "subtasks")
-            if _table_exists(inspector, table)
+            table: _column_names(inspector, table) for table in ("cards", "subtasks") if _table_exists(inspector, table)
         }
 
     for table_name, columns in tables.items():
@@ -182,12 +172,31 @@ def _ensure_completion_timestamps(engine: Engine) -> None:
 
         try:
             with engine.begin() as connection:
-                connection.execute(
-                    text(f"ALTER TABLE {table_name} ADD COLUMN completed_at {column_type}")
-                )
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN completed_at {column_type}"))
         except SQLAlchemyError as exc:
             if not _is_duplicate_column_error(exc):
                 raise
+
+
+def _ensure_comment_subtask_column(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "comments"):
+            return
+
+        column_names = _column_names(inspector, "comments")
+
+    if "subtask_id" in column_names:
+        return
+
+    column_type = "VARCHAR(64)"
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(f"ALTER TABLE comments ADD COLUMN subtask_id {column_type}"))
+    except SQLAlchemyError as exc:
+        if not _is_duplicate_column_error(exc):
+            raise
 
 
 def _drop_daily_report_report_date(engine: Engine) -> None:
@@ -252,6 +261,7 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_user_profile_columns(engine)
     _promote_first_user_to_admin(engine)
     _ensure_completion_timestamps(engine)
+    _ensure_comment_subtask_column(engine)
     _drop_daily_report_report_date(engine)
 
 

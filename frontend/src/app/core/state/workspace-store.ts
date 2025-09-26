@@ -755,7 +755,7 @@ export class WorkspaceStore {
    */
   public readonly addComment = (
     cardId: string,
-    payload: { author: string; message: string },
+    payload: { author: string; message: string; subtaskId?: string },
   ): void => {
     const author = payload.author.trim();
     const message = payload.message.trim();
@@ -778,6 +778,7 @@ export class WorkspaceStore {
                   message,
                   createdAt: timestamp,
                   updatedAt: timestamp,
+                  subtaskId: payload.subtaskId,
                 },
               ],
             }
