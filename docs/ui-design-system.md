@@ -66,6 +66,7 @@ Use `--border-card` / `--border-card-strong` as the default borders and reserve 
 ### Application Shell
 - Every page uses `.app-page` as the root container with padding `clamp(40px, 8vw, 72px)` on all sides.
 - Structure each shell with a fixed header (logo + primary navigation), content wrapper, and footer. Sidebars live inside the content wrapper as a two-column layout.
+- Reset `.app-page-layout__body` margins to `0` so that vertical rhythm is governed by `--page-content-gap` and page padding tokens instead of inherited browser spacing.
 
 ### Page Header
 - Reuse the `app-page-header` component everywhere. It contains four areas:
@@ -136,3 +137,6 @@ Use `--border-card` / `--border-card-strong` as the default borders and reserve 
 2. Keep Figma or other design files in sync with this guide and update both when discrepancies appear.
 3. Maintain the same structure in the dark theme by swapping tokens only. When adding tokens, capture contrast ratios for both themes and every state to ensure WCAG AA compliance.
 4. Append change history to `docs/ui-design-system.md` and share component updates with the development team.
+
+### Change Log
+- 2024-08-21 — Documented the zero-margin requirement for `.app-page-layout__body` to align layout spacing rules with implementation.
