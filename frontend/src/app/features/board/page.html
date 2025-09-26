@@ -4,7 +4,7 @@
     title="カード管理ボード"
     description="ステータスやラベルでタスクを俯瞰し、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。"
   >
-    <div appPageHeaderActions class="board-page__header-actions">
+    <div appPageHeaderActions class="flex flex-wrap items-center gap-2">
       <span class="page-badge">{{ filtersSignal().search || '検索なし' }}</span>
       <span class="page-badge">タスク: {{ groupingLabelSignal() }}</span>
       <span class="page-badge">サブタスク: ステータス別</span>
@@ -13,9 +13,8 @@
   </app-page-header>
 
   <div class="board-page__overview">
-    <div class="flex h-full min-w-0 flex-col gap-4">
-      <section class="surface-panel page-panel board-filters">
-        <div class="board-filters__toolbar">
+    <section class="surface-panel page-panel board-filters">
+      <div class="board-filters__toolbar">
           <label class="form-field board-filters__search-field">
             <span class="form-field__label">検索</span>
             <div class="board-filters__search">
@@ -70,8 +69,8 @@
               </button>
             </div>
           </div>
-        </div>
-        <div class="board-filters__quick">
+      </div>
+      <div class="board-filters__quick">
           <div class="board-filters__quick-stack">
             <span class="board-filters__quick-label">クイックフィルター</span>
             <div class="board-filters__quick-list">
@@ -99,12 +98,11 @@
           >
             フィルターをクリア
           </button>
-        </div>
-      </section>
-      <p class="page-empty board-page__hint">
-        タスクはラベルやステータスで切り替えながら管理でき、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。選択したタスクに紐づくサブタスクはハイライト表示されます。
-      </p>
-    </div>
+      </div>
+    </section>
+    <p class="page-empty board-page__hint">
+      タスクはラベルやステータスで切り替えながら管理でき、サブタスクはステータス別ボードでドラッグ＆ドロップ更新できます。選択したタスクに紐づくサブタスクはハイライト表示されます。
+    </p>
   </div>
 
   <div class="board-page__subtasks">

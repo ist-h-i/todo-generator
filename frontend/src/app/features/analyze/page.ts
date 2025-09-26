@@ -51,25 +51,16 @@ export class AnalyzePage {
   );
 
   public readonly autoObjectivePreview = computed(() =>
-    this.resolveAutoObjective(this.analyzeForm.controls.notes.value().trim()),
+    this.generateAutoObjective(this.analyzeForm.controls.notes.value().trim()),
   );
 
   private readonly dispatchAnalyze = this.analyzeForm.submit((value) => {
-    const trimmedNotes = value.notes.trim();
-    if (trimmedNotes.length === 0) {
+    const payload = this.createRequestPayload(value);
+    if (!payload) {
       return;
     }
 
-    const manualObjective = value.objective.trim();
-    if (!value.autoObjective && manualObjective.length === 0) {
-      return;
-    }
-
-    this.requestSignal.set({
-      autoObjective: value.autoObjective,
-      notes: trimmedNotes,
-      objective: value.autoObjective ? this.resolveAutoObjective(trimmedNotes) : manualObjective,
-    });
+    this.requestSignal.set(payload);
   });
 
   /**
@@ -92,16 +83,14 @@ export class AnalyzePage {
       return;
     }
     this.workspace.importProposals(proposals);
-    this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
-    this.requestSignal.set(null);
+    this.resetAnalyzeForm();
   };
 
   /**
    * Clears the current proposals and resets form values.
    */
   public readonly resetForm = (): void => {
-    this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
-    this.requestSignal.set(null);
+    this.resetAnalyzeForm();
   };
 
   /**
@@ -110,7 +99,7 @@ export class AnalyzePage {
    * @param notes - Notes entered by the user.
    * @returns A synthesized objective string.
    */
-  private readonly resolveAutoObjective = (notes: string): string => {
+  private readonly generateAutoObjective = (notes: string): string => {
     const firstMeaningfulLine = notes
       .split('\n')
       .map((line) => line.trim())
@@ -121,5 +110,30 @@ export class AnalyzePage {
     }
 
     return `「${firstMeaningfulLine}」への対応方針を整理する`;
+  };
+
+  private readonly createRequestPayload = (
+    value: AnalysisRequest,
+  ): AnalysisRequest | null => {
+    const notes = value.notes.trim();
+    if (notes.length === 0) {
+      return null;
+    }
+
+    const manualObjective = value.objective.trim();
+    if (!value.autoObjective && manualObjective.length === 0) {
+      return null;
+    }
+
+    return {
+      autoObjective: value.autoObjective,
+      notes,
+      objective: value.autoObjective ? this.generateAutoObjective(notes) : manualObjective,
+    } satisfies AnalysisRequest;
+  };
+
+  private readonly resetAnalyzeForm = (): void => {
+    this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
+    this.requestSignal.set(null);
   };
 }

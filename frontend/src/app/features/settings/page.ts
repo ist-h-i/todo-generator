@@ -59,6 +59,15 @@ export class SettingsPage {
   });
   public readonly editingTemplateId = signal<string | null>(null);
 
+  public readonly updateConfidenceThreshold = (
+    control: SignalControl<number>,
+    percentValue: number,
+  ): void => {
+    const normalized = Number.isFinite(percentValue) ? percentValue / 100 : control.value();
+    const clamped = Math.min(Math.max(normalized, 0), 1);
+    control.setValue(clamped);
+  };
+
   /**
    * Handles label form submission.
    *
