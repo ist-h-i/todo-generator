@@ -16,7 +16,7 @@ jobs:
       - name: Install Codex
         run: npm install -g codex-cli
 
-      - name: Run Codex translator → planner pipeline
+      - name: Run Codex translator → requirements analyst → detail designer → planner pipeline
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -30,4 +30,16 @@ jobs:
           fi
 
           echo "TASK_INPUT: $TASK_INPUT"
-          codex translator --task "$TASK_INPUT"
+          mkdir -p codex_output
+
+          TRANSLATOR_OUTPUT="$(codex translator --task "$TASK_INPUT")"
+          printf '%s\n' "$TRANSLATOR_OUTPUT" > codex_output/translator.md
+
+          REQUIREMENTS_OUTPUT="$(codex requirements_analyst --task "$TRANSLATOR_OUTPUT")"
+          printf '%s\n' "$REQUIREMENTS_OUTPUT" > codex_output/requirements_analyst.md
+
+          DETAIL_DESIGN_OUTPUT="$(codex detail_designer --task "$REQUIREMENTS_OUTPUT")"
+          printf '%s\n' "$DETAIL_DESIGN_OUTPUT" > codex_output/detail_designer.md
+
+          PLAN_OUTPUT="$(codex planner --task "$DETAIL_DESIGN_OUTPUT")"
+          printf '%s\n' "$PLAN_OUTPUT" > codex_output/planner.md
