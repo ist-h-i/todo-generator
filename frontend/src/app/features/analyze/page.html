@@ -93,14 +93,55 @@
     </div>
 
     <div class="form-actions analyze-page__form-actions">
-      <button type="submit" class="button button--primary">タスク案を作成</button>
+      <button
+        type="submit"
+        class="button button--primary analyze-page__submit"
+        [disabled]="isSubmitDisabled()"
+        [attr.aria-busy]="isAnalyzing()"
+      >
+        <span
+          class="button__spinner"
+          aria-hidden="true"
+          [class.button__spinner--visible]="isAnalyzing()"
+        ></span>
+        <span class="button__label">{{ isAnalyzing() ? '生成中…' : 'タスク案を作成' }}</span>
+      </button>
       <button type="button" class="button button--ghost" (click)="resetForm()">
         入力をリセット
       </button>
     </div>
   </form>
 
-  <section class="page-section analyze-page__results">
+  @if (generationToast(); as toastState) {
+    <div
+      class="analyze-page__toast"
+      role="status"
+      aria-live="polite"
+      [attr.data-state]="toastState"
+    >
+      @if (toastState === 'loading') {
+        <span class="analyze-page__toast-spinner" aria-hidden="true"></span>
+      } @else {
+        <svg
+          class="analyze-page__toast-icon"
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          focusable="false"
+        >
+          <path
+            d="M9.5 16.2 5.3 12a1 1 0 0 1 1.4-1.4l2.8 2.79 7.09-7.09a1 1 0 1 1 1.42 1.42l-7.8 7.8a1 1 0 0 1-1.41 0Z"
+          />
+        </svg>
+      }
+      <span class="analyze-page__toast-message">{{ generationToastMessage() }}</span>
+    </div>
+  }
+
+  <section
+    class="page-section analyze-page__results"
+    [class.analyze-page__results--highlight]="shouldHighlightResults()"
+    aria-live="polite"
+  >
     <header class="page-section__header analyze-page__results-header">
       <div>
         <p class="analyze-page__results-eyebrow">AI Suggestions</p>
@@ -117,9 +158,12 @@
     </header>
 
     @if (analysisResource.status() === 'loading') {
-      <div class="page-state analyze-page__state">
-        <h2>タスク案を生成しています</h2>
-        <p>AI がタスク案を準備しています...</p>
+      <div class="page-state analyze-page__state analyze-page__state--loading" role="status">
+        <span class="analyze-page__loader" aria-hidden="true"></span>
+        <div class="analyze-page__state-body">
+          <h2>タスク案を生成しています</h2>
+          <p>AI がタスク案を準備しています...</p>
+        </div>
       </div>
     }
 
@@ -131,9 +175,16 @@
 
     @if (analysisResource.value()) {
       @if (hasEligibleProposals()) {
-        <ul class="page-list analyze-page__proposal-list">
-          @for (proposal of eligibleProposals(); track proposal.id) {
-            <li class="page-list__item analyze-page__proposal">
+        <ul
+          class="page-list analyze-page__proposal-list"
+          [attr.data-animate]="shouldHighlightResults() ? 'incoming' : null"
+        >
+          @for (proposal of eligibleProposals(); track proposal.id; let index = $index) {
+            <li
+              class="page-list__item analyze-page__proposal"
+              [class.analyze-page__proposal--incoming]="shouldHighlightResults()"
+              [style.--proposal-index]="index"
+            >
               <div class="analyze-page__proposal-header">
                 <h4 class="analyze-page__proposal-title">{{ proposal.title }}</h4>
                 <span class="page-badge page-badge--accent">

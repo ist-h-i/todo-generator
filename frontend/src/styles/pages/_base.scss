@@ -500,6 +500,33 @@
   filter: none;
 }
 
+.button__spinner {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in srgb, var(--text-inverse-secondary) 45%, transparent);
+  border-top-color: var(--text-inverse-primary);
+  opacity: 0;
+  animation: button-spinner-rotate 900ms linear infinite;
+  transition: opacity 150ms ease;
+}
+
+.button__spinner--visible {
+  opacity: 1;
+}
+
+.button__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes button-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .form-grid {
   display: grid;
   gap: clamp(0.75rem, 1vw, 1.25rem);
