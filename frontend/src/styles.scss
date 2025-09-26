@@ -1026,7 +1026,7 @@ app-profile-dialog .profile-dialog__backdrop {
 app-profile-dialog .profile-dialog__panel {
   position: relative;
   z-index: 1;
-  width: min(48rem, 100%);
+  width: min(960px, 100%);
   max-height: calc(100vh - 3rem);
   overflow-y: auto;
   border-radius: var(--radius-lg);
