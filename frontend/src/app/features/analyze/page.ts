@@ -51,16 +51,11 @@ export class AnalyzePage {
 
   private readonly requestSignal = signal<AnalysisRequest | null>(null);
 
-  private readonly toastState = signal<'loading' | 'success' | null>(null);
   private readonly publishFeedback = signal<{
     status: 'success' | 'error';
     message: string;
   } | null>(null);
-  private readonly highlightResults = signal(false);
-  private toastTimer: number | null = null;
-  private highlightTimer: number | null = null;
   private publishFeedbackTimer: number | null = null;
-  private previousStatus: string | null = null;
 
   public readonly analysisResource = this.analysisGateway.createAnalysisResource(
     this.requestSignal,
@@ -89,8 +84,29 @@ export class AnalyzePage {
 
   public readonly analyzerToast = computed(() => this.analyzerToastSignal());
   public readonly shouldHighlightResults = computed(() => this.resultsHighlightSignal());
+  public readonly isAnalyzing = computed(() => this.analysisResource.status() === 'loading');
+  public readonly isSubmitDisabled = computed(() => {
+    if (this.isAnalyzing()) {
+      return true;
+    }
 
-  private readonly monitorAnalysisLifecycle = effect(
+    const notes = this.analyzeForm.controls.notes.value().trim();
+    if (notes.length === 0) {
+      return true;
+    }
+
+    if (!this.isAutoObjectiveEnabled()) {
+      const objective = this.analyzeForm.controls.objective.value().trim();
+      if (objective.length === 0) {
+        return true;
+      }
+    }
+
+    return false;
+  });
+  public readonly proposalPublishFeedback = computed(() => this.publishFeedback());
+
+  private readonly analyzerLifecycleEffect = effect(
     () => {
       const request = this.requestSignal();
       const status = this.analysisResource.status();
@@ -242,9 +258,7 @@ export class AnalyzePage {
     return `${type}:${this.requestVersion}:${detail ?? 'none'}`;
   }
 
-  private computeProposalsFingerprint(
-    proposals: readonly AnalysisProposal[],
-  ): string {
+  private computeProposalsFingerprint(proposals: readonly AnalysisProposal[]): string {
     return proposals.map((proposal) => proposal.id).join('|');
   }
 
@@ -321,92 +335,12 @@ export class AnalyzePage {
   private readonly resetAnalyzeForm = (options?: { preserveFeedback?: boolean }): void => {
     this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
     this.requestSignal.set(null);
-    this.toastState.set(null);
-    this.highlightResults.set(false);
-    this.clearVisualTimers();
-    this.previousStatus = null;
+    this.dismissToast();
+    this.disableResultsHighlight();
     if (!options?.preserveFeedback) {
       this.clearPublishFeedback();
     }
   };
-
-  private showLoadingToast(): void {
-    this.toastState.set('loading');
-    this.clearToastTimer();
-  }
-
-  private handleAnalysisSuccess(): void {
-    const result = this.analysisResource.value();
-    if (!result) {
-      this.toastState.set(null);
-
-      return;
-    }
-
-    this.toastState.set('success');
-    this.startToastTimer();
-
-    if (this.hasEligibleProposals()) {
-      this.highlightResults.set(true);
-      this.startHighlightTimer();
-    } else {
-      this.highlightResults.set(false);
-      this.clearHighlightTimer();
-    }
-  }
-
-  private startToastTimer(): void {
-    this.clearToastTimer();
-
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    this.toastTimer = window.setTimeout(() => {
-      this.toastState.set(null);
-      this.toastTimer = null;
-    }, 3800);
-  }
-
-  private startHighlightTimer(): void {
-    this.clearHighlightTimer();
-
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    this.highlightTimer = window.setTimeout(() => {
-      this.highlightResults.set(false);
-      this.highlightTimer = null;
-    }, 1200);
-  }
-
-  private clearVisualTimers(): void {
-    this.clearToastTimer();
-    this.clearHighlightTimer();
-  }
-
-  private clearToastTimer(): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (this.toastTimer !== null) {
-      window.clearTimeout(this.toastTimer);
-      this.toastTimer = null;
-    }
-  }
-
-  private clearHighlightTimer(): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (this.highlightTimer !== null) {
-      window.clearTimeout(this.highlightTimer);
-      this.highlightTimer = null;
-    }
-  }
 
   private showPublishFeedback(feedback: { status: 'success' | 'error'; message: string }): void {
     this.publishFeedback.set(feedback);
