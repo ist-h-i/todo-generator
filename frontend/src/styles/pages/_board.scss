@@ -6,10 +6,11 @@
 }
 
 .board-page__overview {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-xl);
-  align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: stretch;
+  width: 100%;
 }
 
 .board-summary.surface-panel,
@@ -307,11 +308,6 @@
   color: var(--text-primary);
 }
 
-@media (min-width: 64rem) {
-  .board-page__overview {
-    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
-  }
-}
 
 .board-summary__metric dt {
   margin: 0;
