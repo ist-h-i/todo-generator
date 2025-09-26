@@ -563,6 +563,10 @@
   background: var(--surface-card);
 }
 
+.surface-panel.board-detail {
+  margin: 0;
+}
+
 .board-detail__grid {
   display: grid;
   gap: var(--panel-gap);
