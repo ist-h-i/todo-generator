@@ -3,10 +3,8 @@
  */
 const FALLBACK_TEMPLATE = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
 
-const supportsRandomUUID = (): boolean => {
-  const cryptoRef: Crypto | undefined = globalThis.crypto;
-
-  return typeof cryptoRef?.randomUUID === 'function';
+type CryptoLike = {
+  randomUUID?: () => string;
 };
 
 const fallbackRandomUUID = (): string =>
@@ -17,9 +15,11 @@ const fallbackRandomUUID = (): string =>
     return Math.floor(value).toString(16);
   });
 
-export const createId = (): string => {
-  if (supportsRandomUUID()) {
-    return globalThis.crypto!.randomUUID();
+export const createId = (cryptoRef: CryptoLike | undefined = globalThis.crypto): string => {
+  const { randomUUID } = cryptoRef ?? {};
+
+  if (typeof randomUUID === 'function') {
+    return randomUUID.call(cryptoRef);
   }
 
   return fallbackRandomUUID();
