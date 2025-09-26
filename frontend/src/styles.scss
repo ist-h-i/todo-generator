@@ -318,6 +318,7 @@ app-page-layout .app-page-layout__body {
 
 app-page-layout .app-page-layout__section {
   display: grid;
+  gap: var(--page-content-gap);
 }
 
 app-page-layout .app-page-layout__body--bleed {
