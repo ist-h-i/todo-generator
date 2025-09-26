@@ -173,50 +173,220 @@
               <span class="page-badge">{{ template.id }}</span>
             </div>
             <div class="settings-template__actions">
-              <button
-                type="button"
-                class="button button--ghost button--pill"
-                (click)="openTemplateEditor(template)"
-              >
-                編集
-              </button>
-              <button
-                type="button"
-                class="button button--danger button--pill"
-                (click)="removeTemplate(template.id)"
-              >
-                削除
-              </button>
-            </div>
-          </div>
-
-          <p class="settings-template__description">
-            {{ template.description || '説明は設定されていません。' }}
-          </p>
-
-          <div class="settings-template__meta">
-            <span class="page-badge page-badge--accent"
-              >初期ステータス: {{ template.defaultStatusId }}</span
-            >
-            <span class="page-badge"
-              >おすすめ度しきい値: {{ template.confidenceThreshold * 100 | number: '1.0-0' }}%</span
-            >
-          </div>
-
-          <div class="settings-template__labels">
-            <p class="settings-template__labels-title">初期ラベル</p>
-            <div class="settings-template__labels-list">
-              @if (template.defaultLabelIds.length > 0) {
-                @for (labelId of template.defaultLabelIds; track labelId) {
-                  <span class="surface-pill px-3 py-1">
-                    {{ labelsById().get(labelId) ?? labelId }}
-                  </span>
-                }
+              @if (editingTemplateId() === template.id) {
+                <button
+                  type="button"
+                  class="button button--ghost button--pill"
+                  (click)="cancelTemplateEdit()"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  class="button button--danger button--pill"
+                  (click)="removeTemplate(template.id)"
+                >
+                  削除
+                </button>
               } @else {
-                <span class="surface-pill px-3 py-1 text-slate-400">選択なし</span>
+                <button
+                  type="button"
+                  class="button button--ghost button--pill"
+                  (click)="openTemplateEditor(template)"
+                >
+                  編集
+                </button>
+                <button
+                  type="button"
+                  class="button button--danger button--pill"
+                  (click)="removeTemplate(template.id)"
+                >
+                  削除
+                </button>
               }
             </div>
           </div>
+
+          @if (editingTemplateId() === template.id) {
+            <form class="settings-template__editor" (submit)="updateTemplatePreset($event)">
+              <div class="form-grid form-grid--two">
+                <label class="form-field form-field--full">
+                  <span class="form-field__label" [attr.for]="'template-edit-name-' + template.id"
+                    >テンプレート名</span
+                  >
+                  <input
+                    [attr.id]="'template-edit-name-' + template.id"
+                    type="text"
+                    class="form-control"
+                    placeholder="例: スプリント改善"
+                    [value]="templateEditForm.controls.name.value()"
+                    (input)="templateEditForm.controls.name.setValue($any($event.target).value)"
+                  />
+                </label>
+
+                <label class="form-field form-field--full">
+                  <span
+                    class="form-field__label"
+                    [attr.for]="'template-edit-description-' + template.id"
+                    >説明</span
+                  >
+                  <textarea
+                    [attr.id]="'template-edit-description-' + template.id"
+                    class="form-control form-control--textarea"
+                    placeholder="テンプレートの利用シーンを記載してください"
+                    [value]="templateEditForm.controls.description.value()"
+                    (input)="templateEditForm.controls.description.setValue($any($event.target).value)"
+                  ></textarea>
+                </label>
+
+                <label class="form-field">
+                  <span class="form-field__label" [attr.for]="'template-edit-status-' + template.id"
+                    >初期ステータス</span
+                  >
+                  <select
+                    [attr.id]="'template-edit-status-' + template.id"
+                    class="form-control"
+                    [value]="templateEditForm.controls.defaultStatusId.value()"
+                    (change)="
+                      templateEditForm.controls.defaultStatusId.setValue($any($event.target).value)
+                    "
+                  >
+                    @for (status of settingsSignal().statuses; track status.id) {
+                      <option [value]="status.id">{{ status.name }}</option>
+                    }
+                  </select>
+                </label>
+
+                <label class="form-field">
+                  <span class="form-field__label" [attr.for]="'template-edit-threshold-' + template.id"
+                    >おすすめ度しきい値 (%)</span
+                  >
+                  <input
+                    [attr.id]="'template-edit-threshold-' + template.id"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="5"
+                    class="form-control"
+                    [value]="templateEditForm.controls.confidenceThreshold.value() * 100"
+                    (input)="
+                      updateConfidenceThreshold(
+                        templateEditForm.controls.confidenceThreshold,
+                        $any($event.target).valueAsNumber
+                      )
+                    "
+                  />
+                </label>
+              </div>
+
+              <div class="form-field form-field--full">
+                <span class="form-field__label">初期ラベル</span>
+                <div class="settings-checkbox-group">
+                  @for (label of settingsSignal().labels; track label.id) {
+                    <label class="settings-checkbox">
+                      <input
+                        type="checkbox"
+                        [checked]="
+                          templateEditForm.controls.defaultLabelIds.value().includes(label.id)
+                        "
+                        (change)="toggleEditTemplateLabel(label.id, $any($event.target).checked)"
+                      />
+                      <span>{{ label.name }}</span>
+                    </label>
+                  }
+                  @if (settingsSignal().labels.length === 0) {
+                    <span class="settings-checkbox__empty">ラベルが未設定です</span>
+                  }
+                </div>
+              </div>
+
+              <div class="form-field form-field--full">
+                <span class="form-field__label">表示フィールド</span>
+                <div class="settings-checkbox-group">
+                  <label class="settings-checkbox">
+                    <input
+                      type="checkbox"
+                      [checked]="templateEditForm.controls.showStoryPoints.value()"
+                      (change)="
+                        templateEditForm.controls.showStoryPoints.setValue($any($event.target).checked)
+                      "
+                    />
+                    <span>ストーリーポイント</span>
+                  </label>
+                  <label class="settings-checkbox">
+                    <input
+                      type="checkbox"
+                      [checked]="templateEditForm.controls.showDueDate.value()"
+                      (change)="
+                        templateEditForm.controls.showDueDate.setValue($any($event.target).checked)
+                      "
+                    />
+                    <span>期限</span>
+                  </label>
+                  <label class="settings-checkbox">
+                    <input
+                      type="checkbox"
+                      [checked]="templateEditForm.controls.showAssignee.value()"
+                      (change)="
+                        templateEditForm.controls.showAssignee.setValue($any($event.target).checked)
+                      "
+                    />
+                    <span>担当</span>
+                  </label>
+                  <label class="settings-checkbox">
+                    <input
+                      type="checkbox"
+                      [checked]="templateEditForm.controls.showConfidence.value()"
+                      (change)="
+                        templateEditForm.controls.showConfidence.setValue($any($event.target).checked)
+                      "
+                    />
+                    <span>AIおすすめ度</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="button button--primary">変更を保存</button>
+                <button
+                  type="button"
+                  class="button button--ghost"
+                  (click)="cancelTemplateEdit()"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </form>
+          } @else {
+            <p class="settings-template__description">
+              {{ template.description || '説明は設定されていません。' }}
+            </p>
+
+            <div class="settings-template__meta">
+              <span class="page-badge page-badge--accent"
+                >初期ステータス: {{ template.defaultStatusId }}</span
+              >
+              <span class="page-badge"
+                >おすすめ度しきい値:
+                {{ template.confidenceThreshold * 100 | number: '1.0-0' }}%</span
+              >
+            </div>
+
+            <div class="settings-template__labels">
+              <p class="settings-template__labels-title">初期ラベル</p>
+              <div class="settings-template__labels-list">
+                @if (template.defaultLabelIds.length > 0) {
+                  @for (labelId of template.defaultLabelIds; track labelId) {
+                    <span class="surface-pill px-3 py-1">
+                      {{ labelsById().get(labelId) ?? labelId }}
+                    </span>
+                  }
+                } @else {
+                  <span class="surface-pill px-3 py-1 text-slate-400">選択なし</span>
+                }
+              </div>
+            </div>
+          }
         </li>
       }
     </ul>
