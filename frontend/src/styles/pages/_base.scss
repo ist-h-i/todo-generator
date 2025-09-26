@@ -3,6 +3,19 @@
   flex-direction: column;
   gap: var(--panel-gap);
   padding: var(--panel-padding);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-card);
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
+  box-shadow: var(--shadow-elevated);
+  transition:
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.page-panel:hover,
+.page-panel:focus-within {
+  box-shadow: 0 32px 60px -36px color-mix(in srgb, var(--surface-inverse) 55%, transparent);
+  transform: translateY(-2px);
 }
 
 .page-title {
