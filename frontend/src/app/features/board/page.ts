@@ -272,6 +272,25 @@ export class BoardPage {
     },
   );
 
+  public readonly orphanedSubtaskCommentsSignal = computed<readonly CardComment[]>(() => {
+    const active = this.selectedCardSignal();
+
+    if (!active) {
+      return [];
+    }
+
+    const existingSubtaskIds = new Set(active.subtasks.map((subtask) => subtask.id));
+
+    const orphaned: CardComment[] = [];
+    for (const comment of active.comments) {
+      if (comment.subtaskId && !existingSubtaskIds.has(comment.subtaskId)) {
+        orphaned.push(comment);
+      }
+    }
+
+    return orphaned;
+  });
+
   private lastCardFormBaseline: CardFormState | null = null;
   private lastSelectedCardId: string | null = null;
 

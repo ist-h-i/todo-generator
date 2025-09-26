@@ -432,6 +432,46 @@
               }
             }
           </ul>
+          @if (orphanedSubtaskCommentsSignal().length > 0) {
+            <section class="comment-pane__section comment-pane__section--orphaned">
+              <header class="comment-pane__header">
+                <h5>削除済みサブタスクのコメント</h5>
+                <p>紐づけ先のサブタスクが削除されたコメントです。内容を確認してください。</p>
+              </header>
+              <ul class="comment-list">
+                @for (comment of orphanedSubtaskCommentsSignal(); track comment.id) {
+                  <li class="comment-list__item comment-list__item--orphaned">
+                    <div class="comment-list__meta">
+                      <div class="comment-list__identity">
+                        <span class="comment-list__author">{{ comment.authorNickname }}</span>
+                        <span class="comment-list__timestamp"
+                          >更新: {{ comment.updatedAt | date: 'yyyy/MM/dd HH:mm' }}</span
+                        >
+                      </div>
+                      <div class="comment-list__actions">
+                        <button
+                          type="button"
+                          class="button button--ghost button--pill comment-list__remove"
+                          (click)="removeComment(active.id, comment.id)"
+                        >
+                          削除
+                        </button>
+                      </div>
+                    </div>
+                    <div class="comment-list__context">
+                      <span class="comment-list__target comment-list__target--warning"
+                        >削除済みサブタスク</span
+                      >
+                      <span class="comment-list__context-id"
+                        >ID: {{ comment.subtaskId ?? '不明' }}</span
+                      >
+                    </div>
+                    <p class="comment-list__message">{{ comment.message }}</p>
+                  </li>
+                }
+              </ul>
+            </section>
+          }
           <form class="comment-form" (submit)="saveCommentForContext('card', $event)">
             @if (isContextBeingEdited('card')) {
               <p class="comment-form__note">コメント編集中です。</p>
