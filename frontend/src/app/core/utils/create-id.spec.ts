@@ -14,7 +14,7 @@ describe('createId', () => {
     const mathRandomSpy = spyOn(Math, 'random').and.returnValue(0);
 
     try {
-      const result = createId(undefined);
+      const result = createId({});
 
       expect(result).toBe('00000000-0000-4000-8000-000000000000');
     } finally {
