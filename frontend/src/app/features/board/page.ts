@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
@@ -9,6 +16,7 @@ import {
   BoardGrouping,
   BoardQuickFilter,
   Card,
+  CardComment,
   Label,
   Status,
   Subtask,
@@ -237,10 +245,12 @@ export class BoardPage {
   );
 
   public readonly commentForm = createSignalForm({
-    author: '',
     message: '',
     target: 'card' as string,
   });
+  private readonly editingCommentIdState = signal<string | null>(null);
+  public readonly editingCommentId = this.editingCommentIdState.asReadonly();
+  public readonly commentAuthorNameSignal = this.workspace.commentAuthorName;
 
   private lastCardFormBaseline: CardFormState | null = null;
   private lastSelectedCardId: string | null = null;
@@ -263,7 +273,7 @@ export class BoardPage {
 
   public readonly isCommentFormValid = (): boolean => {
     const snapshot = this.commentForm.value();
-    return snapshot.author.trim().length > 0 && snapshot.message.trim().length > 0;
+    return snapshot.message.trim().length > 0;
   };
 
   public readonly isNewSubtaskFormValid = (): boolean =>
@@ -400,7 +410,8 @@ export class BoardPage {
           this.cardForm.reset(fallback);
         }
         this.lastCardFormBaseline = fallback;
-        this.commentForm.reset({ author: '', message: '', target: 'card' });
+        this.commentForm.reset({ message: '', target: 'card' });
+        this.editingCommentIdState.set(null);
         this.newSubtaskForm.reset({ title: '', assignee: '', estimateHours: '', status: 'todo' });
         this.lastSelectedCardId = null;
         return;
@@ -436,10 +447,10 @@ export class BoardPage {
 
       if (selectedCardChanged) {
         this.commentForm.reset({
-          author: active.assignee ?? '',
           message: '',
           target: 'card',
         });
+        this.editingCommentIdState.set(null);
         this.newSubtaskForm.reset({
           title: '',
           assignee: '',
@@ -491,7 +502,6 @@ export class BoardPage {
     }
 
     const snapshot = this.commentForm.value();
-    const author = snapshot.author.trim();
     const message = snapshot.message.trim();
 
     const target = snapshot.target;
@@ -500,13 +510,18 @@ export class BoardPage {
         ? target
         : undefined;
 
-    this.workspace.addComment(active.id, { author, message, subtaskId });
+    const editingCommentId = this.editingCommentIdState();
+    if (editingCommentId) {
+      this.workspace.updateComment(active.id, editingCommentId, { message, subtaskId });
+    } else {
+      this.workspace.addComment(active.id, { message, subtaskId });
+    }
 
     this.commentForm.reset({
-      author,
       message: '',
       target: subtaskId ?? 'card',
     });
+    this.editingCommentIdState.set(null);
   };
 
   public readonly getSubtaskTitle = (subtasks: readonly Subtask[], subtaskId: string): string => {
@@ -514,7 +529,26 @@ export class BoardPage {
     return match ? match.title : '不明なサブタスク';
   };
 
+  public readonly startEditingComment = (comment: CardComment): void => {
+    this.editingCommentIdState.set(comment.id);
+    this.commentForm.reset({
+      message: comment.message,
+      target: comment.subtaskId ?? 'card',
+    });
+  };
+
+  public readonly cancelCommentEditing = (): void => {
+    this.editingCommentIdState.set(null);
+    this.commentForm.reset({ message: '', target: 'card' });
+  };
+
+  public readonly isCommentBeingEdited = (commentId: string): boolean =>
+    this.editingCommentIdState() === commentId;
+
   public readonly removeComment = (cardId: string, commentId: string): void => {
+    if (this.editingCommentIdState() === commentId) {
+      this.cancelCommentEditing();
+    }
     this.workspace.removeComment(cardId, commentId);
   };
 

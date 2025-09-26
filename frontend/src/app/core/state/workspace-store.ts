@@ -281,6 +281,20 @@ export class WorkspaceStore {
     const nickname = raw.trim();
     return nickname.length > 0 ? nickname : null;
   });
+  public readonly currentUserId = computed(() => this.activeUserId());
+  public readonly commentAuthorName = computed(() => {
+    const nickname = this.activeUserNickname();
+    if (nickname) {
+      return nickname;
+    }
+
+    const email = this.activeUserEmail();
+    if (email) {
+      return email;
+    }
+
+    return '匿名ユーザー';
+  });
   private lastSyncedAssigneeName: string | null = null;
 
   private readonly settingsSignal = signal<WorkspaceSettings>(cloneSettings(INITIAL_SETTINGS));
@@ -755,15 +769,16 @@ export class WorkspaceStore {
    */
   public readonly addComment = (
     cardId: string,
-    payload: { author: string; message: string; subtaskId?: string },
+    payload: { message: string; subtaskId?: string },
   ): void => {
-    const author = payload.author.trim();
     const message = payload.message.trim();
-    if (!author || !message) {
+    if (!message) {
       return;
     }
 
     const timestamp = new Date().toISOString();
+    const authorNickname = this.commentAuthorName();
+    const authorId = this.currentUserId();
 
     this.cardsSignal.update((cards) =>
       cards.map((card) =>
@@ -774,7 +789,8 @@ export class WorkspaceStore {
                 ...card.comments,
                 {
                   id: createId(),
-                  author,
+                  authorId: authorId ?? undefined,
+                  authorNickname,
                   message,
                   createdAt: timestamp,
                   updatedAt: timestamp,
@@ -784,6 +800,44 @@ export class WorkspaceStore {
             }
           : card,
       ),
+    );
+  };
+
+  public readonly updateComment = (
+    cardId: string,
+    commentId: string,
+    changes: { message: string; subtaskId?: string },
+  ): void => {
+    const message = changes.message.trim();
+    if (!message) {
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        let mutated = false;
+        const comments = card.comments.map((comment) => {
+          if (comment.id !== commentId) {
+            return comment;
+          }
+
+          mutated = true;
+          return {
+            ...comment,
+            message,
+            subtaskId: changes.subtaskId,
+            updatedAt: timestamp,
+          };
+        });
+
+        return mutated ? { ...card, comments } : card;
+      }),
     );
   };
 
