@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 
 import {
   AnalyticsSnapshot,
+  Card,
   FeedbackInsightSummary,
   ImprovementInitiative,
   ImprovementOverview,
@@ -23,6 +24,10 @@ import {
 import { WorkspaceStore } from './workspace-store';
 
 const DEFAULT_SNAPSHOT_ID = CONTINUOUS_IMPROVEMENT_SNAPSHOTS[0]?.id ?? '';
+
+export type ConvertSuggestedActionResult =
+  | { status: 'success'; card: Card }
+  | { status: 'error'; message?: string };
 
 @Injectable({ providedIn: 'root' })
 export class ContinuousImprovementStore {
@@ -147,15 +152,23 @@ export class ContinuousImprovementStore {
     this.reportPreviewSignal.set(this.composeReport(this.reportInstructionSignal()));
   };
 
-  public readonly convertSuggestedAction = async (actionId: string): Promise<void> => {
+  public readonly convertSuggestedAction = async (
+    actionId: string,
+  ): Promise<ConvertSuggestedActionResult> => {
     const analysis = this.activeAnalysis();
     if (!analysis) {
-      return;
+      return {
+        status: 'error',
+        message: 'アクティブな分析が見つかりません。',
+      };
     }
 
     const target = analysis.suggestions.find((suggestion) => suggestion.id === actionId);
     if (!target || target.status === 'converted') {
-      return;
+      return {
+        status: 'error',
+        message: '対象の提案が見つからないか、既にタスク化されています。',
+      };
     }
 
     const dueDate = this.computeDueDate(target.dueInDays);
@@ -194,9 +207,13 @@ export class ContinuousImprovementStore {
                   ...initiative,
                   progress: [
                     ...initiative.progress,
-                    this.buildProgressEntry('タスク起票', `${target.title} をカード化 (${card.id})`, {
-                      impactScore: target.impactScore,
-                    }),
+                    this.buildProgressEntry(
+                      'タスク起票',
+                      `${target.title} をカード化 (${card.id})`,
+                      {
+                        impactScore: target.impactScore,
+                      },
+                    ),
                   ],
                 }
               : initiative,
@@ -205,8 +222,16 @@ export class ContinuousImprovementStore {
       }
 
       this.reportPreviewSignal.set(this.composeReport(this.reportInstructionSignal()));
+      return {
+        status: 'success',
+        card,
+      };
     } catch (error) {
       this.logger.error('ContinuousImprovementStore', error);
+      return {
+        status: 'error',
+        message: 'カードの作成に失敗しました。',
+      };
     }
   };
 
