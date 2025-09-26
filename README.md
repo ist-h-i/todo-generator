@@ -94,4 +94,7 @@ npm run format:check
 - `docs/features/board/requirements.md` – Requirements for the workspace board and collaboration workflows.
 - `docs/features/governance/requirements.md` – Governance and competency administration requirements.
 - `docs/features/competency-evaluations/requirements.md` – Requirements for the competency evaluation experience.
+- `docs/persistence-detail-design.md` – Detailed plan for migrating client-only workflows to backend persistence.
 - `docs/ui-design-system.md` – UI guidelines for shared components.
+- `docs/ui-layout-requirements.md` – Standardised screen spacing and responsive layout rules.
+- `docs/known-issues.md` – Documented UI/UX issues that need follow-up fixes.
