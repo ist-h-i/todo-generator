@@ -67,7 +67,7 @@ class FailingThenSucceedingChatGPT:
         )
 
 
-def _daily_report_payload() -> dict:
+def _status_report_payload() -> dict:
     return {
         "shift_type": "remote",
         "tags": ["backend", "daily"],
@@ -78,18 +78,18 @@ def _daily_report_payload() -> dict:
     }
 
 
-def test_create_and_list_daily_reports(client: TestClient) -> None:
+def test_create_and_list_status_reports(client: TestClient) -> None:
     headers = register_and_login(client, "daily@example.com")
 
     create_response = client.post(
-        "/daily-reports",
-        json=_daily_report_payload(),
+        "/status-reports",
+        json=_status_report_payload(),
         headers=headers,
     )
     assert create_response.status_code == 201, create_response.text
     data = create_response.json()
     assert data["status"] == "draft"
-    list_response = client.get("/daily-reports", headers=headers)
+    list_response = client.get("/status-reports", headers=headers)
     assert list_response.status_code == 200
     items = list_response.json()
     assert len(items) == 1
@@ -98,19 +98,19 @@ def test_create_and_list_daily_reports(client: TestClient) -> None:
     assert items[0]["proposal_count"] == 0
 
 
-def test_submit_daily_report_returns_proposals(client: TestClient) -> None:
+def test_submit_status_report_returns_proposals(client: TestClient) -> None:
     headers = register_and_login(client, "analysis@example.com")
 
     create_response = client.post(
-        "/daily-reports",
-        json=_daily_report_payload(),
+        "/status-reports",
+        json=_status_report_payload(),
         headers=headers,
     )
     report_id = create_response.json()["id"]
 
     app.dependency_overrides[get_chatgpt_client] = lambda: StubChatGPT()
     try:
-        submit_response = client.post(f"/daily-reports/{report_id}/submit", headers=headers)
+        submit_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
     finally:
         app.dependency_overrides.pop(get_chatgpt_client, None)
 
@@ -121,20 +121,20 @@ def test_submit_daily_report_returns_proposals(client: TestClient) -> None:
     assert len(detail["pending_proposals"]) == 1
     assert detail["pending_proposals"][0]["title"].startswith("フォローアップタスク")
 
-    list_response = client.get("/daily-reports", headers=headers)
+    list_response = client.get("/status-reports", headers=headers)
     list_response.raise_for_status()
     assert list_response.json() == []
 
-    get_response = client.get(f"/daily-reports/{report_id}", headers=headers)
+    get_response = client.get(f"/status-reports/{report_id}", headers=headers)
     assert get_response.status_code == 404
 
 
-def test_retry_daily_report_after_failure_succeeds(client: TestClient) -> None:
+def test_retry_status_report_after_failure_succeeds(client: TestClient) -> None:
     headers = register_and_login(client, "retry@example.com")
 
     create_response = client.post(
-        "/daily-reports",
-        json=_daily_report_payload(),
+        "/status-reports",
+        json=_status_report_payload(),
         headers=headers,
     )
     report_id = create_response.json()["id"]
@@ -142,13 +142,13 @@ def test_retry_daily_report_after_failure_succeeds(client: TestClient) -> None:
     stub = FailingThenSucceedingChatGPT()
     app.dependency_overrides[get_chatgpt_client] = lambda: stub
     try:
-        first_response = client.post(f"/daily-reports/{report_id}/submit", headers=headers)
+        first_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
         assert first_response.status_code == 200, first_response.text
         first_detail = first_response.json()
         assert first_detail["status"] == "failed"
         assert first_detail["failure_reason"] == "Temporary analysis failure"
 
-        retry_response = client.post(f"/daily-reports/{report_id}/retry", headers=headers)
+        retry_response = client.post(f"/status-reports/{report_id}/retry", headers=headers)
         assert retry_response.status_code == 200, retry_response.text
         retry_detail = retry_response.json()
     finally:
@@ -164,9 +164,9 @@ def test_retry_daily_report_after_failure_succeeds(client: TestClient) -> None:
     assert "analysis_failed" in event_types
     assert "analysis_completed" in event_types
 
-    list_response = client.get("/daily-reports", headers=headers)
+    list_response = client.get("/status-reports", headers=headers)
     list_response.raise_for_status()
     assert list_response.json() == []
 
-    get_response = client.get(f"/daily-reports/{report_id}", headers=headers)
+    get_response = client.get(f"/status-reports/{report_id}", headers=headers)
     assert get_response.status_code == 404

@@ -14,17 +14,17 @@ _MAX_GENERATED_CARDS = 5
 
 
 @dataclass
-class DailyReportProcessResult:
-    """Result payload returned after submitting a daily report for analysis."""
+class StatusReportProcessResult:
+    """Result payload returned after submitting a status report for analysis."""
 
-    detail: schemas.DailyReportDetail
+    detail: schemas.StatusReportDetail
     proposals: list[schemas.AnalysisCard]
     destroyed: bool = False
     error: str | None = None
 
 
-class DailyReportService:
-    """Orchestrates CRUD and analysis flows for daily reports."""
+class StatusReportService:
+    """Orchestrates CRUD and analysis flows for status reports."""
 
     def __init__(self, db: Session, analyzer: ChatGPTClient | None = None) -> None:
         self.db = db
@@ -37,8 +37,8 @@ class DailyReportService:
         self,
         *,
         owner: models.User,
-        payload: schemas.DailyReportCreate,
-    ) -> models.DailyReport:
+        payload: schemas.StatusReportCreate,
+    ) -> models.StatusReport:
         sections = self._normalize_sections(payload.sections)
         if not sections:
             raise HTTPException(
@@ -46,24 +46,24 @@ class DailyReportService:
                 detail="At least one section with content is required.",
             )
 
-        report = models.DailyReport(
+        report = models.StatusReport(
             owner_id=owner.id,
             shift_type=payload.shift_type,
             tags=self._normalize_tags(payload.tags),
             content=self._sections_to_content(sections),
-            status=schemas.DailyReportStatus.DRAFT.value,
+            status=schemas.StatusReportStatus.DRAFT.value,
             auto_ticket_enabled=payload.auto_ticket_enabled,
         )
         self.db.add(report)
         self.db.flush()
-        self._record_event(report, schemas.DailyReportEventType.DRAFT_CREATED)
+        self._record_event(report, schemas.StatusReportEventType.DRAFT_CREATED)
         return report
 
     def update_report(
         self,
-        report: models.DailyReport,
-        payload: schemas.DailyReportUpdate,
-    ) -> models.DailyReport:
+        report: models.StatusReport,
+        payload: schemas.StatusReportUpdate,
+    ) -> models.StatusReport:
         if payload.shift_type is not None:
             report.shift_type = payload.shift_type or None
 
@@ -84,7 +84,7 @@ class DailyReportService:
 
         self.db.add(report)
         self.db.flush()
-        self._record_event(report, schemas.DailyReportEventType.UPDATED)
+        self._record_event(report, schemas.StatusReportEventType.UPDATED)
         return report
 
     # ------------------------------------------------------------------
@@ -94,17 +94,17 @@ class DailyReportService:
         self,
         *,
         owner_id: str,
-        status_filter: schemas.DailyReportStatus | None = None,
-    ) -> list[models.DailyReport]:
+        status_filter: schemas.StatusReportStatus | None = None,
+    ) -> list[models.StatusReport]:
         query = (
-            self.db.query(models.DailyReport)
-            .options(selectinload(models.DailyReport.cards))
-            .filter(models.DailyReport.owner_id == owner_id)
-            .order_by(models.DailyReport.created_at.desc())
+            self.db.query(models.StatusReport)
+            .options(selectinload(models.StatusReport.cards))
+            .filter(models.StatusReport.owner_id == owner_id)
+            .order_by(models.StatusReport.created_at.desc())
         )
 
         if status_filter:
-            query = query.filter(models.DailyReport.status == status_filter.value)
+            query = query.filter(models.StatusReport.status == status_filter.value)
 
         return query.all()
 
@@ -114,30 +114,30 @@ class DailyReportService:
         report_id: str,
         owner_id: str,
         include_details: bool = False,
-    ) -> models.DailyReport:
-        query = self.db.query(models.DailyReport).filter(
-            models.DailyReport.id == report_id,
-            models.DailyReport.owner_id == owner_id,
+    ) -> models.StatusReport:
+        query = self.db.query(models.StatusReport).filter(
+            models.StatusReport.id == report_id,
+            models.StatusReport.owner_id == owner_id,
         )
 
         if include_details:
             query = query.options(
-                selectinload(models.DailyReport.cards)
-                .selectinload(models.DailyReportCardLink.card)
+                selectinload(models.StatusReport.cards)
+                .selectinload(models.StatusReportCardLink.card)
                 .selectinload(models.Card.subtasks),
-                selectinload(models.DailyReport.cards)
-                .selectinload(models.DailyReportCardLink.card)
+                selectinload(models.StatusReport.cards)
+                .selectinload(models.StatusReportCardLink.card)
                 .selectinload(models.Card.status),
-                selectinload(models.DailyReport.events),
+                selectinload(models.StatusReport.events),
             )
         else:
-            query = query.options(selectinload(models.DailyReport.cards))
+            query = query.options(selectinload(models.StatusReport.cards))
 
         report = query.first()
         if not report:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Daily or weekly report not found",
+                detail="Status report not found",
             )
         return report
 
@@ -146,33 +146,33 @@ class DailyReportService:
     # ------------------------------------------------------------------
     def submit_report(
         self,
-        report: models.DailyReport,
+        report: models.StatusReport,
         *,
         max_cards: int = _MAX_GENERATED_CARDS,
-    ) -> DailyReportProcessResult:
+    ) -> StatusReportProcessResult:
         if self.analyzer is None:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Daily or weekly report analyzer is not configured.",
+                detail="Status report analyzer is not configured.",
             )
 
         if report.status not in {
-            schemas.DailyReportStatus.DRAFT.value,
-            schemas.DailyReportStatus.SUBMITTED.value,
-            schemas.DailyReportStatus.FAILED.value,
-            schemas.DailyReportStatus.COMPLETED.value,
+            schemas.StatusReportStatus.DRAFT.value,
+            schemas.StatusReportStatus.SUBMITTED.value,
+            schemas.StatusReportStatus.FAILED.value,
+            schemas.StatusReportStatus.COMPLETED.value,
         }:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Report in status '{report.status}' cannot be submitted.",
             )
 
-        report.status = schemas.DailyReportStatus.PROCESSING.value
+        report.status = schemas.StatusReportStatus.PROCESSING.value
         report.analysis_started_at = datetime.now(timezone.utc)
         report.analysis_model = None
         report.failure_reason = None
-        self._record_event(report, schemas.DailyReportEventType.SUBMITTED)
-        self._record_event(report, schemas.DailyReportEventType.ANALYSIS_STARTED)
+        self._record_event(report, schemas.StatusReportEventType.SUBMITTED)
+        self._record_event(report, schemas.StatusReportEventType.ANALYSIS_STARTED)
         self.db.flush()
 
         sections = self._sections_from_content(report)
@@ -191,18 +191,18 @@ class DailyReportService:
             report.analysis_model = response.model
 
         if error_message:
-            report.status = schemas.DailyReportStatus.FAILED.value
+            report.status = schemas.StatusReportStatus.FAILED.value
             report.analysis_completed_at = datetime.now(timezone.utc)
             report.failure_reason = error_message
             self._update_processing_meta(report, last_error=error_message)
             self._record_event(
                 report,
-                schemas.DailyReportEventType.ANALYSIS_FAILED,
+                schemas.StatusReportEventType.ANALYSIS_FAILED,
                 {"message": error_message},
             )
             self.db.flush()
             detail = self.to_detail(report)
-            return DailyReportProcessResult(detail=detail, proposals=[], destroyed=False, error=error_message)
+            return StatusReportProcessResult(detail=detail, proposals=[], destroyed=False, error=error_message)
 
         stored_proposals = proposals[:max_cards]
         self._update_processing_meta(
@@ -211,23 +211,23 @@ class DailyReportService:
             created_card_ids=[],
             last_error=None,
         )
-        report.status = schemas.DailyReportStatus.COMPLETED.value
+        report.status = schemas.StatusReportStatus.COMPLETED.value
         report.analysis_completed_at = datetime.now(timezone.utc)
 
         self._record_event(
             report,
-            schemas.DailyReportEventType.PROPOSALS_RECORDED,
+            schemas.StatusReportEventType.PROPOSALS_RECORDED,
             {"proposal_count": len(stored_proposals)},
         )
         self._record_event(
             report,
-            schemas.DailyReportEventType.ANALYSIS_COMPLETED,
+            schemas.StatusReportEventType.ANALYSIS_COMPLETED,
             {"cards_created": 0, "proposals_recorded": len(stored_proposals)},
         )
         self.db.flush()
         detail = self.to_detail(report)
         self.db.delete(report)
-        return DailyReportProcessResult(
+        return StatusReportProcessResult(
             detail=detail,
             proposals=stored_proposals,
             destroyed=True,
@@ -237,13 +237,13 @@ class DailyReportService:
     # ------------------------------------------------------------------
     # Serialization helpers
     # ------------------------------------------------------------------
-    def to_read(self, report: models.DailyReport) -> schemas.DailyReportRead:
+    def to_read(self, report: models.StatusReport) -> schemas.StatusReportRead:
         sections = self._sections_from_content(report)
-        return schemas.DailyReportRead(
+        return schemas.StatusReportRead(
             id=report.id,
             shift_type=report.shift_type,
             tags=list(report.tags or []),
-            status=schemas.DailyReportStatus(report.status),
+            status=schemas.StatusReportStatus(report.status),
             auto_ticket_enabled=report.auto_ticket_enabled,
             sections=sections,
             analysis_model=report.analysis_model,
@@ -255,13 +255,13 @@ class DailyReportService:
             updated_at=report.updated_at,
         )
 
-    def to_list_item(self, report: models.DailyReport) -> schemas.DailyReportListItem:
+    def to_list_item(self, report: models.StatusReport) -> schemas.StatusReportListItem:
         sections = self._sections_from_content(report)
         summary = next((section.body for section in sections if section.body), None)
         pending = self._pending_proposals(report.processing_meta)
-        return schemas.DailyReportListItem(
+        return schemas.StatusReportListItem(
             id=report.id,
-            status=schemas.DailyReportStatus(report.status),
+            status=schemas.StatusReportStatus(report.status),
             shift_type=report.shift_type,
             tags=list(report.tags or []),
             auto_ticket_enabled=report.auto_ticket_enabled,
@@ -272,20 +272,20 @@ class DailyReportService:
             summary=summary,
         )
 
-    def to_detail(self, report: models.DailyReport) -> schemas.DailyReportDetail:
+    def to_detail(self, report: models.StatusReport) -> schemas.StatusReportDetail:
         base = self.to_read(report)
         cards = [self._serialize_card_link(link) for link in report.cards or []]
         events = [
-            schemas.DailyReportEventRead(
+            schemas.StatusReportEventRead(
                 id=event.id,
-                event_type=schemas.DailyReportEventType(event.event_type),
+                event_type=schemas.StatusReportEventType(event.event_type),
                 payload=dict(event.payload or {}),
                 created_at=self._normalize_timestamp(event.created_at),
             )
             for event in sorted(report.events or [], key=self._event_sort_key)
         ]
         pending = self._pending_proposals(report.processing_meta)
-        return schemas.DailyReportDetail(
+        return schemas.StatusReportDetail(
             **base.model_dump(),
             cards=cards,
             events=events,
@@ -297,15 +297,15 @@ class DailyReportService:
     # Internal helpers
     # ------------------------------------------------------------------
     def _normalize_sections(
-        self, sections: Sequence[schemas.DailyReportSection]
-    ) -> list[schemas.DailyReportSection]:
-        normalized: list[schemas.DailyReportSection] = []
+        self, sections: Sequence[schemas.StatusReportSection]
+    ) -> list[schemas.StatusReportSection]:
+        normalized: list[schemas.StatusReportSection] = []
         for section in sections:
             body = section.body.strip()
             title = section.title.strip() if section.title else None
             if not body:
                 continue
-            normalized.append(schemas.DailyReportSection(title=title, body=body))
+            normalized.append(schemas.StatusReportSection(title=title, body=body))
         return normalized
 
     def _normalize_tags(self, tags: Iterable[str]) -> list[str]:
@@ -321,13 +321,13 @@ class DailyReportService:
             cleaned.append(value)
         return cleaned
 
-    def _sections_to_content(self, sections: Sequence[schemas.DailyReportSection]) -> dict:
+    def _sections_to_content(self, sections: Sequence[schemas.StatusReportSection]) -> dict:
         return {"sections": [section.model_dump() for section in sections]}
 
-    def _sections_from_content(self, report: models.DailyReport) -> list[schemas.DailyReportSection]:
+    def _sections_from_content(self, report: models.StatusReport) -> list[schemas.StatusReportSection]:
         content = report.content or {}
         raw_sections = content.get("sections", []) if isinstance(content, dict) else []
-        sections: list[schemas.DailyReportSection] = []
+        sections: list[schemas.StatusReportSection] = []
         for item in raw_sections:
             if not isinstance(item, dict):
                 continue
@@ -336,7 +336,7 @@ class DailyReportService:
                 continue
             title = item.get("title")
             sections.append(
-                schemas.DailyReportSection(
+                schemas.StatusReportSection(
                     title=str(title).strip() if title else None,
                     body=body,
                 )
@@ -344,7 +344,7 @@ class DailyReportService:
         return sections
 
     def _compose_analysis_prompt(
-        self, report: models.DailyReport, sections: Sequence[schemas.DailyReportSection]
+        self, report: models.StatusReport, sections: Sequence[schemas.StatusReportSection]
     ) -> str:
         lines: list[str] = []
         if report.shift_type:
@@ -359,12 +359,12 @@ class DailyReportService:
             lines.append("")
         return "\n".join(lines).strip()
 
-    def _ensure_processing_meta(self, report: models.DailyReport) -> dict:
+    def _ensure_processing_meta(self, report: models.StatusReport) -> dict:
         if not isinstance(report.processing_meta, dict):
             report.processing_meta = {}
         return report.processing_meta
 
-    def _update_processing_meta(self, report: models.DailyReport, **values: Any) -> dict:
+    def _update_processing_meta(self, report: models.StatusReport, **values: Any) -> dict:
         base = dict(self._ensure_processing_meta(report))
         base.update(values)
         report.processing_meta = base
@@ -372,11 +372,11 @@ class DailyReportService:
 
     def _record_event(
         self,
-        report: models.DailyReport,
-        event_type: schemas.DailyReportEventType,
+        report: models.StatusReport,
+        event_type: schemas.StatusReportEventType,
         payload: dict | None = None,
-    ) -> models.DailyReportEvent:
-        event = models.DailyReportEvent(
+    ) -> models.StatusReportEvent:
+        event = models.StatusReportEvent(
             report_id=report.id,
             event_type=event_type.value,
             payload=payload or {},
@@ -385,10 +385,10 @@ class DailyReportService:
         report.events.append(event)
         return event
 
-    def _serialize_card_link(self, link: models.DailyReportCardLink) -> schemas.DailyReportCardSummary:
+    def _serialize_card_link(self, link: models.StatusReportCardLink) -> schemas.StatusReportCardSummary:
         card = link.card
         if not card:
-            return schemas.DailyReportCardSummary(
+            return schemas.StatusReportCardSummary(
                 id=link.card_id,
                 title="(deleted card)",
                 summary=None,
@@ -403,7 +403,7 @@ class DailyReportService:
             )
 
         status_obj = card.status
-        return schemas.DailyReportCardSummary(
+        return schemas.StatusReportCardSummary(
             id=card.id,
             title=card.title,
             summary=card.summary,
@@ -433,7 +433,7 @@ class DailyReportService:
                 continue
         return results
 
-    def _event_sort_key(self, event: models.DailyReportEvent) -> datetime:
+    def _event_sort_key(self, event: models.StatusReportEvent) -> datetime:
         normalized = self._normalize_timestamp(event.created_at)
         if normalized is None:
             return datetime.min.replace(tzinfo=timezone.utc)

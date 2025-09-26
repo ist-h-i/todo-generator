@@ -463,7 +463,7 @@ class AnalysisResponse(BaseModel):
     proposals: List[AnalysisCard]
 
 
-class DailyReportStatus(str, Enum):
+class StatusReportStatus(str, Enum):
     DRAFT = "draft"
     SUBMITTED = "submitted"
     PROCESSING = "processing"
@@ -471,7 +471,7 @@ class DailyReportStatus(str, Enum):
     FAILED = "failed"
 
 
-class DailyReportEventType(str, Enum):
+class StatusReportEventType(str, Enum):
     DRAFT_CREATED = "draft_created"
     UPDATED = "updated"
     SUBMITTED = "submitted"
@@ -482,7 +482,7 @@ class DailyReportEventType(str, Enum):
     CARDS_LINKED = "cards_linked"
 
 
-class DailyReportSection(BaseModel):
+class StatusReportSection(BaseModel):
     title: Optional[str] = None
     body: str
 
@@ -495,27 +495,27 @@ class DailyReportSection(BaseModel):
         return text
 
 
-class DailyReportBase(BaseModel):
+class StatusReportBase(BaseModel):
     shift_type: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
-    sections: List[DailyReportSection]
+    sections: List[StatusReportSection]
     auto_ticket_enabled: bool = Field(default=False)
 
 
-class DailyReportCreate(DailyReportBase):
+class StatusReportCreate(StatusReportBase):
     pass
 
 
-class DailyReportUpdate(BaseModel):
+class StatusReportUpdate(BaseModel):
     shift_type: Optional[str] = None
     tags: Optional[List[str]] = None
-    sections: Optional[List[DailyReportSection]] = None
+    sections: Optional[List[StatusReportSection]] = None
     auto_ticket_enabled: Optional[bool] = None
 
 
-class DailyReportListItem(BaseModel):
+class StatusReportListItem(BaseModel):
     id: str
-    status: DailyReportStatus
+    status: StatusReportStatus
     shift_type: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
     auto_ticket_enabled: bool
@@ -528,7 +528,7 @@ class DailyReportListItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DailyReportCardSummary(BaseModel):
+class StatusReportCardSummary(BaseModel):
     id: str
     title: str
     summary: Optional[str] = None
@@ -544,22 +544,22 @@ class DailyReportCardSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DailyReportEventRead(BaseModel):
+class StatusReportEventRead(BaseModel):
     id: str
-    event_type: DailyReportEventType
+    event_type: StatusReportEventType
     payload: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class DailyReportRead(BaseModel):
+class StatusReportRead(BaseModel):
     id: str
     shift_type: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
-    status: DailyReportStatus
+    status: StatusReportStatus
     auto_ticket_enabled: bool
-    sections: List[DailyReportSection]
+    sections: List[StatusReportSection]
     analysis_model: Optional[str] = None
     analysis_started_at: Optional[datetime] = None
     analysis_completed_at: Optional[datetime] = None
@@ -571,9 +571,9 @@ class DailyReportRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DailyReportDetail(DailyReportRead):
-    cards: List[DailyReportCardSummary] = Field(default_factory=list)
-    events: List[DailyReportEventRead] = Field(default_factory=list)
+class StatusReportDetail(StatusReportRead):
+    cards: List[StatusReportCardSummary] = Field(default_factory=list)
+    events: List[StatusReportEventRead] = Field(default_factory=list)
     processing_meta: Dict[str, Any] = Field(default_factory=dict)
     pending_proposals: List[AnalysisCard] = Field(default_factory=list)
 
