@@ -103,7 +103,9 @@ class ChatGPTClient:
         " using the requested JSON schema. Each proposal must contain a concise"
         " title, a summary that elaborates on the goal, optional labels,"
         " priority, due date guidance in days, and subtasks that describe"
-        " concrete steps. Use the same language as the user whenever possible."
+        " concrete, verifiable actions. Each subtask must be a single step that"
+        " starts with a strong verb, specifies the expected outcome, and avoids"
+        " vague phrases. Use the same language as the user whenever possible."
         " When available, tailor goals and subtasks to the engineer profile"
         " metadata provided in the request."
     )
