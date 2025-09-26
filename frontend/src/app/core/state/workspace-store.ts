@@ -196,36 +196,7 @@ const INITIAL_TEMPLATES: TemplatePreset[] = [
   },
 ];
 
-const buildSubtasks = (titles: readonly string[]): Subtask[] =>
-  titles.map((title, index) => ({
-    id: createId(),
-    title,
-    status: index === 0 ? 'in-progress' : 'todo',
-    assignee: index === 0 ? '田中太郎' : undefined,
-    estimateHours: 3,
-    dueDate: new Date(Date.UTC(2025, 4, 5 + index)).toISOString().slice(0, 10),
-  }));
-
-const INITIAL_CARDS: Card[] = [
-  {
-    id: createId(),
-    title: 'カード詳細情報',
-    summary: '分析精度向上のための新しいプロンプト設計を検証します。',
-    statusId: 'in-progress',
-    labelIds: ['ai'],
-    templateId: 'ai-template',
-    priority: 'high',
-    storyPoints: 5,
-    createdAt: '2025-04-18T09:00:00.000Z',
-    assignee: '田中太郎',
-    confidence: 0.74,
-    subtasks: buildSubtasks(['事例収集', '評価実験', 'レビュー共有']).map((subtask, index, list) =>
-      index === list.length - 1 ? { ...subtask, status: 'non-issue' } : subtask,
-    ),
-    comments: [],
-    activities: [],
-  },
-];
+const INITIAL_CARDS: readonly Card[] = [];
 
 const INITIAL_SETTINGS: WorkspaceSettings = {
   defaultStatusId: 'todo',
