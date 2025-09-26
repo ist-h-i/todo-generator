@@ -26,6 +26,7 @@ const STORAGE_NAMESPACE = 'verbalize-yourself/workspace-settings';
 const PREFERENCES_STORAGE_NAMESPACE = 'verbalize-yourself/workspace-preferences';
 const LEGACY_STORAGE_NAMESPACE = 'todo-generator/workspace-settings';
 const LEGACY_PREFERENCES_STORAGE_NAMESPACE = 'todo-generator/workspace-preferences';
+const ANONYMOUS_STORAGE_USER_ID = 'anonymous';
 
 const cloneStatus = (status: Status): Status => ({
   id: status.id,
@@ -773,6 +774,14 @@ export class WorkspaceStore {
     },
     { allowSignalWrites: true },
   );
+
+  private resolveStorageUserId(userId: string | null): string | null {
+    if (!this.storage) {
+      return null;
+    }
+
+    return userId ?? ANONYMOUS_STORAGE_USER_ID;
+  }
 
   public readonly settings = computed(() => this.settingsSignal());
   public readonly cards = computed(() => this.cardsSignal());
@@ -2002,73 +2011,78 @@ export class WorkspaceStore {
 
   private loadPreferences(userId: string | null, settings: WorkspaceSettings): BoardPreferences {
     const defaults = this.buildDefaultPreferences();
-    if (!userId || !this.storage) {
+    const storageUserId = this.resolveStorageUserId(userId);
+    if (!storageUserId) {
       return defaults;
     }
 
-    const key = this.buildPreferencesKey(userId);
-    let stored = this.storage.getItem(key);
+    const key = this.buildPreferencesKey(storageUserId);
+    let stored = this.storage?.getItem(key) ?? null;
 
     if (!stored) {
-      stored = this.migrateLegacyPreferences(userId, key);
+      stored = this.migrateLegacyPreferences(storageUserId, key);
     }
 
     if (!stored) {
-      this.persistPreferencesForUser(userId, defaults);
+      this.persistPreferencesForUser(storageUserId, defaults);
       return defaults;
     }
 
     try {
       const parsed = JSON.parse(stored);
       const sanitized = this.sanitizePreferences(parsed, settings);
-      this.persistPreferencesForUser(userId, sanitized);
+      this.persistPreferencesForUser(storageUserId, sanitized);
       return {
         grouping: sanitized.grouping,
         filters: cloneFilters(sanitized.filters),
       } satisfies BoardPreferences;
     } catch {
-      this.persistPreferencesForUser(userId, defaults);
+      this.persistPreferencesForUser(storageUserId, defaults);
       return defaults;
     }
   }
 
   private loadSettings(userId: string | null): WorkspaceSettings {
-    if (!userId || !this.storage) {
+    if (!this.storage) {
       return cloneSettings(INITIAL_SETTINGS);
     }
 
-    const key = this.buildStorageKey(userId);
+    const storageUserId = this.resolveStorageUserId(userId);
+    if (!storageUserId) {
+      return cloneSettings(INITIAL_SETTINGS);
+    }
+
+    const defaults = cloneSettings(INITIAL_SETTINGS);
+    const key = this.buildStorageKey(storageUserId);
     let stored = this.storage.getItem(key);
 
     if (!stored) {
-      stored = this.migrateLegacySettings(userId, key);
+      stored = this.migrateLegacySettings(storageUserId, key);
     }
 
     if (!stored) {
-      const defaults = cloneSettings(INITIAL_SETTINGS);
-      this.persistSettingsForUser(userId, defaults);
+      this.persistSettingsForUser(storageUserId, defaults);
       return defaults;
     }
 
     try {
       const parsed = JSON.parse(stored);
       const sanitized = this.sanitizeSettings(parsed);
-      this.persistSettingsForUser(userId, sanitized);
+      this.persistSettingsForUser(storageUserId, sanitized);
       return sanitized;
     } catch {
-      const defaults = cloneSettings(INITIAL_SETTINGS);
-      this.persistSettingsForUser(userId, defaults);
+      this.persistSettingsForUser(storageUserId, defaults);
       return defaults;
     }
   }
 
   private persistSettings(settings: WorkspaceSettings): void {
-    const userId = this.activeUserId();
-    if (!userId) {
+    const storageUserId = this.resolveStorageUserId(this.activeUserId());
+    if (!storageUserId) {
       return;
     }
 
-    this.persistSettingsForUser(userId, settings);
+    this.persistSettingsForUser(storageUserId, settings);
   }
 
   private migrateLegacySettings(userId: string, targetKey: string): string | null {
@@ -2111,12 +2125,12 @@ export class WorkspaceStore {
   }
 
   private persistPreferences(preferences: BoardPreferences): void {
-    const userId = this.activeUserId();
-    if (!userId) {
+    const storageUserId = this.resolveStorageUserId(this.activeUserId());
+    if (!storageUserId) {
       return;
     }
 
-    this.persistPreferencesForUser(userId, preferences);
+    this.persistPreferencesForUser(storageUserId, preferences);
   }
 
   private migrateLegacyPreferences(userId: string, targetKey: string): string | null {
