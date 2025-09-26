@@ -27,6 +27,43 @@ export interface SubtaskResponse {
   readonly due_date?: string | null;
 }
 
+export interface SubtaskCreateRequest {
+  readonly title: string;
+  readonly description?: string | null;
+  readonly status?: string | null;
+  readonly priority?: string | null;
+  readonly assignee?: string | null;
+  readonly start_date?: string | null;
+  readonly due_date?: string | null;
+  readonly estimate_hours?: number | null;
+  readonly story_points?: number | null;
+  readonly checklist?: readonly unknown[];
+  readonly ai_similarity_vector_id?: string | null;
+  readonly root_cause_node_id?: string | null;
+}
+
+export interface CardCreateRequest {
+  readonly title: string;
+  readonly summary?: string | null;
+  readonly description?: string | null;
+  readonly status_id?: string | null;
+  readonly priority?: string | null;
+  readonly story_points?: number | null;
+  readonly estimate_hours?: number | null;
+  readonly assignees?: readonly string[];
+  readonly start_date?: string | null;
+  readonly due_date?: string | null;
+  readonly dependencies?: readonly string[];
+  readonly ai_confidence?: number | null;
+  readonly ai_notes?: string | null;
+  readonly custom_fields?: Readonly<Record<string, unknown>>;
+  readonly label_ids?: readonly string[];
+  readonly error_category_id?: string | null;
+  readonly initiative_id?: string | null;
+  readonly analytics_notes?: string | null;
+  readonly subtasks?: readonly SubtaskCreateRequest[];
+}
+
 export interface CardResponse {
   readonly id: string;
   readonly title: string;
@@ -145,5 +182,12 @@ export class CardsApiService {
   public listCards(params?: CardListParams): Observable<CardResponse[]> {
     const options = params ? { params: buildCardListParams(params) } : undefined;
     return this.http.get<CardResponse[]>(buildApiUrl('/cards'), options);
+  }
+
+  /**
+   * Persists a new card on the backend.
+   */
+  public createCard(payload: CardCreateRequest): Observable<CardResponse> {
+    return this.http.post<CardResponse>(buildApiUrl('/cards'), payload);
   }
 }

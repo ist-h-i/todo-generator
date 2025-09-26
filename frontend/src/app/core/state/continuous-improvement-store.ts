@@ -13,6 +13,7 @@ import {
   SuggestedActionStatus,
 } from '@core/models';
 import { createId } from '@core/utils/create-id';
+import { Logger } from '@core/logger/logger';
 
 import {
   CONTINUOUS_IMPROVEMENT_ANALYSES,
@@ -26,6 +27,7 @@ const DEFAULT_SNAPSHOT_ID = CONTINUOUS_IMPROVEMENT_SNAPSHOTS[0]?.id ?? '';
 @Injectable({ providedIn: 'root' })
 export class ContinuousImprovementStore {
   private readonly workspace = inject(WorkspaceStore);
+  private readonly logger = inject(Logger);
 
   private readonly snapshotsSignal = signal<readonly AnalyticsSnapshot[]>(
     CONTINUOUS_IMPROVEMENT_SNAPSHOTS,
@@ -145,7 +147,7 @@ export class ContinuousImprovementStore {
     this.reportPreviewSignal.set(this.composeReport(this.reportInstructionSignal()));
   };
 
-  public readonly convertSuggestedAction = (actionId: string): void => {
+  public readonly convertSuggestedAction = async (actionId: string): Promise<void> => {
     const analysis = this.activeAnalysis();
     if (!analysis) {
       return;
@@ -157,51 +159,55 @@ export class ContinuousImprovementStore {
     }
 
     const dueDate = this.computeDueDate(target.dueInDays);
-    const card = this.workspace.createCardFromSuggestion({
-      title: target.title,
-      summary: target.summary,
-      statusId: target.targetStatusId,
-      labelIds: target.labelIds,
-      priority: target.impactScore >= 4 ? 'high' : 'medium',
-      dueDate,
-      originSuggestionId: target.id,
-      initiativeId: target.initiativeId,
-    });
+    try {
+      const card = await this.workspace.createCardFromSuggestion({
+        title: target.title,
+        summary: target.summary,
+        statusId: target.targetStatusId,
+        labelIds: target.labelIds,
+        priority: target.impactScore >= 4 ? 'high' : 'medium',
+        dueDate,
+        originSuggestionId: target.id,
+        initiativeId: target.initiativeId,
+      });
 
-    this.analysesSignal.update((analyses) =>
-      analyses.map((entry) =>
-        entry.id === analysis.id
-          ? {
-              ...entry,
-              suggestions: entry.suggestions.map((suggestion) =>
-                suggestion.id === actionId
-                  ? { ...suggestion, status: 'converted', createdCardId: card.id }
-                  : suggestion,
-              ),
-            }
-          : entry,
-      ),
-    );
-
-    if (target.initiativeId) {
-      this.initiativesSignal.update((initiatives) =>
-        initiatives.map((initiative) =>
-          initiative.id === target.initiativeId
+      this.analysesSignal.update((analyses) =>
+        analyses.map((entry) =>
+          entry.id === analysis.id
             ? {
-                ...initiative,
-                progress: [
-                  ...initiative.progress,
-                  this.buildProgressEntry('タスク起票', `${target.title} をカード化 (${card.id})`, {
-                    impactScore: target.impactScore,
-                  }),
-                ],
+                ...entry,
+                suggestions: entry.suggestions.map((suggestion) =>
+                  suggestion.id === actionId
+                    ? { ...suggestion, status: 'converted', createdCardId: card.id }
+                    : suggestion,
+                ),
               }
-            : initiative,
+            : entry,
         ),
       );
-    }
 
-    this.reportPreviewSignal.set(this.composeReport(this.reportInstructionSignal()));
+      if (target.initiativeId) {
+        this.initiativesSignal.update((initiatives) =>
+          initiatives.map((initiative) =>
+            initiative.id === target.initiativeId
+              ? {
+                  ...initiative,
+                  progress: [
+                    ...initiative.progress,
+                    this.buildProgressEntry('タスク起票', `${target.title} をカード化 (${card.id})`, {
+                      impactScore: target.impactScore,
+                    }),
+                  ],
+                }
+              : initiative,
+          ),
+        );
+      }
+
+      this.reportPreviewSignal.set(this.composeReport(this.reportInstructionSignal()));
+    } catch (error) {
+      this.logger.error('ContinuousImprovementStore', error);
+    }
   };
 
   public readonly updateReportInstruction = (value: string): void => {
