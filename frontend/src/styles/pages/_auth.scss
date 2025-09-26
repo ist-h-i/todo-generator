@@ -61,6 +61,13 @@
   margin-inline: auto;
 }
 
+.auth-page__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
 @media (min-width: 62rem) {
   .auth-page__grid {
     flex-direction: row;
@@ -98,6 +105,22 @@
   );
   opacity: 0.5;
   pointer-events: none;
+}
+
+.auth-toggle-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 75%, var(--text-primary));
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.auth-toggle-button:hover {
+  color: color-mix(in srgb, var(--accent-strong) 85%, var(--text-primary));
 }
 
 .auth-card--register::after {

@@ -48,6 +48,7 @@ export class LoginPage {
   });
   public readonly loginNotice = signal<string | null>(null);
   public readonly registerNotice = signal<string | null>(null);
+  private readonly activeView = signal<'login' | 'register'>('login');
 
   public readonly pending = this.auth.pending;
   private readonly lastLoginSubmission = signal<LoginSubmission | null>(null);
@@ -147,6 +148,8 @@ export class LoginPage {
     () =>
       this.isRegisterFormValid() && (!this.pending() || this.registerFormChangedSinceLastSubmit()),
   );
+  public readonly isLoginView = computed(() => this.activeView() === 'login');
+  public readonly isRegisterView = computed(() => this.activeView() === 'register');
 
   public constructor() {
     effect(() => {
@@ -261,6 +264,26 @@ export class LoginPage {
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
     this.registerConfirmTouched.set(true);
     this.registerForm.controls.confirmPassword.setValue(value);
+  }
+
+  public showLoginView(): void {
+    if (this.activeView() === 'login') {
+      return;
+    }
+
+    this.activeView.set('login');
+    this.resetNotices();
+    this.resetRegisterInteractions();
+  }
+
+  public showRegisterView(): void {
+    if (this.activeView() === 'register') {
+      return;
+    }
+
+    this.activeView.set('register');
+    this.resetNotices();
+    this.resetLoginInteractions();
   }
 
   private resetNotices(): void {
