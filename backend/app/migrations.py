@@ -93,7 +93,7 @@ def _promote_first_user_to_admin(engine: Engine) -> None:
         column_names = _column_names(inspector, "users")
         ordering_column = "created_at" if "created_at" in column_names else "id"
         first_user = connection.execute(
-            text(f"SELECT id FROM users ORDER BY {ordering_column} ASC LIMIT 1")  # noqa: S608
+            text(f"SELECT id FROM users ORDER BY {ordering_column} ASC LIMIT 1")
         ).first()
         if not first_user:
             return
@@ -199,13 +199,13 @@ def _ensure_comment_subtask_column(engine: Engine) -> None:
             raise
 
 
-def _drop_daily_report_report_date(engine: Engine) -> None:
+def _drop_status_report_report_date(engine: Engine) -> None:
     with engine.connect() as connection:
         inspector = inspect(connection)
-        if not _table_exists(inspector, "daily_reports"):
+        if not _table_exists(inspector, "status_reports"):
             return
 
-        columns = _column_names(inspector, "daily_reports")
+        columns = _column_names(inspector, "status_reports")
 
     if "report_date" not in columns:
         return
@@ -214,9 +214,9 @@ def _drop_daily_report_report_date(engine: Engine) -> None:
 
     drop_unique_sql = None
     if dialect == "postgresql":
-        drop_unique_sql = "ALTER TABLE daily_reports DROP CONSTRAINT IF EXISTS uq_daily_report_owner_date"
+        drop_unique_sql = "ALTER TABLE status_reports DROP CONSTRAINT IF EXISTS uq_status_report_owner_date"
     elif dialect == "mysql":
-        drop_unique_sql = "ALTER TABLE daily_reports DROP INDEX uq_daily_report_owner_date"
+        drop_unique_sql = "ALTER TABLE status_reports DROP INDEX uq_status_report_owner_date"
 
     if drop_unique_sql:
         try:
@@ -227,7 +227,7 @@ def _drop_daily_report_report_date(engine: Engine) -> None:
 
     try:
         with engine.begin() as connection:
-            connection.execute(text("ALTER TABLE daily_reports DROP COLUMN report_date"))
+            connection.execute(text("ALTER TABLE status_reports DROP COLUMN report_date"))
         return
     except SQLAlchemyError:
         pass
@@ -235,16 +235,16 @@ def _drop_daily_report_report_date(engine: Engine) -> None:
     fallback_sql: list[str] = []
     if dialect == "postgresql":
         fallback_sql = [
-            "ALTER TABLE daily_reports ALTER COLUMN report_date DROP NOT NULL",
-            "UPDATE daily_reports SET report_date = NULL",
+            "ALTER TABLE status_reports ALTER COLUMN report_date DROP NOT NULL",
+            "UPDATE status_reports SET report_date = NULL",
         ]
     elif dialect == "mysql":
         fallback_sql = [
-            "ALTER TABLE daily_reports MODIFY COLUMN report_date DATE NULL",
-            "UPDATE daily_reports SET report_date = NULL",
+            "ALTER TABLE status_reports MODIFY COLUMN report_date DATE NULL",
+            "UPDATE status_reports SET report_date = NULL",
         ]
     elif dialect == "sqlite":
-        fallback_sql = ["UPDATE daily_reports SET report_date = NULL"]
+        fallback_sql = ["UPDATE status_reports SET report_date = NULL"]
 
     for statement in fallback_sql:
         try:
@@ -252,6 +252,74 @@ def _drop_daily_report_report_date(engine: Engine) -> None:
                 connection.execute(text(statement))
         except SQLAlchemyError:
             continue
+
+
+def _rename_daily_report_tables(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        daily_reports_exists = _table_exists(inspector, "daily_reports")
+        status_reports_exists = _table_exists(inspector, "status_reports")
+
+    if not daily_reports_exists:
+        return
+
+    dialect = engine.dialect.name
+
+    def rename_table(connection, old: str, new: str) -> None:
+        if dialect == "mysql":
+            connection.execute(text(f"RENAME TABLE {old} TO {new}"))
+        else:
+            connection.execute(text(f"ALTER TABLE {old} RENAME TO {new}"))
+
+    # ruff: noqa: S608 - table and column names are controlled constants
+    def merge_rows(connection, old: str, new: str) -> None:
+        inspector = inspect(connection)
+        old_columns = _column_names(inspector, old)
+        new_columns = _column_names(inspector, new)
+        shared_columns = sorted(old_columns & new_columns)
+        if not shared_columns:
+            return
+
+        column_list = ", ".join(shared_columns)
+        select_list = ", ".join(f"old.{column}" for column in shared_columns)
+        merge_sql = text(
+            f"INSERT INTO {new} ({column_list}) "
+            f"SELECT {select_list} FROM {old} AS old "
+            f"LEFT JOIN {new} AS new ON new.id = old.id "
+            "WHERE new.id IS NULL"
+        )
+        connection.execute(merge_sql)
+
+    def drop_table(connection, table_name: str) -> None:
+        connection.execute(text(f"DROP TABLE IF EXISTS {table_name}"))
+
+    with engine.begin() as connection:
+        inspector = inspect(connection)
+        if not status_reports_exists:
+            rename_table(connection, "daily_reports", "status_reports")
+        else:
+            merge_rows(connection, "daily_reports", "status_reports")
+
+        child_tables = (
+            ("daily_report_cards", "status_report_cards"),
+            ("daily_report_events", "status_report_events"),
+        )
+
+        for old_name, new_name in child_tables:
+            inspector = inspect(connection)
+            if not _table_exists(inspector, old_name):
+                continue
+
+            if not _table_exists(inspector, new_name):
+                rename_table(connection, old_name, new_name)
+                continue
+
+            merge_rows(connection, old_name, new_name)
+            drop_table(connection, old_name)
+
+        inspector = inspect(connection)
+        if status_reports_exists and _table_exists(inspector, "daily_reports"):
+            drop_table(connection, "daily_reports")
 
 
 def run_startup_migrations(engine: Engine) -> None:
@@ -262,7 +330,8 @@ def run_startup_migrations(engine: Engine) -> None:
     _promote_first_user_to_admin(engine)
     _ensure_completion_timestamps(engine)
     _ensure_comment_subtask_column(engine)
-    _drop_daily_report_report_date(engine)
+    _rename_daily_report_tables(engine)
+    _drop_status_report_report_date(engine)
 
 
 __all__: Iterable[str] = ["run_startup_migrations"]

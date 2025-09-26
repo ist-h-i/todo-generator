@@ -31,7 +31,7 @@ export const appRoutes: Routes = [
         loadComponent: () => import('@features/analyze/page').then((mod) => mod.AnalyzePage),
       },
       {
-        path: 'daily-reports',
+        path: 'status-reports',
         pathMatch: 'full',
         redirectTo: 'reports',
       },

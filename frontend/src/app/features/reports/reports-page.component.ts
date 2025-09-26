@@ -5,8 +5,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { RouterLink } from '@angular/router';
 
-import { DailyReportsGateway } from '@core/api/daily-reports-gateway';
-import { DailyReportDetail, DailyReportCreateRequest } from '@core/models';
+import { StatusReportsGateway } from '@core/api/status-reports-gateway';
+import { StatusReportDetail, StatusReportCreateRequest } from '@core/models';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 
 @Component({
@@ -17,13 +17,13 @@ import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReportAssistantPageComponent {
-  private readonly gateway = inject(DailyReportsGateway);
+  private readonly gateway = inject(StatusReportsGateway);
   private readonly fb = inject(FormBuilder);
 
   private readonly pendingState = signal(false);
   private readonly errorState = signal<string | null>(null);
   private readonly successState = signal<string | null>(null);
-  private readonly detailState = signal<DailyReportDetail | null>(null);
+  private readonly detailState = signal<StatusReportDetail | null>(null);
 
   public readonly form = this.fb.group({
     tags: [''],
@@ -86,7 +86,7 @@ export class ReportAssistantPageComponent {
     });
   }
 
-  private buildCreatePayload(): DailyReportCreateRequest | null {
+  private buildCreatePayload(): StatusReportCreateRequest | null {
     const value = this.form.value;
     const sections = this.sections.controls
       .map((control) => control.value)
@@ -105,7 +105,7 @@ export class ReportAssistantPageComponent {
       tags: this.parseTags(value.tags ?? ''),
       sections,
       auto_ticket_enabled: false,
-    } satisfies DailyReportCreateRequest;
+    } satisfies StatusReportCreateRequest;
   }
 
   private parseTags(value: string): readonly string[] {

@@ -76,8 +76,8 @@ class User(Base, TimestampMixin):
     saved_filters: Mapped[list["SavedFilter"]] = relationship(
         "SavedFilter", back_populates="owner", cascade="all, delete-orphan"
     )
-    daily_reports: Mapped[list["DailyReport"]] = relationship(
-        "DailyReport", back_populates="owner", cascade="all, delete-orphan"
+    status_reports: Mapped[list["StatusReport"]] = relationship(
+        "StatusReport", back_populates="owner", cascade="all, delete-orphan"
     )
     daily_evaluation_quotas: Mapped[list["DailyEvaluationQuota"]] = relationship(
         "DailyEvaluationQuota", back_populates="owner", cascade="all, delete-orphan"
@@ -159,8 +159,8 @@ class Card(Base, TimestampMixin):
         "SuggestedAction", back_populates="created_card", uselist=False
     )
     owner: Mapped[User] = relationship("User", back_populates="cards")
-    daily_report_links: Mapped[list["DailyReportCardLink"]] = relationship(
-        "DailyReportCardLink", back_populates="card", cascade="all, delete-orphan"
+    status_report_links: Mapped[list["StatusReportCardLink"]] = relationship(
+        "StatusReportCardLink", back_populates="card", cascade="all, delete-orphan"
     )
 
 
@@ -430,8 +430,8 @@ class SuggestedAction(Base, TimestampMixin):
     created_card: Mapped[Optional[Card]] = relationship("Card", back_populates="originating_suggestion")
 
 
-class DailyReport(Base, TimestampMixin):
-    __tablename__ = "daily_reports"
+class StatusReport(Base, TimestampMixin):
+    __tablename__ = "status_reports"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
@@ -447,37 +447,37 @@ class DailyReport(Base, TimestampMixin):
     failure_reason: Mapped[str | None] = mapped_column(Text)
     processing_meta: Mapped[dict] = mapped_column(JSON, default=dict)
 
-    owner: Mapped[User] = relationship("User", back_populates="daily_reports")
-    cards: Mapped[list["DailyReportCardLink"]] = relationship(
-        "DailyReportCardLink", back_populates="report", cascade="all, delete-orphan"
+    owner: Mapped[User] = relationship("User", back_populates="status_reports")
+    cards: Mapped[list["StatusReportCardLink"]] = relationship(
+        "StatusReportCardLink", back_populates="report", cascade="all, delete-orphan"
     )
-    events: Mapped[list["DailyReportEvent"]] = relationship(
-        "DailyReportEvent", back_populates="report", cascade="all, delete-orphan"
+    events: Mapped[list["StatusReportEvent"]] = relationship(
+        "StatusReportEvent", back_populates="report", cascade="all, delete-orphan"
     )
 
 
-class DailyReportCardLink(Base, TimestampMixin):
-    __tablename__ = "daily_report_cards"
+class StatusReportCardLink(Base, TimestampMixin):
+    __tablename__ = "status_report_cards"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    report_id: Mapped[str] = mapped_column(String, ForeignKey("daily_reports.id", ondelete="CASCADE"), nullable=False)
+    report_id: Mapped[str] = mapped_column(String, ForeignKey("status_reports.id", ondelete="CASCADE"), nullable=False)
     card_id: Mapped[str] = mapped_column(String, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False)
     link_role: Mapped[str] = mapped_column(String, default="primary")
     confidence: Mapped[float | None] = mapped_column(Float)
 
-    report: Mapped[DailyReport] = relationship("DailyReport", back_populates="cards")
-    card: Mapped[Card] = relationship("Card", back_populates="daily_report_links")
+    report: Mapped[StatusReport] = relationship("StatusReport", back_populates="cards")
+    card: Mapped[Card] = relationship("Card", back_populates="status_report_links")
 
 
-class DailyReportEvent(Base, TimestampMixin):
-    __tablename__ = "daily_report_events"
+class StatusReportEvent(Base, TimestampMixin):
+    __tablename__ = "status_report_events"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    report_id: Mapped[str] = mapped_column(String, ForeignKey("daily_reports.id", ondelete="CASCADE"), nullable=False)
+    report_id: Mapped[str] = mapped_column(String, ForeignKey("status_reports.id", ondelete="CASCADE"), nullable=False)
     event_type: Mapped[str] = mapped_column(String, nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
 
-    report: Mapped[DailyReport] = relationship("DailyReport", back_populates="events")
+    report: Mapped[StatusReport] = relationship("StatusReport", back_populates="events")
 
 
 class ReportTemplate(Base, TimestampMixin):

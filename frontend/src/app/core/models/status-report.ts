@@ -1,27 +1,27 @@
-export type DailyReportStatus = 'draft' | 'submitted' | 'processing' | 'completed' | 'failed';
+export type StatusReportStatus = 'draft' | 'submitted' | 'processing' | 'completed' | 'failed';
 
-export interface DailyReportSection {
+export interface StatusReportSection {
   readonly title: string | null;
   readonly body: string;
 }
 
-export interface DailyReportProposalSubtask {
+export interface StatusReportProposalSubtask {
   readonly title: string;
   readonly description?: string | null;
   readonly status?: string;
 }
 
-export interface DailyReportProposal {
+export interface StatusReportProposal {
   readonly title: string;
   readonly summary: string;
   readonly status: string;
   readonly labels: readonly string[];
   readonly priority: string;
   readonly due_in_days: number | null;
-  readonly subtasks: readonly DailyReportProposalSubtask[];
+  readonly subtasks: readonly StatusReportProposalSubtask[];
 }
 
-export interface DailyReportCardSummary {
+export interface StatusReportCardSummary {
   readonly id: string;
   readonly title: string;
   readonly summary: string | null;
@@ -40,20 +40,20 @@ export interface DailyReportCardSummary {
   readonly confidence: number | null;
 }
 
-export interface DailyReportEvent {
+export interface StatusReportEvent {
   readonly id: string;
-  readonly event_type: DailyReportStatus | string;
+  readonly event_type: StatusReportStatus | string;
   readonly payload: Record<string, unknown>;
   readonly created_at: string;
 }
 
-export interface DailyReportBase {
+export interface StatusReportBase {
   readonly id: string;
   readonly shift_type: string | null;
   readonly tags: readonly string[];
-  readonly status: DailyReportStatus;
+  readonly status: StatusReportStatus;
   readonly auto_ticket_enabled: boolean;
-  readonly sections: readonly DailyReportSection[];
+  readonly sections: readonly StatusReportSection[];
   readonly analysis_model: string | null;
   readonly analysis_started_at: string | null;
   readonly analysis_completed_at: string | null;
@@ -63,18 +63,18 @@ export interface DailyReportBase {
   readonly updated_at: string;
 }
 
-export type DailyReportRead = DailyReportBase;
+export type StatusReportRead = StatusReportBase;
 
-export interface DailyReportDetail extends DailyReportBase {
-  readonly cards: readonly DailyReportCardSummary[];
-  readonly events: readonly DailyReportEvent[];
+export interface StatusReportDetail extends StatusReportBase {
+  readonly cards: readonly StatusReportCardSummary[];
+  readonly events: readonly StatusReportEvent[];
   readonly processing_meta: Record<string, unknown>;
-  readonly pending_proposals: readonly DailyReportProposal[];
+  readonly pending_proposals: readonly StatusReportProposal[];
 }
 
-export interface DailyReportListItem {
+export interface StatusReportListItem {
   readonly id: string;
-  readonly status: DailyReportStatus;
+  readonly status: StatusReportStatus;
   readonly shift_type: string | null;
   readonly tags: readonly string[];
   readonly auto_ticket_enabled: boolean;
@@ -85,16 +85,16 @@ export interface DailyReportListItem {
   readonly summary: string | null;
 }
 
-export interface DailyReportCreateRequest {
+export interface StatusReportCreateRequest {
   readonly shift_type: string | null;
   readonly tags: readonly string[];
-  readonly sections: readonly DailyReportSection[];
+  readonly sections: readonly StatusReportSection[];
   readonly auto_ticket_enabled: boolean;
 }
 
-export interface DailyReportUpdateRequest {
+export interface StatusReportUpdateRequest {
   readonly shift_type?: string | null;
   readonly tags?: readonly string[];
-  readonly sections?: readonly DailyReportSection[];
+  readonly sections?: readonly StatusReportSection[];
   readonly auto_ticket_enabled?: boolean;
 }
