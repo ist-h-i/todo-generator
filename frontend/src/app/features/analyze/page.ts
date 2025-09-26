@@ -15,11 +15,7 @@ import { AnalysisProposal, AnalysisRequest } from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 
-type AnalyzerToast = {
-  readonly type: 'success' | 'notice' | 'error';
-  readonly message: string;
-};
-
+type AnalyzerToastState = 'loading' | 'success' | 'notice' | 'error';
 /**
  * Analyzer page allowing users to submit notes and review ChatGPT-style proposals.
  */
@@ -35,14 +31,6 @@ export class AnalyzePage {
   private readonly workspace = inject(WorkspaceStore);
   private readonly destroyRef = inject(DestroyRef);
 
-  private readonly analyzerToastSignal = signal<AnalyzerToast | null>(null);
-  private readonly resultsHighlightSignal = signal(false);
-
-  private highlightTimeoutHandle: number | null = null;
-  private lastTrackedRequest: AnalysisRequest | null | undefined = undefined;
-  private requestVersion = 0;
-  private lastResultFingerprint: string | null = null;
-
   public readonly analyzeForm = createSignalForm<AnalysisRequest>({
     notes: '',
     objective: '',
@@ -51,16 +39,20 @@ export class AnalyzePage {
 
   private readonly requestSignal = signal<AnalysisRequest | null>(null);
 
-  private readonly toastState = signal<'loading' | 'success' | null>(null);
+  private readonly toastState = signal<AnalyzerToastState | null>(null);
+  private readonly toastMessageSignal = signal<string | null>(null);
   private readonly publishFeedback = signal<{
     status: 'success' | 'error';
     message: string;
   } | null>(null);
   private readonly highlightResults = signal(false);
+
   private toastTimer: number | null = null;
   private highlightTimer: number | null = null;
   private publishFeedbackTimer: number | null = null;
-  private previousStatus: string | null = null;
+  private lastTrackedRequest: AnalysisRequest | null | undefined = undefined;
+  private requestVersion = 0;
+  private lastResultFingerprint: string | null = null;
 
   public readonly analysisResource = this.analysisGateway.createAnalysisResource(
     this.requestSignal,
@@ -87,10 +79,37 @@ export class AnalyzePage {
     this.generateAutoObjective(this.analyzeForm.controls.notes.value().trim()),
   );
 
-  public readonly analyzerToast = computed(() => this.analyzerToastSignal());
-  public readonly shouldHighlightResults = computed(() => this.resultsHighlightSignal());
+  public readonly isAnalyzing = computed(() => {
+    const status = this.analysisResource.status();
 
-  private readonly monitorAnalysisLifecycle = effect(
+    return status === 'loading' || status === 'reloading';
+  });
+
+  public readonly canSubmit = computed(() => {
+    const value = this.analyzeForm.value();
+    const notes = value.notes.trim();
+    if (notes.length === 0) {
+      return false;
+    }
+
+    if (!value.autoObjective && value.objective.trim().length === 0) {
+      return false;
+    }
+
+    return true;
+  });
+
+  public readonly isSubmitDisabled = computed(() => this.isAnalyzing() || !this.canSubmit());
+
+  public readonly generationToast = computed(() => this.toastState());
+
+  public readonly shouldHighlightResults = computed(() => this.highlightResults());
+
+  public readonly generationToastMessage = computed(() => this.toastMessageSignal());
+
+  public readonly proposalPublishFeedback = computed(() => this.publishFeedback());
+
+  private readonly analyzerLifecycle = effect(
     () => {
       const request = this.requestSignal();
       const status = this.analysisResource.status();
@@ -111,7 +130,10 @@ export class AnalyzePage {
         return;
       }
 
-      if (status === 'loading' || isNewRequest) {
+      if (status === 'loading' || status === 'reloading') {
+        this.showLoadingToast();
+        this.disableResultsHighlight();
+        this.clearPublishFeedback();
         return;
       }
 
@@ -166,7 +188,8 @@ export class AnalyzePage {
 
   public constructor() {
     this.destroyRef.onDestroy(() => {
-      this.clearHighlightTimer();
+      this.clearVisualTimers();
+      this.clearPublishFeedbackTimer();
     });
   }
 
@@ -212,75 +235,6 @@ export class AnalyzePage {
     this.resetAnalyzeForm();
   };
 
-  private emitAnalyzerToastOnce(
-    type: Exclude<AnalyzerToast['type'], 'success'>,
-    message: string,
-    detail?: string,
-  ): boolean {
-    const fingerprint = this.buildResultFingerprint(type, detail);
-    if (this.lastResultFingerprint === fingerprint) {
-      return false;
-    }
-
-    this.lastResultFingerprint = fingerprint;
-    this.analyzerToastSignal.set({ type, message });
-    return true;
-  }
-
-  private emitSuccessToast(message: string, proposalsFingerprint: string): boolean {
-    const fingerprint = this.buildResultFingerprint('success', proposalsFingerprint);
-    if (this.lastResultFingerprint === fingerprint) {
-      return false;
-    }
-
-    this.lastResultFingerprint = fingerprint;
-    this.analyzerToastSignal.set({ type: 'success', message });
-    return true;
-  }
-
-  private buildResultFingerprint(type: AnalyzerToast['type'], detail?: string): string {
-    return `${type}:${this.requestVersion}:${detail ?? 'none'}`;
-  }
-
-  private computeProposalsFingerprint(
-    proposals: readonly AnalysisProposal[],
-  ): string {
-    return proposals.map((proposal) => proposal.id).join('|');
-  }
-
-  private dismissToast(): void {
-    this.analyzerToastSignal.set(null);
-  }
-
-  private triggerResultsHighlight(): void {
-    this.clearHighlightTimer();
-    this.resultsHighlightSignal.set(true);
-
-    if (typeof window === 'undefined') {
-      queueMicrotask(() => {
-        this.resultsHighlightSignal.set(false);
-      });
-      return;
-    }
-
-    this.highlightTimeoutHandle = window.setTimeout(() => {
-      this.resultsHighlightSignal.set(false);
-      this.highlightTimeoutHandle = null;
-    }, 2400);
-  }
-
-  private disableResultsHighlight(): void {
-    this.clearHighlightTimer();
-    this.resultsHighlightSignal.set(false);
-  }
-
-  private clearHighlightTimer(): void {
-    if (this.highlightTimeoutHandle !== null && typeof window !== 'undefined') {
-      window.clearTimeout(this.highlightTimeoutHandle);
-    }
-    this.highlightTimeoutHandle = null;
-  }
-
   /**
    * Creates an automatic objective phrase based on the user's notes.
    *
@@ -321,37 +275,74 @@ export class AnalyzePage {
   private readonly resetAnalyzeForm = (options?: { preserveFeedback?: boolean }): void => {
     this.analyzeForm.reset({ notes: '', objective: '', autoObjective: true });
     this.requestSignal.set(null);
-    this.toastState.set(null);
-    this.highlightResults.set(false);
+    this.dismissToast();
+    this.disableResultsHighlight();
     this.clearVisualTimers();
-    this.previousStatus = null;
+    this.lastTrackedRequest = null;
+    this.requestVersion = 0;
+    this.lastResultFingerprint = null;
     if (!options?.preserveFeedback) {
       this.clearPublishFeedback();
     }
   };
 
   private showLoadingToast(): void {
-    this.toastState.set('loading');
+    this.setToast('loading', 'AI がカード案を生成中です…', { autoDismiss: false });
+  }
+
+  private emitAnalyzerToastOnce(
+    type: Exclude<AnalyzerToastState, 'loading' | 'success'>,
+    message: string,
+    detail?: string,
+  ): boolean {
+    const fingerprint = this.buildResultFingerprint(type, detail);
+    if (this.lastResultFingerprint === fingerprint) {
+      return false;
+    }
+
+    this.lastResultFingerprint = fingerprint;
+    this.setToast(type, message, { autoDismiss: type === 'notice' });
+    return true;
+  }
+
+  private emitSuccessToast(message: string, proposalsFingerprint: string): boolean {
+    const fingerprint = this.buildResultFingerprint('success', proposalsFingerprint);
+    if (this.lastResultFingerprint === fingerprint) {
+      return false;
+    }
+
+    this.lastResultFingerprint = fingerprint;
+    this.setToast('success', message, { autoDismiss: true });
+    return true;
+  }
+
+  private buildResultFingerprint(type: AnalyzerToastState, detail?: string): string {
+    return `${type}:${this.requestVersion}:${detail ?? 'none'}`;
+  }
+
+  private computeProposalsFingerprint(
+    proposals: readonly AnalysisProposal[],
+  ): string {
+    return proposals.map((proposal) => proposal.id).join('|');
+  }
+
+  private dismissToast(): void {
+    this.toastState.set(null);
+    this.toastMessageSignal.set(null);
     this.clearToastTimer();
   }
 
-  private handleAnalysisSuccess(): void {
-    const result = this.analysisResource.value();
-    if (!result) {
-      this.toastState.set(null);
-
-      return;
-    }
-
-    this.toastState.set('success');
-    this.startToastTimer();
-
-    if (this.hasEligibleProposals()) {
-      this.highlightResults.set(true);
-      this.startHighlightTimer();
+  private setToast(
+    state: AnalyzerToastState,
+    message: string,
+    options: { autoDismiss: boolean },
+  ): void {
+    this.toastState.set(state);
+    this.toastMessageSignal.set(message);
+    if (options.autoDismiss) {
+      this.startToastTimer();
     } else {
-      this.highlightResults.set(false);
-      this.clearHighlightTimer();
+      this.clearToastTimer();
     }
   }
 
@@ -364,21 +355,31 @@ export class AnalyzePage {
 
     this.toastTimer = window.setTimeout(() => {
       this.toastState.set(null);
+      this.toastMessageSignal.set(null);
       this.toastTimer = null;
     }, 3800);
   }
 
-  private startHighlightTimer(): void {
-    this.clearHighlightTimer();
+  private triggerResultsHighlight(): void {
+    this.disableResultsHighlight();
+    this.highlightResults.set(true);
 
     if (typeof window === 'undefined') {
+      queueMicrotask(() => {
+        this.highlightResults.set(false);
+      });
       return;
     }
 
     this.highlightTimer = window.setTimeout(() => {
       this.highlightResults.set(false);
       this.highlightTimer = null;
-    }, 1200);
+    }, 2400);
+  }
+
+  private disableResultsHighlight(): void {
+    this.clearHighlightTimer();
+    this.highlightResults.set(false);
   }
 
   private clearVisualTimers(): void {
