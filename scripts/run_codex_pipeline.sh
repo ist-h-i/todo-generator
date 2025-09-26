@@ -36,15 +36,21 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep the response concise and scoped to the responsibilities of this stage so that it can feed the following agent."
 
-  # Run codex in headless mode, capturing the final response for this stage.
-  codex exec \
+  # Run codex in headless mode, capturing the final response for this stage
+  #
+  # We stream the prompt through stdin with `-` so that any leading `-` tokens in
+  # the user-provided task (for example "--task foo") are never interpreted as
+  # CLI options by the codex binary. Passing `--` before the positional argument
+  # ensures argument parsing stops before the trailing `-` placeholder.
+  printf '%s' "${PROMPT}" | codex exec \
     --full-auto \
     --dangerously-bypass-approvals-and-sandbox \
     --cd "${GITHUB_WORKSPACE:-$(pwd)}" \
     --output-last-message "${OUTPUT_FILE}" \
     --config approval_policy=never \
     --config sandbox='"workspace-write"' \
-    "${PROMPT}"
+    -- \
+    -
 
   PREVIOUS_CONTEXT=$(cat "${OUTPUT_FILE}")
 done
