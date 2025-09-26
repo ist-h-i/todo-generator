@@ -650,7 +650,7 @@
 
 .card-overview,
 .card-comments {
-  padding: clamp(var(--space-lg), 2vw, var(--space-xl));
+  padding: clamp(var(--space-xl), 3vw, var(--space-xxl));
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--surface-card) 85%, transparent);
