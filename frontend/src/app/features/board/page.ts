@@ -20,8 +20,6 @@ import {
   Label,
   Status,
   Subtask,
-  TemplateFieldVisibility,
-  DEFAULT_TEMPLATE_FIELDS,
 } from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
 
@@ -65,6 +63,13 @@ const QUICK_FILTER_LABEL_LOOKUP = new Map(
   QUICK_FILTER_OPTIONS.map((option) => [option.id, option.label] as const),
 );
 
+const PRIORITY_LABEL_LOOKUP: Record<Card['priority'], string> = {
+  low: '低',
+  medium: '中',
+  high: '高',
+  urgent: '緊急',
+};
+
 interface CardFormState {
   readonly title: string;
   readonly summary: string;
@@ -91,6 +96,7 @@ interface SubtaskCardView {
   readonly status: SubtaskStatus;
   readonly assignee?: string;
   readonly estimateHours?: number;
+  readonly dueDate?: string;
   readonly highlight: boolean;
   readonly isCompact: boolean;
 }
@@ -108,6 +114,10 @@ const SUBTASK_STATUS_META: readonly SubtaskStatusMeta[] = [
   { id: 'done', title: '完了', accent: '#16a34a' },
   { id: 'non-issue', title: 'NonIssue', accent: '#f59e0b' },
 ];
+
+const SUBTASK_STATUS_META_LOOKUP = new Map(
+  SUBTASK_STATUS_META.map((meta) => [meta.id, meta] as const),
+);
 
 const RESOLVED_SUBTASK_STATUSES = new Set<SubtaskStatus>(['done', 'non-issue']);
 
@@ -133,23 +143,12 @@ export class BoardPage {
   public readonly filteredCardsSignal = this.workspace.filteredCards;
   public readonly statusesSignal = computed(() => this.workspace.settings().statuses);
   public readonly labelsSignal = computed(() => this.workspace.settings().labels);
-  public readonly templatesSignal = computed(() => this.workspace.settings().templates);
   public readonly quickFilters = QUICK_FILTER_OPTIONS;
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
     const lookup = new Map<string, Card>();
     for (const card of this.workspace.cards()) {
       lookup.set(card.id, card);
-    }
-    return lookup;
-  });
-
-  public readonly templateVisibilityByIdSignal = computed<
-    ReadonlyMap<string, TemplateFieldVisibility>
-  >(() => {
-    const lookup = new Map<string, TemplateFieldVisibility>();
-    for (const template of this.templatesSignal()) {
-      lookup.set(template.id, template.fieldVisibility);
     }
     return lookup;
   });
@@ -198,6 +197,7 @@ export class BoardPage {
             status: subtask.status,
             assignee: subtask.assignee,
             estimateHours: subtask.estimateHours,
+            dueDate: subtask.dueDate,
             highlight: card.id === selectedCardId,
             isCompact: this.isSubtaskResolved(subtask),
           });
@@ -228,6 +228,7 @@ export class BoardPage {
     title: '',
     assignee: '',
     estimateHours: '',
+    dueDate: '',
     status: 'todo' as SubtaskStatus,
   });
 
@@ -244,13 +245,51 @@ export class BoardPage {
     { allowSignalWrites: true },
   );
 
-  public readonly commentForm = createSignalForm({
-    message: '',
-    target: 'card' as string,
-  });
-  private readonly editingCommentIdState = signal<string | null>(null);
-  public readonly editingCommentId = this.editingCommentIdState.asReadonly();
+  private readonly commentDraftsState = signal<Record<string, string>>({ card: '' });
+  private readonly editingCommentState = signal<{ id: string; contextId: string } | null>(null);
   public readonly commentAuthorNameSignal = this.workspace.commentAuthorName;
+
+  public readonly commentsByContextSignal = computed<ReadonlyMap<string, readonly CardComment[]>>(
+    () => {
+      const active = this.selectedCardSignal();
+      const grouped = new Map<string, CardComment[]>();
+
+      if (!active) {
+        return grouped;
+      }
+
+      for (const comment of active.comments) {
+        const contextId = comment.subtaskId ?? 'card';
+        const bucket = grouped.get(contextId);
+        if (bucket) {
+          bucket.push(comment);
+        } else {
+          grouped.set(contextId, [comment]);
+        }
+      }
+
+      return grouped;
+    },
+  );
+
+  public readonly orphanedSubtaskCommentsSignal = computed<readonly CardComment[]>(() => {
+    const active = this.selectedCardSignal();
+
+    if (!active) {
+      return [];
+    }
+
+    const existingSubtaskIds = new Set(active.subtasks.map((subtask) => subtask.id));
+
+    const orphaned: CardComment[] = [];
+    for (const comment of active.comments) {
+      if (comment.subtaskId && !existingSubtaskIds.has(comment.subtaskId)) {
+        orphaned.push(comment);
+      }
+    }
+
+    return orphaned;
+  });
 
   private lastCardFormBaseline: CardFormState | null = null;
   private lastSelectedCardId: string | null = null;
@@ -269,11 +308,6 @@ export class BoardPage {
   public readonly isCardFormValid = (): boolean => {
     const snapshot = this.cardForm.value();
     return snapshot.title.trim().length > 0 && snapshot.statusId.trim().length > 0;
-  };
-
-  public readonly isCommentFormValid = (): boolean => {
-    const snapshot = this.commentForm.value();
-    return snapshot.message.trim().length > 0;
   };
 
   public readonly isNewSubtaskFormValid = (): boolean =>
@@ -410,9 +444,15 @@ export class BoardPage {
           this.cardForm.reset(fallback);
         }
         this.lastCardFormBaseline = fallback;
-        this.commentForm.reset({ message: '', target: 'card' });
-        this.editingCommentIdState.set(null);
-        this.newSubtaskForm.reset({ title: '', assignee: '', estimateHours: '', status: 'todo' });
+        this.commentDraftsState.set({ card: '' });
+        this.editingCommentState.set(null);
+        this.newSubtaskForm.reset({
+          title: '',
+          assignee: '',
+          estimateHours: '',
+          dueDate: '',
+          status: 'todo',
+        });
         this.lastSelectedCardId = null;
         return;
       }
@@ -446,15 +486,13 @@ export class BoardPage {
       }
 
       if (selectedCardChanged) {
-        this.commentForm.reset({
-          message: '',
-          target: 'card',
-        });
-        this.editingCommentIdState.set(null);
+        this.commentDraftsState.set({ card: '' });
+        this.editingCommentState.set(null);
         this.newSubtaskForm.reset({
           title: '',
           assignee: '',
           estimateHours: '',
+          dueDate: '',
           status: 'todo',
         });
       }
@@ -493,60 +531,70 @@ export class BoardPage {
     });
   };
 
-  public readonly saveComment = (event: Event): void => {
-    event.preventDefault();
+  private readonly setCommentDraft = (contextId: string, value: string): void => {
+    this.commentDraftsState.update((drafts) => ({ ...drafts, [contextId]: value }));
+  };
 
-    const active = this.selectedCardSignal();
-    if (!active || !this.isCommentFormValid()) {
+  public readonly commentDraftValue = (contextId: string): string =>
+    this.commentDraftsState()[contextId] ?? '';
+
+  public readonly updateCommentDraft = (contextId: string, value: string): void => {
+    this.setCommentDraft(contextId, value);
+  };
+
+  public readonly isCommentDraftValid = (contextId: string): boolean =>
+    this.commentDraftValue(contextId).trim().length > 0;
+
+  public readonly isContextBeingEdited = (contextId: string): boolean =>
+    this.editingCommentState()?.contextId === contextId;
+
+  public readonly commentsForContext = (contextId: string): readonly CardComment[] =>
+    this.commentsByContextSignal().get(contextId) ?? [];
+
+  public readonly startEditingComment = (comment: CardComment): void => {
+    const contextId = comment.subtaskId ?? 'card';
+    this.editingCommentState.set({ id: comment.id, contextId });
+    this.setCommentDraft(contextId, comment.message);
+  };
+
+  public readonly cancelCommentEditing = (): void => {
+    const editing = this.editingCommentState();
+    if (!editing) {
       return;
     }
 
-    const snapshot = this.commentForm.value();
-    const message = snapshot.message.trim();
+    this.editingCommentState.set(null);
+    this.setCommentDraft(editing.contextId, '');
+  };
 
-    const target = snapshot.target;
-    const subtaskId =
-      target !== 'card' && active.subtasks.some((subtask) => subtask.id === target)
-        ? target
-        : undefined;
+  public readonly isCommentBeingEdited = (commentId: string): boolean =>
+    this.editingCommentState()?.id === commentId;
 
-    const editingCommentId = this.editingCommentIdState();
-    if (editingCommentId) {
-      this.workspace.updateComment(active.id, editingCommentId, { message, subtaskId });
+  public readonly saveCommentForContext = (contextId: string, event: Event): void => {
+    event.preventDefault();
+
+    const active = this.selectedCardSignal();
+    if (!active || !this.isCommentDraftValid(contextId)) {
+      return;
+    }
+
+    const message = this.commentDraftValue(contextId).trim();
+    const subtaskId = contextId === 'card' ? undefined : contextId;
+    const editing = this.editingCommentState();
+
+    if (editing && editing.contextId === contextId) {
+      this.workspace.updateComment(active.id, editing.id, { message, subtaskId });
+      this.editingCommentState.set(null);
     } else {
       this.workspace.addComment(active.id, { message, subtaskId });
     }
 
-    this.commentForm.reset({
-      message: '',
-      target: subtaskId ?? 'card',
-    });
-    this.editingCommentIdState.set(null);
+    this.setCommentDraft(contextId, '');
   };
-
-  public readonly getSubtaskTitle = (subtasks: readonly Subtask[], subtaskId: string): string => {
-    const match = subtasks.find((subtask) => subtask.id === subtaskId);
-    return match ? match.title : '不明なサブタスク';
-  };
-
-  public readonly startEditingComment = (comment: CardComment): void => {
-    this.editingCommentIdState.set(comment.id);
-    this.commentForm.reset({
-      message: comment.message,
-      target: comment.subtaskId ?? 'card',
-    });
-  };
-
-  public readonly cancelCommentEditing = (): void => {
-    this.editingCommentIdState.set(null);
-    this.commentForm.reset({ message: '', target: 'card' });
-  };
-
-  public readonly isCommentBeingEdited = (commentId: string): boolean =>
-    this.editingCommentIdState() === commentId;
 
   public readonly removeComment = (cardId: string, commentId: string): void => {
-    if (this.editingCommentIdState() === commentId) {
+    const editing = this.editingCommentState();
+    if (editing && editing.id === commentId) {
       this.cancelCommentEditing();
     }
     this.workspace.removeComment(cardId, commentId);
@@ -591,6 +639,17 @@ export class BoardPage {
     this.workspace.updateSubtaskDetails(cardId, subtaskId, { estimateHours: parsed });
   };
 
+  public readonly updateSubtaskDueDate = (
+    cardId: string,
+    subtaskId: string,
+    value: string,
+  ): void => {
+    const raw = value.trim();
+    this.workspace.updateSubtaskDetails(cardId, subtaskId, {
+      dueDate: raw.length > 0 ? raw : undefined,
+    });
+  };
+
   public readonly changeSubtaskStatus = (
     cardId: string,
     subtaskId: string,
@@ -615,6 +674,7 @@ export class BoardPage {
     const title = snapshot.title.trim();
     const assignee = snapshot.assignee.trim();
     const rawEstimate = snapshot.estimateHours.trim();
+    const rawDueDate = snapshot.dueDate.trim();
     const parsedEstimate = rawEstimate.length > 0 ? Number(rawEstimate) : undefined;
 
     this.workspace.addSubtask(active.id, {
@@ -625,12 +685,14 @@ export class BoardPage {
         parsedEstimate !== undefined && Number.isFinite(parsedEstimate)
           ? parsedEstimate
           : undefined,
+      dueDate: rawDueDate.length > 0 ? rawDueDate : undefined,
     });
 
     this.newSubtaskForm.reset({
       title: '',
       assignee: '',
       estimateHours: '',
+      dueDate: '',
       status: snapshot.status,
     });
   };
@@ -643,44 +705,21 @@ export class BoardPage {
     return status?.color ?? DEFAULT_STATUS_COLOR;
   };
 
-  public readonly cardFieldVisibility = (card: Card): TemplateFieldVisibility => {
-    if (!card.templateId) {
-      return DEFAULT_TEMPLATE_FIELDS;
-    }
-
-    return this.templateVisibilityByIdSignal().get(card.templateId) ?? DEFAULT_TEMPLATE_FIELDS;
-  };
-
-  public readonly templateFieldLabels = (card: Card): readonly string[] => {
-    if (!card.templateId) {
-      return [];
-    }
-
-    const visibility = this.cardFieldVisibility(card);
-    const fields: string[] = [];
-
-    if (visibility.showStoryPoints) {
-      fields.push('ストーリーポイント');
-    }
-    if (visibility.showDueDate) {
-      fields.push('期限日');
-    }
-    if (visibility.showAssignee) {
-      fields.push('担当者');
-    }
-    if (visibility.showConfidence) {
-      fields.push('AIおすすめ度');
-    }
-
-    return fields;
-  };
-
   public readonly columnAccent = (column: BoardColumnView): string => column.accent;
 
   public readonly statusName = (statusId: string): string => {
     const status = this.statusesByIdSignal().get(statusId);
     return status ? status.name : statusId;
   };
+
+  public readonly subtaskStatusLabel = (status: SubtaskStatus): string =>
+    SUBTASK_STATUS_META_LOOKUP.get(status)?.title ?? status;
+
+  public readonly subtaskStatusAccent = (status: SubtaskStatus): string =>
+    SUBTASK_STATUS_META_LOOKUP.get(status)?.accent ?? DEFAULT_STATUS_COLOR;
+
+  public readonly priorityLabel = (priority: Card['priority']): string =>
+    PRIORITY_LABEL_LOOKUP[priority] ?? priority;
 
   public readonly labelName = (labelId: string): string => {
     const label = this.labelsByIdSignal().get(labelId);
