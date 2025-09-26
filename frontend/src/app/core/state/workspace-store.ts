@@ -208,7 +208,7 @@ const buildSubtasks = (titles: readonly string[]): Subtask[] =>
 const INITIAL_CARDS: Card[] = [
   {
     id: createId(),
-    title: 'ChatGPT プロンプトの改善',
+    title: 'カード詳細情報',
     summary: '分析精度向上のための新しいプロンプト設計を検証します。',
     statusId: 'in-progress',
     labelIds: ['ai'],
