@@ -68,7 +68,6 @@
   --border-card-strong: color-mix(in srgb, var(--surface-inverse) 28%, transparent);
   --border-overlay: color-mix(in srgb, var(--text-tertiary) 34%, transparent);
   --border-overlay-strong: color-mix(in srgb, var(--text-tertiary) 44%, transparent);
-  --shadow-elevated: 0 26px 48px -32px color-mix(in srgb, var(--surface-inverse) 45%, transparent);
   --radius-lg: 1.5rem;
   --radius-xl: 1.75rem;
   --space-xxs: 4px;
@@ -153,7 +152,6 @@
   --border-card-strong: color-mix(in srgb, var(--surface-inverse) 42%, transparent);
   --border-overlay: color-mix(in srgb, var(--text-inverse-tertiary) 38%, transparent);
   --border-overlay-strong: color-mix(in srgb, var(--text-inverse-tertiary) 48%, transparent);
-  --shadow-elevated: 0 30px 52px -30px color-mix(in srgb, var(--surface-inverse) 32%, transparent);
   color-scheme: dark;
 }
 

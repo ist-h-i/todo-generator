@@ -16,7 +16,7 @@
 .board-summary.surface-panel,
 .board-filters.surface-panel {
   border-color: var(--border-card);
-  background: linear-gradient(180deg, var(--surface-card), var(--surface-card-muted));
+  background: var(--surface-card);
 }
 
 .board-filters.surface-panel {
@@ -345,14 +345,14 @@
   padding: var(--space-lg);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
+  background: var(--surface-card);
   transition:
     border-color 150ms ease,
     background-color 150ms ease;
 }
 
 .dark .board-page .board-column {
-  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
+  background: color-mix(in srgb, var(--surface-card) 92%, transparent);
 }
 
 .board-column__title {
@@ -422,7 +422,7 @@
   gap: var(--space-md);
   padding: var(--space-lg);
   border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
+  background: var(--surface-card);
   overflow: hidden;
   transition:
     transform 150ms ease,
@@ -433,11 +433,7 @@
 .board-card:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border-card));
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--surface-layer-1) 90%, var(--accent-muted) 10%),
-    color-mix(in srgb, var(--surface-layer-2) 86%, var(--accent-muted) 14%)
-  );
+  background: color-mix(in srgb, var(--surface-card) 92%, var(--accent-muted) 8%);
 }
 
 .board-card__select {
@@ -542,7 +538,7 @@
 .board-page .cdk-drag-preview {
   border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-card));
-  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
+  background: var(--surface-card);
 }
 
 .board-page .cdk-drag-placeholder {
@@ -559,6 +555,15 @@
 
 .subtask-card {
   gap: var(--space-md);
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
+}
+
+.subtask-card:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-layer-1) 90%, var(--accent-muted) 10%),
+    color-mix(in srgb, var(--surface-layer-2) 86%, var(--accent-muted) 14%)
+  );
 }
 
 .subtask-card-labels {
@@ -594,7 +599,7 @@
   padding: var(--panel-padding);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
+  background: var(--surface-card);
 }
 
 .board-detail__grid {
@@ -888,7 +893,7 @@
   padding: var(--space-lg);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
+  background: var(--surface-card);
 }
 
 .board-detail__section-header {
@@ -938,11 +943,7 @@
 
 .dark .board-page .board-column,
 .dark .board-page .board-detail__section {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--surface-strong) 88%, transparent),
-    color-mix(in srgb, var(--surface) 92%, transparent)
-  );
+  background: color-mix(in srgb, var(--surface-card) 88%, transparent);
 }
 
 .dark .board-page .board-empty,
