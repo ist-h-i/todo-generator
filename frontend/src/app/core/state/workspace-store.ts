@@ -5,9 +5,18 @@ import { AuthService } from '@core/auth/auth.service';
 import {
   CardCreateRequest,
   CardResponse,
+  CardUpdateRequest,
   CardsApiService,
+  SubtaskCreateRequest,
   SubtaskResponse,
+  SubtaskUpdateRequest,
 } from '@core/api/cards-api.service';
+import {
+  CommentCreateRequest,
+  CommentResponse,
+  CommentUpdateRequest,
+  CommentsApiService,
+} from '@core/api/comments-api.service';
 import { Logger } from '@core/logger/logger';
 import {
   AnalysisProposal,
@@ -16,6 +25,7 @@ import {
   BoardGrouping,
   BoardQuickFilter,
   Card,
+  CardComment,
   Label,
   Status,
   Subtask,
@@ -309,6 +319,17 @@ const mapSubtaskFromResponse = (source: SubtaskResponse): Subtask => ({
   dueDate: sanitizeDateString(source.due_date),
 });
 
+const mapCommentFromResponse = (source: CommentResponse): CardComment => ({
+  id: source.id,
+  authorId: sanitizeString(source.author_id),
+  authorNickname:
+    sanitizeString(source.author_nickname) ?? sanitizeString(source.author_id) ?? '匿名ユーザー',
+  message: source.content,
+  createdAt: sanitizeDateTime(source.created_at),
+  updatedAt: sanitizeDateTime(source.updated_at),
+  subtaskId: sanitizeString(source.subtask_id),
+});
+
 const mapCardFromResponse = (source: CardResponse, fallbackStatusId: string): Card => {
   const rawLabelIds = dedupeIds([
     ...((source.label_ids ?? []) as readonly (string | null | undefined)[]),
@@ -531,10 +552,7 @@ type CardDetailUpdate = Partial<
 
 type SubtaskDetailUpdate = Partial<Omit<Subtask, 'id'>>;
 
-type Mutable<T> = { -readonly [P in keyof T]: T[P] };
-
-type MutableCard = Mutable<Card>;
-type MutableSubtask = Mutable<Subtask>;
+type Writable<T> = { -readonly [P in keyof T]: T[P] };
 
 const INITIAL_LABELS: Label[] = [
   { id: 'frontend', name: 'フロントエンド', color: '#38bdf8' },
@@ -617,6 +635,7 @@ type CardSuggestionPayload = {
 export class WorkspaceStore {
   private readonly auth = inject(AuthService);
   private readonly cardsApi = inject(CardsApiService);
+  private readonly commentsApi = inject(CommentsApiService);
   private readonly logger = inject(Logger);
   private readonly storage = this.resolveStorage();
   private readonly activeUserId = computed(() => this.auth.user()?.id ?? null);
@@ -1071,16 +1090,7 @@ export class WorkspaceStore {
    * @param statusId - New status.
    */
   public readonly updateCardStatus = (cardId: string, statusId: string): void => {
-    this.cardsSignal.update((cards) =>
-      cards.map((card) =>
-        card.id === cardId
-          ? {
-              ...card,
-              statusId,
-            }
-          : card,
-      ),
-    );
+    this.updateCardDetails(cardId, { statusId });
   };
 
   /**
@@ -1089,24 +1099,25 @@ export class WorkspaceStore {
    * @param cardId - Identifier of the card to delete.
    */
   public readonly removeCard = (cardId: string): void => {
-    let removed = false;
+    const cards = this.cardsSignal();
+    const next = cards.filter((card) => card.id !== cardId);
+    if (next.length === cards.length) {
+      return;
+    }
 
-    this.cardsSignal.update((cards) => {
-      const next = cards.filter((card) => {
-        if (card.id === cardId) {
-          removed = true;
-          return false;
-        }
-
-        return true;
-      });
-
-      return removed ? next : cards;
-    });
-
-    if (removed && this.selectedCardIdSignal() === cardId) {
+    const previousSelection = this.selectedCardIdSignal();
+    this.cardsSignal.set(next);
+    if (previousSelection === cardId) {
       this.selectedCardIdSignal.set(null);
     }
+
+    void firstValueFrom(this.cardsApi.deleteCard(cardId)).catch((error) => {
+      this.logger.error('WorkspaceStore', error);
+      this.cardsSignal.set(cards);
+      if (previousSelection) {
+        this.selectedCardIdSignal.set(previousSelection);
+      }
+    });
   };
 
   public readonly updateSubtaskStatus = (
@@ -1114,23 +1125,7 @@ export class WorkspaceStore {
     subtaskId: string,
     status: Subtask['status'],
   ): void => {
-    this.cardsSignal.update((cards) =>
-      cards.map((card) =>
-        card.id === cardId
-          ? {
-              ...card,
-              subtasks: card.subtasks.map((subtask) =>
-                subtask.id === subtaskId
-                  ? {
-                      ...subtask,
-                      status,
-                    }
-                  : subtask,
-              ),
-            }
-          : card,
-      ),
-    );
+    this.updateSubtaskDetails(cardId, subtaskId, { status });
   };
 
   /**
@@ -1148,31 +1143,48 @@ export class WorkspaceStore {
       return;
     }
 
+    const card = this.getCard(cardId);
+    if (!card) {
+      return;
+    }
+
     const timestamp = new Date().toISOString();
     const authorNickname = this.commentAuthorName();
-    const authorId = this.currentUserId();
+    const authorId = this.currentUserId() ?? undefined;
+    const placeholderId = createId();
+    const placeholder: CardComment = {
+      id: placeholderId,
+      authorId,
+      authorNickname,
+      message,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      subtaskId: payload.subtaskId,
+    };
 
     this.cardsSignal.update((cards) =>
-      cards.map((card) =>
-        card.id === cardId
-          ? {
-              ...card,
-              comments: [
-                ...card.comments,
-                {
-                  id: createId(),
-                  authorId: authorId ?? undefined,
-                  authorNickname,
-                  message,
-                  createdAt: timestamp,
-                  updatedAt: timestamp,
-                  subtaskId: payload.subtaskId,
-                },
-              ],
-            }
-          : card,
+      cards.map((item) =>
+        item.id === cardId
+          ? ({ ...item, comments: [...item.comments, placeholder] } satisfies Card)
+          : item,
       ),
     );
+
+    const request: CommentCreateRequest = {
+      card_id: cardId,
+      content: message,
+      subtask_id: payload.subtaskId ?? null,
+    };
+
+    void firstValueFrom(this.commentsApi.createComment(request))
+      .then((response) => {
+        const mapped = mapCommentFromResponse(response);
+        this.replaceComment(cardId, placeholderId, mapped);
+      })
+      .catch((error) => {
+        this.logger.error('WorkspaceStore', error);
+        this.removeCommentLocal(cardId, placeholderId);
+      });
   };
 
   public readonly updateComment = (
@@ -1185,32 +1197,40 @@ export class WorkspaceStore {
       return;
     }
 
+    const card = this.getCard(cardId);
+    if (!card) {
+      return;
+    }
+
+    const existing = card.comments.find((comment) => comment.id === commentId);
+    if (!existing) {
+      return;
+    }
+
     const timestamp = new Date().toISOString();
+    const updated: CardComment = {
+      ...existing,
+      message,
+      subtaskId: changes.subtaskId,
+      updatedAt: timestamp,
+    };
 
-    this.cardsSignal.update((cards) =>
-      cards.map((card) => {
-        if (card.id !== cardId) {
-          return card;
-        }
+    this.replaceComment(cardId, commentId, updated);
 
-        let mutated = false;
-        const comments = card.comments.map((comment) => {
-          if (comment.id !== commentId) {
-            return comment;
-          }
+    const request: CommentUpdateRequest = {
+      content: message,
+      subtask_id: changes.subtaskId ?? null,
+    };
 
-          mutated = true;
-          return {
-            ...comment,
-            message,
-            subtaskId: changes.subtaskId,
-            updatedAt: timestamp,
-          };
-        });
-
-        return mutated ? { ...card, comments } : card;
-      }),
-    );
+    void firstValueFrom(this.commentsApi.updateComment(commentId, request))
+      .then((response) => {
+        const mapped = mapCommentFromResponse(response);
+        this.replaceComment(cardId, commentId, mapped);
+      })
+      .catch((error) => {
+        this.logger.error('WorkspaceStore', error);
+        this.replaceComment(cardId, commentId, existing);
+      });
   };
 
   /**
@@ -1220,63 +1240,64 @@ export class WorkspaceStore {
    * @param changes - Subset of fields to update.
    */
   public readonly updateCardDetails = (cardId: string, changes: CardDetailUpdate): void => {
-    this.cardsSignal.update((cards) =>
-      cards.map((card) => {
-        if (card.id !== cardId) {
-          return card;
-        }
+    const card = this.getCard(cardId);
+    if (!card) {
+      return;
+    }
 
-        let mutated = false;
-        const next: MutableCard = { ...card };
+    const updates: Partial<Writable<Card>> = {};
+    const payload: CardUpdateRequest = {};
 
-        if ('title' in changes && changes.title !== undefined) {
-          const title = changes.title.trim();
-          if (title && title !== card.title) {
-            next.title = title;
-            mutated = true;
-          }
-        }
+    if ('title' in changes && changes.title !== undefined) {
+      const title = changes.title.trim();
+      if (title && title !== card.title) {
+        updates.title = title;
+        payload.title = title;
+      }
+    }
 
-        if ('summary' in changes && changes.summary !== undefined) {
-          const summary = changes.summary.trim();
-          if (summary !== card.summary) {
-            next.summary = summary;
-            mutated = true;
-          }
-        }
+    if ('summary' in changes && changes.summary !== undefined) {
+      const summary = changes.summary.trim();
+      if (summary !== card.summary) {
+        updates.summary = summary;
+        payload.summary = summary;
+      }
+    }
 
-        if ('statusId' in changes && changes.statusId && changes.statusId !== card.statusId) {
-          next.statusId = changes.statusId;
-          mutated = true;
-        }
+    if ('statusId' in changes && changes.statusId !== undefined) {
+      const statusId = sanitizeString(changes.statusId);
+      if (statusId && statusId !== card.statusId) {
+        updates.statusId = statusId;
+        payload.status_id = statusId;
+      }
+    }
 
-        if ('priority' in changes && changes.priority && changes.priority !== card.priority) {
-          next.priority = changes.priority;
-          mutated = true;
-        }
+    if ('priority' in changes && changes.priority && changes.priority !== card.priority) {
+      updates.priority = changes.priority;
+      payload.priority = changes.priority;
+    }
 
-        if ('assignee' in changes) {
-          const normalized = changes.assignee?.trim();
-          const assignee = normalized && normalized.length > 0 ? normalized : undefined;
-          if (assignee !== card.assignee) {
-            next.assignee = assignee;
-            mutated = true;
-          }
-        }
+    if ('assignee' in changes) {
+      const normalized = changes.assignee?.trim();
+      const assignee = normalized && normalized.length > 0 ? normalized : undefined;
+      if (assignee !== card.assignee) {
+        updates.assignee = assignee;
+        payload.assignees = assignee ? [assignee] : [];
+      }
+    }
 
-        if ('storyPoints' in changes && changes.storyPoints !== undefined) {
-          const storyPoints = Number.isFinite(changes.storyPoints)
-            ? Math.max(0, changes.storyPoints)
-            : card.storyPoints;
-          if (storyPoints !== card.storyPoints) {
-            next.storyPoints = storyPoints;
-            mutated = true;
-          }
-        }
+    if ('storyPoints' in changes && changes.storyPoints !== undefined) {
+      const numeric = changes.storyPoints;
+      const storyPoints = Number.isFinite(numeric)
+        ? Math.max(0, Math.round(numeric))
+        : card.storyPoints;
+      if (storyPoints !== card.storyPoints) {
+        updates.storyPoints = storyPoints;
+        payload.story_points = storyPoints;
+      }
+    }
 
-        return mutated ? (next as Card) : card;
-      }),
-    );
+    this.persistCardUpdate(cardId, updates, payload);
   };
 
   /**
@@ -1286,23 +1307,15 @@ export class WorkspaceStore {
    * @param commentId - Identifier of the comment to delete.
    */
   public readonly removeComment = (cardId: string, commentId: string): void => {
-    this.cardsSignal.update((cards) =>
-      cards.map((card) => {
-        if (card.id !== cardId) {
-          return card;
-        }
+    const removed = this.removeCommentLocal(cardId, commentId);
+    if (!removed) {
+      return;
+    }
 
-        const comments = card.comments.filter((comment) => comment.id !== commentId);
-        if (comments.length === card.comments.length) {
-          return card;
-        }
-
-        return {
-          ...card,
-          comments,
-        } satisfies Card;
-      }),
-    );
+    void firstValueFrom(this.commentsApi.deleteComment(commentId)).catch((error) => {
+      this.logger.error('WorkspaceStore', error);
+      this.insertComment(cardId, removed.comment, removed.index);
+    });
   };
 
   /**
@@ -1326,6 +1339,11 @@ export class WorkspaceStore {
       return;
     }
 
+    const card = this.getCard(cardId);
+    if (!card) {
+      return;
+    }
+
     const normalizedAssignee = payload.assignee?.trim();
     const assignee =
       normalizedAssignee && normalizedAssignee.length > 0 ? normalizedAssignee : undefined;
@@ -1333,30 +1351,46 @@ export class WorkspaceStore {
       payload.estimateHours !== undefined && Number.isFinite(payload.estimateHours)
         ? Math.max(0, payload.estimateHours)
         : undefined;
-
     const normalizedDueDate = payload.dueDate?.trim();
     const dueDate =
       normalizedDueDate && normalizedDueDate.length > 0 ? normalizedDueDate : undefined;
+    const status = payload.status ?? 'todo';
 
-    const subtask: Subtask = {
-      id: createId(),
+    const placeholderId = createId();
+    const optimistic: Subtask = {
+      id: placeholderId,
       title,
-      status: payload.status ?? 'todo',
+      status,
       assignee,
       estimateHours: estimate,
       dueDate,
     };
 
     this.cardsSignal.update((cards) =>
-      cards.map((card) =>
-        card.id === cardId
-          ? ({
-              ...card,
-              subtasks: [...card.subtasks, subtask],
-            } satisfies Card)
-          : card,
+      cards.map((item) =>
+        item.id === cardId
+          ? ({ ...item, subtasks: [...item.subtasks, optimistic] } satisfies Card)
+          : item,
       ),
     );
+
+    const request: SubtaskCreateRequest = {
+      title,
+      status,
+      assignee: assignee ?? null,
+      estimate_hours: estimate ?? null,
+      due_date: dueDate ?? null,
+    };
+
+    void firstValueFrom(this.cardsApi.createSubtask(cardId, request))
+      .then((response) => {
+        const mapped = mapSubtaskFromResponse(response);
+        this.replaceSubtask(cardId, placeholderId, mapped);
+      })
+      .catch((error) => {
+        this.logger.error('WorkspaceStore', error);
+        this.removeSubtaskLocal(cardId, placeholderId);
+      });
   };
 
   /**
@@ -1371,86 +1405,93 @@ export class WorkspaceStore {
     subtaskId: string,
     changes: SubtaskDetailUpdate,
   ): void => {
+    const card = this.getCard(cardId);
+    if (!card) {
+      return;
+    }
+
+    const existing = card.subtasks.find((subtask) => subtask.id === subtaskId);
+    if (!existing) {
+      return;
+    }
+
+    const updates: Partial<Writable<Subtask>> = {};
+    const payload: SubtaskUpdateRequest = {};
+
+    if ('title' in changes && changes.title !== undefined) {
+      const title = changes.title.trim();
+      if (title && title !== existing.title) {
+        updates.title = title;
+        payload.title = title;
+      }
+    }
+
+    if ('assignee' in changes) {
+      const normalized = changes.assignee?.trim();
+      const assignee = normalized && normalized.length > 0 ? normalized : undefined;
+      if (assignee !== existing.assignee) {
+        updates.assignee = assignee;
+        payload.assignee = assignee ?? null;
+      }
+    }
+
+    if ('estimateHours' in changes) {
+      const raw = changes.estimateHours;
+      let estimate: number | undefined;
+      if (raw === undefined) {
+        estimate = undefined;
+      } else if (Number.isFinite(raw)) {
+        estimate = Math.max(0, raw);
+      } else {
+        estimate = existing.estimateHours;
+      }
+      if (estimate !== existing.estimateHours) {
+        updates.estimateHours = estimate;
+        payload.estimate_hours = estimate ?? null;
+      }
+    }
+
+    if ('dueDate' in changes) {
+      const raw = changes.dueDate?.trim();
+      const dueDate = raw && raw.length > 0 ? raw : undefined;
+      if (dueDate !== existing.dueDate) {
+        updates.dueDate = dueDate;
+        payload.due_date = dueDate ?? null;
+      }
+    }
+
+    if ('status' in changes && changes.status && changes.status !== existing.status) {
+      updates.status = changes.status;
+      payload.status = changes.status;
+    }
+
+    if (!this.payloadHasChanges(payload)) {
+      return;
+    }
+
     this.cardsSignal.update((cards) =>
-      cards.map((card) => {
-        if (card.id !== cardId) {
-          return card;
+      cards.map((item) => {
+        if (item.id !== cardId) {
+          return item;
         }
 
-        let mutated = false;
-        const subtasks = card.subtasks.map((subtask) => {
-          if (subtask.id !== subtaskId) {
-            return subtask;
-          }
+        const subtasks = item.subtasks.map((subtask) =>
+          subtask.id === subtaskId ? ({ ...subtask, ...updates } satisfies Subtask) : subtask,
+        );
 
-          let subtaskMutated = false;
-          const next: MutableSubtask = { ...subtask };
-
-          if ('title' in changes && changes.title !== undefined) {
-            const title = changes.title.trim();
-            if (title && title !== subtask.title) {
-              next.title = title;
-              subtaskMutated = true;
-            }
-          }
-
-          if ('assignee' in changes) {
-            const normalized = changes.assignee?.trim();
-            const assignee = normalized && normalized.length > 0 ? normalized : undefined;
-            if (assignee !== subtask.assignee) {
-              next.assignee = assignee;
-              subtaskMutated = true;
-            }
-          }
-
-          if ('estimateHours' in changes) {
-            const raw = changes.estimateHours;
-            let estimate: number | undefined;
-            if (raw === undefined) {
-              estimate = undefined;
-            } else if (Number.isFinite(raw)) {
-              estimate = Math.max(0, raw);
-            } else {
-              estimate = subtask.estimateHours;
-            }
-            if (estimate !== subtask.estimateHours) {
-              next.estimateHours = estimate;
-              subtaskMutated = true;
-            }
-          }
-
-          if ('dueDate' in changes) {
-            const raw = changes.dueDate?.trim();
-            const dueDate = raw && raw.length > 0 ? raw : undefined;
-            if (dueDate !== subtask.dueDate) {
-              next.dueDate = dueDate;
-              subtaskMutated = true;
-            }
-          }
-
-          if ('status' in changes && changes.status && changes.status !== subtask.status) {
-            next.status = changes.status;
-            subtaskMutated = true;
-          }
-
-          if (subtaskMutated) {
-            mutated = true;
-            return next as Subtask;
-          }
-
-          return subtask;
-        });
-
-        if (!mutated) {
-          return card;
-        }
-
-        return {
-          ...card,
-          subtasks,
-        } satisfies Card;
+        return { ...item, subtasks } satisfies Card;
       }),
     );
+
+    void firstValueFrom(this.cardsApi.updateSubtask(cardId, subtaskId, payload))
+      .then((response) => {
+        const mapped = mapSubtaskFromResponse(response);
+        this.replaceSubtask(cardId, subtaskId, mapped);
+      })
+      .catch((error) => {
+        this.logger.error('WorkspaceStore', error);
+        this.replaceSubtask(cardId, subtaskId, existing);
+      });
   };
 
   /**
@@ -1460,23 +1501,15 @@ export class WorkspaceStore {
    * @param subtaskId - Identifier of the subtask to remove.
    */
   public readonly removeSubtask = (cardId: string, subtaskId: string): void => {
-    this.cardsSignal.update((cards) =>
-      cards.map((card) => {
-        if (card.id !== cardId) {
-          return card;
-        }
+    const removed = this.removeSubtaskLocal(cardId, subtaskId);
+    if (!removed) {
+      return;
+    }
 
-        const subtasks = card.subtasks.filter((subtask) => subtask.id !== subtaskId);
-        if (subtasks.length === card.subtasks.length) {
-          return card;
-        }
-
-        return {
-          ...card,
-          subtasks,
-        } satisfies Card;
-      }),
-    );
+    void firstValueFrom(this.cardsApi.deleteSubtask(cardId, subtaskId)).catch((error) => {
+      this.logger.error('WorkspaceStore', error);
+      this.insertSubtask(cardId, removed.subtask, removed.index);
+    });
   };
 
   /**
@@ -1591,17 +1624,17 @@ export class WorkspaceStore {
    * @param labelIds - Next label identifiers selected by the user.
    */
   public readonly updateCardLabels = (cardId: string, labelIds: readonly string[]): void => {
-    const unique = Array.from(new Set(labelIds));
-    this.cardsSignal.update((cards) =>
-      cards.map((card) =>
-        card.id === cardId
-          ? {
-              ...card,
-              labelIds: unique,
-            }
-          : card,
-      ),
-    );
+    const sanitized = labelIds
+      .map((labelId) => sanitizeString(labelId))
+      .filter((labelId): labelId is string => Boolean(labelId));
+    const uniqueIds = unique(sanitized);
+
+    const card = this.getCard(cardId);
+    if (!card || arraysEqual(card.labelIds, uniqueIds)) {
+      return;
+    }
+
+    this.persistCardUpdate(cardId, { labelIds: uniqueIds }, { label_ids: uniqueIds });
   };
 
   /**
@@ -1954,6 +1987,188 @@ export class WorkspaceStore {
     const mappedCards = response.map((card) => mapCardFromResponse(card, fallbackStatusId));
     this.cardsSignal.set(mappedCards);
     this.reconcileCardsForSettings(this.settingsSignal());
+  }
+
+  private payloadHasChanges(payload: unknown): boolean {
+    if (!payload || typeof payload !== 'object') {
+      return false;
+    }
+
+    return Object.values(payload as Record<string, unknown>).some((value) => value !== undefined);
+  }
+
+  private persistCardUpdate(
+    cardId: string,
+    updates: Partial<Writable<Card>>,
+    payload: CardUpdateRequest,
+  ): void {
+    if (!this.payloadHasChanges(payload)) {
+      return;
+    }
+
+    const previous = this.getCard(cardId);
+    if (!previous) {
+      return;
+    }
+
+    let mutated = false;
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        mutated = true;
+        return { ...card, ...updates } satisfies Card;
+      }),
+    );
+
+    if (!mutated) {
+      return;
+    }
+
+    void firstValueFrom(this.cardsApi.updateCard(cardId, payload))
+      .then((response) => this.mergeCardResponse(response))
+      .catch((error) => {
+        this.logger.error('WorkspaceStore', error);
+        this.restoreCard(cardId, previous);
+      });
+  }
+
+  private mergeCardResponse(response: CardResponse): void {
+    const fallbackStatusId = this.settingsSignal().defaultStatusId;
+    const mapped = mapCardFromResponse(response, fallbackStatusId);
+
+    this.cardsSignal.update((cards) =>
+      cards.map((card) =>
+        card.id === mapped.id
+          ? ({
+              ...mapped,
+              templateId: card.templateId,
+              comments: card.comments,
+              activities: card.activities,
+              originSuggestionId: card.originSuggestionId,
+            } satisfies Card)
+          : card,
+      ),
+    );
+  }
+
+  private replaceSubtask(cardId: string, subtaskId: string, replacement: Subtask): void {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        const subtasks = card.subtasks.map((subtask) =>
+          subtask.id === subtaskId ? replacement : subtask,
+        );
+        return { ...card, subtasks } satisfies Card;
+      }),
+    );
+  }
+
+  private removeSubtaskLocal(
+    cardId: string,
+    subtaskId: string,
+  ): { subtask: Subtask; index: number } | null {
+    let removed: { subtask: Subtask; index: number } | null = null;
+
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        const index = card.subtasks.findIndex((subtask) => subtask.id === subtaskId);
+        if (index === -1) {
+          return card;
+        }
+
+        removed = { subtask: card.subtasks[index], index };
+        const subtasks = card.subtasks.filter((subtask) => subtask.id !== subtaskId);
+        return { ...card, subtasks } satisfies Card;
+      }),
+    );
+
+    return removed;
+  }
+
+  private replaceComment(cardId: string, commentId: string, replacement: CardComment): void {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        const comments = card.comments.map((comment) =>
+          comment.id === commentId ? replacement : comment,
+        );
+
+        return { ...card, comments } satisfies Card;
+      }),
+    );
+  }
+
+  private removeCommentLocal(
+    cardId: string,
+    commentId: string,
+  ): { comment: CardComment; index: number } | null {
+    let removed: { comment: CardComment; index: number } | null = null;
+
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        const index = card.comments.findIndex((comment) => comment.id === commentId);
+        if (index === -1) {
+          return card;
+        }
+
+        removed = { comment: card.comments[index], index };
+        const comments = card.comments.filter((comment) => comment.id !== commentId);
+        return { ...card, comments } satisfies Card;
+      }),
+    );
+
+    return removed;
+  }
+
+  private insertComment(cardId: string, comment: CardComment, index?: number): void {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        const comments = [...card.comments];
+        const insertionIndex = index ?? comments.length;
+        comments.splice(insertionIndex, 0, comment);
+        return { ...card, comments } satisfies Card;
+      }),
+    );
+  }
+
+  private insertSubtask(cardId: string, subtask: Subtask, index?: number): void {
+    this.cardsSignal.update((cards) =>
+      cards.map((card) => {
+        if (card.id !== cardId) {
+          return card;
+        }
+
+        const subtasks = [...card.subtasks];
+        const insertionIndex = index ?? subtasks.length;
+        subtasks.splice(insertionIndex, 0, subtask);
+        return { ...card, subtasks } satisfies Card;
+      }),
+    );
+  }
+
+  private restoreCard(cardId: string, snapshot: Card): void {
+    this.cardsSignal.update((cards) => cards.map((card) => (card.id === cardId ? snapshot : card)));
   }
 
   private applyWorkspaceMetadata(statuses: readonly Status[], labels: readonly Label[]): void {

@@ -28,40 +28,76 @@ export interface SubtaskResponse {
 }
 
 export interface SubtaskCreateRequest {
-  readonly title: string;
-  readonly description?: string | null;
-  readonly status?: string | null;
-  readonly priority?: string | null;
-  readonly assignee?: string | null;
-  readonly start_date?: string | null;
-  readonly due_date?: string | null;
-  readonly estimate_hours?: number | null;
-  readonly story_points?: number | null;
-  readonly checklist?: readonly unknown[];
-  readonly ai_similarity_vector_id?: string | null;
-  readonly root_cause_node_id?: string | null;
+  title: string;
+  description?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  assignee?: string | null;
+  start_date?: string | null;
+  due_date?: string | null;
+  estimate_hours?: number | null;
+  story_points?: number | null;
+  checklist?: readonly unknown[];
+  ai_similarity_vector_id?: string | null;
+  root_cause_node_id?: string | null;
+}
+
+export interface SubtaskUpdateRequest {
+  title?: string | null;
+  description?: string | null;
+  status?: string | null;
+  priority?: string | null;
+  assignee?: string | null;
+  start_date?: string | null;
+  due_date?: string | null;
+  estimate_hours?: number | null;
+  story_points?: number | null;
+  checklist?: readonly unknown[];
+  ai_similarity_vector_id?: string | null;
+  root_cause_node_id?: string | null;
 }
 
 export interface CardCreateRequest {
-  readonly title: string;
-  readonly summary?: string | null;
-  readonly description?: string | null;
-  readonly status_id?: string | null;
-  readonly priority?: string | null;
-  readonly story_points?: number | null;
-  readonly estimate_hours?: number | null;
-  readonly assignees?: readonly string[];
-  readonly start_date?: string | null;
-  readonly due_date?: string | null;
-  readonly dependencies?: readonly string[];
-  readonly ai_confidence?: number | null;
-  readonly ai_notes?: string | null;
-  readonly custom_fields?: Readonly<Record<string, unknown>>;
-  readonly label_ids?: readonly string[];
-  readonly error_category_id?: string | null;
-  readonly initiative_id?: string | null;
-  readonly analytics_notes?: string | null;
-  readonly subtasks?: readonly SubtaskCreateRequest[];
+  title: string;
+  summary?: string | null;
+  description?: string | null;
+  status_id?: string | null;
+  priority?: string | null;
+  story_points?: number | null;
+  estimate_hours?: number | null;
+  assignees?: readonly string[];
+  start_date?: string | null;
+  due_date?: string | null;
+  dependencies?: readonly string[];
+  ai_confidence?: number | null;
+  ai_notes?: string | null;
+  custom_fields?: Readonly<Record<string, unknown>>;
+  label_ids?: readonly string[];
+  error_category_id?: string | null;
+  initiative_id?: string | null;
+  analytics_notes?: string | null;
+  subtasks?: readonly SubtaskCreateRequest[];
+}
+
+export interface CardUpdateRequest {
+  title?: string | null;
+  summary?: string | null;
+  description?: string | null;
+  status_id?: string | null;
+  priority?: string | null;
+  story_points?: number | null;
+  estimate_hours?: number | null;
+  assignees?: readonly string[] | null;
+  start_date?: string | null;
+  due_date?: string | null;
+  dependencies?: readonly string[] | null;
+  ai_confidence?: number | null;
+  ai_notes?: string | null;
+  custom_fields?: Readonly<Record<string, unknown>> | null;
+  label_ids?: readonly string[] | null;
+  error_category_id?: string | null;
+  initiative_id?: string | null;
+  analytics_notes?: string | null;
 }
 
 export interface CardResponse {
@@ -189,5 +225,47 @@ export class CardsApiService {
    */
   public createCard(payload: CardCreateRequest): Observable<CardResponse> {
     return this.http.post<CardResponse>(buildApiUrl('/cards'), payload);
+  }
+
+  /**
+   * Updates an existing card with the provided attributes.
+   */
+  public updateCard(cardId: string, payload: CardUpdateRequest): Observable<CardResponse> {
+    return this.http.put<CardResponse>(buildApiUrl(`/cards/${cardId}`), payload);
+  }
+
+  /**
+   * Deletes a card permanently from the workspace.
+   */
+  public deleteCard(cardId: string): Observable<void> {
+    return this.http.delete<void>(buildApiUrl(`/cards/${cardId}`));
+  }
+
+  /**
+   * Creates a new subtask for the specified card.
+   */
+  public createSubtask(cardId: string, payload: SubtaskCreateRequest): Observable<SubtaskResponse> {
+    return this.http.post<SubtaskResponse>(buildApiUrl(`/cards/${cardId}/subtasks`), payload);
+  }
+
+  /**
+   * Updates a subtask belonging to a card.
+   */
+  public updateSubtask(
+    cardId: string,
+    subtaskId: string,
+    payload: SubtaskUpdateRequest,
+  ): Observable<SubtaskResponse> {
+    return this.http.put<SubtaskResponse>(
+      buildApiUrl(`/cards/${cardId}/subtasks/${subtaskId}`),
+      payload,
+    );
+  }
+
+  /**
+   * Deletes a subtask from a card.
+   */
+  public deleteSubtask(cardId: string, subtaskId: string): Observable<void> {
+    return this.http.delete<void>(buildApiUrl(`/cards/${cardId}/subtasks/${subtaskId}`));
   }
 }
