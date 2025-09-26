@@ -7,6 +7,112 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/chatgpt.svg" />
+    <script>
+      (function () {
+        var THEME_STORAGE_KEY = 'verbalize-yourself:theme-preference';
+        var LEGACY_THEME_STORAGE_KEY = 'todo-generator:theme-preference';
+
+        function isThemePreference(value) {
+          return value === 'dark' || value === 'light' || value === 'system';
+        }
+
+        function detectSystemTheme() {
+          if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+            return 'light';
+          }
+
+          try {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          } catch (error) {
+            return 'light';
+          }
+        }
+
+        function persistThemePreference(storage, preference) {
+          try {
+            storage.setItem(THEME_STORAGE_KEY, preference);
+          } catch (error) {
+            // Ignore persistence failures (e.g. private browsing).
+          }
+        }
+
+        function resolveThemePreference() {
+          if (typeof window === 'undefined') {
+            return 'system';
+          }
+
+          try {
+            var storage = window.localStorage;
+            var stored = storage.getItem(THEME_STORAGE_KEY);
+
+            if (isThemePreference(stored)) {
+              return stored;
+            }
+
+            var legacy = storage.getItem(LEGACY_THEME_STORAGE_KEY);
+            if (isThemePreference(legacy)) {
+              persistThemePreference(storage, legacy);
+
+              try {
+                storage.removeItem(LEGACY_THEME_STORAGE_KEY);
+              } catch (error) {
+                // Removing the legacy key is best effort only.
+              }
+
+              return legacy;
+            }
+
+            if (stored !== null) {
+              try {
+                storage.removeItem(THEME_STORAGE_KEY);
+              } catch (error) {
+                // Ignore removal failures.
+              }
+            }
+
+            if (legacy !== null) {
+              try {
+                storage.removeItem(LEGACY_THEME_STORAGE_KEY);
+              } catch (error) {
+                // Ignore removal failures.
+              }
+            }
+
+            persistThemePreference(storage, 'system');
+          } catch (error) {
+            // Accessing localStorage might throw (e.g. private browsing).
+          }
+
+          return 'system';
+        }
+
+        function applyTheme(mode) {
+          var root = document.documentElement;
+          if (!root) {
+            return;
+          }
+
+          var normalized = mode === 'dark' ? 'dark' : 'light';
+          root.classList.toggle('dark', normalized === 'dark');
+          root.setAttribute('data-theme', normalized);
+        }
+
+        var themeMode = 'light';
+
+        try {
+          var preference = resolveThemePreference();
+          if (preference === 'system') {
+            themeMode = detectSystemTheme();
+          } else if (preference === 'dark' || preference === 'light') {
+            themeMode = preference;
+          }
+        } catch (error) {
+          themeMode = 'light';
+        }
+
+        applyTheme(themeMode);
+      })();
+    </script>
   </head>
   <body class="min-h-full antialiased">
     <app-root></app-root>
