@@ -411,6 +411,7 @@ class CommentBase(BaseModel):
     card_id: str
     content: str
     author_id: Optional[str] = None
+    subtask_id: Optional[str] = None
 
 
 class CommentCreate(CommentBase):

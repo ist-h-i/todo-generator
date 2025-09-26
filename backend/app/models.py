@@ -200,6 +200,11 @@ class Subtask(Base, TimestampMixin):
 
     card: Mapped[Card] = relationship("Card", back_populates="subtasks")
     root_cause_node: Mapped[Optional["RootCauseNode"]] = relationship("RootCauseNode", back_populates="subtasks")
+    comments: Mapped[list["Comment"]] = relationship(
+        "Comment",
+        back_populates="subtask",
+        cascade="all, delete-orphan",
+    )
 
 
 class Label(Base):
@@ -249,12 +254,14 @@ class Comment(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
     card_id: Mapped[str] = mapped_column(String, ForeignKey("cards.id", ondelete="CASCADE"))
+    subtask_id: Mapped[str | None] = mapped_column(String, ForeignKey("subtasks.id", ondelete="CASCADE"), nullable=True)
     author_id: Mapped[str | None] = mapped_column(String)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 
     card: Mapped[Card] = relationship("Card", back_populates="comments")
+    subtask: Mapped[Optional[Subtask]] = relationship("Subtask", back_populates="comments")
 
 
 class ActivityLog(Base):

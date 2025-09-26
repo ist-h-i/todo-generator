@@ -71,7 +71,6 @@
   height: 1rem;
 }
 
-
 .board-filters {
   display: flex;
   flex-direction: column;
@@ -840,6 +839,25 @@
   flex-wrap: wrap;
   gap: var(--space-xs);
   align-items: center;
+}
+
+.comment-list__context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+}
+
+.comment-list__target {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 0.1rem 0.75rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--surface-card) 85%, transparent);
+  color: inherit;
+  font-weight: 600;
 }
 
 .comment-list__author {
