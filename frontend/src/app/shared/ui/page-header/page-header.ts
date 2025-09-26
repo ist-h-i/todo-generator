@@ -11,8 +11,10 @@ type HeadingLevel = 'h1' | 'h2' | 'h3';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './page-header.html',
-  styleUrl: './page-header.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    class: 'block',
+  },
 })
 export class PageHeaderComponent {
   /**
@@ -38,4 +40,10 @@ export class PageHeaderComponent {
    */
   @Input()
   public headingLevel: HeadingLevel = 'h2';
+
+  /**
+   * When true the header content is centered for hero-style layouts.
+   */
+  @Input()
+  public centered = false;
 }

@@ -5,7 +5,10 @@
   description="直近のコンピテンシー判定とアクションプランを確認できます。姿勢面と行動面それぞれの推奨事項を振り返り、次のスプリント計画に活用しましょう。"
   headingLevel="h1"
 >
-  <section appPageHeaderActions class="evaluations-page__header">
+  <section
+    appPageHeaderActions
+    class="flex flex-col gap-[clamp(1rem,2vw,1.5rem)] lg:flex-row lg:items-stretch lg:justify-between lg:gap-[clamp(1.25rem,2vw,1.75rem)]"
+  >
     <article class="surface-panel page-panel evaluations-page__quota" aria-live="polite">
       <p class="evaluations-page__quota-label">本日の評価判定可能回数</p>
 
@@ -29,7 +32,9 @@
       }
     </article>
 
-    <div class="evaluations-page__actions">
+    <div
+      class="flex flex-wrap items-center gap-3 justify-start lg:self-stretch lg:items-end lg:justify-end"
+    >
       <button
         type="button"
         class="button button--primary button--pill focus-ring"

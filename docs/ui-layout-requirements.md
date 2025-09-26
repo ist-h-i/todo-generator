@@ -75,6 +75,7 @@
 
 ## 6. Component-level Layout Rules
 - **Page Header**: Eyebrow ↔ Title は `space-xs`、Title ↔ Description は `space-sm`、アクション群とは `space-md`。
+- **Page Section Wrapper**: `.app-page-layout__section` は CSS Grid (`display: grid`) を採用し、セクション内のブロック間隔をトークン化されたギャップで制御する。個別に余白を積み重ねず、グリッドのギャップ設定を優先すること。
 - **Card**: 上下左右 `space-lg`、ヘッダー ↔ ボディ `space-md`、ボディ内の段落 `space-md`。
 - **List Item**: 最低高さ 56px、上下 `space-md`、アイコン ↔ テキスト `space-sm`。
 - **Table**: 行高 48px、セル左右 `space-md`、行間 `space-xs` のボーダー。
