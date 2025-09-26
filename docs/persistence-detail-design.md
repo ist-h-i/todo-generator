@@ -1,77 +1,77 @@
-# 永続化処理 詳細設計
+# Persistence Detailed Design
 
-## 目的とスコープ
-ワークスペースの主要操作（ボード管理、継続的改善、レポート、プロフィール／ガバナンス、コンピテンシー評価）で現状フロントエンドのみで完結している処理を、FastAPI バックエンドに永続化させるための詳細設計をまとめる。カード一覧と提案カード作成のみが `CardsApiService` 経由で `/cards` に連携され、それ以外は `WorkspaceStore` が Signal とローカルストレージで完結しているのが現状である。コメント／サブタスク編集、ボード設定、フィルター、継続的改善ダッシュボードなどはすべてクライアント側で mutate している。【F:frontend/src/app/core/api/cards-api.service.ts†L83-L107】【F:frontend/src/app/core/state/workspace-store.ts†L1073-L1545】【F:frontend/src/app/core/state/workspace-store.ts†L2148-L2249】
+## Purpose & Scope
+This document captures the detailed plan for moving the workspace's client-only workflows—board management, continuous improvement, reporting, profile/governance, and competency evaluations—onto the FastAPI backend. At present only the card list and AI-generated proposals call the backend through `CardsApiService`, while most workspace mutations are stored exclusively in Angular signals and local storage within `WorkspaceStore`.
 
-本設計は以下の操作に対して永続化方式を定義する。
+The scope covers the following operations:
 
-- ボード上のカード／サブタスク／コメント編集、ドラッグ＆ドロップ操作、手動アクティビティログ
-- ボード設定（列幅・グルーピング・フィルター／テンプレート・ラベル／ステータス／エラーカテゴリ管理）
-- 継続的改善ダッシュボード（スナップショット・イニシアチブ・提案アクション）
-- レポート／AI ワークフロー（ステータスレポート、アピール生成）
-- プロフィール／ガバナンス設定（プロフィール、管理者 API 資格情報・クォータ設定）
-- コンピテンシー評価（定義、自己評価実行）
+- Card, subtask, comment editing, drag-and-drop moves, and manual activity log entries on the board.
+- Board configuration (column width, grouping, filters/templates, label/status/error-category management).
+- Continuous improvement dashboards (snapshots, initiatives, suggested actions).
+- Reports and AI workflows (status reports, appeals, analytics-backed narratives).
+- Profile and governance settings (profile fields, encrypted admin API credentials, quotas).
+- Competency evaluations (definitions, running self-assessments).
 
-## 現状のデータソースと制約
-- FastAPI 側にはカード／サブタスク／コメント／活動ログ／ボードレイアウト／保存済みフィルターなどのモデルと REST ルーターが既に用意されている。【F:backend/app/models.py†L120-L260】【F:backend/app/routers/cards.py†L203-L563】【F:backend/app/routers/comments.py†L1-L139】【F:backend/app/routers/activity.py†L1-L76】【F:backend/app/routers/preferences.py†L1-L33】【F:backend/app/routers/filters.py†L15-L104】
-- 継続的改善ストアは `continuous-improvement-fixtures` のスタブを Signal に読み込んでおり、AI 変換時のみカード作成 API を叩いている。【F:frontend/src/app/core/state/continuous-improvement-store.ts†L1-L139】【F:frontend/src/app/core/state/continuous-improvement-fixtures.ts†L1-L79】
-- 分析ルーター・ステータスレポート・プロフィール・管理者機能・コンピテンシー評価はバックエンドに CRUD が存在し、Angular サービスで利用済みの領域もある。【F:backend/app/routers/analytics.py†L1-L200】【F:backend/app/routers/status_reports.py†L1-L117】【F:backend/app/routers/profile.py†L22-L67】【F:backend/app/routers/admin_settings.py†L1-L140】【F:backend/app/routers/competency_evaluations.py†L61-L185】
+## Current Data Sources & Constraints
+- The FastAPI backend already exposes models and routers for cards, subtasks, comments, activity logs, board layouts, and saved filters.【F:backend/app/models.py†L120-L439】【F:backend/app/routers/cards.py†L203-L563】【F:backend/app/routers/comments.py†L24-L139】【F:backend/app/routers/activity.py†L12-L76】【F:backend/app/routers/preferences.py†L10-L33】【F:backend/app/routers/filters.py†L15-L104】
+- The continuous improvement store currently loads fixtures into Angular signals and only hits the card creation API when converting suggested actions.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L1-L200】【F:frontend/src/app/core/state/continuous-improvement-fixtures.ts†L1-L79】
+- Analysis, status report, profile, admin, and competency evaluation routers already expose CRUD operations; several are in use from the Angular services today.【F:backend/app/routers/analytics.py†L1-L200】【F:backend/app/routers/status_reports.py†L1-L117】【F:backend/app/routers/profile.py†L22-L67】【F:backend/app/routers/admin_settings.py†L1-L140】【F:backend/app/routers/competency_evaluations.py†L61-L185】
 
-## 永続化設計
-### 1. ボード／タスク管理
-#### 1-1. カードとサブタスク CRUD
-- API サーフェス: `/cards` (GET/POST/PUT/DELETE) および `/cards/{card_id}/subtasks` (GET/POST/PUT/DELETE)。【F:backend/app/routers/cards.py†L203-L563】
-- フロント実装: `CardsApiService` に update/delete、`SubtasksApiService` 相当のメソッドを追加する。`WorkspaceStore` は各 mutate メソッドで API 呼び出しを行い、成功レスポンスでローカル状態を再計算する。失敗時はロールバック（楽観ロック: API 応答前は UI 先行更新し、エラー時に再フェッチ）。
-- 追加バリデーション: `WorkspaceStore` の入力サニタイズを継続しつつ、API エラーをトースト表示。ドラッグ＆ドロップ（`updateCardStatus`）は `PATCH /cards/{id}` で status_id を送信し、`completed_at` 更新はバックエンド側で `_status_is_done` に準じて計算する。【F:backend/app/routers/cards.py†L36-L125】【F:frontend/src/app/core/state/workspace-store.ts†L1073-L1182】
+## Persistence Design
+### 1. Board & Task Management
+#### 1.1 Cards and Subtasks CRUD
+- **API surface**: `/cards` (GET/POST/PUT/DELETE) and `/cards/{card_id}/subtasks` (GET/POST/PUT/DELETE).【F:backend/app/routers/cards.py†L203-L563】
+- **Frontend implementation**: extend `CardsApiService` with update/delete operations and add a dedicated `SubtasksApiService`. Mutating methods inside `WorkspaceStore` should call these APIs and refresh the local signals from the responses, applying optimistic updates with rollback on failure.【F:frontend/src/app/core/api/cards-api.service.ts†L45-L192】【F:frontend/src/app/core/state/workspace-store.ts†L1001-L1388】
+- **Additional validation**: keep the existing sanitisation in `WorkspaceStore`, surface API errors as toasts/snackbars, and send drag-and-drop operations through `PATCH /cards/{id}`. Backend logic will continue to set `completed_at` when a card moves into a done status.【F:backend/app/routers/cards.py†L36-L145】
 
-#### 1-2. コメントとアクティビティ
-- API サーフェス: `/comments` (list/create/update/delete) と `/activity-log` (list/create)。【F:backend/app/routers/comments.py†L24-L139】【F:backend/app/routers/activity.py†L12-L76】
-- フロント実装: コメント用に `CommentsApiService` を新設し、`WorkspaceStore.addComment/updateComment/removeComment` で呼び出す。成功時のレスポンスで `comment.id` を同期し、`record_activity` による履歴も `/activity-log` GET で表示する。手動アクティビティログ入力 UI を追加する場合は `ActivityApiService.create` を利用し、`details` に任意メタデータを格納する。
-- キャッシュ戦略: コメント／アクティビティはカード詳細を開いたタイミングでフェッチし、Signal にキャッシュする。更新後は差分適用しつつ 5 分程度で自動再フェッチするポリシーを採用。
+#### 1.2 Comments & Activity
+- **API surface**: `/comments` (list/create/update/delete) and `/activity-log` (list/create).【F:backend/app/routers/comments.py†L24-L139】【F:backend/app/routers/activity.py†L12-L76】
+- **Frontend implementation**: create `CommentsApiService` and call it from `WorkspaceStore.addComment/updateComment/removeComment`. Sync the response IDs after successful writes and fetch the activity log via `/activity-log` when opening the detail drawer. Manual activity log entries should use `ActivityApiService.create` with structured metadata.
+- **Caching strategy**: fetch comments/activity when the drawer opens, cache them in a signal, and refetch after writes. Apply a time-based refresh (e.g., five minutes) to avoid stale conversations.
 
-#### 1-3. ボード設定・フィルター
-- API サーフェス: `/board-layouts` で `UserPreference` を永続化、`/saved-filters` でフィルター CRUD。【F:backend/app/routers/preferences.py†L10-L33】【F:backend/app/routers/filters.py†L15-L104】
-- フロント実装: `WorkspaceStore.persistSettings`／`persistPreferencesState` のローカルストレージ書き込みを API 呼び出しに置換。`BoardLayoutUpdate` に列幅／表示フィールド／通知設定を詰め、成功レスポンスを Signal に反映する。保存済みフィルター UI では `/saved-filters` の共有フラグやクエリ条件を操作するフォームを実装。
-- 移行: 初回アクセス時にローカルストレージの旧データを読み込み、API POST/PATCH に同期したのちローカル値を削除。マイグレーション処理は `migrateLegacySettings` ロジックを活かし API 送信後に `removeItem` を実施する。【F:frontend/src/app/core/state/workspace-store.ts†L2148-L2249】
+#### 1.3 Board Settings & Saved Filters
+- **API surface**: `/board-layouts` via the preferences router and `/saved-filters` for filter CRUD.【F:backend/app/routers/preferences.py†L10-L33】【F:backend/app/routers/filters.py†L15-L104】
+- **Frontend implementation**: replace local-storage persistence in `WorkspaceStore.persistSettings`/`persistPreferencesState` with API calls. Submit `BoardLayoutUpdate` payloads containing column widths, visible fields, and notification preferences, then reconcile the response into the signal store.
+- **Migration**: when a user opens the board after deployment, migrate existing local-storage values by POST/PATCHing to the API and removing the legacy entries via `migrateLegacySettings`.【F:frontend/src/app/core/state/workspace-store.ts†L2148-L2249】
 
-#### 1-4. ワークスペース設定（ステータス／ラベル／エラーカテゴリ）
-- API サーフェス: `/statuses`, `/labels`, `/error-categories`。対応するモデルは `models.Status`／`models.Label`／`models.ErrorCategory` に存在する。【F:backend/app/models.py†L170-L236】
-- フロント実装: 既存の設定編集 UI（`WorkspaceStore` の mutate 群）を API クライアントでラップし、CRUD 後に `WorkspaceStore.settingsSignal` を再フェッチして整合性を保つ。参照データは `GET` 応答をキャッシュし、カード作成フォームにバインドする。
+#### 1.4 Workspace Configuration (Statuses/Labels/Error Categories)
+- **API surface**: `/statuses`, `/labels`, `/error-categories` backed by the shared status/label/error models.【F:backend/app/models.py†L170-L236】【F:backend/app/routers/statuses.py†L1-L118】【F:backend/app/routers/labels.py†L1-L108】【F:backend/app/routers/error_categories.py†L1-L100】
+- **Frontend implementation**: wrap the existing settings UI with API clients and refetch the workspace settings signal after mutations. Cache read-only lookups and bind them to card creation forms.
 
-### 2. 継続的改善・分析
-- API サーフェス: `/analytics/snapshots`, `/analytics/root-causes`, `/analytics/suggestions`, `/improvement-initiatives` 等。【F:backend/app/routers/analytics.py†L1-L200】【F:backend/app/models.py†L237-L439】
-- フロント実装: `ContinuousImprovementStore` の初期値を fixture ではなく API フェッチに差し替え、Signal 初期化時に `GET` 結果を保持。提案アクションの状態遷移（`convertSuggestedAction` 等）は `/analytics/suggestions/{id}` PATCH、進捗ログ追記は `/improvement-initiatives/{id}/progress` POST を使用する。
-- キャッシュ／ポーリング: スナップショットは日次更新想定のためアプリ起動時にフェッチ、進捗ログは編集画面での mutate ごとに再取得。AI 生成結果は既存の `AnalysisGateway` をラップし、サーバー側に結果を保存する Webhook 連携を将来的に検討。
+### 2. Continuous Improvement & Analytics
+- **API surface**: `/analytics/snapshots`, `/analytics/root-causes`, `/analytics/suggestions`, `/improvement-initiatives`, etc.【F:backend/app/routers/analytics.py†L1-L200】【F:backend/app/routers/initiatives.py†L1-L133】【F:backend/app/routers/suggested_actions.py†L1-L136】
+- **Frontend implementation**: replace the fixtures consumed by `ContinuousImprovementStore` with API fetches during signal initialisation, and use `convertSuggestedAction` to call `/analytics/suggestions/{id}` PATCH endpoints. Initiative progress updates should use `/improvement-initiatives/{id}/progress` POST.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L32-L200】
+- **Caching & polling**: load snapshots at app start (daily cadence) and refetch initiatives after each progress mutation. AI outputs should be persisted server-side through the existing `AnalysisGateway` with future webhook support.
 
-### 3. レポート／AI ワークフロー
-- API サーフェス: `/status-reports` 系、`/appeals`（新設予定）。【F:backend/app/routers/status_reports.py†L1-L117】
-- フロント実装: 現在の `StatusReportsGateway` 呼び出しを踏襲しつつ、下書き保存や送信失敗の再実行を API レスポンスのステータスで制御。アピール生成については FastAPI に `/appeals` ルーターを追加し、生成リクエスト・履歴取得・テンプレート管理を CRUD として設計する（OpenAI 呼び出しのキューイングはステータスレポート実装を再利用）。
-- 非同期処理: レポート送信／アピール生成はバックグラウンドタスクまたはキュー（RQ / Celery）で非同期化し、フロントはポーリングまたは Server-Sent Events で進捗を追跡する設計とする。
+### 3. Reports & AI Workflows
+- **API surface**: `/status-reports` for the shift workflow and `/appeals` for narrative generation, alongside the `/reports` router for templated analytics exports.【F:backend/app/routers/status_reports.py†L1-L117】【F:backend/app/routers/appeals.py†L1-L118】【F:backend/app/routers/reports.py†L1-L260】
+- **Frontend implementation**: keep using `StatusReportsGateway` but persist drafts, retries, and submission states via API responses. Appeals should call the FastAPI router to create requests, fetch history, and manage templates, reusing the status-report queueing strategy for OpenAI calls.【F:backend/app/services/status_reports.py†L23-L199】【F:backend/app/services/appeals.py†L19-L199】
+- **Asynchronous processing**: run report/appeal generation in background tasks (RQ/Celery). The frontend should poll or subscribe via Server-Sent Events for completion updates.
 
-### 4. プロフィール／ガバナンス
-- API サーフェス: `/profile/me`, `/admin/api-credentials`, `/admin/quotas`, `/admin/users` など既存ルーターを活用。【F:backend/app/routers/profile.py†L22-L67】【F:backend/app/routers/admin_settings.py†L1-L140】
-- フロント実装: `ProfileService` は既に `/profile/me` を利用済みなので、自己紹介・アバター更新フォームで API レスポンスをそのまま Signal に取り込む。管理者 UI はテーブル編集時に対応する `AdminApiService` 呼び出しを行い、更新後は `GET` で最新値を再取得する。
-- 監査対応: 重要設定変更時は `ActivityLog` にもイベントを記録するようバックエンドを拡張し、監査証跡を一元管理する（`record_activity` 再利用）。
+### 4. Profile & Governance
+- **API surface**: `/profile/me`, `/admin/api-credentials`, `/admin/quotas`, `/admin/users`, plus related routers for admin governance.【F:backend/app/routers/profile.py†L22-L67】【F:backend/app/routers/admin_settings.py†L1-L140】【F:backend/app/routers/admin_users.py†L1-L147】
+- **Frontend implementation**: `ProfileService` already reads `/profile/me`; extend its forms to persist updates directly. Admin tables should call the corresponding `AdminApiService` methods and refresh lists after each mutation.【F:frontend/src/app/features/profile/evaluations/page.ts†L1-L160】【F:frontend/src/app/features/admin/users/users-page.component.ts†L1-L160】
+- **Audit trail**: extend the backend to record significant admin changes in `ActivityLog` so governance updates appear in the same audit stream.【F:backend/app/utils/activity.py†L10-L65】
 
-### 5. コンピテンシー評価
-- API サーフェス: `/competencies`, `/competency-evaluations`, `/evaluation-jobs` 等。【F:backend/app/routers/competency_evaluations.py†L61-L185】
-- フロント実装: `CompetencyApiService` の既存メソッドを活用し、評価定義編集と自己評価実行 UI を永続化に接続する。日次クォータ確認は `/users/me/evaluations/limits` を先行呼び出しし、許容回数を超える操作はボタン無効化。
-- 履歴保持: 評価結果はバックエンドの `CompetencyEvaluation` テーブルに保存済みなので、履歴タブは API ページングレスポンスをストリーミング表示。必要であれば `evaluation_jobs` に紐づく AI ログを追加保存する設計とする。
+### 5. Competency Evaluations
+- **API surface**: `/competencies`, `/competency-evaluations`, `/evaluation-jobs`, and quota endpoints.【F:backend/app/routers/competency_evaluations.py†L61-L185】
+- **Frontend implementation**: integrate the existing competency services with backend persistence for definition editing and self-evaluation runs. Check `/users/me/evaluations/limits` before enabling actions and disable buttons when quotas are exhausted.【F:frontend/src/app/features/profile/evaluations/page.ts†L68-L147】
+- **History retention**: rely on `CompetencyEvaluation` records to render the history tab. Optionally persist OpenAI evaluation logs via `evaluation_jobs` for richer auditing.【F:backend/app/models.py†L301-L439】
 
-## 同期・エラーハンドリング方針
-1. **楽観的 UI 更新**: 状態遷移を即座に UI 反映し、API 失敗時はローカルコピーを保持して差分復元。失敗理由は Snackbar で表示。
-2. **再フェッチ契機**: 成功レスポンスを適用後、必要に応じて一覧再取得（例: カード詳細更新後に `/cards/{id}` を再取得して正規化）。
-3. **バリデーション統合**: フロントの入力サニタイズを維持しつつ、FastAPI の Pydantic バリデーションエラーを UI にマッピングする。`422` 応答はフォームエラーとして表示。
-4. **ID 正規化**: フロントで暫定 ID を払い出す処理（`createId()`）は API 応答 ID に置換。ローカルで生成した ID はリトライ時の差分検出に活用。
-5. **マイグレーション**: ローカルストレージのみで保持していたデータは初回 API 成功時にサーバーへ移行し、削除完了後に以降のソースを API に統一する。
+## Synchronisation & Error Handling
+1. **Optimistic UI updates** – Update signals immediately, roll back when API calls fail, and show snackbar errors.
+2. **Refetch triggers** – After each successful mutation, optionally refetch detailed resources (`GET /cards/{id}`) to keep denormalised data accurate.
+3. **Validation mapping** – Preserve frontend sanitisation and surface FastAPI `422` errors on the corresponding form fields.
+4. **ID normalisation** – Replace provisional IDs (from `createId()`) with API-issued identifiers after successful creates to support retries.【F:frontend/src/app/core/utils/create-id.ts†L1-L40】
+5. **Migration** – Migrate legacy local-storage data to the API on first access, removing local copies once the server is authoritative.
 
-## ネクストタスク提案
-1. **API クライアント拡充**: `CardsApiService` の update/delete、コメント／アクティビティ／フィルター／ボード設定用サービスを追加し、Angular DI 登録とユニットテストを整備する。
-2. **WorkspaceStore リファクタリング**: Signal ベースの mutate 関数を API 呼び出し対応へ書き換え、失敗時ロールバックと再フェッチ処理を実装する。Feature テスト（Jest）を追加。
-3. **継続的改善 UI の API 連携**: Fixtures からの初期化を廃止し、分析／イニシアチブ／提案取得 API を呼び出す NGRX もしくは Signals 実装に差し替える。カード化フローの単体テストを更新。
-4. **保存済みフィルター UI の提供**: `/saved-filters` CRUD を利用した保存・読込 UI をボードに追加し、E2E シナリオで動作検証する。
-5. **アピール生成ルーター追加**: FastAPI に `/appeals` ルーターを新設し、OpenAI 連携・履歴保存・再実行を実装する。フロントのフォームとステータス表示を追加。
-6. **監査ログの強化**: 管理者操作と評価実行を `ActivityLog` に記録するバックエンド拡張と、UI 上の履歴表示コンポーネントを整備する。
-7. **データ移行スクリプト作成**: 既存ユーザーのローカル設定を API に同期するためのマイグレーションスクリプトとオプション CLI を用意する。
+## Next Steps
+1. **Expand API clients** – Add update/delete methods to `CardsApiService`, implement services for comments, activity, filters, and board settings, and cover them with unit tests.【F:frontend/src/app/core/api/cards-api.service.ts†L182-L192】
+2. **Refactor `WorkspaceStore`** – Rework the signal-based mutations to call APIs, implement rollback logic, and add feature tests for board interactions.【F:frontend/src/app/core/state/workspace-store.ts†L1001-L1388】
+3. **Wire continuous improvement UI to the API** – Replace fixture initialisation with real fetches and update tests for card conversion flows.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L32-L200】
+4. **Deliver saved filter UI** – Add CRUD screens powered by `/saved-filters` and cover them with end-to-end scenarios.【F:backend/app/routers/filters.py†L15-L104】
+5. **Ship the appeals router** – Finalise FastAPI `/appeals` endpoints, persist history, and add frontend forms and status displays.【F:backend/app/routers/appeals.py†L1-L118】
+6. **Strengthen audit logging** – Record admin and evaluation operations in `ActivityLog` and surface them through reusable history components.【F:backend/app/utils/activity.py†L10-L65】
+7. **Author migration tooling** – Provide scripts/CLI commands to sync existing local settings into the API for current users.
 
-本設計により、フロントエンドで保持していた重要データがすべてサーバーサイドで一貫して管理され、将来的なマルチデバイス利用や監査要件への対応が可能になる。
+Implementing this plan centralises critical workspace data on the backend, enabling multi-device access, audit compliance, and future automation.
