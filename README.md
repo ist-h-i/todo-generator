@@ -86,4 +86,5 @@ npm run format:check
 - `docs/features/appeal-generation/detail-design.md` – Detailed design for appeal narrative generation.
 - `docs/features/analytics-insights/requirements.md` – Requirements for analytics and continuous improvement.
 - `docs/features/analytics-insights/detail-design.md` – Detailed design for analytics and continuous improvement.
+- `docs/features/competency-evaluations/requirements.md` – Requirements for the competency evaluation experience.
 - `docs/ui-design-system.md` – UI guidelines for shared components.
