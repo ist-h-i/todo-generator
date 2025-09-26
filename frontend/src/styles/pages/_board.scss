@@ -23,27 +23,6 @@
   --panel-padding: var(--space-lg);
 }
 
-.board-summary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-}
-
-.board-summary__header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.board-summary__eyebrow {
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 .board-summary__metrics {
   list-style: none;
   margin: 0;
@@ -300,13 +279,6 @@
   color: var(--text-muted);
 }
 
-.board-column__title {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
 .board-summary__metric dt {
   margin: 0;
   font-size: 0.78rem;
@@ -321,11 +293,6 @@
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-primary);
-}
-
-.board-summary__cta {
-  align-self: flex-start;
-  font-size: 0.85rem;
 }
 
 .board-columns {
@@ -356,15 +323,9 @@
 
 .board-column__title {
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.board-column__title {
-  margin: 0;
   font-size: 1.125rem;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .board-summary {
@@ -388,6 +349,7 @@
 
 .board-summary__cta {
   align-self: flex-start;
+  font-size: 0.85rem;
   display: inline-flex;
 }
 
@@ -1220,6 +1182,8 @@
 .dark .board-page .board-column,
 .dark .board-page .board-detail__section {
   background: color-mix(in srgb, var(--surface-card) 88%, transparent);
+}
+
 .dark .board-page .board-column,
 .dark .board-page .card-comments,
 .dark .board-page .subtask-comments {
