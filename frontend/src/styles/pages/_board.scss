@@ -102,11 +102,13 @@
 
 .board-filters__search-field {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: clamp(0.65rem, 1.2vw, 0.95rem);
-  flex: 1 1 100%;
+  flex: 1 1 18rem;
   min-width: min(18rem, 100%);
   max-width: none;
+  width: auto;
   margin: 0;
 }
 
@@ -118,6 +120,7 @@
   text-transform: uppercase;
   color: color-mix(in srgb, var(--text-muted) 80%, transparent);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .board-filters__search {
@@ -126,6 +129,7 @@
   align-items: center;
   flex: 1 1 auto;
   min-width: 0;
+  width: 100%;
 }
 
 .board-filters__search-icon {
@@ -214,12 +218,6 @@
 @media (max-width: 40rem) {
   .board-filters__toolbar {
     align-items: stretch;
-  }
-
-  .board-filters__search-field {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.45rem;
   }
 
   .board-filters__view {
