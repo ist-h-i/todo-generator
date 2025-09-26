@@ -308,45 +308,188 @@
 
   @if (selectedCardSignal(); as active) {
     <aside class="surface-panel board-detail">
-      <div class="board-detail__grid">
-        <div class="board-detail__primary">
-          <div class="card-detail-header">
-            <div>
-              <p class="card-detail-header__eyebrow">カード編集</p>
-              <h3 class="card-detail-header__title">{{ active.title }}</h3>
-            </div>
-            <div class="card-detail-header__actions">
-              <button
-                type="button"
-                class="button button--danger button--pill"
-                (click)="confirmDeleteCard(active)"
-              >
-                カードを削除
-              </button>
-              <button
-                type="button"
-                class="button button--ghost button--pill"
-                (click)="openCard(null)"
-              >
-                閉じる
-              </button>
-            </div>
-          </div>
+      <div class="board-detail__header">
+        <div>
+          <p class="card-detail-header__eyebrow">カード編集</p>
+          <h3 class="card-detail-header__title">{{ active.title }}</h3>
+        </div>
+        <div class="card-detail-header__actions">
+          <button
+            type="button"
+            class="button button--danger button--pill"
+            (click)="confirmDeleteCard(active)"
+          >
+            カードを削除
+          </button>
+          <button type="button" class="button button--ghost button--pill" (click)="openCard(null)">
+            閉じる
+          </button>
+        </div>
+      </div>
 
-          <section class="subtask-editor space-y-4">
-            <div class="space-y-1">
-              <p class="card-detail-header__eyebrow">サブタスク管理</p>
-              <h4 class="card-detail-header__subtitle">カード配下のタスクを編集</h4>
-              <p class="card-detail-header__description">
-                タイトルや担当者を直接修正し、不要になったサブタスクは削除できます。
+      <section class="card-inspector">
+        <div class="card-inspector__info">
+          <section class="card-overview">
+            <div class="card-overview__summary">
+              <p class="card-overview__summary-label">概要</p>
+              <p class="card-overview__summary-text">
+                {{
+                  active.summary.trim().length > 0
+                    ? active.summary
+                    : '概要はまだ入力されていません。'
+                }}
               </p>
             </div>
-            <ul class="subtask-editor__list space-y-3">
-              @if (active.subtasks.length === 0) {
-                <li class="subtask-editor__empty">サブタスクはまだありません。</li>
-              } @else {
-                @for (task of active.subtasks; track task.id) {
-                  <li class="subtask-editor__item">
+            <dl class="card-overview__meta">
+              <div class="card-overview__metric">
+                <dt>ステータス</dt>
+                <dd>
+                  <span class="card-overview__status" [style.color]="statusColor(active.statusId)">
+                    {{ statusName(active.statusId) }}
+                  </span>
+                </dd>
+              </div>
+              <div class="card-overview__metric">
+                <dt>優先度</dt>
+                <dd>{{ priorityLabel(active.priority) }}</dd>
+              </div>
+              <div class="card-overview__metric">
+                <dt>ストーリーポイント</dt>
+                <dd>{{ active.storyPoints | number: '1.0-0' }}</dd>
+              </div>
+              <div class="card-overview__metric">
+                <dt>担当</dt>
+                <dd>{{ active.assignee ?? '未設定' }}</dd>
+              </div>
+              <div class="card-overview__metric">
+                <dt>期限</dt>
+                <dd>{{ active.dueDate ? (active.dueDate | date: 'yyyy/MM/dd') : '未設定' }}</dd>
+              </div>
+              <div class="card-overview__metric">
+                <dt>AIおすすめ度</dt>
+                <dd>
+                  {{
+                    active.confidence !== undefined
+                      ? (active.confidence * 100 | number: '1.0-0') + '%'
+                      : '未設定'
+                  }}
+                </dd>
+              </div>
+            </dl>
+            @if (active.labelIds.length > 0) {
+              <div class="card-overview__labels">
+                <span class="card-overview__labels-title">ラベル</span>
+                <div class="card-overview__label-list">
+                  @for (labelId of active.labelIds; track labelId) {
+                    <span class="card-overview__label">{{ labelName(labelId) }}</span>
+                  }
+                </div>
+              </div>
+            }
+          </section>
+        </div>
+        <section class="card-inspector__discussion comment-pane surface-card">
+          <header class="comment-pane__header">
+            <h4>カードのコメント</h4>
+            <p>カード全体に関する共有事項を残します。</p>
+          </header>
+          <ul class="comment-list">
+            @if (commentsForContext('card').length === 0) {
+              <li class="comment-list__empty">まだコメントはありません。</li>
+            } @else {
+              @for (comment of commentsForContext('card'); track comment.id) {
+                <li class="comment-list__item">
+                  <div class="comment-list__meta">
+                    <div class="comment-list__identity">
+                      <span class="comment-list__author">{{ comment.authorNickname }}</span>
+                      <span class="comment-list__timestamp"
+                        >更新: {{ comment.updatedAt | date: 'yyyy/MM/dd HH:mm' }}</span
+                      >
+                      @if (isCommentBeingEdited(comment.id)) {
+                        <span class="comment-list__status">編集中</span>
+                      }
+                    </div>
+                    <div class="comment-list__actions">
+                      <button
+                        type="button"
+                        class="button button--ghost button--pill comment-list__edit"
+                        (click)="startEditingComment(comment)"
+                      >
+                        編集
+                      </button>
+                      <button
+                        type="button"
+                        class="button button--ghost button--pill comment-list__remove"
+                        (click)="removeComment(active.id, comment.id)"
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </div>
+                  <p class="comment-list__message">{{ comment.message }}</p>
+                </li>
+              }
+            }
+          </ul>
+          <form class="comment-form" (submit)="saveCommentForContext('card', $event)">
+            @if (isContextBeingEdited('card')) {
+              <p class="comment-form__note">コメント編集中です。</p>
+            }
+            <div class="comment-form__grid">
+              <label class="comment-form__field">
+                <span class="comment-form__label">投稿者</span>
+                <input
+                  type="text"
+                  class="comment-form__input"
+                  [value]="commentAuthorNameSignal()"
+                  readonly
+                />
+              </label>
+              <label class="comment-form__field comment-form__field--span-2">
+                <span class="comment-form__label">メッセージ</span>
+                <textarea
+                  class="comment-form__textarea"
+                  rows="4"
+                  placeholder="カード全体の共有事項や次のアクションを記入"
+                  [value]="commentDraftValue('card')"
+                  (input)="updateCommentDraft('card', $any($event.target).value)"
+                ></textarea>
+              </label>
+            </div>
+            <div class="comment-form__actions">
+              <button
+                type="submit"
+                class="button button--secondary"
+                [disabled]="!isCommentDraftValid('card')"
+              >
+                {{ isContextBeingEdited('card') ? 'コメントを更新' : 'コメントを追加' }}
+              </button>
+              @if (isContextBeingEdited('card')) {
+                <button type="button" class="button button--ghost" (click)="cancelCommentEditing()">
+                  キャンセル
+                </button>
+              }
+            </div>
+          </form>
+        </section>
+      </section>
+
+      <section class="subtask-editor space-y-4">
+        <div class="space-y-1">
+          <p class="card-detail-header__eyebrow">サブタスク管理</p>
+          <h4 class="card-detail-header__subtitle">カード配下のタスクを編集</h4>
+          <p class="card-detail-header__description">
+            タイトルや担当者を直接修正し、不要になったサブタスクは削除できます。
+          </p>
+        </div>
+        <ul class="subtask-editor__list space-y-3">
+          @if (active.subtasks.length === 0) {
+            <li class="subtask-editor__empty">サブタスクはまだありません。</li>
+          } @else {
+            @for (task of active.subtasks; track task.id) {
+              <li class="subtask-editor__item">
+                <div class="subtask-editor__content">
+                  <div class="subtask-editor__details">
                     <div class="subtask-editor__grid">
                       <label class="subtask-editor__field">
                         <span class="subtask-editor__field-label">タイトル</span>
@@ -373,8 +516,6 @@
                           }
                         </select>
                       </label>
-                    </div>
-                    <div class="subtask-editor__grid">
                       <label class="subtask-editor__field">
                         <span class="subtask-editor__field-label">担当者</span>
                         <input
@@ -402,207 +543,175 @@
                         />
                       </label>
                     </div>
-                    <div class="subtask-editor__actions">
-                      <button
-                        type="button"
-                        class="button button--ghost button--pill subtask-editor__remove"
-                        (click)="deleteSubtask(active.id, task.id)"
+                    <div class="subtask-editor__footer">
+                      <span class="subtask-editor__meta"
+                        >コメント: {{ commentsForContext(task.id).length }}件</span
                       >
-                        サブタスクを削除
-                      </button>
-                    </div>
-                  </li>
-                }
-              }
-            </ul>
-            <form class="subtask-editor__form" (submit)="addSubtask($event)">
-              <h5 class="text-sm font-semibold text-on-surface">サブタスクを追加</h5>
-              <div class="subtask-editor__grid subtask-editor__grid--compact">
-                <label class="subtask-editor__field">
-                  <span class="subtask-editor__field-label">タイトル</span>
-                  <input
-                    type="text"
-                    class="subtask-editor__input"
-                    placeholder="作業内容を入力"
-                    [value]="newSubtaskForm.controls.title.value()"
-                    (input)="newSubtaskForm.controls.title.setValue($any($event.target).value)"
-                  />
-                </label>
-                <label class="subtask-editor__field">
-                  <span class="subtask-editor__field-label">ステータス</span>
-                  <select
-                    class="subtask-editor__input"
-                    [value]="newSubtaskForm.controls.status.value()"
-                    (change)="newSubtaskForm.controls.status.setValue($any($event.target).value)"
-                  >
-                    @for (status of statusesSignal(); track status.id) {
-                      <option [value]="status.id">{{ status.name }}</option>
-                    }
-                  </select>
-                </label>
-                <label class="subtask-editor__field">
-                  <span class="subtask-editor__field-label">担当者</span>
-                  <input
-                    type="text"
-                    class="subtask-editor__input"
-                    placeholder="任意"
-                    [value]="newSubtaskForm.controls.assignee.value()"
-                    (input)="newSubtaskForm.controls.assignee.setValue($any($event.target).value)"
-                  />
-                </label>
-                <label class="subtask-editor__field">
-                  <span class="subtask-editor__field-label">工数 (h)</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    class="subtask-editor__input"
-                    placeholder="任意"
-                    [value]="newSubtaskForm.controls.estimateHours.value()"
-                    (input)="
-                      newSubtaskForm.controls.estimateHours.setValue($any($event.target).value)
-                    "
-                  />
-                </label>
-              </div>
-              <div class="subtask-editor__actions">
-                <button
-                  type="submit"
-                  class="button button--primary"
-                  [disabled]="!isNewSubtaskFormValid()"
-                >
-                  サブタスクを追加
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-        <section class="board-detail__secondary">
-          <section class="surface-card board-detail__section">
-            <header class="board-detail__section-header">
-              <h4>コメント</h4>
-              <p>コンテキストや共有事項を残してチームで同期します。</p>
-            </header>
-            <form class="comment-editor" (submit)="saveComment($event)">
-              <div class="comment-editor__grid">
-                <label class="comment-editor__field">
-                  <span class="comment-editor__label">投稿者</span>
-                  <input
-                    type="text"
-                    class="comment-editor__input"
-                    [value]="commentAuthorNameSignal()"
-                    readonly
-                  />
-                </label>
-                <label class="comment-editor__field">
-                  <span class="comment-editor__label">メッセージ</span>
-                  <textarea
-                    class="comment-editor__textarea"
-                    rows="3"
-                    placeholder="共有したい内容や次のアクションを記入"
-                    [value]="commentForm.controls.message.value()"
-                    (input)="commentForm.controls.message.setValue($any($event.target).value)"
-                  ></textarea>
-                </label>
-                <label class="comment-editor__field">
-                  <span class="comment-editor__label">対象</span>
-                  <select
-                    class="comment-editor__input"
-                    [value]="commentForm.controls.target.value()"
-                    (change)="commentForm.controls.target.setValue($any($event.target).value)"
-                  >
-                    <option value="card">カード全体</option>
-                    @for (subtask of active.subtasks; track subtask.id) {
-                      <option [value]="subtask.id">サブタスク: {{ subtask.title }}</option>
-                    }
-                  </select>
-                </label>
-              </div>
-              <div class="comment-editor__actions">
-                <button
-                  type="submit"
-                  class="button button--secondary"
-                  [disabled]="!isCommentFormValid()"
-                >
-                  {{ editingCommentId() ? 'コメントを更新' : 'コメントを追加' }}
-                </button>
-                @if (editingCommentId()) {
-                  <button
-                    type="button"
-                    class="button button--ghost"
-                    (click)="cancelCommentEditing()"
-                  >
-                    キャンセル
-                  </button>
-                }
-              </div>
-            </form>
-            <ul class="comment-list">
-              @if (active.comments.length === 0) {
-                <li class="comment-list__empty">まだコメントはありません。</li>
-              } @else {
-                @for (comment of active.comments; track comment.id) {
-                  <li class="comment-list__item">
-                    <div class="comment-list__meta">
-                      <div class="comment-list__identity">
-                        <span class="comment-list__author">{{ comment.authorNickname }}</span>
-                        <span class="comment-list__timestamp"
-                          >更新: {{ comment.updatedAt | date: 'yyyy/MM/dd HH:mm' }}</span
+                      <div class="subtask-editor__actions">
+                        <button
+                          type="button"
+                          class="button button--ghost button--pill subtask-editor__remove"
+                          (click)="deleteSubtask(active.id, task.id)"
                         >
-                        @if (isCommentBeingEdited(comment.id)) {
-                          <span class="comment-list__status">編集中</span>
+                          サブタスクを削除
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <section class="comment-pane subtask-comments">
+                    <header class="comment-pane__header">
+                      <h5>サブタスクのメモ</h5>
+                      <p>この作業に関する共有事項を残します。</p>
+                    </header>
+                    <ul class="comment-list">
+                      @if (commentsForContext(task.id).length === 0) {
+                        <li class="comment-list__empty">まだコメントはありません。</li>
+                      } @else {
+                        @for (comment of commentsForContext(task.id); track comment.id) {
+                          <li class="comment-list__item">
+                            <div class="comment-list__meta">
+                              <div class="comment-list__identity">
+                                <span class="comment-list__author">{{
+                                  comment.authorNickname
+                                }}</span>
+                                <span class="comment-list__timestamp"
+                                  >更新: {{ comment.updatedAt | date: 'yyyy/MM/dd HH:mm' }}</span
+                                >
+                                @if (isCommentBeingEdited(comment.id)) {
+                                  <span class="comment-list__status">編集中</span>
+                                }
+                              </div>
+                              <div class="comment-list__actions">
+                                <button
+                                  type="button"
+                                  class="button button--ghost button--pill comment-list__edit"
+                                  (click)="startEditingComment(comment)"
+                                >
+                                  編集
+                                </button>
+                                <button
+                                  type="button"
+                                  class="button button--ghost button--pill comment-list__remove"
+                                  (click)="removeComment(active.id, comment.id)"
+                                >
+                                  削除
+                                </button>
+                              </div>
+                            </div>
+                            <p class="comment-list__message">{{ comment.message }}</p>
+                          </li>
+                        }
+                      }
+                    </ul>
+                    <form class="comment-form" (submit)="saveCommentForContext(task.id, $event)">
+                      @if (isContextBeingEdited(task.id)) {
+                        <p class="comment-form__note">コメント編集中です。</p>
+                      }
+                      <div class="comment-form__grid">
+                        <label class="comment-form__field">
+                          <span class="comment-form__label">投稿者</span>
+                          <input
+                            type="text"
+                            class="comment-form__input"
+                            [value]="commentAuthorNameSignal()"
+                            readonly
+                          />
+                        </label>
+                        <label class="comment-form__field comment-form__field--span-2">
+                          <span class="comment-form__label">メッセージ</span>
+                          <textarea
+                            class="comment-form__textarea"
+                            rows="3"
+                            placeholder="進捗や課題を共有"
+                            [value]="commentDraftValue(task.id)"
+                            (input)="updateCommentDraft(task.id, $any($event.target).value)"
+                          ></textarea>
+                        </label>
+                      </div>
+                      <div class="comment-form__actions">
+                        <button
+                          type="submit"
+                          class="button button--secondary"
+                          [disabled]="!isCommentDraftValid(task.id)"
+                        >
+                          {{ isContextBeingEdited(task.id) ? 'コメントを更新' : 'コメントを追加' }}
+                        </button>
+                        @if (isContextBeingEdited(task.id)) {
+                          <button
+                            type="button"
+                            class="button button--ghost"
+                            (click)="cancelCommentEditing()"
+                          >
+                            キャンセル
+                          </button>
                         }
                       </div>
-                      @if (comment.subtaskId) {
-                        <div class="comment-list__context">
-                          <span class="comment-list__target"
-                            >対象: {{ getSubtaskTitle(active.subtasks, comment.subtaskId) }}</span
-                          >
-                        </div>
-                      }
-                      <div class="comment-list__actions">
-                        <button
-                          type="button"
-                          class="button button--ghost button--pill comment-list__edit"
-                          (click)="startEditingComment(comment)"
-                        >
-                          編集
-                        </button>
-                        <button
-                          type="button"
-                          class="button button--ghost button--pill comment-list__remove"
-                          (click)="removeComment(active.id, comment.id)"
-                        >
-                          削除
-                        </button>
-                      </div>
-                    </div>
-                    <p class="comment-list__message">{{ comment.message }}</p>
-                  </li>
+                    </form>
+                  </section>
+                </div>
+              </li>
+            }
+          }
+        </ul>
+        <form class="subtask-editor__form" (submit)="addSubtask($event)">
+          <h5 class="subtask-editor__form-title">サブタスクを新規追加</h5>
+          <div class="subtask-editor__grid subtask-editor__grid--compact">
+            <label class="subtask-editor__field">
+              <span class="subtask-editor__field-label">タイトル</span>
+              <input
+                type="text"
+                class="subtask-editor__input"
+                placeholder="例: API仕様を確認"
+                [value]="newSubtaskForm.controls.title.value()"
+                (input)="newSubtaskForm.controls.title.setValue($any($event.target).value)"
+              />
+            </label>
+            <label class="subtask-editor__field">
+              <span class="subtask-editor__field-label">ステータス</span>
+              <select
+                class="subtask-editor__input"
+                [value]="newSubtaskForm.controls.status.value()"
+                (change)="newSubtaskForm.controls.status.setValue($any($event.target).value)"
+              >
+                @for (status of statusesSignal(); track status.id) {
+                  <option [value]="status.id">{{ status.name }}</option>
                 }
-              }
-            </ul>
-          </section>
-          <section class="surface-card board-detail__section">
-            <header class="board-detail__section-header">
-              <h4>テンプレート可視性</h4>
-              <p>カードが参照するテンプレートの入力項目を確認します。</p>
-            </header>
-            @let fields = templateFieldLabels(active);
-            <ul class="board-detail__template-list">
-              @if (fields.length > 0) {
-                @for (field of fields; track field) {
-                  <li class="board-detail__template-item">{{ field }}</li>
-                }
-              } @else {
-                <li class="board-detail__template-item board-detail__template-item--empty">
-                  テンプレート情報は設定されていません。
-                </li>
-              }
-            </ul>
-          </section>
-        </section>
-      </div>
+              </select>
+            </label>
+            <label class="subtask-editor__field">
+              <span class="subtask-editor__field-label">担当者</span>
+              <input
+                type="text"
+                class="subtask-editor__input"
+                placeholder="任意"
+                [value]="newSubtaskForm.controls.assignee.value()"
+                (input)="newSubtaskForm.controls.assignee.setValue($any($event.target).value)"
+              />
+            </label>
+            <label class="subtask-editor__field">
+              <span class="subtask-editor__field-label">工数 (h)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                class="subtask-editor__input"
+                placeholder="任意"
+                [value]="newSubtaskForm.controls.estimateHours.value()"
+                (input)="newSubtaskForm.controls.estimateHours.setValue($any($event.target).value)"
+              />
+            </label>
+          </div>
+          <div class="subtask-editor__actions">
+            <button
+              type="submit"
+              class="button button--primary"
+              [disabled]="!isNewSubtaskFormValid()"
+            >
+              サブタスクを追加
+            </button>
+          </div>
+        </form>
+      </section>
     </aside>
   }
 </section>
