@@ -673,6 +673,7 @@
   font-size: 0.95rem;
   line-height: 1.6;
   color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+  overflow-wrap: anywhere;
 }
 
 .card-overview__list {
@@ -702,6 +703,7 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
 }
 
 .card-overview__status {
