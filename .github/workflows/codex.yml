@@ -30,4 +30,13 @@ jobs:
           fi
 
           echo "TASK_INPUT: $TASK_INPUT"
-          codex translator --task "$TASK_INPUT"
+          mkdir -p codex_output
+          set -o pipefail
+          codex translator --task "$TASK_INPUT" | tee codex_output/translator.md
+
+      - name: Upload Codex outputs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codex-agent-outputs
+          path: codex_output
