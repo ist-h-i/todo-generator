@@ -87,7 +87,7 @@
 
 @media (min-width: 62rem) {
   .auth-card {
-    flex: 0 1 clamp(30rem, 42vw, 38rem);
+    max-width: clamp(30rem, 42vw, 38rem);
   }
 }
 
