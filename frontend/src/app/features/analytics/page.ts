@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
@@ -6,6 +13,8 @@ import { FeedbackSeverity } from '@core/models';
 import { ContinuousImprovementStore } from '@core/state/continuous-improvement-store';
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
+
+type ActionFeedback = { status: 'success' | 'error'; message: string };
 
 /**
  * Analytics dashboard summarizing board metrics for the workspace.
@@ -20,6 +29,19 @@ import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 export class AnalyticsPage {
   private readonly workspace = inject(WorkspaceStore);
   private readonly improvement = inject(ContinuousImprovementStore);
+  private readonly destroyRef = inject(DestroyRef);
+
+  private readonly actionPendingSignal = signal<Record<string, boolean>>({});
+  private readonly actionStatusSignal = signal<Record<string, ActionFeedback | undefined>>({});
+  private readonly statusTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly statusVisibilityMs = 5000;
+
+  public constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.statusTimers.forEach((timer) => clearTimeout(timer));
+      this.statusTimers.clear();
+    });
+  }
 
   public readonly summarySignal = this.workspace.summary;
 
@@ -76,8 +98,39 @@ export class AnalyticsPage {
     this.improvement.selectSnapshot(snapshotId);
   };
 
-  public readonly convertAction = (actionId: string): void => {
-    void this.improvement.convertSuggestedAction(actionId);
+  public readonly convertAction = async (actionId: string): Promise<void> => {
+    if (this.isActionPending(actionId)) {
+      return;
+    }
+
+    this.setActionPending(actionId, true);
+    this.clearStatusTimer(actionId);
+    this.clearActionStatus(actionId);
+
+    try {
+      const result = await this.improvement.convertSuggestedAction(actionId);
+      if (result.status === 'success') {
+        const message = result.card?.id
+          ? `カードを作成しました (ID: ${result.card.id})`
+          : 'カードを作成しました。';
+        this.setActionStatus(actionId, { status: 'success', message });
+      } else {
+        this.setActionStatus(actionId, {
+          status: 'error',
+          message: result.message ?? 'カードの作成に失敗しました。',
+        });
+      }
+    } catch {
+      this.setActionStatus(actionId, {
+        status: 'error',
+        message: 'カードの作成に失敗しました。',
+      });
+    } finally {
+      this.setActionPending(actionId, false);
+      if (this.actionStatus(actionId)) {
+        this.scheduleStatusClear(actionId);
+      }
+    }
   };
 
   public readonly updateReportInstruction = (value: string): void => {
@@ -86,6 +139,16 @@ export class AnalyticsPage {
 
   public readonly generateReport = (): void => {
     this.improvement.generateReportPreview();
+  };
+
+  public readonly isActionPending = (actionId: string): boolean => {
+    const pending = this.actionPendingSignal();
+    return Boolean(pending[actionId]);
+  };
+
+  public readonly actionStatus = (actionId: string): ActionFeedback | undefined => {
+    const statuses = this.actionStatusSignal();
+    return statuses[actionId];
   };
 
   public readonly severityClass = (severity: FeedbackSeverity): string => {
@@ -108,5 +171,52 @@ export class AnalyticsPage {
     }
 
     return `${percent > 0 ? '+' : ''}${percent}%`;
+  };
+
+  private readonly setActionPending = (actionId: string, value: boolean): void => {
+    this.actionPendingSignal.update((pending) => {
+      if (value) {
+        return { ...pending, [actionId]: true };
+      }
+
+      if (!(actionId in pending)) {
+        return pending;
+      }
+
+      const { [actionId]: _removed, ...rest } = pending;
+      return rest;
+    });
+  };
+
+  private readonly setActionStatus = (actionId: string, value: ActionFeedback): void => {
+    this.actionStatusSignal.update((statuses) => ({ ...statuses, [actionId]: value }));
+  };
+
+  private readonly clearActionStatus = (actionId: string): void => {
+    this.actionStatusSignal.update((statuses) => {
+      if (!(actionId in statuses)) {
+        return statuses;
+      }
+
+      const { [actionId]: _removed, ...rest } = statuses;
+      return rest;
+    });
+  };
+
+  private readonly scheduleStatusClear = (actionId: string): void => {
+    this.clearStatusTimer(actionId);
+    const timeoutId = setTimeout(() => {
+      this.clearStatusTimer(actionId);
+      this.clearActionStatus(actionId);
+    }, this.statusVisibilityMs);
+    this.statusTimers.set(actionId, timeoutId);
+  };
+
+  private readonly clearStatusTimer = (actionId: string): void => {
+    const existing = this.statusTimers.get(actionId);
+    if (existing) {
+      clearTimeout(existing);
+      this.statusTimers.delete(actionId);
+    }
   };
 }
