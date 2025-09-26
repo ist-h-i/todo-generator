@@ -3,9 +3,9 @@
 ## Document Control
 | Field | Value |
 | --- | --- |
-| Version | 0.9 |
+| Version | 0.10 |
 | Author | Product Enablement |
-| Last Updated | 2024-07-01 |
+| Last Updated | 2024-07-09 |
 | Status | Draft |
 
 ## 1. Background & Objectives
@@ -22,6 +22,7 @@ The workspace board gives teams a shared view of task progress, quick filtering 
 - Board filters, search box, quick filters, and persistence of preferences per authenticated user.【F:frontend/src/app/features/board/page.html†L16-L89】【F:frontend/src/app/core/state/workspace-store.ts†L520-L632】
 - Card detail drawer covering metadata editing, subtasks, comments, and activity timeline display.【F:frontend/src/app/features/board/page.html†L184-L540】【F:frontend/src/app/features/board/page.ts†L368-L525】
 - Backend comment creation/deletion and activity log APIs that honor workspace ownership and actor context.【F:backend/app/routers/comments.py†L14-L82】【F:backend/app/routers/activity.py†L16-L60】
+- Default AI-assisted template flow for one-off card creation that proposes labels, statuses, and metadata before saving.
 
 ### Out of Scope
 - Real-time multi-user presence indicators (future enhancement).
@@ -61,12 +62,18 @@ The workspace board gives teams a shared view of task progress, quick filtering 
    - Activity listing verifies ownership of the card when filtering by `card_id` and blocks access otherwise.【F:backend/app/routers/activity.py†L28-L44】
    - Workspace store initializes from authenticated preferences and keeps selections scoped to the signed-in profile only.【F:frontend/src/app/core/state/workspace-store.ts†L60-L120】【F:frontend/src/app/core/state/workspace-store.ts†L440-L520】
 
+6. **Create a guided default card** – As a project coordinator, I sometimes need to capture a single card quickly without choosing from the template library.
+   - A "Default AI suggestion" option appears alongside existing templates and is limited to creating one card at a time.
+   - Selecting the default option triggers AI-generated suggestions for labels, status, assignee, and other metadata, which users can review and override before saving.
+   - The chosen AI recommendations are persisted with the card and logged in activity history to document automated assistance.
+
 ## 5. Functional Requirements
 1. Persist workspace settings and filters to browser storage namespaced by user IDs and migrate legacy keys automatically.【F:frontend/src/app/core/state/workspace-store.ts†L24-L120】
 2. Compute board columns dynamically based on grouping mode and filtered card IDs, including counts and accent colors per column.【F:frontend/src/app/core/state/workspace-store.ts†L520-L608】
 3. Highlight selected cards and subtasks to align board and subtask swimlanes, resetting forms when selection changes.【F:frontend/src/app/features/board/page.ts†L368-L460】
 4. Support inline card editing (title, summary, status, priority, assignee, story points) with validation and diff detection to avoid unnecessary writes.【F:frontend/src/app/features/board/page.ts†L178-L320】【F:frontend/src/app/core/state/workspace-store.ts†L808-L872】
 5. Manage subtasks with add, update, delete, and status change operations, ensuring data normalization and numeric validation for estimates.【F:frontend/src/app/features/board/page.ts†L324-L452】【F:frontend/src/app/core/state/workspace-store.ts†L632-L760】【F:frontend/src/app/core/state/workspace-store.ts†L824-L912】
+6. Provide an AI-assisted default template pathway that (a) pre-fills recommended metadata, (b) limits creation scope to a single card, (c) surfaces confidence levels or rationales, and (d) records acceptance or overrides within activity logs.
 
 ## 6. Non-Functional Requirements
 - **Performance** – Filtered card computations rely on pure signal transformations to minimize change detection work and keep board interactions under 50 ms for typical datasets.【F:frontend/src/app/core/state/workspace-store.ts†L480-L608】
@@ -81,6 +88,7 @@ The workspace board gives teams a shared view of task progress, quick filtering 
 | Filter engagement | 60% of active users have non-default quick filters saved in preferences | Analyze persisted filter payloads under `workspace-preferences` storage namespace.【F:frontend/src/app/core/state/workspace-store.ts†L24-L120】【F:frontend/src/app/core/state/workspace-store.ts†L520-L632】 |
 | Comment collaboration | Average of ≥2 comments per active card per week | Track comment counts per card via `/comments/` list endpoint filtered by owner.【F:backend/app/routers/comments.py†L16-L44】 |
 | Audit completeness | 100% of comment mutations emit `comment_created` or `comment_deleted` activity events | Validate `activity_log` entries after comment API calls during QA automation.【F:backend/app/routers/comments.py†L40-L82】 |
+| AI template adoption | 50% of ad-hoc card creations use the AI default template with at least one suggestion accepted | Measure `/cards` create events flagged with the AI default template identifier and compare accepted vs. overridden fields. |
 
 ## 8. Open Questions
 - Should drag-and-drop status changes trigger notifications or remain silent beyond the activity log?
