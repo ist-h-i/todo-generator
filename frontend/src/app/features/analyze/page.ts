@@ -85,7 +85,7 @@ export class AnalyzePage {
   public readonly analyzerToast = computed(() => this.analyzerToastSignal());
   public readonly shouldHighlightResults = computed(() => this.resultsHighlightSignal());
   public readonly isAnalyzing = computed(() => this.analysisResource.status() === 'loading');
-  public readonly isSubmitDisabled = computed(() => {
+  private readonly isSubmitDisabledSignal = computed(() => {
     if (this.isAnalyzing()) {
       return true;
     }
@@ -104,6 +104,10 @@ export class AnalyzePage {
 
     return false;
   });
+  public isSubmitDisabled(): boolean {
+    return this.isSubmitDisabledSignal();
+  }
+
   public readonly proposalPublishFeedback = computed(() => this.publishFeedback());
 
   private readonly analyzerLifecycleEffect = effect(
