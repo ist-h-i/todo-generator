@@ -2,13 +2,7 @@ import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '@core/auth/auth.service';
-import {
-  CardLabelResponse,
-  CardResponse,
-  CardStatusResponse,
-  CardsApiService,
-  SubtaskResponse,
-} from '@core/api/cards-api.service';
+import { CardResponse, CardsApiService, SubtaskResponse } from '@core/api/cards-api.service';
 import { Logger } from '@core/logger/logger';
 import {
   AnalysisProposal,
