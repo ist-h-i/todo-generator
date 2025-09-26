@@ -49,4 +49,10 @@ export class PageLayoutComponent {
    */
   @Input()
   public bleed = false;
+
+  /**
+   * When true the shared page header centers its content.
+   */
+  @Input()
+  public headerCentered = false;
 }
