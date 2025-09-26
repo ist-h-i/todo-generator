@@ -17,5 +17,16 @@
       ],
       "disabledTools": []
     }
+  },
+  "pipelines": {
+    "auto-dev": {
+      "description": "Translator → Requirements Analyst → Detail Designer → Planner pipeline",
+      "steps": [
+        "translator",
+        "requirements_analyst",
+        "detail_designer",
+        "planner"
+      ]
+    }
   }
 }

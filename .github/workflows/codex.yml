@@ -16,7 +16,7 @@ jobs:
       - name: Install Codex
         run: npm install -g codex-cli
 
-      - name: Run Codex translator → planner pipeline
+      - name: Run Codex translator → requirements analyst → detail designer → planner pipeline
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
