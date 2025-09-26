@@ -141,8 +141,8 @@
   --neutral-surface-strong: color-mix(in srgb, var(--text-inverse-tertiary) 38%, transparent);
   --neutral-border: color-mix(in srgb, var(--text-inverse-tertiary) 48%, transparent);
   --neutral-border-strong: color-mix(in srgb, var(--text-inverse-tertiary) 58%, transparent);
-  --overlay-backdrop: color-mix(in srgb, var(--surface-inverse) 75%, transparent);
-  --overlay-backdrop-strong: color-mix(in srgb, var(--surface-inverse) 82%, transparent);
+  --overlay-backdrop: color-mix(in srgb, var(--surface-card-muted) 78%, transparent);
+  --overlay-backdrop-strong: color-mix(in srgb, var(--surface-card-muted) 88%, transparent);
   --surface-overlay-strong: color-mix(in srgb, var(--surface-card) 94%, transparent);
   --surface-overlay: color-mix(in srgb, var(--surface-card) 86%, transparent);
   --surface-overlay-muted: color-mix(in srgb, var(--surface-card) 76%, transparent);
