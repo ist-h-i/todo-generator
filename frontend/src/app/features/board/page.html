@@ -15,89 +15,89 @@
   <div class="board-page__overview">
     <section class="surface-panel page-panel board-filters">
       <div class="board-filters__toolbar">
-          <label class="form-field board-filters__search-field">
-            <span class="form-field__label">検索</span>
-            <div class="board-filters__search">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                class="board-filters__search-icon"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20L16.5 16.5" />
-              </svg>
-              <input
-                type="search"
-                class="form-control board-filters__search-input"
-                placeholder="キーワードでカードを検索"
-                [value]="searchForm.controls.search.value()"
-                (input)="updateSearch($any($event.target).value)"
-              />
-            </div>
-          </label>
-          <div class="board-filters__view">
-            <span class="board-filters__view-label">表示形式</span>
-            <div class="board-filters__view-actions">
-              <button
-                type="button"
-                class="button button--pill"
-                [ngClass]="{
-                  'button--secondary': groupingSignal() === 'status',
-                  'button--ghost': groupingSignal() !== 'status',
-                }"
-                [attr.aria-pressed]="groupingSignal() === 'status'"
-                (click)="selectGrouping('status')"
-              >
-                ステータス別
-              </button>
-              <button
-                type="button"
-                class="button button--pill"
-                [ngClass]="{
-                  'button--secondary': groupingSignal() === 'label',
-                  'button--ghost': groupingSignal() !== 'label',
-                }"
-                [attr.aria-pressed]="groupingSignal() === 'label'"
-                (click)="selectGrouping('label')"
-              >
-                ラベル別
-              </button>
-            </div>
+        <label class="form-field board-filters__search-field">
+          <span class="form-field__label">検索</span>
+          <div class="board-filters__search">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              class="board-filters__search-icon"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20L16.5 16.5" />
+            </svg>
+            <input
+              type="search"
+              class="form-control board-filters__search-input"
+              placeholder="キーワードでカードを検索"
+              [value]="searchForm.controls.search.value()"
+              (input)="updateSearch($any($event.target).value)"
+            />
           </div>
+        </label>
+        <div class="board-filters__view">
+          <span class="board-filters__view-label">表示形式</span>
+          <div class="board-filters__view-actions">
+            <button
+              type="button"
+              class="button button--pill"
+              [ngClass]="{
+                'button--secondary': groupingSignal() === 'status',
+                'button--ghost': groupingSignal() !== 'status',
+              }"
+              [attr.aria-pressed]="groupingSignal() === 'status'"
+              (click)="selectGrouping('status')"
+            >
+              ステータス別
+            </button>
+            <button
+              type="button"
+              class="button button--pill"
+              [ngClass]="{
+                'button--secondary': groupingSignal() === 'label',
+                'button--ghost': groupingSignal() !== 'label',
+              }"
+              [attr.aria-pressed]="groupingSignal() === 'label'"
+              (click)="selectGrouping('label')"
+            >
+              ラベル別
+            </button>
+          </div>
+        </div>
       </div>
       <div class="board-filters__quick">
-          <div class="board-filters__quick-stack">
-            <span class="board-filters__quick-label">クイックフィルター</span>
-            <div class="board-filters__quick-list">
-              @for (filter of quickFilters; track filter.id) {
-                <button
-                  type="button"
-                  class="button button--pill"
-                  [ngClass]="{
-                    'button--secondary': isQuickFilterActive(filter.id),
-                    'button--ghost': !isQuickFilterActive(filter.id),
-                  }"
-                  [attr.aria-pressed]="isQuickFilterActive(filter.id)"
-                  [title]="filter.description"
-                  (click)="toggleQuickFilter(filter.id)"
-                >
-                  {{ filter.label }}
-                </button>
-              }
-            </div>
+        <div class="board-filters__quick-stack">
+          <span class="board-filters__quick-label">クイックフィルター</span>
+          <div class="board-filters__quick-list">
+            @for (filter of quickFilters; track filter.id) {
+              <button
+                type="button"
+                class="button button--pill"
+                [ngClass]="{
+                  'button--secondary': isQuickFilterActive(filter.id),
+                  'button--ghost': !isQuickFilterActive(filter.id),
+                }"
+                [attr.aria-pressed]="isQuickFilterActive(filter.id)"
+                [title]="filter.description"
+                (click)="toggleQuickFilter(filter.id)"
+              >
+                {{ filter.label }}
+              </button>
+            }
           </div>
-          <button
-            type="button"
-            class="button button--ghost button--pill board-filters__clear"
-            (click)="clearFilters()"
-          >
-            フィルターをクリア
-          </button>
+        </div>
+        <button
+          type="button"
+          class="button button--ghost button--pill board-filters__clear"
+          (click)="clearFilters()"
+        >
+          フィルターをクリア
+        </button>
       </div>
     </section>
     <p class="page-empty board-page__hint">
@@ -505,6 +505,19 @@
                     (input)="commentForm.controls.message.setValue($any($event.target).value)"
                   ></textarea>
                 </label>
+                <label class="comment-editor__field">
+                  <span class="comment-editor__label">対象</span>
+                  <select
+                    class="comment-editor__input"
+                    [value]="commentForm.controls.target.value()"
+                    (change)="commentForm.controls.target.setValue($any($event.target).value)"
+                  >
+                    <option value="card">カード全体</option>
+                    @for (subtask of active.subtasks; track subtask.id) {
+                      <option [value]="subtask.id">サブタスク: {{ subtask.title }}</option>
+                    }
+                  </select>
+                </label>
               </div>
               <div class="comment-editor__actions">
                 <button
@@ -529,6 +542,13 @@
                           >更新: {{ comment.updatedAt | date: 'yyyy/MM/dd HH:mm' }}</span
                         >
                       </div>
+                      @if (comment.subtaskId) {
+                        <div class="comment-list__context">
+                          <span class="comment-list__target"
+                            >対象: {{ getSubtaskTitle(active.subtasks, comment.subtaskId) }}</span
+                          >
+                        </div>
+                      }
                       <button
                         type="button"
                         class="button button--ghost button--pill comment-list__remove"

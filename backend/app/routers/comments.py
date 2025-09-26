@@ -17,6 +17,7 @@ router = APIRouter(prefix="/comments", tags=["comments"])
 @router.get("/", response_model=List[schemas.CommentRead])
 def list_comments(
     card_id: Optional[str] = Query(default=None),
+    subtask_id: Optional[str] = Query(default=None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> List[models.Comment]:
@@ -27,6 +28,8 @@ def list_comments(
     )
     if card_id:
         query = query.filter(models.Comment.card_id == card_id)
+    if subtask_id:
+        query = query.filter(models.Comment.subtask_id == subtask_id)
     return query.order_by(asc(models.Comment.created_at)).all()
 
 
@@ -40,8 +43,18 @@ def create_comment(
     if not card or card.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
 
+    subtask_id = payload.subtask_id
+    if subtask_id:
+        subtask = db.get(models.Subtask, subtask_id)
+        if not subtask or subtask.card_id != card.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Subtask not found",
+            )
+
     comment = models.Comment(
         card_id=payload.card_id,
+        subtask_id=subtask_id,
         content=payload.content,
         author_id=current_user.id,
     )
@@ -51,7 +64,7 @@ def create_comment(
         action="comment_created",
         card_id=payload.card_id,
         actor_id=current_user.id,
-        details={"comment_id": comment.id},
+        details={"comment_id": comment.id, "subtask_id": subtask_id},
     )
     db.commit()
     db.refresh(comment)
@@ -80,7 +93,7 @@ def delete_comment(
         action="comment_deleted",
         card_id=comment.card_id,
         actor_id=current_user.id,
-        details={"comment_id": comment.id},
+        details={"comment_id": comment.id, "subtask_id": comment.subtask_id},
     )
     db.delete(comment)
     db.commit()
