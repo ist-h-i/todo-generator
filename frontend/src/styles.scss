@@ -763,8 +763,9 @@ app-help-dialog .help-dialog__panel {
 }
 
 app-help-dialog .help-dialog__header {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: 1.5rem;
 }
 
@@ -794,7 +795,8 @@ app-help-dialog .help-dialog__description {
 }
 
 app-help-dialog .help-dialog__close {
-  align-self: flex-start;
+  align-self: start;
+  justify-self: end;
   display: inline-flex;
   align-items: center;
   justify-content: center;
