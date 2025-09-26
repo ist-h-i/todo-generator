@@ -490,9 +490,8 @@
                   <input
                     type="text"
                     class="comment-editor__input"
-                    placeholder="氏名またはイニシャル"
-                    [value]="commentForm.controls.author.value()"
-                    (input)="commentForm.controls.author.setValue($any($event.target).value)"
+                    [value]="commentAuthorNameSignal()"
+                    readonly
                   />
                 </label>
                 <label class="comment-editor__field">
@@ -525,8 +524,17 @@
                   class="button button--secondary"
                   [disabled]="!isCommentFormValid()"
                 >
-                  コメントを追加
+                  {{ editingCommentId() ? 'コメントを更新' : 'コメントを追加' }}
                 </button>
+                @if (editingCommentId()) {
+                  <button
+                    type="button"
+                    class="button button--ghost"
+                    (click)="cancelCommentEditing()"
+                  >
+                    キャンセル
+                  </button>
+                }
               </div>
             </form>
             <ul class="comment-list">
@@ -537,10 +545,13 @@
                   <li class="comment-list__item">
                     <div class="comment-list__meta">
                       <div class="comment-list__identity">
-                        <span class="comment-list__author">{{ comment.author }}</span>
+                        <span class="comment-list__author">{{ comment.authorNickname }}</span>
                         <span class="comment-list__timestamp"
                           >更新: {{ comment.updatedAt | date: 'yyyy/MM/dd HH:mm' }}</span
                         >
+                        @if (isCommentBeingEdited(comment.id)) {
+                          <span class="comment-list__status">編集中</span>
+                        }
                       </div>
                       @if (comment.subtaskId) {
                         <div class="comment-list__context">
@@ -549,13 +560,22 @@
                           >
                         </div>
                       }
-                      <button
-                        type="button"
-                        class="button button--ghost button--pill comment-list__remove"
-                        (click)="removeComment(active.id, comment.id)"
-                      >
-                        削除
-                      </button>
+                      <div class="comment-list__actions">
+                        <button
+                          type="button"
+                          class="button button--ghost button--pill comment-list__edit"
+                          (click)="startEditingComment(comment)"
+                        >
+                          編集
+                        </button>
+                        <button
+                          type="button"
+                          class="button button--ghost button--pill comment-list__remove"
+                          (click)="removeComment(active.id, comment.id)"
+                        >
+                          削除
+                        </button>
+                      </div>
                     </div>
                     <p class="comment-list__message">{{ comment.message }}</p>
                   </li>

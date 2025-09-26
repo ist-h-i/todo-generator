@@ -410,16 +410,38 @@ class BoardLayoutUpdate(UserPreferenceBase):
 class CommentBase(BaseModel):
     card_id: str
     content: str
-    author_id: Optional[str] = None
     subtask_id: Optional[str] = None
 
 
 class CommentCreate(CommentBase):
-    pass
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, value: str) -> str:
+        sanitized = value.strip()
+        if not sanitized:
+            raise ValueError("content must not be blank")
+        return sanitized
+
+
+class CommentUpdate(BaseModel):
+    content: Optional[str] = None
+    subtask_id: Optional[str] = None
+
+    @field_validator("content")
+    @classmethod
+    def validate_optional_content(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        sanitized = value.strip()
+        if not sanitized:
+            raise ValueError("content must not be blank")
+        return sanitized
 
 
 class CommentRead(CommentBase):
     id: str
+    author_id: Optional[str] = None
+    author_nickname: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

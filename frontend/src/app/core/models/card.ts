@@ -3,7 +3,8 @@
  */
 export interface CardComment {
   readonly id: string;
-  readonly author: string;
+  readonly authorId?: string;
+  readonly authorNickname: string;
   readonly message: string;
   readonly createdAt: string;
   readonly updatedAt: string;
