@@ -1,6 +1,15 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '@core/auth/auth.service';
+import {
+  CardLabelResponse,
+  CardResponse,
+  CardStatusResponse,
+  CardsApiService,
+  SubtaskResponse,
+} from '@core/api/cards-api.service';
+import { Logger } from '@core/logger/logger';
 import {
   AnalysisProposal,
   BoardColumnView,
@@ -72,11 +81,377 @@ const cloneFilters = (filters: BoardFilters): BoardFilters => ({
 const arraysEqual = <T>(left: readonly T[], right: readonly T[]): boolean =>
   left.length === right.length && left.every((value, index) => value === right[index]);
 
+const CARD_PRIORITY_FALLBACK: Card['priority'] = 'medium';
+const CARD_PRIORITY_MAP: Record<string, Card['priority']> = {
+  low: 'low',
+  medium: 'medium',
+  normal: 'medium',
+  high: 'high',
+  urgent: 'urgent',
+  critical: 'urgent',
+};
+
+const SUBTASK_STATUS_FALLBACK: Subtask['status'] = 'todo';
+const SUBTASK_STATUS_MAP: Record<string, Subtask['status']> = {
+  todo: 'todo',
+  'not-started': 'todo',
+  not_started: 'todo',
+  backlog: 'todo',
+  pending: 'todo',
+  'in-progress': 'in-progress',
+  in_progress: 'in-progress',
+  doing: 'in-progress',
+  active: 'in-progress',
+  review: 'in-progress',
+  qa: 'in-progress',
+  testing: 'in-progress',
+  blocked: 'in-progress',
+  done: 'done',
+  completed: 'done',
+  complete: 'done',
+  resolved: 'done',
+  closed: 'done',
+  'non-issue': 'non-issue',
+  non_issue: 'non-issue',
+  'not-applicable': 'non-issue',
+  not_applicable: 'non-issue',
+  skipped: 'non-issue',
+  'n/a': 'non-issue',
+  na: 'non-issue',
+};
+
+const STATUS_CATEGORY_ACCENTS: Record<Status['category'], string> = {
+  todo: '#64748b',
+  'in-progress': '#2563eb',
+  done: '#16a34a',
+};
+
+const FALLBACK_LABEL_COLORS = [
+  '#38bdf8',
+  '#a855f7',
+  '#ec4899',
+  '#f97316',
+  '#14b8a6',
+  '#eab308',
+  '#6366f1',
+];
+
 const filtersEqual = (left: BoardFilters, right: BoardFilters): boolean =>
   left.search === right.search &&
   arraysEqual(left.labelIds, right.labelIds) &&
   arraysEqual(left.statusIds, right.statusIds) &&
   arraysEqual(left.quickFilters, right.quickFilters);
+
+const sanitizeString = (value: string | null | undefined): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const sanitizeNumber = (value: number | null | undefined): number | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : undefined;
+};
+
+const sanitizeDateString = (value: string | null | undefined): string | undefined => {
+  const sanitized = sanitizeString(value);
+  if (!sanitized) {
+    return undefined;
+  }
+
+  return Number.isNaN(Date.parse(sanitized)) ? undefined : sanitized;
+};
+
+const sanitizeDateTime = (value: string | null | undefined): string => {
+  const sanitized = sanitizeString(value);
+  if (!sanitized || Number.isNaN(Date.parse(sanitized))) {
+    return new Date().toISOString();
+  }
+
+  return new Date(sanitized).toISOString();
+};
+
+const normalizeCardPriority = (value: string | null | undefined): Card['priority'] => {
+  const normalized = sanitizeString(value)?.toLowerCase();
+  if (!normalized) {
+    return CARD_PRIORITY_FALLBACK;
+  }
+
+  return CARD_PRIORITY_MAP[normalized] ?? CARD_PRIORITY_FALLBACK;
+};
+
+const normalizeSubtaskStatus = (value: string | null | undefined): Subtask['status'] => {
+  const normalized = sanitizeString(value)?.toLowerCase();
+  if (!normalized) {
+    return SUBTASK_STATUS_FALLBACK;
+  }
+
+  if (normalized in SUBTASK_STATUS_MAP) {
+    return SUBTASK_STATUS_MAP[normalized];
+  }
+
+  if (normalized.includes('progress') || normalized === 'doing') {
+    return 'in-progress';
+  }
+
+  if (normalized.includes('done') || normalized.includes('complete')) {
+    return 'done';
+  }
+
+  if (normalized.includes('issue') || normalized.includes('skip')) {
+    return 'non-issue';
+  }
+
+  return SUBTASK_STATUS_FALLBACK;
+};
+
+const normalizeStatusCategory = (value: string | null | undefined): Status['category'] => {
+  const normalized = sanitizeString(value)?.toLowerCase();
+  if (!normalized) {
+    return 'todo';
+  }
+
+  if (normalized.includes('done') || normalized.includes('complete') || normalized === 'closed') {
+    return 'done';
+  }
+
+  if (
+    normalized.includes('progress') ||
+    normalized === 'doing' ||
+    normalized === 'active' ||
+    normalized === 'review' ||
+    normalized === 'qa'
+  ) {
+    return 'in-progress';
+  }
+
+  return 'todo';
+};
+
+const normalizeStatusColor = (
+  value: string | null | undefined,
+  category: Status['category'],
+): string => sanitizeString(value) ?? STATUS_CATEGORY_ACCENTS[category];
+
+const pickPrimaryAssignee = (
+  assignees: readonly string[] | null | undefined,
+): string | undefined => {
+  if (!assignees) {
+    return undefined;
+  }
+
+  for (const assignee of assignees) {
+    const sanitized = sanitizeString(assignee);
+    if (sanitized) {
+      return sanitized;
+    }
+  }
+
+  return undefined;
+};
+
+const sanitizeStoryPoints = (value: number | null | undefined): number => {
+  if (value === null || value === undefined) {
+    return 0;
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(numeric));
+};
+
+const sanitizeConfidence = (value: number | null | undefined): number | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return undefined;
+  }
+
+  return Math.min(Math.max(numeric, 0), 1);
+};
+
+const dedupeIds = (ids: readonly (string | null | undefined)[]): string[] => {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  for (const id of ids) {
+    const sanitized = sanitizeString(id);
+    if (!sanitized || seen.has(sanitized)) {
+      continue;
+    }
+
+    seen.add(sanitized);
+    result.push(sanitized);
+  }
+
+  return result;
+};
+
+const mapSubtaskFromResponse = (source: SubtaskResponse): Subtask => ({
+  id: source.id,
+  title: source.title,
+  status: normalizeSubtaskStatus(source.status),
+  assignee: sanitizeString(source.assignee),
+  estimateHours: sanitizeNumber(source.estimate_hours),
+  dueDate: sanitizeDateString(source.due_date),
+});
+
+const mapCardFromResponse = (source: CardResponse, fallbackStatusId: string): Card => {
+  const rawLabelIds = dedupeIds([
+    ...((source.label_ids ?? []) as readonly (string | null | undefined)[]),
+    ...((source.labels ?? []).map((label) => label?.id) as readonly (string | null | undefined)[]),
+  ]);
+  const subtasks = (source.subtasks ?? []).map(mapSubtaskFromResponse);
+  const statusId = sanitizeString(source.status_id ?? source.status?.id) ?? fallbackStatusId;
+
+  return {
+    id: source.id,
+    title: source.title,
+    summary: source.summary ?? '',
+    statusId,
+    labelIds: rawLabelIds,
+    templateId: null,
+    priority: normalizeCardPriority(source.priority),
+    storyPoints: sanitizeStoryPoints(source.story_points),
+    createdAt: sanitizeDateTime(source.created_at),
+    startDate: sanitizeDateString(source.start_date),
+    dueDate: sanitizeDateString(source.due_date),
+    assignee: pickPrimaryAssignee(source.assignees),
+    confidence: sanitizeConfidence(source.ai_confidence),
+    subtasks,
+    comments: [],
+    activities: [],
+    originSuggestionId: undefined,
+    initiativeId: sanitizeString(source.initiative_id ?? source.initiative?.id),
+  } satisfies Card;
+};
+
+const collectStatusesFromCards = (cards: readonly CardResponse[]): Status[] => {
+  const seen = new Map<string, Status>();
+  let fallbackOrder = 0;
+
+  for (const card of cards) {
+    const statusId = sanitizeString(card.status_id ?? card.status?.id);
+    if (!statusId || seen.has(statusId)) {
+      continue;
+    }
+
+    const meta = card.status;
+    const name = sanitizeString(meta?.name) ?? statusId;
+    const category = normalizeStatusCategory(meta?.category);
+    const orderCandidate = meta?.order ?? null;
+    const order =
+      typeof orderCandidate === 'number' && Number.isFinite(orderCandidate)
+        ? orderCandidate
+        : ++fallbackOrder;
+    const color = normalizeStatusColor(meta?.color, category);
+
+    seen.set(statusId, {
+      id: statusId,
+      name,
+      category,
+      order,
+      color,
+    });
+  }
+
+  return Array.from(seen.values()).sort((left, right) => {
+    if (left.order !== right.order) {
+      return left.order - right.order;
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+};
+
+const collectLabelsFromCards = (cards: readonly CardResponse[]): Label[] => {
+  const seen = new Map<string, Label>();
+  let colorIndex = 0;
+
+  const nextColor = (): string => {
+    const color = FALLBACK_LABEL_COLORS[colorIndex % FALLBACK_LABEL_COLORS.length];
+    colorIndex += 1;
+    return color;
+  };
+
+  for (const card of cards) {
+    for (const label of card.labels ?? []) {
+      const id = sanitizeString(label?.id);
+      if (!id || seen.has(id)) {
+        continue;
+      }
+
+      const name = sanitizeString(label?.name) ?? id;
+      const color = sanitizeString(label?.color) ?? nextColor();
+      seen.set(id, { id, name, color });
+    }
+  }
+
+  for (const card of cards) {
+    for (const labelId of card.label_ids ?? []) {
+      const sanitized = sanitizeString(labelId);
+      if (!sanitized || seen.has(sanitized)) {
+        continue;
+      }
+
+      seen.set(sanitized, { id: sanitized, name: sanitized, color: nextColor() });
+    }
+  }
+
+  return Array.from(seen.values()).sort((left, right) => left.name.localeCompare(right.name));
+};
+
+const statusesEqual = (left: readonly Status[], right: readonly Status[]): boolean =>
+  left.length === right.length &&
+  left.every((status, index) => {
+    const other = right[index];
+    return (
+      other !== undefined &&
+      status.id === other.id &&
+      status.name === other.name &&
+      status.category === other.category &&
+      status.order === other.order &&
+      status.color === other.color
+    );
+  });
+
+const labelsEqual = (left: readonly Label[], right: readonly Label[]): boolean =>
+  left.length === right.length &&
+  left.every((label, index) => {
+    const other = right[index];
+    return (
+      other !== undefined &&
+      label.id === other.id &&
+      label.name === other.name &&
+      label.color === other.color
+    );
+  });
+
+const determineDefaultStatusId = (statuses: readonly Status[], fallback: string): string => {
+  if (statuses.length === 0) {
+    return fallback;
+  }
+
+  const todoStatus = statuses.find((status) => status.category === 'todo');
+  if (todoStatus) {
+    return todoStatus.id;
+  }
+
+  return statuses[0]?.id ?? fallback;
+};
 
 const DEFAULT_GROUPING: BoardGrouping = 'label';
 
@@ -241,6 +616,8 @@ type CardSuggestionPayload = {
 @Injectable({ providedIn: 'root' })
 export class WorkspaceStore {
   private readonly auth = inject(AuthService);
+  private readonly cardsApi = inject(CardsApiService);
+  private readonly logger = inject(Logger);
   private readonly storage = this.resolveStorage();
   private readonly activeUserId = computed(() => this.auth.user()?.id ?? null);
   private readonly activeUserEmail = computed(() => this.auth.user()?.email ?? null);
@@ -283,6 +660,7 @@ export class WorkspaceStore {
         ]),
       ),
   );
+  private activeCardRequestToken = 0;
 
   public constructor() {
     effect(
@@ -299,6 +677,20 @@ export class WorkspaceStore {
       { allowSignalWrites: true },
     );
   }
+
+  private readonly loadCardsEffect = effect(
+    () => {
+      const userId = this.activeUserId();
+      if (!userId) {
+        this.activeCardRequestToken += 1;
+        this.cardsSignal.set([]);
+        return;
+      }
+
+      this.fetchCards();
+    },
+    { allowSignalWrites: true },
+  );
 
   private readonly syncDefaultAssigneeWithNicknameEffect = effect(
     () => {
@@ -1458,6 +1850,85 @@ export class WorkspaceStore {
       cards.map((card) => (card.templateId === templateId ? { ...card, templateId: null } : card)),
     );
   };
+
+  private fetchCards(): void {
+    const requestToken = ++this.activeCardRequestToken;
+
+    firstValueFrom(this.cardsApi.listCards())
+      .then((response) => {
+        if (requestToken !== this.activeCardRequestToken) {
+          return;
+        }
+
+        this.applyFetchedCards(response);
+      })
+      .catch((error) => {
+        if (requestToken !== this.activeCardRequestToken) {
+          return;
+        }
+
+        this.logger.error('WorkspaceStore', error);
+        this.cardsSignal.set([]);
+      });
+  }
+
+  private applyFetchedCards(response: readonly CardResponse[]): void {
+    const statuses = collectStatusesFromCards(response);
+    const labels = collectLabelsFromCards(response);
+
+    this.applyWorkspaceMetadata(statuses, labels);
+
+    const fallbackStatusId = this.settingsSignal().defaultStatusId;
+    const mappedCards = response.map((card) => mapCardFromResponse(card, fallbackStatusId));
+    this.cardsSignal.set(mappedCards);
+    this.reconcileCardsForSettings(this.settingsSignal());
+  }
+
+  private applyWorkspaceMetadata(statuses: readonly Status[], labels: readonly Label[]): void {
+    if (statuses.length === 0 && labels.length === 0) {
+      return;
+    }
+
+    let updatedSettings: WorkspaceSettings | null = null;
+
+    this.settingsSignal.update((current) => {
+      const nextStatuses = statuses.length > 0 ? statuses : current.statuses;
+      const nextLabels = labels.length > 0 ? labels : current.labels;
+
+      let defaultStatusId = current.defaultStatusId;
+      if (
+        !nextStatuses.some((status) => status.id === defaultStatusId) &&
+        nextStatuses.length > 0
+      ) {
+        defaultStatusId = determineDefaultStatusId(nextStatuses, current.defaultStatusId);
+      }
+
+      const unchanged =
+        statusesEqual(current.statuses, nextStatuses) &&
+        labelsEqual(current.labels, nextLabels) &&
+        defaultStatusId === current.defaultStatusId;
+
+      if (unchanged) {
+        return current;
+      }
+
+      updatedSettings = {
+        ...current,
+        statuses: nextStatuses,
+        labels: nextLabels,
+        defaultStatusId,
+      } satisfies WorkspaceSettings;
+
+      return updatedSettings;
+    });
+
+    if (!updatedSettings) {
+      return;
+    }
+
+    this.persistSettings(updatedSettings);
+    this.reconcileFiltersForSettings(updatedSettings);
+  }
 
   private reconcileCardsForSettings(settings: WorkspaceSettings): void {
     const allowedStatusIds = new Set(settings.statuses.map((status) => status.id));
