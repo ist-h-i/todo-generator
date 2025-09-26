@@ -252,13 +252,37 @@
             <button
               type="button"
               class="button button--primary"
-              [disabled]="action.status === 'converted'"
+              [disabled]="action.status === 'converted' || isActionPending(action.id)"
               (click)="convertAction(action.id)"
             >
-              {{ action.status === 'converted' ? '作成済み' : 'ワンクリックでタスク化' }}
+              <span
+                class="button__spinner"
+                [class.button__spinner--visible]="isActionPending(action.id)"
+                aria-hidden="true"
+              ></span>
+              <span class="button__label">
+                {{
+                  action.status === 'converted'
+                    ? '作成済み'
+                    : isActionPending(action.id)
+                      ? '作成中…'
+                      : 'ワンクリックでタスク化'
+                }}
+              </span>
             </button>
             @if (action.createdCardId) {
               <span class="text-xs text-slate-500">カードID: {{ action.createdCardId }}</span>
+            }
+            @if (actionStatus(action.id); as status) {
+              <p
+                class="text-xs font-medium"
+                [class.text-emerald-600]="status.status === 'success'"
+                [class.text-rose-600]="status.status === 'error'"
+                [attr.role]="status.status === 'error' ? 'alert' : 'status'"
+                [attr.aria-live]="status.status === 'error' ? 'assertive' : 'polite'"
+              >
+                {{ status.message }}
+              </p>
             }
           </div>
         </li>
