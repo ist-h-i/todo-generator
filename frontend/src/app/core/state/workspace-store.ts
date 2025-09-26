@@ -2,7 +2,12 @@ import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '@core/auth/auth.service';
-import { CardResponse, CardsApiService, SubtaskResponse } from '@core/api/cards-api.service';
+import {
+  CardCreateRequest,
+  CardResponse,
+  CardsApiService,
+  SubtaskResponse,
+} from '@core/api/cards-api.service';
 import { Logger } from '@core/logger/logger';
 import {
   AnalysisProposal,
@@ -1031,7 +1036,7 @@ export class WorkspaceStore {
             ? [...template.defaultLabelIds]
             : [defaultLabel];
 
-      return this.buildCardFromPayload({
+      return this.buildLocalCardFromPayload({
         title: proposal.title,
         summary: proposal.summary,
         statusId,
@@ -1471,21 +1476,85 @@ export class WorkspaceStore {
    * @param payload - Attributes describing the new card.
    * @returns Created card instance.
    */
-  public readonly createCardFromSuggestion = (payload: CardSuggestionPayload): Card => {
-    const card = this.buildCardFromPayload(payload);
+  public readonly createCardFromSuggestion = async (
+    payload: CardSuggestionPayload,
+  ): Promise<Card> => {
+    const settings = this.settingsSignal();
+    const fallbackStatusId = settings.defaultStatusId;
+    const request = this.buildCardCreateRequest(payload, settings);
 
-    this.cardsSignal.update((cards) => [card, ...cards]);
+    try {
+      const response = await firstValueFrom(this.cardsApi.createCard(request));
+      const card = {
+        ...mapCardFromResponse(response, fallbackStatusId),
+        originSuggestionId: payload.originSuggestionId,
+      } satisfies Card;
 
-    return card;
+      this.cardsSignal.update((cards) => [card, ...cards]);
+
+      return card;
+    } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+      throw error;
+    }
   };
 
-  private readonly buildCardFromPayload = (payload: CardSuggestionPayload): Card => {
-    const settings = this.settingsSignal();
-    const statusId = payload.statusId ?? settings.defaultStatusId;
+  private readonly buildCardCreateRequest = (
+    payload: CardSuggestionPayload,
+    settings: WorkspaceSettings,
+  ): CardCreateRequest => {
+    const statusId = sanitizeString(payload.statusId) ?? settings.defaultStatusId;
+    const providedLabelIds = (payload.labelIds ?? [])
+      .map((labelId) => sanitizeString(labelId))
+      .filter((labelId): labelId is string => Boolean(labelId));
     const labelIds =
-      payload.labelIds && payload.labelIds.length > 0
-        ? [...payload.labelIds]
-        : [settings.labels[0]?.id ?? 'general'];
+      providedLabelIds.length > 0
+        ? Array.from(new Set(providedLabelIds))
+        : [sanitizeString(settings.labels[0]?.id) ?? 'general'];
+    const fallbackAssignee = sanitizeString(payload.assignee ?? settings.defaultAssignee);
+    const storyPoints = sanitizeStoryPoints(payload.storyPoints ?? 3);
+    const dueDate = sanitizeDateString(payload.dueDate);
+    const confidence = sanitizeConfidence(payload.confidence);
+
+    return {
+      title: payload.title,
+      summary: payload.summary,
+      status_id: statusId,
+      label_ids: labelIds,
+      priority: payload.priority ?? 'medium',
+      story_points: storyPoints,
+      assignees: fallbackAssignee ? [fallbackAssignee] : [],
+      due_date: dueDate,
+      ai_confidence: confidence,
+      initiative_id: payload.initiativeId,
+      subtasks:
+        payload.subtasks?.map((subtask) => ({
+          title: subtask.title,
+          status: subtask.status,
+          assignee: sanitizeString(subtask.assignee),
+          estimate_hours: subtask.estimateHours,
+          due_date: sanitizeDateString(subtask.dueDate),
+        })) ?? [],
+    } satisfies CardCreateRequest;
+  };
+
+  private readonly buildLocalCardFromPayload = (
+    payload: CardSuggestionPayload,
+    settingsOverride?: WorkspaceSettings,
+  ): Card => {
+    const settings = settingsOverride ?? this.settingsSignal();
+    const statusId = sanitizeString(payload.statusId) ?? settings.defaultStatusId;
+    const providedLabelIds = (payload.labelIds ?? [])
+      .map((labelId) => sanitizeString(labelId))
+      .filter((labelId): labelId is string => Boolean(labelId));
+    const labelIds =
+      providedLabelIds.length > 0
+        ? Array.from(new Set(providedLabelIds))
+        : [sanitizeString(settings.labels[0]?.id) ?? 'general'];
+    const createdAt = payload.createdAt ?? new Date().toISOString();
+    const assignee = sanitizeString(payload.assignee ?? settings.defaultAssignee) ?? undefined;
+    const dueDate = sanitizeDateString(payload.dueDate);
+    const confidence = sanitizeConfidence(payload.confidence);
 
     return {
       id: createId(),
@@ -1494,11 +1563,11 @@ export class WorkspaceStore {
       statusId,
       labelIds,
       priority: payload.priority ?? 'medium',
-      storyPoints: payload.storyPoints ?? 3,
-      createdAt: payload.createdAt ?? new Date().toISOString(),
-      assignee: payload.assignee ?? settings.defaultAssignee,
-      dueDate: payload.dueDate,
-      confidence: payload.confidence,
+      storyPoints: sanitizeStoryPoints(payload.storyPoints ?? 3),
+      createdAt,
+      assignee,
+      dueDate,
+      confidence,
       subtasks: payload.subtasks ? payload.subtasks.map((subtask) => ({ ...subtask })) : [],
       comments: [],
       activities: [],

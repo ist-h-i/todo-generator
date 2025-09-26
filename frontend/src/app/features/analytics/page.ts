@@ -77,7 +77,7 @@ export class AnalyticsPage {
   };
 
   public readonly convertAction = (actionId: string): void => {
-    this.improvement.convertSuggestedAction(actionId);
+    void this.improvement.convertSuggestedAction(actionId);
   };
 
   public readonly updateReportInstruction = (value: string): void => {
