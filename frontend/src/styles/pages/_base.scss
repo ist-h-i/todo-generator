@@ -3,6 +3,9 @@
   flex-direction: column;
   gap: var(--panel-gap);
   padding: var(--panel-padding);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-card);
+  background: var(--surface-card);
 }
 
 .page-title {
@@ -111,7 +114,7 @@
   gap: 0.85rem;
   border-radius: 1.25rem;
   border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
+  background: var(--surface-card);
   padding: 1.1rem 1.2rem;
 }
 
@@ -316,7 +319,7 @@
   padding: var(--panel-padding);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-layer-2), var(--surface-layer-3));
+  background: var(--surface-card);
 }
 
 .page-section__header {
@@ -543,7 +546,7 @@
   overflow-x: auto;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-card);
-  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-2));
+  background: var(--surface-card);
 }
 
 .page-table {
