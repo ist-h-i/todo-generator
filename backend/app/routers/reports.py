@@ -12,8 +12,8 @@ from ..utils.dependencies import require_admin
 router = APIRouter(prefix="/reports", tags=["reports"])
 
 
-def _template_query(db: Session):
-    return db.query(models.ReportTemplate)
+def _template_query(db: Session, owner_id: str):
+    return db.query(models.ReportTemplate).filter(models.ReportTemplate.owner_id == owner_id)
 
 
 def _report_query(db: Session):
@@ -90,9 +90,13 @@ def _format_initiatives(initiatives: List[models.ImprovementInitiative]) -> str:
 @router.get("/templates", response_model=List[schemas.ReportTemplateRead])
 def list_templates(
     db: Session = Depends(get_db),
-    _: models.User = Depends(require_admin),
+    current_admin: models.User = Depends(require_admin),
 ) -> List[models.ReportTemplate]:
-    templates = _template_query(db).order_by(models.ReportTemplate.created_at.desc()).all()
+    templates = (
+        _template_query(db, current_admin.id)
+        .order_by(models.ReportTemplate.created_at.desc())
+        .all()
+    )
     for template in templates:
         template.sections = template.sections
     return templates
@@ -106,13 +110,14 @@ def list_templates(
 def create_template(
     payload: schemas.ReportTemplateCreate,
     db: Session = Depends(get_db),
-    _: models.User = Depends(require_admin),
+    current_admin: models.User = Depends(require_admin),
 ) -> models.ReportTemplate:
     template = models.ReportTemplate(
         name=payload.name,
         audience=payload.audience,
         sections_json=payload.sections,
         branding=payload.branding,
+        owner_id=current_admin.id,
     )
     db.add(template)
     db.commit()
@@ -125,9 +130,13 @@ def create_template(
 def get_template(
     template_id: str,
     db: Session = Depends(get_db),
-    _: models.User = Depends(require_admin),
+    current_admin: models.User = Depends(require_admin),
 ) -> models.ReportTemplate:
-    template = db.get(models.ReportTemplate, template_id)
+    template = (
+        _template_query(db, current_admin.id)
+        .filter(models.ReportTemplate.id == template_id)
+        .first()
+    )
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
     template.sections = template.sections
@@ -139,9 +148,13 @@ def update_template(
     template_id: str,
     payload: schemas.ReportTemplateUpdate,
     db: Session = Depends(get_db),
-    _: models.User = Depends(require_admin),
+    current_admin: models.User = Depends(require_admin),
 ) -> models.ReportTemplate:
-    template = db.get(models.ReportTemplate, template_id)
+    template = (
+        _template_query(db, current_admin.id)
+        .filter(models.ReportTemplate.id == template_id)
+        .first()
+    )
     if not template:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
@@ -200,7 +213,11 @@ def generate_report(
 ) -> models.GeneratedReport:
     template = None
     if payload.template_id:
-        template = db.get(models.ReportTemplate, payload.template_id)
+        template = (
+            _template_query(db, current_admin.id)
+            .filter(models.ReportTemplate.id == payload.template_id)
+            .first()
+        )
         if not template:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 

@@ -85,6 +85,9 @@ class User(Base, TimestampMixin):
     appeal_generations: Mapped[list["AppealGeneration"]] = relationship(
         "AppealGeneration", back_populates="owner", cascade="all, delete-orphan"
     )
+    report_templates: Mapped[list["ReportTemplate"]] = relationship(
+        "ReportTemplate", back_populates="owner", cascade="all, delete-orphan"
+    )
     quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
         "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
     )
@@ -488,8 +491,12 @@ class ReportTemplate(Base, TimestampMixin):
     audience: Mapped[str | None] = mapped_column(String)
     sections_json: Mapped[list[dict] | list[str]] = mapped_column(JSON, default=list)
     branding: Mapped[dict] = mapped_column(JSON, default=dict)
+    owner_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     reports: Mapped[list["GeneratedReport"]] = relationship("GeneratedReport", back_populates="template")
+    owner: Mapped[User] = relationship("User", back_populates="report_templates")
 
     @property
     def sections(self) -> list:
