@@ -13,9 +13,24 @@ on:
 
 jobs:
   codex:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      ((github.event_name == 'issues' || github.event_name == 'issue_comment') &&
+       (contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association) ||
+        (github.event_name == 'issue_comment' &&
+         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check OPENAI_API_KEY availability
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "::error::OPENAI_API_KEY is not available for this workflow run. Maintainers: please re-run via \"Run workflow\" in the Actions tab so repository secrets are accessible."
+            exit 1
+          fi
 
       - name: Install Codex CLI
         run: npm install -g @openai/codex

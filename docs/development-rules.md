@@ -37,6 +37,11 @@ Follow these rules to keep delivery smooth and maintain quality.
    - Run `git fetch origin main && git merge origin/main` (or rebase) near the end of the task.
    - Resolve any conflicts and rerun builds or tests as necessary.
 
+### Codex workflow limitations
+
+- GitHub workflow runs triggered by issues or comments created by external contributors cannot access repository secrets such as `OPENAI_API_KEY`.
+- When the Codex automation fails for that reason, a maintainer with write access must re-run the workflow manually via **Run workflow** so the job can use the required secrets.
+
 ---
 
 ## Pre-merge Requirements
