@@ -117,9 +117,11 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
   # the user-provided task (for example "--task foo") are never interpreted as
   # CLI options by the codex binary. Passing `--` before the positional argument
   # ensures argument parsing stops before the trailing `-` placeholder.
+  # `--full-auto` already implies the necessary sandbox/approval behaviour. Avoid
+  # passing `--dangerously-bypass-approvals-and-sandbox` alongside it because the
+  # Codex CLI rejects the combination.
   printf '%s' "${PROMPT}" | codex exec \
     --full-auto \
-    --dangerously-bypass-approvals-and-sandbox \
     --cd "${GITHUB_WORKSPACE:-$(pwd)}" \
     --output-last-message "${OUTPUT_FILE}" \
     --config approval_policy=never \
