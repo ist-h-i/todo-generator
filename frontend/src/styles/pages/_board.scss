@@ -556,15 +556,16 @@
 
 .board-detail {
   margin-block-start: var(--page-content-gap);
-  display: block;
-  padding: var(--panel-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--panel-gap);
+  padding: clamp(var(--space-xl), 3vw, var(--space-xxl));
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-card);
   background: var(--surface-card);
 }
 
 .board-detail.surface-panel {
-  --panel-padding: clamp(var(--space-xl), 3vw, var(--space-xxl));
   margin: 0;
 }
 
