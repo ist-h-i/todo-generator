@@ -79,6 +79,16 @@ The backend starts on <http://localhost:8000> (with auto-applied migrations and 
    ```
    The Angular dev server provides hot module replacement at <http://localhost:4200>. Adjust the backend origin, if necessary, in `frontend/src/app/core/api/api.config.ts`.
 
+### Configuring the API base URL for production deployments
+
+The frontend automatically targets the backend origin when it is served from a non-localhost domain. If your deployment proxies the FastAPI server through a different host or path, expose the base URL via a meta tag in `index.html`:
+
+```html
+<meta name="verbalize:api-base-url" content="https://api.example.com" />
+```
+
+When no override is provided and the app is accessed from localhost, the SPA falls back to `http://localhost:8000` so the development servers continue to work out of the box.
+
 ### Running Tests & Quality Checks
 Execute the relevant checks before opening a pull request. Use the focused commands when you only touched documentation.
 
