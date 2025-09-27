@@ -2,6 +2,10 @@ name: Codex Auto Dev
 
 on:
   workflow_dispatch:   # 手動実行
+    inputs:
+      task_input:
+        description: Codex パイプラインへ渡すタスク内容（省略時はデフォルト文言）
+        required: false
   issues:              # Issue起票（新規作成時）
     types: [opened]
   issue_comment:       # Issueコメントでトリガー
@@ -32,7 +36,10 @@ jobs:
               RAW_TASK_INPUT="Comment on issue #${{ github.event.issue.number }}: ${{ github.event.comment.body }}"
               ;;
             *)
-              RAW_TASK_INPUT="Manual trigger: Please implement the requested feature."
+              RAW_TASK_INPUT="${{ github.event.inputs.task_input }}"
+              if [ -z "$RAW_TASK_INPUT" ]; then
+                RAW_TASK_INPUT="Manual trigger: Please implement the requested feature."
+              fi
               ;;
           esac
 
@@ -43,7 +50,11 @@ jobs:
             exit 1
           fi
 
-          printf '%s' "$RAW_TASK_INPUT" | scripts/run_codex_pipeline.sh
+          # Pipe the dynamically composed task description into the Codex helper
+          # script. Using stdin avoids the deprecated "--task" flag that the
+          # legacy CLI accepted and keeps us compatible with the latest
+          # releases.
+          printf '%s' "$RAW_TASK_INPUT" | ./scripts/run_codex_pipeline.sh
 
       - name: Upload Codex outputs
         uses: actions/upload-artifact@v4
