@@ -10,6 +10,7 @@ import {
   AdminUser,
   AdminUserUpdate,
   ApiCredential,
+  ApiCredentialUpdate,
   Competency,
   CompetencyCriterionInput,
   CompetencyEvaluation,
@@ -40,6 +41,15 @@ export class AdminPage {
   public readonly feedback = signal<string | null>(null);
   public readonly error = signal<string | null>(null);
 
+  private readonly defaultChatModel = 'gpt-4o-mini';
+  public readonly chatModelOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: 'gpt-4o-mini', label: 'GPT-4o mini (推奨)' },
+    { value: 'gpt-4o', label: 'GPT-4o' },
+    { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
+    { value: 'gpt-4.1', label: 'GPT-4.1' },
+  ];
+  private readonly knownChatModelValues = new Set(this.chatModelOptions.map((option) => option.value));
+
   public readonly newCompetency = signal<CompetencyInput>({
     name: '',
     level: 'junior',
@@ -53,6 +63,7 @@ export class AdminPage {
   public evaluationPeriodStart = '';
   public evaluationPeriodEnd = '';
   public apiSecret = '';
+  public apiModel = this.defaultChatModel;
   public defaultCardLimit: number | null = null;
   public defaultEvaluationLimit: number | null = null;
 
@@ -237,20 +248,29 @@ export class AdminPage {
     this.clearError();
 
     const secret = this.apiSecret.trim();
-    if (!secret) {
+    const hasCredential = this.apiCredential() !== null;
+    if (!secret && !hasCredential) {
       this.error.set('API トークンを入力してください。');
       return;
     }
 
+    const payload: ApiCredentialUpdate = {
+      model: this.apiModel,
+    };
+    if (secret) {
+      payload.secret = secret;
+    }
+
     this.loading.set(true);
     this.api
-      .upsertApiCredential('openai', { secret })
+      .upsertApiCredential('openai', payload)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (credential) => {
           this.loading.set(false);
           this.apiCredential.set(credential);
           this.apiSecret = '';
+          this.apiModel = this.resolveChatModel(credential.model);
           this.notify('API トークンを更新しました。');
         },
         error: (err) => {
@@ -369,15 +389,37 @@ export class AdminPage {
       .getApiCredential('openai')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (credential) => this.apiCredential.set(credential),
+        next: (credential) => {
+          this.apiCredential.set(credential);
+          this.apiModel = this.resolveChatModel(credential.model);
+        },
         error: (err: unknown) => {
           if (err instanceof HttpErrorResponse && err.status === 404) {
             this.apiCredential.set(null);
+            this.apiModel = this.defaultChatModel;
             return;
           }
           this.handleError(err, 'API トークンの取得に失敗しました。');
         },
       });
+  }
+
+  public isKnownModel(value: string): boolean {
+    return this.knownChatModelValues.has(value);
+  }
+
+  private resolveChatModel(model: string | null | undefined): string {
+    if (!model) {
+      return this.defaultChatModel;
+    }
+    const trimmed = model.trim();
+    if (!trimmed) {
+      return this.defaultChatModel;
+    }
+    if (this.knownChatModelValues.has(trimmed)) {
+      return trimmed;
+    }
+    return trimmed;
   }
 
   private updateUser(user: AdminUser, payload: AdminUserUpdate): void {
