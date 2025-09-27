@@ -185,7 +185,7 @@
                     @if (currentUser.roles.length) {
                       <span
                         class="shell-user__roles"
-                        [attr.title]="currentUser.roles.join(' / ')"
+                        [attr.title]="formatRoleTooltip(currentUser.roles)"
                       >
                         {{ formatRolePreview(currentUser.roles) }}
                       </span>
