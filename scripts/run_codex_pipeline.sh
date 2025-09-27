@@ -88,8 +88,8 @@ if ! command -v codex >/dev/null 2>&1; then
 fi
 
 if [ -z "${OPENAI_API_KEY:-}" ]; then
-  echo "OPENAI_API_KEY is not configured. Skipping Codex pipeline run." >&2
-  exit 0
+  echo "OPENAI_API_KEY is not configured." >&2
+  exit 1
 fi
 
 mkdir -p codex_output
