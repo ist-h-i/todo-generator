@@ -464,7 +464,12 @@ def _load_chatgpt_configuration(db: Session, provider: str = "openai") -> tuple[
         .first()
     )
     if not credential:
-        raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
+        if settings.chatgpt_api_key:
+            return settings.chatgpt_api_key, settings.chatgpt_model
+
+        raise ChatGPTConfigurationError(
+            "ChatGPT API key is not configured. Update it from the admin settings."
+        )
 
     cipher = get_secret_cipher()
     try:

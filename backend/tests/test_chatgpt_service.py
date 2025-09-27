@@ -177,3 +177,20 @@ def test_load_chatgpt_configuration_defaults_to_settings_model(client: TestClien
 
     assert secret == "sk-default"
     assert model == settings.chatgpt_model
+
+
+def test_load_chatgpt_configuration_falls_back_to_settings_api_key(client: TestClient) -> None:
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    original_key = settings.chatgpt_api_key
+    try:
+        settings.chatgpt_api_key = "sk-env"
+
+        secret, model = _load_chatgpt_configuration(db)
+    finally:
+        settings.chatgpt_api_key = original_key
+        db_gen.close()
+
+    assert secret == "sk-env"
+    assert model == settings.chatgpt_model
