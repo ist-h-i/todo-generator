@@ -1,9 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TASK_INPUT=${1-}
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 [--task] <task description>" >&2
+  exit 1
+fi
+
+# Historical callers may still pass the task description via a deprecated
+# "--task" flag (for example `codex run auto-dev --task "..."`). The current
+# Codex CLI no longer accepts that option, so we strip it here for
+# compatibility and treat the remaining positional arguments as the actual
+# task description.
+if [ "${1-}" = "--task" ]; then
+  shift
+fi
+
+TASK_INPUT="$*"
 if [ -z "${TASK_INPUT}" ]; then
-  echo "Usage: $0 <task description>" >&2
+  echo "Usage: $0 [--task] <task description>" >&2
   exit 1
 fi
 
