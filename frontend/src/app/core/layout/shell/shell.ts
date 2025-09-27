@@ -119,6 +119,15 @@ export class Shell {
   public readonly year = new Date().getFullYear();
   public readonly user = this.auth.user;
 
+  public formatRolePreview(roles: readonly string[]): string {
+    if (roles.length === 0) {
+      return '';
+    }
+
+    const preview = roles.slice(0, 2).join(' / ');
+    return roles.length > 2 ? `${preview} / …` : preview;
+  }
+
   public openProfile(): void {
     this.profileDialogVisible.set(true);
   }

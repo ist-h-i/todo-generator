@@ -183,7 +183,12 @@
                   }}</span>
                   <span class="shell-user__meta">
                     @if (currentUser.roles.length) {
-                      <span class="shell-user__roles">{{ currentUser.roles.join(' / ') }}</span>
+                      <span
+                        class="shell-user__roles"
+                        [attr.title]="currentUser.roles.join(' / ')"
+                      >
+                        {{ formatRolePreview(currentUser.roles) }}
+                      </span>
                     }
                     <span class="shell-user__email">{{ currentUser.email }}</span>
                   </span>
