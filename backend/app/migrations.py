@@ -184,6 +184,12 @@ def _ensure_card_error_category_column(engine: Engine) -> None:
         if not _table_exists(inspector, "cards"):
             return
 
+        if not _table_exists(inspector, "error_categories"):
+            # Older installs may not have created the error_categories table yet. Skip
+            # until a later startup once Base.metadata.create_all has run so the
+            # foreign key target exists.
+            return
+
         column_names = _column_names(inspector, "cards")
 
     if "error_category_id" in column_names:

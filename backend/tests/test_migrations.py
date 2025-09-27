@@ -174,6 +174,51 @@ def test_run_startup_migrations_adds_error_category_column_to_cards() -> None:
     assert columns["error_category_id"]["nullable"] is True
 
 
+def test_run_startup_migrations_waits_for_error_categories_table() -> None:
+    engine = create_engine("sqlite:///:memory:", future=True)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE cards (
+                    id VARCHAR PRIMARY KEY,
+                    title VARCHAR NOT NULL,
+                    owner_id VARCHAR NOT NULL,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+                """
+            )
+        )
+
+    # Initial run should no-op because the referenced error_categories table is
+    # created by Base.metadata.create_all() later in startup.
+    run_startup_migrations(engine)
+
+    inspector = inspect(engine)
+    columns = {column["name"] for column in inspector.get_columns("cards")}
+    assert "error_category_id" not in columns
+
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE error_categories (
+                    id VARCHAR PRIMARY KEY,
+                    name VARCHAR NOT NULL
+                )
+                """
+            )
+        )
+
+    run_startup_migrations(engine)
+
+    inspector = inspect(engine)
+    columns = {column["name"]: column for column in inspector.get_columns("cards")}
+    assert "error_category_id" in columns
+    assert columns["error_category_id"]["nullable"] is True
+
+
 def test_run_startup_migrations_handles_duplicate_column_race() -> None:
     engine = create_engine("sqlite:///:memory:", future=True)
     with engine.begin() as connection:
