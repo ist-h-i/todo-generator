@@ -1208,19 +1208,27 @@ export class WorkspaceStore {
     }
 
     const timestamp = new Date().toISOString();
-    const updated: CardComment = {
+    const hasSubtaskChange = Object.prototype.hasOwnProperty.call(changes, 'subtaskId');
+    const updatedBase: CardComment = {
       ...existing,
       message,
-      subtaskId: changes.subtaskId,
       updatedAt: timestamp,
     };
+    const updated: CardComment = hasSubtaskChange
+      ? {
+          ...updatedBase,
+          subtaskId: changes.subtaskId,
+        }
+      : updatedBase;
 
     this.replaceComment(cardId, commentId, updated);
 
-    const request: CommentUpdateRequest = {
-      content: message,
-      subtask_id: changes.subtaskId ?? null,
-    };
+    const request: CommentUpdateRequest = hasSubtaskChange
+      ? {
+          content: message,
+          subtask_id: changes.subtaskId ?? null,
+        }
+      : { content: message };
 
     void firstValueFrom(this.commentsApi.updateComment(commentId, request))
       .then((response) => {
