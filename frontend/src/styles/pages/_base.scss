@@ -501,7 +501,8 @@
 }
 
 .button__spinner {
-  width: 1rem;
+  display: none;
+  width: 0;
   height: 1rem;
   border-radius: 9999px;
   border: 2px solid color-mix(in srgb, var(--text-inverse-secondary) 45%, transparent);
@@ -512,6 +513,8 @@
 }
 
 .button__spinner--visible {
+  display: inline-flex;
+  width: 1rem;
   opacity: 1;
 }
 
