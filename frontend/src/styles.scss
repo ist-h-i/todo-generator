@@ -1609,16 +1609,6 @@ app-profile-dialog .profile-dialog__role-summary-name {
   line-height: 1.2;
 }
 
-app-profile-dialog .profile-dialog__role-summary-group {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: color-mix(in srgb, var(--accent) 70%, transparent);
-}
-
-app-profile-dialog .profile-dialog__role-summary-item--custom .profile-dialog__role-summary-group {
-  color: color-mix(in srgb, var(--success-strong) 70%, transparent);
-}
-
 app-profile-dialog .profile-dialog__role-summary-remove {
   display: inline-flex;
   align-items: center;
