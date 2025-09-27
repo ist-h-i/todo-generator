@@ -6,6 +6,8 @@ from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from .config import settings
+
 
 def _table_exists(inspector, table_name: str) -> bool:
     return table_name in inspector.get_table_names()
@@ -92,9 +94,7 @@ def _promote_first_user_to_admin(engine: Engine) -> None:
 
         column_names = _column_names(inspector, "users")
         ordering_column = "created_at" if "created_at" in column_names else "id"
-        first_user = connection.execute(
-            text(f"SELECT id FROM users ORDER BY {ordering_column} ASC LIMIT 1")
-        ).first()
+        first_user = connection.execute(text(f"SELECT id FROM users ORDER BY {ordering_column} ASC LIMIT 1")).first()
         if not first_user:
             return
 
@@ -322,6 +322,38 @@ def _rename_daily_report_tables(engine: Engine) -> None:
             drop_table(connection, "daily_reports")
 
 
+def _ensure_api_credentials_model_column(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "api_credentials"):
+            return
+
+        column_names = _column_names(inspector, "api_credentials")
+
+    if "model" in column_names:
+        return
+
+    dialect = engine.dialect.name
+    column_type = "TEXT" if dialect == "sqlite" else "VARCHAR(255)"
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(f"ALTER TABLE api_credentials ADD COLUMN model {column_type}"))
+    except SQLAlchemyError as exc:
+        if not _is_duplicate_column_error(exc):
+            raise
+
+    default_model = settings.chatgpt_model
+    if not default_model:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(
+            text("UPDATE api_credentials SET model = :model WHERE model IS NULL"),
+            {"model": default_model},
+        )
+
+
 def run_startup_migrations(engine: Engine) -> None:
     """Ensure database upgrades that rely on application startup are applied."""
 
@@ -332,6 +364,7 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_comment_subtask_column(engine)
     _rename_daily_report_tables(engine)
     _drop_status_report_report_date(engine)
+    _ensure_api_credentials_model_column(engine)
 
 
 __all__: Iterable[str] = ["run_startup_migrations"]

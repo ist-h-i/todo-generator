@@ -71,9 +71,7 @@ def test_run_startup_migrations_adds_column_and_promotes_first_user() -> None:
     assert "is_admin" in columns
 
     with engine.connect() as connection:
-        rows = connection.execute(
-            text("SELECT email, is_admin FROM users ORDER BY created_at ASC")
-        ).all()
+        rows = connection.execute(text("SELECT email, is_admin FROM users ORDER BY created_at ASC")).all()
 
     assert rows, "Expected at least one user row"
     assert [bool(row.is_admin) for row in rows] == [True, False]
@@ -136,9 +134,7 @@ def test_run_startup_migrations_is_noop_when_column_exists() -> None:
     run_startup_migrations(engine)
 
     with engine.connect() as connection:
-        rows = connection.execute(
-            text("SELECT email, is_admin FROM users ORDER BY created_at ASC")
-        ).all()
+        rows = connection.execute(text("SELECT email, is_admin FROM users ORDER BY created_at ASC")).all()
 
     assert [bool(row.is_admin) for row in rows] == [True, False]
 
@@ -211,8 +207,55 @@ def test_run_startup_migrations_handles_duplicate_column_race() -> None:
         run_startup_migrations(engine)
 
     with engine.connect() as connection:
-        rows = connection.execute(
-            text("SELECT email, is_admin FROM users ORDER BY created_at ASC")
-        ).all()
+        rows = connection.execute(text("SELECT email, is_admin FROM users ORDER BY created_at ASC")).all()
 
     assert [bool(row.is_admin) for row in rows] == [True, False]
+
+
+def test_run_startup_migrations_adds_api_credentials_model_column() -> None:
+    engine = create_engine("sqlite:///:memory:", future=True)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE api_credentials (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    provider VARCHAR NOT NULL UNIQUE,
+                    encrypted_secret TEXT NOT NULL,
+                    secret_hint VARCHAR,
+                    is_active BOOLEAN NOT NULL DEFAULT 1,
+                    created_by_id VARCHAR,
+                    created_at DATETIME,
+                    updated_at DATETIME
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                INSERT INTO api_credentials (provider, encrypted_secret, secret_hint, is_active)
+                VALUES (:provider, :encrypted_secret, :secret_hint, :is_active)
+                """
+            ),
+            {
+                "provider": "openai",
+                "encrypted_secret": "ciphertext",
+                "secret_hint": "sk-***",
+                "is_active": True,
+            },
+        )
+
+    run_startup_migrations(engine)
+
+    inspector = inspect(engine)
+    columns = {column["name"] for column in inspector.get_columns("api_credentials")}
+    assert "model" in columns
+
+    with engine.connect() as connection:
+        row = connection.execute(
+            text("SELECT model FROM api_credentials WHERE provider = :provider"),
+            {"provider": "openai"},
+        ).one()
+
+    assert row.model == migrations.settings.chatgpt_model
