@@ -554,51 +554,16 @@ type SubtaskDetailUpdate = Partial<Omit<Subtask, 'id'>>;
 
 type Writable<T> = { -readonly [P in keyof T]: T[P] };
 
-const INITIAL_LABELS: Label[] = [
-  { id: 'frontend', name: 'フロントエンド', color: '#38bdf8' },
-  { id: 'backend', name: 'バックエンド', color: '#a855f7' },
-  { id: 'ux', name: 'UX', color: '#ec4899' },
-  { id: 'ai', name: 'AI', color: '#f97316' },
-];
-
-const INITIAL_STATUSES: Status[] = [
-  { id: 'todo', name: 'To Do', category: 'todo', order: 1, color: '#64748b' },
-  { id: 'in-progress', name: 'In Progress', category: 'in-progress', order: 2, color: '#2563eb' },
-  { id: 'review', name: 'Review', category: 'in-progress', order: 3, color: '#9333ea' },
-  { id: 'done', name: 'Done', category: 'done', order: 4, color: '#16a34a' },
-];
-
-const INITIAL_TEMPLATES: TemplatePreset[] = [
-  {
-    id: 'ai-template',
-    name: 'AI 改善サイクル',
-    description: 'ChatGPT 改修用のチェックリストテンプレート',
-    defaultStatusId: 'todo',
-    defaultLabelIds: ['ai'],
-    confidenceThreshold: 0.6,
-    fieldVisibility: { ...DEFAULT_TEMPLATE_FIELDS },
-  },
-  {
-    id: 'ux-template',
-    name: 'UX 検証',
-    description: 'プロトタイプ検証とユーザーテスト',
-    defaultStatusId: 'in-progress',
-    defaultLabelIds: ['ux'],
-    confidenceThreshold: 0.7,
-    fieldVisibility: { ...DEFAULT_TEMPLATE_FIELDS },
-  },
-];
-
 const INITIAL_CARDS: readonly Card[] = [];
 
 const INITIAL_SETTINGS: WorkspaceSettings = {
-  defaultStatusId: 'todo',
-  defaultAssignee: '田中太郎',
-  timezone: 'Asia/Tokyo',
-  statuses: INITIAL_STATUSES,
-  labels: INITIAL_LABELS,
-  templates: INITIAL_TEMPLATES,
-  storyPointScale: [1, 2, 3, 5, 8, 13],
+  defaultStatusId: '',
+  defaultAssignee: '',
+  timezone: '',
+  statuses: [],
+  labels: [],
+  templates: [],
+  storyPointScale: [],
 };
 
 const INITIAL_FILTERS: BoardFilters = {
@@ -714,45 +679,49 @@ export class WorkspaceStore {
   private readonly syncDefaultAssigneeWithNicknameEffect = effect(
     () => {
       const nickname = this.activeUserNickname();
-      if (!nickname) {
+      const email = this.activeUserEmail();
+      const preferredName =
+        nickname && nickname.trim().length > 0
+          ? nickname.trim()
+          : email && email.trim().length > 0
+            ? email.trim()
+            : null;
+
+      if (!preferredName) {
         this.lastSyncedAssigneeName = null;
         return;
       }
 
-      if (this.lastSyncedAssigneeName === nickname) {
-        return;
-      }
-
-      const email = this.activeUserEmail();
       const settings = this.settingsSignal();
-      const previousDefault = settings.defaultAssignee;
-      const canUpdateDefault =
-        previousDefault === INITIAL_SETTINGS.defaultAssignee ||
-        previousDefault === this.lastSyncedAssigneeName ||
-        (email !== null && previousDefault === email);
+      const previousDefault = settings.defaultAssignee.trim();
 
-      if (canUpdateDefault && previousDefault !== nickname) {
+      if (previousDefault !== preferredName) {
         const nextSettings: WorkspaceSettings = {
           ...settings,
-          defaultAssignee: nickname,
+          defaultAssignee: preferredName,
         };
         this.settingsSignal.set(nextSettings);
         this.persistSettings(nextSettings);
       }
 
       const aliasValues = new Set<string>();
-      if (canUpdateDefault && previousDefault && previousDefault !== nickname) {
-        aliasValues.add(previousDefault);
-      }
-      if (this.lastSyncedAssigneeName && this.lastSyncedAssigneeName !== nickname) {
-        aliasValues.add(this.lastSyncedAssigneeName);
-      }
-      if (email && email !== nickname) {
-        aliasValues.add(email);
-      }
-      if (INITIAL_SETTINGS.defaultAssignee !== nickname) {
-        aliasValues.add(INITIAL_SETTINGS.defaultAssignee);
-      }
+      const registerAlias = (value: string | null | undefined): void => {
+        if (!value) {
+          return;
+        }
+
+        const normalized = value.trim();
+        if (normalized.length === 0 || normalized === preferredName) {
+          return;
+        }
+
+        aliasValues.add(normalized);
+      };
+
+      registerAlias(previousDefault);
+      registerAlias(this.lastSyncedAssigneeName);
+      registerAlias(email);
+      registerAlias('田中太郎');
 
       if (aliasValues.size > 0) {
         this.cardsSignal.update((cards) => {
@@ -761,20 +730,29 @@ export class WorkspaceStore {
             let updated = false;
             let nextAssignee = card.assignee;
 
-            if (nextAssignee && aliasValues.has(nextAssignee)) {
-              nextAssignee = nickname;
-              updated = true;
+            if (nextAssignee) {
+              const normalizedAssignee = nextAssignee.trim();
+              if (normalizedAssignee.length > 0 && aliasValues.has(normalizedAssignee)) {
+                nextAssignee = preferredName;
+                updated = true;
+              }
             }
 
             let nextSubtasks = card.subtasks;
             if (
-              card.subtasks.some((subtask) => subtask.assignee && aliasValues.has(subtask.assignee))
+              card.subtasks.some((subtask) => {
+                const normalized = subtask.assignee?.trim();
+                return normalized && aliasValues.has(normalized);
+              })
             ) {
-              nextSubtasks = card.subtasks.map((subtask) =>
-                subtask.assignee && aliasValues.has(subtask.assignee)
-                  ? { ...subtask, assignee: nickname }
-                  : subtask,
-              );
+              nextSubtasks = card.subtasks.map((subtask) => {
+                const normalized = subtask.assignee?.trim();
+                if (normalized && aliasValues.has(normalized)) {
+                  return { ...subtask, assignee: preferredName } satisfies Subtask;
+                }
+
+                return subtask;
+              });
               updated = true;
             }
 
@@ -794,7 +772,7 @@ export class WorkspaceStore {
         });
       }
 
-      this.lastSyncedAssigneeName = nickname;
+      this.lastSyncedAssigneeName = preferredName;
     },
     { allowSignalWrites: true },
   );
@@ -2557,9 +2535,11 @@ export class WorkspaceStore {
       statuses,
       fallbackStatusId,
     );
+    const defaultAssigneeInput =
+      typeof data.defaultAssignee === 'string' ? data.defaultAssignee.trim() : '';
     const defaultAssignee =
-      typeof data.defaultAssignee === 'string' && data.defaultAssignee.trim().length > 0
-        ? data.defaultAssignee
+      defaultAssigneeInput.length > 0 && defaultAssigneeInput !== '田中太郎'
+        ? defaultAssigneeInput
         : defaults.defaultAssignee;
     const timezone =
       typeof data.timezone === 'string' && data.timezone.trim().length > 0
