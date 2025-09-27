@@ -12,7 +12,7 @@ const resolveMetaApiBaseUrl = (): string | null => {
     const element = document.querySelector('meta[name="verbalize:api-base-url"]');
     const content = element?.getAttribute('content')?.trim();
     return content?.length ? content.replace(/\/$/, '') : null;
-  } catch (error) {
+  } catch {
     return null;
   }
 };
