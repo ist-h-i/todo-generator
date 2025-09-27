@@ -756,6 +756,7 @@ class ReportTemplateUpdate(BaseModel):
 
 class ReportTemplateRead(ReportTemplateBase):
     id: str
+    owner_id: str
     created_at: datetime
     updated_at: datetime
 
