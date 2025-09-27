@@ -16,6 +16,14 @@ if [ "${1-}" = "--task" ]; then
 fi
 
 TASK_INPUT="$*"
+# Guard against historical callers that inlined the deprecated flag into the
+# task description (for example, passing "--task build a feature" as a single
+# argument). We normalise the value so downstream prompts only contain the
+# human-provided request.
+if [[ "${TASK_INPUT}" == --task\ * ]]; then
+  TASK_INPUT="${TASK_INPUT#--task }"
+fi
+
 if [ -z "${TASK_INPUT}" ]; then
   echo "Usage: $0 [--task] <task description>" >&2
   exit 1
