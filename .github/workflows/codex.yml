@@ -37,7 +37,7 @@ jobs:
             exit 1
           fi
 
-          scripts/run_codex_pipeline.sh "$RAW_TASK_INPUT"
+          printf '%s' "$RAW_TASK_INPUT" | scripts/run_codex_pipeline.sh
 
       - name: Upload Codex outputs
         uses: actions/upload-artifact@v4

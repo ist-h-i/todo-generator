@@ -1,9 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Support both CLI arguments and stdin so callers can avoid passing legacy flags
+# like `--task` that are no longer recognised by the Codex CLI. If arguments are
+# omitted but stdin is piped, treat the piped content as the task description.
 if [ $# -eq 0 ]; then
-  echo "Usage: $0 [--task] <task description>" >&2
-  exit 1
+  if [ -t 0 ]; then
+    echo "Usage: $0 [--task] <task description>" >&2
+    exit 1
+  fi
+
+  STDIN_PAYLOAD="$(cat)"
+  # Normalise Windows-style carriage returns in case the workflow echoed a
+  # CRLF-terminated string.
+  STDIN_PAYLOAD="${STDIN_PAYLOAD//$'\r'/}"
+
+  # Defer validation of empty content until after we have applied the legacy
+  # flag sanitisation and whitespace trimming below.
+  set -- "$STDIN_PAYLOAD"
 fi
 
 # Historical callers may still pass the task description via a deprecated
