@@ -75,5 +75,15 @@ def delete_status(
         owner_id=current_user.id,
         detail="Status not found",
     )
+
+    templates = (
+        db.query(models.WorkspaceTemplate)
+        .filter(models.WorkspaceTemplate.owner_id == current_user.id)
+        .filter(models.WorkspaceTemplate.default_status_id == status_id)
+        .all()
+    )
+    for template in templates:
+        template.default_status_id = None
+        db.add(template)
     delete_model(db, status_model)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -73,14 +73,19 @@ export class SettingsPage {
    *
    * @param event - Browser submit event.
    */
-  public readonly saveLabel = (event: SubmitEvent): void => {
+  public readonly saveLabel = async (event: SubmitEvent): Promise<void> => {
     event.preventDefault();
     const value = this.labelForm.value();
-    if (value.name.trim().length === 0) {
+    const name = value.name.trim();
+    if (name.length === 0) {
       return;
     }
-    this.workspace.addLabel({ name: value.name.trim(), color: value.color });
-    this.labelForm.reset({ name: '', color: '#38bdf8' });
+    try {
+      await this.workspace.addLabel({ name, color: value.color });
+      this.labelForm.reset({ name: '', color: '#38bdf8' });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   /**
@@ -88,18 +93,23 @@ export class SettingsPage {
    *
    * @param event - Browser submit event.
    */
-  public readonly saveStatus = (event: SubmitEvent): void => {
+  public readonly saveStatus = async (event: SubmitEvent): Promise<void> => {
     event.preventDefault();
     const value = this.statusForm.value();
-    if (value.name.trim().length === 0) {
+    const name = value.name.trim();
+    if (name.length === 0) {
       return;
     }
-    this.workspace.addStatus({
-      name: value.name.trim(),
-      category: value.category,
-      color: value.color,
-    });
-    this.statusForm.reset({ name: '', category: 'todo', color: '#64748b' });
+    try {
+      await this.workspace.addStatus({
+        name,
+        category: value.category,
+        color: value.color,
+      });
+      this.statusForm.reset({ name: '', category: 'todo', color: '#64748b' });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   /**
@@ -186,7 +196,7 @@ export class SettingsPage {
    *
    * @param event - Browser submit event.
    */
-  public readonly updateTemplatePreset = (event: SubmitEvent): void => {
+  public readonly updateTemplatePreset = async (event: SubmitEvent): Promise<void> => {
     event.preventDefault();
     const templateId = this.editingTemplateId();
     if (!templateId) {
@@ -194,27 +204,31 @@ export class SettingsPage {
     }
 
     const value = this.templateEditForm.value();
-    if (value.name.trim().length === 0) {
+    const name = value.name.trim();
+    if (name.length === 0) {
       return;
     }
 
     const normalized = Number.isFinite(value.confidenceThreshold) ? value.confidenceThreshold : 0.5;
     const threshold = Math.min(Math.max(normalized, 0), 1);
-    this.workspace.updateTemplate(templateId, {
-      name: value.name.trim(),
-      description: value.description.trim(),
-      defaultStatusId: value.defaultStatusId,
-      defaultLabelIds: value.defaultLabelIds,
-      confidenceThreshold: threshold,
-      fieldVisibility: {
-        showStoryPoints: value.showStoryPoints,
-        showDueDate: value.showDueDate,
-        showAssignee: value.showAssignee,
-        showConfidence: value.showConfidence,
-      },
-    });
-
-    this.cancelTemplateEdit();
+    try {
+      await this.workspace.updateTemplate(templateId, {
+        name,
+        description: value.description.trim(),
+        defaultStatusId: value.defaultStatusId,
+        defaultLabelIds: value.defaultLabelIds,
+        confidenceThreshold: threshold,
+        fieldVisibility: {
+          showStoryPoints: value.showStoryPoints,
+          showDueDate: value.showDueDate,
+          showAssignee: value.showAssignee,
+          showConfidence: value.showConfidence,
+        },
+      });
+      this.cancelTemplateEdit();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   private updateDefaultLabelSelection(
@@ -250,10 +264,14 @@ export class SettingsPage {
    *
    * @param templateId - Identifier of the template to remove.
    */
-  public readonly removeTemplate = (templateId: string): void => {
-    this.workspace.removeTemplate(templateId);
-    if (this.editingTemplateId() === templateId) {
-      this.cancelTemplateEdit();
+  public readonly removeTemplate = async (templateId: string): Promise<void> => {
+    try {
+      await this.workspace.removeTemplate(templateId);
+      if (this.editingTemplateId() === templateId) {
+        this.cancelTemplateEdit();
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -262,24 +280,28 @@ export class SettingsPage {
    *
    * @param statusId - Identifier of the status to remove.
    */
-  public readonly removeStatus = (statusId: string): void => {
-    const fallback = this.workspace.removeStatus(statusId);
-    if (!fallback) {
-      return;
-    }
-
-    const statuses = this.settingsSignal().statuses;
-    const fallbackId =
-      statuses.find((status) => status.id === fallback)?.id ?? statuses[0]?.id ?? fallback;
-
-    const ensureValidStatus = (control: SignalControl<string>): void => {
-      if (!statuses.some((status) => status.id === control.value())) {
-        control.setValue(fallbackId);
+  public readonly removeStatus = async (statusId: string): Promise<void> => {
+    try {
+      const fallback = await this.workspace.removeStatus(statusId);
+      if (!fallback) {
+        return;
       }
-    };
 
-    ensureValidStatus(this.templateForm.controls.defaultStatusId);
-    ensureValidStatus(this.templateEditForm.controls.defaultStatusId);
+      const statuses = this.settingsSignal().statuses;
+      const fallbackId =
+        statuses.find((status) => status.id === fallback)?.id ?? statuses[0]?.id ?? fallback;
+
+      const ensureValidStatus = (control: SignalControl<string>): void => {
+        if (!statuses.some((status) => status.id === control.value())) {
+          control.setValue(fallbackId);
+        }
+      };
+
+      ensureValidStatus(this.templateForm.controls.defaultStatusId);
+      ensureValidStatus(this.templateEditForm.controls.defaultStatusId);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   /**
@@ -287,17 +309,21 @@ export class SettingsPage {
    *
    * @param labelId - Identifier of the label to delete.
    */
-  public readonly removeLabel = (labelId: string): void => {
-    const removed = this.workspace.removeLabel(labelId);
-    if (!removed) {
-      return;
+  public readonly removeLabel = async (labelId: string): Promise<void> => {
+    try {
+      const removed = await this.workspace.removeLabel(labelId);
+      if (!removed) {
+        return;
+      }
+
+      const pruneSelection = (control: SignalControl<readonly string[]>): void => {
+        control.updateValue((current) => current.filter((id) => id !== labelId));
+      };
+
+      pruneSelection(this.templateForm.controls.defaultLabelIds);
+      pruneSelection(this.templateEditForm.controls.defaultLabelIds);
+    } catch (error) {
+      console.error(error);
     }
-
-    const pruneSelection = (control: SignalControl<readonly string[]>): void => {
-      control.updateValue((current) => current.filter((id) => id !== labelId));
-    };
-
-    pruneSelection(this.templateForm.controls.defaultLabelIds);
-    pruneSelection(this.templateEditForm.controls.defaultLabelIds);
   };
 }

@@ -88,6 +88,9 @@ class User(Base, TimestampMixin):
     report_templates: Mapped[list["ReportTemplate"]] = relationship(
         "ReportTemplate", back_populates="owner", cascade="all, delete-orphan"
     )
+    workspace_templates: Mapped[list["WorkspaceTemplate"]] = relationship(
+        "WorkspaceTemplate", back_populates="owner", cascade="all, delete-orphan"
+    )
     quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
         "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
     )
@@ -179,6 +182,31 @@ class DailyCardQuota(Base):
 
     __table_args__ = (UniqueConstraint("owner_id", "quota_date", name="uq_daily_card_quota_owner_date"),)
 
+
+
+class WorkspaceTemplate(Base, TimestampMixin):
+    __tablename__ = "workspace_templates"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="")
+    default_status_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("statuses.id", ondelete="SET NULL"), nullable=True
+    )
+    default_label_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    confidence_threshold: Mapped[float] = mapped_column(Float, default=0.6)
+    field_visibility: Mapped[dict[str, bool]] = mapped_column(
+        JSON,
+        default=lambda: {
+            "show_story_points": True,
+            "show_due_date": False,
+            "show_assignee": True,
+            "show_confidence": True,
+        },
+    )
+
+    owner: Mapped["User"] = relationship("User", back_populates="workspace_templates")
 
 class Subtask(Base, TimestampMixin):
     __tablename__ = "subtasks"

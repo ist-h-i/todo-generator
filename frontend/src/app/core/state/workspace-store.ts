@@ -17,6 +17,8 @@ import {
   CommentUpdateRequest,
   CommentsApiService,
 } from '@core/api/comments-api.service';
+import { WorkspaceConfigApiService, WorkspaceTemplateResponse, LabelResponse, StatusResponse } from '@core/api/workspace-config-api.service';
+import { createId } from '@core/utils/create-id';
 import { Logger } from '@core/logger/logger';
 import {
   AnalysisProposal,
@@ -35,7 +37,6 @@ import {
   WorkspaceSummary,
   DEFAULT_TEMPLATE_FIELDS,
 } from '@core/models';
-import { createId } from '@core/utils/create-id';
 
 const STORAGE_NAMESPACE = 'verbalize-yourself/workspace-settings';
 const PREFERENCES_STORAGE_NAMESPACE = 'verbalize-yourself/workspace-preferences';
@@ -398,6 +399,69 @@ const collectStatusesFromCards = (cards: readonly CardResponse[]): Status[] => {
   });
 };
 
+
+const mapStatusResponse = (response: StatusResponse): Status => {
+  const category = normalizeStatusCategory(response.category);
+  const order =
+    typeof response.order === 'number' && Number.isFinite(response.order) ? response.order : 0;
+  const color = normalizeStatusColor(response.color, category);
+
+  return {
+    id: response.id,
+    name: response.name,
+    category,
+    order,
+    color,
+  } satisfies Status;
+};
+
+const mapLabelResponse = (response: LabelResponse): Label => ({
+  id: response.id,
+  name: response.name,
+  color: response.color,
+});
+
+const mapTemplateResponse = (
+  response: WorkspaceTemplateResponse,
+  allowedStatuses: ReadonlySet<string>,
+  allowedLabels: ReadonlySet<string>,
+  fallbackStatusId: string,
+): TemplatePreset | null => {
+  const name = sanitizeString(response.name);
+  if (!name) {
+    return null;
+  }
+
+  const description = sanitizeString(response.description) ?? '';
+  const statusId = response.default_status_id;
+  const defaultStatusId =
+    statusId && allowedStatuses.has(statusId) ? statusId : fallbackStatusId;
+  const labelIds = Array.isArray(response.default_label_ids)
+    ? unique(
+        response.default_label_ids.filter(
+          (labelId): labelId is string => typeof labelId === 'string' && allowedLabels.has(labelId),
+        ),
+      )
+    : [];
+  const confidence = clampConfidence(response.confidence_threshold ?? 0.6);
+  const visibility = response.field_visibility ?? DEFAULT_TEMPLATE_FIELDS;
+
+  return {
+    id: response.id,
+    name,
+    description,
+    defaultStatusId,
+    defaultLabelIds: labelIds,
+    confidenceThreshold: confidence,
+    fieldVisibility: {
+      showStoryPoints: visibility.show_story_points ?? DEFAULT_TEMPLATE_FIELDS.showStoryPoints,
+      showDueDate: visibility.show_due_date ?? DEFAULT_TEMPLATE_FIELDS.showDueDate,
+      showAssignee: visibility.show_assignee ?? DEFAULT_TEMPLATE_FIELDS.showAssignee,
+      showConfidence: visibility.show_confidence ?? DEFAULT_TEMPLATE_FIELDS.showConfidence,
+    },
+  } satisfies TemplatePreset;
+};
+
 const collectLabelsFromCards = (cards: readonly CardResponse[]): Label[] => {
   const seen = new Map<string, Label>();
   let colorIndex = 0;
@@ -601,6 +665,7 @@ export class WorkspaceStore {
   private readonly auth = inject(AuthService);
   private readonly cardsApi = inject(CardsApiService);
   private readonly commentsApi = inject(CommentsApiService);
+  private readonly workspaceConfigApi = inject(WorkspaceConfigApiService);
   private readonly logger = inject(Logger);
   private readonly storage = this.resolveStorage();
   private readonly activeUserId = computed(() => this.auth.user()?.id ?? null);
@@ -645,6 +710,8 @@ export class WorkspaceStore {
       ),
   );
   private activeCardRequestToken = 0;
+  private configRequest: Promise<WorkspaceSettings> | null = null;
+  private lastConfigUserId: string | null = null;
 
   public constructor() {
     effect(
@@ -676,6 +743,19 @@ export class WorkspaceStore {
     { allowSignalWrites: true },
   );
 
+  private readonly loadWorkspaceConfigEffect = effect(
+    () => {
+      const userId = this.activeUserId();
+      if (userId === this.lastConfigUserId) {
+        return;
+      }
+
+      this.lastConfigUserId = userId;
+      void this.refreshWorkspaceConfig(true);
+    },
+    { allowSignalWrites: true },
+  );
+
   private readonly syncDefaultAssigneeWithNicknameEffect = effect(
     () => {
       const nickname = this.activeUserNickname();
@@ -700,7 +780,7 @@ export class WorkspaceStore {
 
       const canUpdateDefault =
         previousDefault.length === 0 ||
-        previousDefault === '田中太郎' ||
+        previousDefault === '匿名ユーザー' ||
         (lastSynced !== null && previousDefault === lastSynced) ||
         (normalizedEmail !== null && previousDefault === normalizedEmail);
 
@@ -732,7 +812,7 @@ export class WorkspaceStore {
       }
       registerAlias(lastSynced);
       registerAlias(normalizedEmail);
-      registerAlias('田中太郎');
+      registerAlias('匿名ユーザー');
 
       if (aliasValues.size > 0) {
         this.cardsSignal.update((cards) => {
@@ -1662,15 +1742,21 @@ export class WorkspaceStore {
    *
    * @param payload - Label attributes from the settings form.
    */
-  public readonly addLabel = (payload: { name: string; color: string }): void => {
-    this.settingsSignal.update((settings) => {
-      const next: WorkspaceSettings = {
-        ...settings,
-        labels: [...settings.labels, { id: createId(), name: payload.name, color: payload.color }],
-      };
-      this.persistSettings(next);
-      return next;
-    });
+  public readonly addLabel = async (payload: { name: string; color: string }): Promise<void> => {
+    const name = payload.name.trim();
+    if (!name) {
+      return;
+    }
+
+    try {
+      await firstValueFrom(
+        this.workspaceConfigApi.createLabel({ name, color: payload.color }),
+      );
+      await this.refreshWorkspaceConfig(true);
+    } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+      throw error;
+    }
   };
 
   /**
@@ -1679,54 +1765,20 @@ export class WorkspaceStore {
    * @param labelId - Identifier of the label to delete.
    * @returns True when the label was removed.
    */
-  public readonly removeLabel = (labelId: string): boolean => {
-    let removed = false;
-    this.settingsSignal.update((settings) => {
-      if (!settings.labels.some((label) => label.id === labelId)) {
-        return settings;
-      }
-
-      removed = true;
-      const labels = settings.labels.filter((label) => label.id !== labelId);
-      const templates = settings.templates.map((template) => {
-        if (!template.defaultLabelIds.includes(labelId)) {
-          return template;
-        }
-
-        return {
-          ...template,
-          defaultLabelIds: template.defaultLabelIds.filter((id) => id !== labelId),
-          fieldVisibility: { ...template.fieldVisibility },
-        } satisfies TemplatePreset;
-      });
-
-      const next: WorkspaceSettings = {
-        ...settings,
-        labels,
-        templates,
-      };
-
-      this.persistSettings(next);
-      return next;
-    });
-
-    if (!removed) {
+  public readonly removeLabel = async (labelId: string): Promise<boolean> => {
+    const existed = this.settingsSignal().labels.some((label) => label.id === labelId);
+    if (!existed) {
       return false;
     }
 
-    this.cardsSignal.update((cards) =>
-      cards.map((card) =>
-        card.labelIds.includes(labelId)
-          ? { ...card, labelIds: card.labelIds.filter((id) => id !== labelId) }
-          : card,
-      ),
-    );
-
-    this.updateFilters({
-      labelIds: this.filtersSignal().labelIds.filter((id) => id !== labelId),
-    });
-
-    return true;
+    try {
+      await firstValueFrom(this.workspaceConfigApi.deleteLabel(labelId));
+      const updated = await this.refreshWorkspaceConfig(true);
+      return !updated.labels.some((label) => label.id === labelId);
+    } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+      throw error;
+    }
   };
 
   /**
@@ -1734,33 +1786,33 @@ export class WorkspaceStore {
    *
    * @param payload - Status name and lifecycle category.
    */
-  public readonly addStatus = (payload: {
+  public readonly addStatus = async (payload: {
     name: string;
     category: 'todo' | 'in-progress' | 'done';
     color: string;
-  }): void => {
-    this.settingsSignal.update((settings) => {
-      const currentOrders = settings.statuses.map((status) => status.order);
-      const nextOrder = currentOrders.length === 0 ? 1 : Math.max(...currentOrders) + 1;
-      const statuses = [
-        ...settings.statuses,
-        {
-          id: createId(),
-          name: payload.name,
+  }): Promise<void> => {
+    const name = payload.name.trim();
+    if (!name) {
+      return;
+    }
+
+    const currentOrders = this.settingsSignal().statuses.map((status) => status.order);
+    const nextOrder = currentOrders.length === 0 ? 1 : Math.max(...currentOrders) + 1;
+
+    try {
+      await firstValueFrom(
+        this.workspaceConfigApi.createStatus({
+          name,
           category: payload.category,
-          order: nextOrder,
           color: payload.color,
-        },
-      ];
-
-      const next: WorkspaceSettings = {
-        ...settings,
-        statuses,
-      };
-
-      this.persistSettings(next);
-      return next;
-    });
+          order: nextOrder,
+        }),
+      );
+      await this.refreshWorkspaceConfig(true);
+    } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+      throw error;
+    }
   };
 
   /**
@@ -1769,60 +1821,20 @@ export class WorkspaceStore {
    * @param statusId - Identifier of the status to delete.
    * @returns Identifier of the fallback status applied to affected cards.
    */
-  public readonly removeStatus = (statusId: string): string | null => {
-    let fallbackStatusId: string | null = null;
-    let removed = false;
-
-    this.settingsSignal.update((settings) => {
-      const statuses = settings.statuses.filter((status) => status.id !== statusId);
-      if (statuses.length === settings.statuses.length || statuses.length === 0) {
-        return settings;
-      }
-
-      removed = true;
-      const sorted = statuses.slice().sort((a, b) => a.order - b.order);
-      const defaultStatusId =
-        settings.defaultStatusId === statusId ? sorted[0].id : settings.defaultStatusId;
-      fallbackStatusId = defaultStatusId;
-
-      const templates = settings.templates.map((template) => {
-        if (template.defaultStatusId !== statusId) {
-          return template;
-        }
-
-        return {
-          ...template,
-          defaultStatusId,
-          defaultLabelIds: [...template.defaultLabelIds],
-          fieldVisibility: { ...template.fieldVisibility },
-        } satisfies TemplatePreset;
-      });
-
-      const next: WorkspaceSettings = {
-        ...settings,
-        statuses,
-        defaultStatusId,
-        templates,
-      };
-
-      this.persistSettings(next);
-      return next;
-    });
-
-    if (!removed || fallbackStatusId === null) {
+  public readonly removeStatus = async (statusId: string): Promise<string | null> => {
+    const existed = this.settingsSignal().statuses.some((status) => status.id === statusId);
+    if (!existed) {
       return null;
     }
 
-    const fallback = fallbackStatusId;
-    this.cardsSignal.update((cards) =>
-      cards.map((card) => (card.statusId === statusId ? { ...card, statusId: fallback } : card)),
-    );
-
-    this.updateFilters({
-      statusIds: this.filtersSignal().statusIds.filter((id) => id !== statusId),
-    });
-
-    return fallback;
+    try {
+      await firstValueFrom(this.workspaceConfigApi.deleteStatus(statusId));
+      const settings = await this.refreshWorkspaceConfig(true);
+      return settings.statuses.length > 0 ? settings.defaultStatusId : null;
+    } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+      throw error;
+    }
   };
 
   /**
@@ -1830,43 +1842,42 @@ export class WorkspaceStore {
    *
    * @param payload - Template information collected from settings forms.
    */
-  public readonly addTemplate = (payload: {
+  public readonly addTemplate = async (payload: {
     name: string;
     description: string;
     defaultStatusId: string;
     defaultLabelIds: readonly string[];
     confidenceThreshold: number;
     fieldVisibility: TemplateFieldVisibility;
-  }): void => {
-    this.settingsSignal.update((settings) => {
-      const allowedStatuses = new Set(settings.statuses.map((status) => status.id));
-      const allowedLabels = new Set(settings.labels.map((label) => label.id));
-      const defaultStatusId = allowedStatuses.has(payload.defaultStatusId)
-        ? payload.defaultStatusId
-        : settings.defaultStatusId;
-      const defaultLabelIds = unique(
-        payload.defaultLabelIds.filter((labelId) => allowedLabels.has(labelId)),
-      );
+  }): Promise<void> => {
+    const name = payload.name.trim();
+    if (!name) {
+      return;
+    }
 
-      const nextTemplate: TemplatePreset = {
-        id: createId(),
-        name: payload.name,
-        description: payload.description,
-        defaultStatusId,
-        defaultLabelIds,
-        confidenceThreshold: clampConfidence(payload.confidenceThreshold),
-        fieldVisibility: { ...payload.fieldVisibility },
-      };
+    const request = {
+      name,
+      description: payload.description.trim(),
+      default_status_id: payload.defaultStatusId,
+      default_label_ids: payload.defaultLabelIds,
+      confidence_threshold: payload.confidenceThreshold,
+      field_visibility: {
+        show_story_points: payload.fieldVisibility.showStoryPoints,
+        show_due_date: payload.fieldVisibility.showDueDate,
+        show_assignee: payload.fieldVisibility.showAssignee,
+        show_confidence: payload.fieldVisibility.showConfidence,
+      },
+    };
 
-      const next: WorkspaceSettings = {
-        ...settings,
-        templates: [...settings.templates, nextTemplate],
-      };
-
-      this.persistSettings(next);
-      return next;
-    });
+    try {
+      await firstValueFrom(this.workspaceConfigApi.createTemplate(request));
+      await this.refreshWorkspaceConfig(true);
+    } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+      throw error;
+    }
   };
+
 
   /**
    * Applies updates to an existing template.
@@ -1874,50 +1885,59 @@ export class WorkspaceStore {
    * @param templateId - Target template identifier.
    * @param changes - Partial template payload.
    */
-  public readonly updateTemplate = (
+  public readonly updateTemplate = async (
     templateId: string,
     changes: Partial<Omit<TemplatePreset, 'id'>>,
-  ): void => {
-    this.settingsSignal.update((settings) => {
-      const allowedStatuses = new Set(settings.statuses.map((status) => status.id));
-      const allowedLabels = new Set(settings.labels.map((label) => label.id));
+  ): Promise<void> => {
+    const updatePayload: Record<string, unknown> = {};
 
-      const templates = settings.templates.map((template) => {
-        if (template.id !== templateId) {
-          return template;
-        }
+    if (Object.prototype.hasOwnProperty.call(changes, 'name')) {
+      updatePayload.name = changes.name ? changes.name.trim() : changes.name ?? '';
+    }
 
-        const { defaultLabelIds, fieldVisibility, confidenceThreshold, defaultStatusId, ...rest } =
-          changes;
+    if (Object.prototype.hasOwnProperty.call(changes, 'description')) {
+      updatePayload.description = changes.description ? changes.description.trim() : changes.description ?? '';
+    }
 
-        return {
-          ...template,
-          ...rest,
-          defaultStatusId:
-            defaultStatusId !== undefined && allowedStatuses.has(defaultStatusId)
-              ? defaultStatusId
-              : template.defaultStatusId,
-          defaultLabelIds:
-            defaultLabelIds !== undefined
-              ? unique(defaultLabelIds.filter((labelId) => allowedLabels.has(labelId)))
-              : template.defaultLabelIds,
-          confidenceThreshold:
-            confidenceThreshold !== undefined
-              ? clampConfidence(confidenceThreshold)
-              : template.confidenceThreshold,
-          fieldVisibility:
-            fieldVisibility !== undefined ? { ...fieldVisibility } : template.fieldVisibility,
-        } satisfies TemplatePreset;
-      });
+    if (Object.prototype.hasOwnProperty.call(changes, 'defaultStatusId')) {
+      updatePayload.default_status_id = changes.defaultStatusId ?? null;
+    }
 
-      const next: WorkspaceSettings = {
-        ...settings,
-        templates,
-      };
+    if (Object.prototype.hasOwnProperty.call(changes, 'defaultLabelIds')) {
+      updatePayload.default_label_ids = changes.defaultLabelIds ?? [];
+    }
 
-      this.persistSettings(next);
-      return next;
-    });
+    if (Object.prototype.hasOwnProperty.call(changes, 'confidenceThreshold')) {
+      updatePayload.confidence_threshold = changes.confidenceThreshold;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(changes, 'fieldVisibility')) {
+      const visibility = changes.fieldVisibility;
+      if (visibility) {
+        updatePayload.field_visibility = {
+          show_story_points: visibility.showStoryPoints,
+          show_due_date: visibility.showDueDate,
+          show_assignee: visibility.showAssignee,
+          show_confidence: visibility.showConfidence,
+        };
+      } else {
+        updatePayload.field_visibility = null;
+      }
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      return;
+    }
+
+    try {
+      await firstValueFrom(
+        this.workspaceConfigApi.updateTemplate(templateId, updatePayload),
+      );
+      await this.refreshWorkspaceConfig(true);
+    } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+      throw error;
+    }
   };
 
   /**
@@ -1925,33 +1945,98 @@ export class WorkspaceStore {
    *
    * @param templateId - Identifier of the template to delete.
    */
-  public readonly removeTemplate = (templateId: string): void => {
-    let removed = false;
-
-    this.settingsSignal.update((settings) => {
-      const templates = settings.templates.filter((template) => template.id !== templateId);
-      if (templates.length === settings.templates.length) {
-        return settings;
-      }
-
-      removed = true;
-      const next: WorkspaceSettings = {
-        ...settings,
-        templates,
-      };
-
-      this.persistSettings(next);
-      return next;
-    });
-
-    if (!removed) {
+  public readonly removeTemplate = async (templateId: string): Promise<void> => {
+    const existed = this.settingsSignal().templates.some((template) => template.id === templateId);
+    if (!existed) {
       return;
     }
 
-    this.cardsSignal.update((cards) =>
-      cards.map((card) => (card.templateId === templateId ? { ...card, templateId: null } : card)),
-    );
+    try {
+      await firstValueFrom(this.workspaceConfigApi.deleteTemplate(templateId));
+      await this.refreshWorkspaceConfig(true);
+      this.cardsSignal.update((cards) =>
+        cards.map((card) => (card.templateId === templateId ? { ...card, templateId: null } : card)),
+      );
+    } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+      throw error;
+    }
   };
+
+  private async refreshWorkspaceConfig(force = false): Promise<WorkspaceSettings> {
+    if (!force && this.configRequest) {
+      return this.configRequest;
+    }
+
+    const userId = this.activeUserId();
+    if (!userId) {
+      const defaults = cloneSettings(INITIAL_SETTINGS);
+      this.settingsSignal.set(defaults);
+      this.persistSettings(defaults);
+      this.reconcileCardsForSettings(defaults);
+      this.reconcileFiltersForSettings(defaults);
+      return defaults;
+    }
+
+    const loadPromise = (async () => {
+      try {
+        const [statusResponses, labelResponses, templateResponses] = await Promise.all([
+          firstValueFrom(this.workspaceConfigApi.listStatuses()),
+          firstValueFrom(this.workspaceConfigApi.listLabels()),
+          firstValueFrom(this.workspaceConfigApi.listTemplates()),
+        ]);
+
+        const statuses = statusResponses
+          .map((response) => mapStatusResponse(response))
+          .sort((left, right) =>
+            left.order === right.order ? left.name.localeCompare(right.name) : left.order - right.order,
+          );
+        const labels = labelResponses
+          .map((response) => mapLabelResponse(response))
+          .sort((left, right) => left.name.localeCompare(right.name));
+
+        const currentSettings = this.settingsSignal();
+        const allowedStatusIds = new Set(statuses.map((status) => status.id));
+        const allowedLabelIds = new Set(labels.map((label) => label.id));
+        const defaultStatusFallback = determineDefaultStatusId(statuses, currentSettings.defaultStatusId);
+        const templates = templateResponses
+          .map((response) =>
+            mapTemplateResponse(response, allowedStatusIds, allowedLabelIds, defaultStatusFallback),
+          )
+          .filter((template): template is TemplatePreset => template !== null)
+          .sort((left, right) => left.name.localeCompare(right.name));
+
+        const defaultStatusId = allowedStatusIds.has(currentSettings.defaultStatusId)
+          ? currentSettings.defaultStatusId
+          : defaultStatusFallback;
+
+        const next: WorkspaceSettings = {
+          ...currentSettings,
+          statuses,
+          labels,
+          templates,
+          defaultStatusId,
+        };
+
+        this.settingsSignal.set(next);
+        this.persistSettings(next);
+        this.reconcileCardsForSettings(next);
+        this.reconcileFiltersForSettings(next);
+
+        return next;
+      } catch (error) {
+        this.logger.error('WorkspaceStore', error);
+        throw error;
+      }
+    })();
+
+    this.configRequest = loadPromise;
+    try {
+      return await loadPromise;
+    } finally {
+      this.configRequest = null;
+    }
+  }
 
   private fetchCards(): void {
     const requestToken = ++this.activeCardRequestToken;
@@ -2176,8 +2261,8 @@ export class WorkspaceStore {
     let updatedSettings: WorkspaceSettings | null = null;
 
     this.settingsSignal.update((current) => {
-      const nextStatuses = statuses.length > 0 ? statuses : current.statuses;
-      const nextLabels = labels.length > 0 ? labels : current.labels;
+      const nextStatuses = current.statuses.length > 0 ? current.statuses : statuses;
+      const nextLabels = current.labels.length > 0 ? current.labels : labels;
 
       let defaultStatusId = current.defaultStatusId;
       if (
@@ -2549,7 +2634,7 @@ export class WorkspaceStore {
     const defaultAssigneeInput =
       typeof data.defaultAssignee === 'string' ? data.defaultAssignee.trim() : '';
     const defaultAssignee =
-      defaultAssigneeInput.length > 0 && defaultAssigneeInput !== '田中太郎'
+      defaultAssigneeInput.length > 0 && defaultAssigneeInput !== '匿名ユーザー'
         ? defaultAssigneeInput
         : defaults.defaultAssignee;
     const timezone =
@@ -2744,3 +2829,8 @@ export class WorkspaceStore {
     return primary?.id ?? fallbackStatusId;
   }
 }
+
+
+
+
+

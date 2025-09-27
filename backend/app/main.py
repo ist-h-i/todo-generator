@@ -28,6 +28,7 @@ from .routers import (
     reports,
     statuses,
     suggested_actions,
+    workspace_templates,
 )
 
 run_startup_migrations(engine)
@@ -67,6 +68,7 @@ app.include_router(error_categories.router)
 app.include_router(filters.router)
 app.include_router(initiatives.router)
 app.include_router(suggested_actions.router)
+app.include_router(workspace_templates.router)
 app.include_router(reports.router)
 
 

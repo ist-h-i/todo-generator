@@ -75,5 +75,16 @@ def delete_label(
         owner_id=current_user.id,
         detail="Label not found",
     )
+
+    templates = (
+        db.query(models.WorkspaceTemplate)
+        .filter(models.WorkspaceTemplate.owner_id == current_user.id)
+        .all()
+    )
+    for template in templates:
+        label_ids = list(template.default_label_ids or [])
+        if label_id in label_ids:
+            template.default_label_ids = [value for value in label_ids if value != label_id]
+            db.add(template)
     delete_model(db, label)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
