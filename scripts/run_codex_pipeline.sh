@@ -17,40 +17,46 @@ if [ $# -eq 0 ]; then
 
   # Defer validation of empty content until after we have applied the legacy
   # flag sanitisation and whitespace trimming below.
-  set -- "$STDIN_PAYLOAD"
+  NORMALISED_ARGS=("${STDIN_PAYLOAD}")
+else
+  # Historical callers may still pass the task description via a deprecated
+  # "--task" flag (for example `codex run auto-dev --task "..."`). The current
+  # Codex CLI no longer accepts that option, so we strip it here for
+  # compatibility and treat the remaining positional arguments as the actual
+  # task description.
+  NORMALISED_ARGS=()
+  while [ $# -gt 0 ]; do
+    case "${1-}" in
+      --task)
+        shift
+        if [ $# -gt 0 ]; then
+          NORMALISED_ARGS+=("${1}")
+          shift
+        fi
+        continue
+        ;;
+      --task=*)
+        NORMALISED_ARGS+=("${1#--task=}")
+        shift
+        continue
+        ;;
+      *)
+        NORMALISED_ARGS+=("${1}")
+        shift
+        ;;
+    esac
+  done
 fi
 
-# Historical callers may still pass the task description via a deprecated
-# "--task" flag (for example `codex run auto-dev --task "..."`). The current
-# Codex CLI no longer accepts that option, so we strip it here for
-# compatibility and treat the remaining positional arguments as the actual
-# task description.
-while [ $# -gt 0 ]; do
-  case "${1-}" in
-    --task)
-      shift
-      continue
-      ;;
-    --task=*)
-      first_without_flag="${1#--task=}"
-      shift
-      set -- "$first_without_flag" "$@"
-      continue
-      ;;
-  esac
-  break
-done
-
-if [ $# -eq 0 ]; then
+if [ ${#NORMALISED_ARGS[@]} -eq 0 ]; then
   echo "Usage: $0 [--task] <task description>" >&2
   exit 1
 fi
 
 # Compose the task input from the (possibly multi-word) positional arguments
 # after normalising away the deprecated flag.
-TASK_INPUT="${1-}"
-shift || true
-for ARG in "$@"; do
+TASK_INPUT="${NORMALISED_ARGS[0]-}"
+for ARG in "${NORMALISED_ARGS[@]:1}"; do
   TASK_INPUT="${TASK_INPUT} ${ARG}"
 done
 
