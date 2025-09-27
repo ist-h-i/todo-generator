@@ -464,6 +464,21 @@ def _load_chatgpt_configuration(db: Session, provider: str = "openai") -> tuple[
         .first()
     )
     if not credential:
+        disabled_credential_exists = (
+            db.query(models.ApiCredential)
+            .filter(
+                models.ApiCredential.provider == provider,
+                models.ApiCredential.is_active.is_(False),
+            )
+            .first()
+            is not None
+        )
+        if disabled_credential_exists:
+            raise ChatGPTConfigurationError("ChatGPT API key is disabled. Update it from the admin settings.")
+
+        if settings.chatgpt_api_key:
+            return settings.chatgpt_api_key, settings.chatgpt_model
+
         raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
 
     cipher = get_secret_cipher()

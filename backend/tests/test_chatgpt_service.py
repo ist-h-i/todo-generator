@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
-
 from fastapi.testclient import TestClient
 
 from app import models
@@ -14,6 +13,7 @@ from app.database import get_db
 from app.schemas import UserProfile
 from app.services.chatgpt import (
     ChatGPTClient,
+    ChatGPTConfigurationError,
     ChatGPTError,
     _load_chatgpt_configuration,
 )
@@ -141,7 +141,7 @@ def test_load_chatgpt_configuration_uses_stored_model(client: TestClient) -> Non
         credential = models.ApiCredential(
             provider="openai",
             encrypted_secret=cipher.encrypt("sk-live"),
-            secret_hint="sk-****",  # noqa: S105 - test data
+            secret_hint="sk-****",  # noqa: S106 - test data
             is_active=True,
             model="gpt-4o",
         )
@@ -152,7 +152,7 @@ def test_load_chatgpt_configuration_uses_stored_model(client: TestClient) -> Non
     finally:
         db_gen.close()
 
-    assert secret == "sk-live"
+    assert secret == "sk-live"  # noqa: S105 - test data
     assert model == "gpt-4o"
 
 
@@ -175,5 +175,49 @@ def test_load_chatgpt_configuration_defaults_to_settings_model(client: TestClien
     finally:
         db_gen.close()
 
-    assert secret == "sk-default"
+    assert secret == "sk-default"  # noqa: S105 - test data
     assert model == settings.chatgpt_model
+
+
+def test_load_chatgpt_configuration_falls_back_to_settings_api_key(client: TestClient) -> None:
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    original_key = settings.chatgpt_api_key
+    try:
+        settings.chatgpt_api_key = "sk-env"
+
+        secret, model = _load_chatgpt_configuration(db)
+    finally:
+        settings.chatgpt_api_key = original_key
+        db_gen.close()
+
+    assert secret == "sk-env"  # noqa: S105 - test data
+    assert model == settings.chatgpt_model
+
+
+def test_load_chatgpt_configuration_respects_disabled_credential(client: TestClient) -> None:
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    original_key = settings.chatgpt_api_key
+    try:
+        cipher = get_secret_cipher()
+        credential = models.ApiCredential(
+            provider="openai",
+            encrypted_secret=cipher.encrypt("sk-disabled"),
+            is_active=False,
+        )
+        db.add(credential)
+        db.commit()
+
+        settings.chatgpt_api_key = "sk-env"
+
+        with pytest.raises(ChatGPTConfigurationError):
+            _load_chatgpt_configuration(db)
+
+        db.delete(credential)
+        db.commit()
+    finally:
+        settings.chatgpt_api_key = original_key
+        db_gen.close()
