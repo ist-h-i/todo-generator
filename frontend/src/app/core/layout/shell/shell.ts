@@ -15,6 +15,21 @@ import { ProfileDialogComponent } from '@core/profile/profile-dialog';
 import { UserProfile } from '@core/profile/profile.models';
 import { HelpDialogComponent } from './help-dialog';
 
+function extractRoleLabel(role: string): string {
+  const separator = ' / ';
+  const lastSeparatorIndex = role.lastIndexOf(separator);
+
+  if (lastSeparatorIndex === -1) {
+    return role;
+  }
+
+  return role.slice(lastSeparatorIndex + separator.length).trim();
+}
+
+function formatRoleLabels(roles: readonly string[]): string[] {
+  return roles.map((role) => extractRoleLabel(role)).filter((label) => label.length > 0);
+}
+
 type ThemePreference = 'light' | 'dark' | 'system';
 
 /**
@@ -120,12 +135,18 @@ export class Shell {
   public readonly user = this.auth.user;
 
   public formatRolePreview(roles: readonly string[]): string {
-    if (roles.length === 0) {
+    const labels = formatRoleLabels(roles);
+
+    if (labels.length === 0) {
       return '';
     }
 
-    const preview = roles.slice(0, 2).join(' / ');
-    return roles.length > 2 ? `${preview} / …` : preview;
+    const preview = labels.slice(0, 2).join(' / ');
+    return labels.length > 2 ? `${preview} / …` : preview;
+  }
+
+  public formatRoleTooltip(roles: readonly string[]): string {
+    return formatRoleLabels(roles).join(' / ');
   }
 
   public openProfile(): void {
