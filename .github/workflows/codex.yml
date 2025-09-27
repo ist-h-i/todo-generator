@@ -21,14 +21,20 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          set -euo pipefail
+
           # イベント種別で入力を切り替え。Codex パイプラインには生のテキストのみを渡す。
-          if [ "${{ github.event_name }}" = "issues" ]; then
-            RAW_TASK_INPUT="${{ github.event.issue.title }}: ${{ github.event.issue.body }}"
-          elif [ "${{ github.event_name }}" = "issue_comment" ]; then
-            RAW_TASK_INPUT="Comment on issue #${{ github.event.issue.number }}: ${{ github.event.comment.body }}"
-          else
-            RAW_TASK_INPUT="Manual trigger: Please implement the requested feature."
-          fi
+          case "${{ github.event_name }}" in
+            issues)
+              RAW_TASK_INPUT="${{ github.event.issue.title }}: ${{ github.event.issue.body }}"
+              ;;
+            issue_comment)
+              RAW_TASK_INPUT="Comment on issue #${{ github.event.issue.number }}: ${{ github.event.comment.body }}"
+              ;;
+            *)
+              RAW_TASK_INPUT="Manual trigger: Please implement the requested feature."
+              ;;
+          esac
 
           echo "TASK_INPUT: $RAW_TASK_INPUT"
           mkdir -p codex_output
