@@ -11,11 +11,52 @@ fi
 # Codex CLI no longer accepts that option, so we strip it here for
 # compatibility and treat the remaining positional arguments as the actual
 # task description.
-if [ "${1-}" = "--task" ]; then
-  shift
+while [ $# -gt 0 ]; do
+  case "${1-}" in
+    --task)
+      shift
+      continue
+      ;;
+    --task=*)
+      first_without_flag="${1#--task=}"
+      shift
+      set -- "$first_without_flag" "$@"
+      continue
+      ;;
+  esac
+  break
+done
+
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 [--task] <task description>" >&2
+  exit 1
 fi
 
-TASK_INPUT="$*"
+# Compose the task input from the (possibly multi-word) positional arguments
+# after normalising away the deprecated flag.
+TASK_INPUT="${1-}"
+shift || true
+for ARG in "$@"; do
+  TASK_INPUT="${TASK_INPUT} ${ARG}"
+done
+
+# Guard against historical callers that inlined the deprecated flag into the
+# task description (for example, passing "--task build a feature" as a single
+# argument or "--task=build" as a single token). We normalise the value so
+# downstream prompts only contain the human-provided request.
+while [[ "${TASK_INPUT}" == --task\ * || "${TASK_INPUT}" == --task=* ]]; do
+  if [[ "${TASK_INPUT}" == --task\ * ]]; then
+    TASK_INPUT="${TASK_INPUT#--task }"
+  else
+    TASK_INPUT="${TASK_INPUT#--task=}"
+  fi
+done
+
+# Trim any leading/trailing whitespace that may have been introduced while
+# sanitising legacy inputs.
+TASK_INPUT="${TASK_INPUT#${TASK_INPUT%%[![:space:]]*}}"
+TASK_INPUT="${TASK_INPUT%${TASK_INPUT##*[![:space:]]}}"
+
 if [ -z "${TASK_INPUT}" ]; then
   echo "Usage: $0 [--task] <task description>" >&2
   exit 1
