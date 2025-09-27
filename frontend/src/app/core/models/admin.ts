@@ -128,12 +128,14 @@ export interface ApiCredential {
   provider: string;
   secret_hint?: string | null;
   is_active: boolean;
+  model?: string | null;
   created_at: IsoDateString;
   updated_at: IsoDateString;
 }
 
 export interface ApiCredentialUpdate {
-  secret: string;
+  secret?: string;
+  model?: string;
   is_active?: boolean;
 }
 

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..config import settings
 from ..database import get_db
 from ..utils.secrets import build_secret_hint, get_secret_cipher
 from ..utils.dependencies import require_admin
@@ -41,20 +42,29 @@ def upsert_api_credential(
     credential = db.query(models.ApiCredential).filter(models.ApiCredential.provider == provider).first()
 
     cipher = get_secret_cipher()
-    encrypted_secret = cipher.encrypt(payload.secret)
-    secret_hint = build_secret_hint(payload.secret) if payload.secret else None
+    secret = payload.secret
+    model_name = payload.model
 
     if credential is None:
+        if not secret:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="API トークンを入力してください。")
+
+        encrypted_secret = cipher.encrypt(secret)
+        secret_hint = build_secret_hint(secret)
         credential = models.ApiCredential(
             provider=provider,
             encrypted_secret=encrypted_secret,
             secret_hint=secret_hint,
             is_active=True if payload.is_active is None else payload.is_active,
+            model=model_name or settings.chatgpt_model,
             created_by_user=admin_user,
         )
     else:
-        credential.encrypted_secret = encrypted_secret
-        credential.secret_hint = secret_hint
+        if secret:
+            credential.encrypted_secret = cipher.encrypt(secret)
+            credential.secret_hint = build_secret_hint(secret)
+        if model_name is not None:
+            credential.model = model_name or settings.chatgpt_model
         if payload.is_active is not None:
             credential.is_active = payload.is_active
         credential.created_by_user = credential.created_by_user or admin_user

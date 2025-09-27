@@ -956,6 +956,7 @@ class ApiCredentialRead(BaseModel):
     provider: str
     secret_hint: Optional[str] = None
     is_active: bool
+    model: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -963,8 +964,19 @@ class ApiCredentialRead(BaseModel):
 
 
 class ApiCredentialUpdate(BaseModel):
-    secret: str
+    secret: Optional[str] = Field(default=None, min_length=1)
+    model: Optional[str] = Field(default=None, min_length=1)
     is_active: Optional[bool] = None
+
+    @field_validator("secret", "model", mode="before")
+    @classmethod
+    def _strip_optional_string(cls, value: Any) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+        raise TypeError("value must be a string")
 
 
 class QuotaDefaultsRead(BaseModel):

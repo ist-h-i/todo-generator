@@ -6,8 +6,18 @@ from types import SimpleNamespace
 
 import pytest
 
+from fastapi.testclient import TestClient
+
+from app import models
+from app.config import settings
+from app.database import get_db
 from app.schemas import UserProfile
-from app.services.chatgpt import ChatGPTClient, ChatGPTError
+from app.services.chatgpt import (
+    ChatGPTClient,
+    ChatGPTError,
+    _load_chatgpt_configuration,
+)
+from app.utils.secrets import get_secret_cipher
 
 
 def _make_client() -> ChatGPTClient:
@@ -120,3 +130,50 @@ def test_build_user_prompt_includes_profile_metadata() -> None:
     assert '"experience_years": 6' in prompt
     assert "backend" in prompt
     assert "Investigate login failures" in prompt
+
+
+def test_load_chatgpt_configuration_uses_stored_model(client: TestClient) -> None:
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    try:
+        cipher = get_secret_cipher()
+        credential = models.ApiCredential(
+            provider="openai",
+            encrypted_secret=cipher.encrypt("sk-live"),
+            secret_hint="sk-****",  # noqa: S105 - test data
+            is_active=True,
+            model="gpt-4o",
+        )
+        db.add(credential)
+        db.commit()
+
+        secret, model = _load_chatgpt_configuration(db)
+    finally:
+        db_gen.close()
+
+    assert secret == "sk-live"
+    assert model == "gpt-4o"
+
+
+def test_load_chatgpt_configuration_defaults_to_settings_model(client: TestClient) -> None:
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    try:
+        cipher = get_secret_cipher()
+        credential = models.ApiCredential(
+            provider="openai",
+            encrypted_secret=cipher.encrypt("sk-default"),
+            is_active=True,
+            model=None,
+        )
+        db.add(credential)
+        db.commit()
+
+        secret, model = _load_chatgpt_configuration(db)
+    finally:
+        db_gen.close()
+
+    assert secret == "sk-default"
+    assert model == settings.chatgpt_model

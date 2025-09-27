@@ -421,6 +421,22 @@
       }
 
       <form class="page-form" (submit)="updateApiCredential($event)">
+        <label class="form-field">
+          <span class="form-field__label">利用モデル</span>
+          <select
+            class="form-control"
+            name="api-model"
+            [(ngModel)]="apiModel"
+          >
+            @if (!isKnownModel(apiModel)) {
+              <option [value]="apiModel">{{ apiModel }} (保存済み)</option>
+            }
+            @for (option of chatModelOptions; track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+
         <label class="form-field form-field--full">
           <span class="form-field__label">新しい API トークン</span>
           <input
@@ -430,9 +446,12 @@
             autocomplete="off"
             [(ngModel)]="apiSecret"
             placeholder="sk-..."
-            required
+            [required]="!apiCredential()"
           />
         </label>
+        <p class="form-note">
+          モデルの変更は次回の AI 実行から適用されます。高精度モデルはトークン消費が増えるため、チームの運用方針に合わせて選択してください。
+        </p>
         <button type="submit" class="button button--primary" [disabled]="loading()">保存</button>
       </form>
     </section>

@@ -737,6 +737,7 @@ class ApiCredential(Base, TimestampMixin):
     encrypted_secret: Mapped[str] = mapped_column(Text, nullable=False)
     secret_hint: Mapped[str | None] = mapped_column(String)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    model: Mapped[str | None] = mapped_column(String)
     created_by_id: Mapped[str | None] = mapped_column(String, ForeignKey("users.id", ondelete="SET NULL"))
 
     created_by_user: Mapped[Optional[User]] = relationship("User", back_populates="api_credentials")

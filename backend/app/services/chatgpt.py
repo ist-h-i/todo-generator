@@ -454,7 +454,7 @@ class ChatGPTClient:
         return text
 
 
-def _load_chatgpt_api_key(db: Session, provider: str = "openai") -> str:
+def _load_chatgpt_configuration(db: Session, provider: str = "openai") -> tuple[str, str]:
     credential = (
         db.query(models.ApiCredential)
         .filter(
@@ -476,13 +476,19 @@ def _load_chatgpt_api_key(db: Session, provider: str = "openai") -> str:
     if not secret:
         raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
 
+    model = credential.model or settings.chatgpt_model
+    return secret, model
+
+
+def _load_chatgpt_api_key(db: Session, provider: str = "openai") -> str:
+    secret, _ = _load_chatgpt_configuration(db, provider)
     return secret
 
 
 def get_chatgpt_client(db: Session = Depends(get_db)) -> ChatGPTClient:
     try:
-        api_key = _load_chatgpt_api_key(db)
-        return ChatGPTClient(api_key=api_key)
+        api_key, model = _load_chatgpt_configuration(db)
+        return ChatGPTClient(api_key=api_key, model=model)
     except ChatGPTConfigurationError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
