@@ -69,9 +69,7 @@
       </header>
 
       @if (competencies().length === 0) {
-        <p class="page-empty">
-          まだコンピテンシーが登録されていません。右側のフォームから追加できます。
-        </p>
+        <p class="page-empty">まだコンピテンシーが登録されていません。</p>
       } @else {
         <ul class="page-list">
           @for (competency of competencies(); track competency.id) {
