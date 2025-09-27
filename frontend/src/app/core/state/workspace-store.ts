@@ -693,9 +693,18 @@ export class WorkspaceStore {
       }
 
       const settings = this.settingsSignal();
-      const previousDefault = settings.defaultAssignee.trim();
+      const previousDefaultRaw = settings.defaultAssignee;
+      const previousDefault = previousDefaultRaw.trim();
+      const lastSynced = this.lastSyncedAssigneeName?.trim() ?? null;
+      const normalizedEmail = email?.trim() ?? null;
 
-      if (previousDefault !== preferredName) {
+      const canUpdateDefault =
+        previousDefault.length === 0 ||
+        previousDefault === '田中太郎' ||
+        (lastSynced !== null && previousDefault === lastSynced) ||
+        (normalizedEmail !== null && previousDefault === normalizedEmail);
+
+      if (canUpdateDefault && previousDefault !== preferredName) {
         const nextSettings: WorkspaceSettings = {
           ...settings,
           defaultAssignee: preferredName,
@@ -718,9 +727,11 @@ export class WorkspaceStore {
         aliasValues.add(normalized);
       };
 
-      registerAlias(previousDefault);
-      registerAlias(this.lastSyncedAssigneeName);
-      registerAlias(email);
+      if (canUpdateDefault) {
+        registerAlias(previousDefault);
+      }
+      registerAlias(lastSynced);
+      registerAlias(normalizedEmail);
       registerAlias('田中太郎');
 
       if (aliasValues.size > 0) {
