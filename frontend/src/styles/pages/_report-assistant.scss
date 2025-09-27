@@ -19,6 +19,17 @@
   gap: var(--panel-gap);
 }
 
+@media (min-width: 60rem) {
+  .report-assistant-page__form,
+  .report-assistant-page__results {
+    align-self: stretch;
+  }
+
+  .report-assistant-page__results {
+    min-height: 100%;
+  }
+}
+
 .report-assistant-page__sections {
   gap: clamp(1rem, 1.4vw, 1.5rem);
 }
