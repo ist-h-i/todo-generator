@@ -45,7 +45,7 @@ export class ContinuousImprovementStore {
   );
   private readonly selectedSnapshotIdSignal = signal<string>(DEFAULT_SNAPSHOT_ID);
   private readonly reportInstructionSignal = signal<string>(
-    '役員向けに最新の指摘と改善状況をまとめてください。',
+    '最新のタスク状況について指摘と改善状況をまとめてください。',
   );
   private readonly reportPreviewSignal = signal<string>('');
 
