@@ -178,6 +178,35 @@ def _ensure_completion_timestamps(engine: Engine) -> None:
                 raise
 
 
+def _ensure_card_error_category_column(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "cards"):
+            return
+
+        column_names = _column_names(inspector, "cards")
+
+    if "error_category_id" in column_names:
+        return
+
+    dialect = engine.dialect.name
+    column_type = "TEXT" if dialect == "sqlite" else "VARCHAR"
+    # Keep the inline REFERENCES clause so ON DELETE SET NULL behaves consistently for
+    # PostgreSQL/MySQL, matching the ORM definition.
+    add_column_sql = (
+        "ALTER TABLE cards "
+        "ADD COLUMN error_category_id "
+        f"{column_type} REFERENCES error_categories(id) ON DELETE SET NULL"
+    )
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(add_column_sql))
+    except SQLAlchemyError as exc:
+        if not _is_duplicate_column_error(exc):
+            raise
+
+
 def _ensure_comment_subtask_column(engine: Engine) -> None:
     with engine.connect() as connection:
         inspector = inspect(connection)
@@ -361,6 +390,7 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_user_profile_columns(engine)
     _promote_first_user_to_admin(engine)
     _ensure_completion_timestamps(engine)
+    _ensure_card_error_category_column(engine)
     _ensure_comment_subtask_column(engine)
     _rename_daily_report_tables(engine)
     _drop_status_report_report_date(engine)
