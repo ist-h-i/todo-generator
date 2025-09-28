@@ -93,7 +93,7 @@ class ScoringResult:
 4. 必要に応じてLLM推論を行い、説明テキストや補正係数を取得。
 5. 最終スコアを算出して`ScoringResult`として返却。
 6. 永続化レイヤがスコアと説明、失敗フラグをカードレコードに保存。
-7. レスポンスとしてクライアントに`ai_confidence`と`ai_explanation`を返却。
+7. レスポンスとしてクライアントに`ai_confidence`と説明文を格納した`ai_notes`を返却。
 
 ## 5. スコア算出ロジック
 - 基本式: `score = clamp(0, 100, round(label_score * w_label + profile_score * w_profile + bias))`

@@ -30,6 +30,7 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
     assert create_response.status_code == 201, create_response.text
     template = create_response.json()
     assert template["name"] == "Sprint Template"
+    assert template["confidence_threshold"] == 70
     assert template["field_visibility"] == {
         **DEFAULT_FIELD_VISIBILITY,
         "show_story_points": True,
@@ -64,6 +65,7 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
     assert updated["name"] == "Updated Template"
     assert updated["default_label_ids"] == []
     assert updated["field_visibility"]["show_story_points"] is False
+    assert updated["confidence_threshold"] == 50
 
     delete_response = client.delete(f"/workspace/templates/{template_id}", headers=headers)
     assert delete_response.status_code == 204

@@ -17,7 +17,12 @@ import {
   CommentUpdateRequest,
   CommentsApiService,
 } from '@core/api/comments-api.service';
-import { WorkspaceConfigApiService, WorkspaceTemplateResponse, LabelResponse, StatusResponse } from '@core/api/workspace-config-api.service';
+import {
+  WorkspaceConfigApiService,
+  WorkspaceTemplateResponse,
+  LabelResponse,
+  StatusResponse,
+} from '@core/api/workspace-config-api.service';
 import { createId } from '@core/utils/create-id';
 import { Logger } from '@core/logger/logger';
 import {
@@ -78,7 +83,21 @@ const cloneSettings = (settings: WorkspaceSettings): WorkspaceSettings => ({
   storyPointScale: [...settings.storyPointScale],
 });
 
-const clampConfidence = (value: number): number => Math.min(Math.max(value, 0), 1);
+const clampConfidence = (value: number): number => Math.min(Math.max(value, 0), 100);
+
+const normalizeTemplateThreshold = (value: unknown, fallback: number): number => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+
+  const scaled = numeric > 0 && numeric <= 1 ? numeric * 100 : numeric;
+  return clampConfidence(scaled);
+};
 
 const unique = <T>(values: readonly T[]): T[] => Array.from(new Set(values));
 
@@ -146,6 +165,8 @@ const FALLBACK_LABEL_COLORS = [
   '#eab308',
   '#6366f1',
 ];
+
+const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 60;
 
 const filtersEqual = (left: BoardFilters, right: BoardFilters): boolean =>
   left.search === right.search &&
@@ -291,7 +312,7 @@ const sanitizeConfidence = (value: number | null | undefined): number | undefine
     return undefined;
   }
 
-  return Math.min(Math.max(numeric, 0), 1);
+  return clampConfidence(numeric);
 };
 
 const dedupeIds = (ids: readonly (string | null | undefined)[]): string[] => {
@@ -399,7 +420,6 @@ const collectStatusesFromCards = (cards: readonly CardResponse[]): Status[] => {
   });
 };
 
-
 const mapStatusResponse = (response: StatusResponse): Status => {
   const category = normalizeStatusCategory(response.category);
   const order =
@@ -434,8 +454,7 @@ const mapTemplateResponse = (
 
   const description = sanitizeString(response.description) ?? '';
   const statusId = response.default_status_id;
-  const defaultStatusId =
-    statusId && allowedStatuses.has(statusId) ? statusId : fallbackStatusId;
+  const defaultStatusId = statusId && allowedStatuses.has(statusId) ? statusId : fallbackStatusId;
   const labelIds = Array.isArray(response.default_label_ids)
     ? unique(
         response.default_label_ids.filter(
@@ -443,7 +462,10 @@ const mapTemplateResponse = (
         ),
       )
     : [];
-  const confidence = clampConfidence(response.confidence_threshold ?? 0.6);
+  const confidence = normalizeTemplateThreshold(
+    response.confidence_threshold,
+    DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD,
+  );
   const visibility = response.field_visibility ?? DEFAULT_TEMPLATE_FIELDS;
 
   return {
@@ -549,8 +571,6 @@ const QUICK_FILTER_VALUES: readonly BoardQuickFilter[] = [
 ];
 
 const QUICK_FILTER_LOOKUP = new Set<BoardQuickFilter>(QUICK_FILTER_VALUES);
-
-const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 0.5;
 
 type RawWorkspaceSettings = {
   statuses?: unknown;
@@ -1106,7 +1126,9 @@ export class WorkspaceStore {
    *
    * @param proposals - AI generated proposals ready for publication.
    */
-  public readonly importProposals = (proposals: readonly AnalysisProposal[]): void => {
+  public readonly importProposals = async (
+    proposals: readonly AnalysisProposal[],
+  ): Promise<void> => {
     if (proposals.length === 0) {
       return;
     }
@@ -1120,7 +1142,7 @@ export class WorkspaceStore {
     const defaultStatus = settings.defaultStatusId;
     const defaultLabel = settings.labels[0]?.id ?? 'general';
 
-    const mapped: Card[] = eligible.map((proposal) => {
+    for (const proposal of eligible) {
       const template = proposal.templateId
         ? settings.templates.find((entry) => entry.id === proposal.templateId)
         : undefined;
@@ -1133,7 +1155,7 @@ export class WorkspaceStore {
             ? [...template.defaultLabelIds]
             : [defaultLabel];
 
-      return this.buildLocalCardFromPayload({
+      await this.createCardFromSuggestion({
         title: proposal.title,
         summary: proposal.summary,
         statusId,
@@ -1141,15 +1163,14 @@ export class WorkspaceStore {
         priority: 'medium',
         assignee: settings.defaultAssignee,
         confidence: proposal.confidence,
+        originSuggestionId: proposal.id,
         subtasks: proposal.subtasks.map((task) => ({
           id: createId(),
           title: task,
           status: 'todo',
         })),
       });
-    });
-
-    this.cardsSignal.update((current) => [...mapped, ...current]);
+    }
   };
 
   /**
@@ -1749,9 +1770,7 @@ export class WorkspaceStore {
     }
 
     try {
-      await firstValueFrom(
-        this.workspaceConfigApi.createLabel({ name, color: payload.color }),
-      );
+      await firstValueFrom(this.workspaceConfigApi.createLabel({ name, color: payload.color }));
       await this.refreshWorkspaceConfig(true);
     } catch (error) {
       this.logger.error('WorkspaceStore', error);
@@ -1860,7 +1879,7 @@ export class WorkspaceStore {
       description: payload.description.trim(),
       default_status_id: payload.defaultStatusId,
       default_label_ids: payload.defaultLabelIds,
-      confidence_threshold: payload.confidenceThreshold,
+      confidence_threshold: clampConfidence(payload.confidenceThreshold),
       field_visibility: {
         show_story_points: payload.fieldVisibility.showStoryPoints,
         show_due_date: payload.fieldVisibility.showDueDate,
@@ -1878,7 +1897,6 @@ export class WorkspaceStore {
     }
   };
 
-
   /**
    * Applies updates to an existing template.
    *
@@ -1892,11 +1910,13 @@ export class WorkspaceStore {
     const updatePayload: Record<string, unknown> = {};
 
     if (Object.prototype.hasOwnProperty.call(changes, 'name')) {
-      updatePayload['name'] = changes.name ? changes.name.trim() : changes.name ?? '';
+      updatePayload['name'] = changes.name ? changes.name.trim() : (changes.name ?? '');
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'description')) {
-      updatePayload['description'] = changes.description ? changes.description.trim() : changes.description ?? '';
+      updatePayload['description'] = changes.description
+        ? changes.description.trim()
+        : (changes.description ?? '');
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'defaultStatusId')) {
@@ -1908,7 +1928,9 @@ export class WorkspaceStore {
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'confidenceThreshold')) {
-      updatePayload['confidence_threshold'] = changes.confidenceThreshold;
+      const threshold = changes.confidenceThreshold;
+      updatePayload['confidence_threshold'] =
+        typeof threshold === 'number' ? clampConfidence(threshold) : threshold;
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'fieldVisibility')) {
@@ -1930,9 +1952,7 @@ export class WorkspaceStore {
     }
 
     try {
-      await firstValueFrom(
-        this.workspaceConfigApi.updateTemplate(templateId, updatePayload),
-      );
+      await firstValueFrom(this.workspaceConfigApi.updateTemplate(templateId, updatePayload));
       await this.refreshWorkspaceConfig(true);
     } catch (error) {
       this.logger.error('WorkspaceStore', error);
@@ -1955,7 +1975,9 @@ export class WorkspaceStore {
       await firstValueFrom(this.workspaceConfigApi.deleteTemplate(templateId));
       await this.refreshWorkspaceConfig(true);
       this.cardsSignal.update((cards) =>
-        cards.map((card) => (card.templateId === templateId ? { ...card, templateId: null } : card)),
+        cards.map((card) =>
+          card.templateId === templateId ? { ...card, templateId: null } : card,
+        ),
       );
     } catch (error) {
       this.logger.error('WorkspaceStore', error);
@@ -1989,7 +2011,9 @@ export class WorkspaceStore {
         const statuses = statusResponses
           .map((response) => mapStatusResponse(response))
           .sort((left, right) =>
-            left.order === right.order ? left.name.localeCompare(right.name) : left.order - right.order,
+            left.order === right.order
+              ? left.name.localeCompare(right.name)
+              : left.order - right.order,
           );
         const labels = labelResponses
           .map((response) => mapLabelResponse(response))
@@ -1998,7 +2022,10 @@ export class WorkspaceStore {
         const currentSettings = this.settingsSignal();
         const allowedStatusIds = new Set(statuses.map((status) => status.id));
         const allowedLabelIds = new Set(labels.map((label) => label.id));
-        const defaultStatusFallback = determineDefaultStatusId(statuses, currentSettings.defaultStatusId);
+        const defaultStatusFallback = determineDefaultStatusId(
+          statuses,
+          currentSettings.defaultStatusId,
+        );
         const templates = templateResponses
           .map((response) =>
             mapTemplateResponse(response, allowedStatusIds, allowedLabelIds, defaultStatusFallback),
@@ -2766,10 +2793,10 @@ export class WorkspaceStore {
           ),
         )
       : [];
-    const confidenceThreshold =
-      typeof record.confidenceThreshold === 'number' && Number.isFinite(record.confidenceThreshold)
-        ? clampConfidence(record.confidenceThreshold)
-        : DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD;
+    const confidenceThreshold = normalizeTemplateThreshold(
+      record.confidenceThreshold,
+      DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD,
+    );
     const fieldVisibility = this.sanitizeFieldVisibility(record.fieldVisibility);
 
     return {
@@ -2829,8 +2856,3 @@ export class WorkspaceStore {
     return primary?.id ?? fallbackStatusId;
   }
 }
-
-
-
-
-

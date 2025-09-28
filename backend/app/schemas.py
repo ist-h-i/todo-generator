@@ -132,7 +132,6 @@ class StatusRead(StatusBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-
 class WorkspaceTemplateFieldVisibility(BaseModel):
     show_story_points: bool = True
     show_due_date: bool = False
@@ -140,15 +139,50 @@ class WorkspaceTemplateFieldVisibility(BaseModel):
     show_confidence: bool = True
 
 
+DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 60.0
+
+
 class WorkspaceTemplateBase(BaseModel):
     name: str
     description: Optional[str] = None
     default_status_id: Optional[str] = None
     default_label_ids: List[str] = Field(default_factory=list)
-    confidence_threshold: float = Field(default=0.6, ge=0, le=1)
-    field_visibility: WorkspaceTemplateFieldVisibility = Field(
-        default_factory=WorkspaceTemplateFieldVisibility
-    )
+    confidence_threshold: float = Field(default=DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD, ge=0, le=100)
+    field_visibility: WorkspaceTemplateFieldVisibility = Field(default_factory=WorkspaceTemplateFieldVisibility)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_confidence_threshold(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            raw_value = data.get("confidence_threshold")
+            normalized = cls._coerce_confidence_threshold(raw_value)
+            if normalized is None:
+                return data
+            updated = dict(data)
+            updated["confidence_threshold"] = normalized
+            return updated
+
+        if hasattr(data, "confidence_threshold"):
+            raw_value = data.confidence_threshold
+            normalized = cls._coerce_confidence_threshold(raw_value)
+            if normalized is not None:
+                data.confidence_threshold = normalized
+        return data
+
+    @staticmethod
+    def _coerce_confidence_threshold(value: Any) -> float | None:
+        if value is None:
+            return None
+
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):  # pragma: no cover - defensive guard
+            return None
+
+        if 0.0 < numeric <= 1.0:
+            numeric *= 100.0
+
+        return max(0.0, min(100.0, numeric))
 
 
 class WorkspaceTemplateCreate(WorkspaceTemplateBase):
@@ -160,7 +194,7 @@ class WorkspaceTemplateUpdate(BaseModel):
     description: Optional[str] = None
     default_status_id: Optional[str] = None
     default_label_ids: Optional[List[str]] = None
-    confidence_threshold: Optional[float] = Field(default=None, ge=0, le=1)
+    confidence_threshold: Optional[float] = Field(default=None, ge=0, le=100)
     field_visibility: Optional[WorkspaceTemplateFieldVisibility] = None
 
 
@@ -169,8 +203,10 @@ class WorkspaceTemplateRead(WorkspaceTemplateBase):
     owner_id: str
     created_at: datetime
     updated_at: datetime
+    is_system_default: bool
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class ErrorCategoryBase(BaseModel):
     name: str
@@ -251,7 +287,7 @@ class CardBase(BaseModel):
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     dependencies: List[str] = Field(default_factory=list)
-    ai_confidence: Optional[float] = Field(default=None, ge=0, le=1)
+    ai_confidence: Optional[float] = Field(default=None, ge=0, le=100)
     ai_notes: Optional[str] = None
     custom_fields: dict[str, Any] = Field(default_factory=dict)
     label_ids: List[str] = Field(default_factory=list)
@@ -276,7 +312,7 @@ class CardUpdate(BaseModel):
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     dependencies: Optional[List[str]] = None
-    ai_confidence: Optional[float] = Field(default=None, ge=0, le=1)
+    ai_confidence: Optional[float] = Field(default=None, ge=0, le=100)
     ai_notes: Optional[str] = None
     custom_fields: Optional[dict[str, Any]] = None
     label_ids: Optional[List[str]] = None
