@@ -14,6 +14,7 @@ from ..auth import (
 )
 from ..database import get_db
 from ..services.profile import build_user_profile
+from ..services.status_defaults import ensure_default_statuses
 from ..services.workspace_template_defaults import ensure_default_workspace_template
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -53,6 +54,7 @@ def register(
     user = models.User(**user_values)
     db.add(user)
     db.flush()
+    ensure_default_statuses(db, owner_id=user.id)
     ensure_default_workspace_template(db, owner_id=user.id)
     token_value = create_session_token(db, user)
     db.commit()
