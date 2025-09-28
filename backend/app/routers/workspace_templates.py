@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Iterable, Mapping
+from typing import Any, Iterable, Mapping
+from collections.abc import Mapping
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import ValidationError
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..services.workspace_template_defaults import default_field_visibility
 from ..utils.repository import (
     apply_updates,
     delete_model,
@@ -18,13 +20,6 @@ from ..utils.repository import (
 )
 
 router = APIRouter(prefix="/workspace/templates", tags=["workspace"])
-
-DEFAULT_FIELD_VISIBILITY = {
-    "show_story_points": True,
-    "show_due_date": False,
-    "show_assignee": True,
-    "show_confidence": True,
-}
 
 
 def _clamp_confidence_threshold(value: float | None) -> float:
