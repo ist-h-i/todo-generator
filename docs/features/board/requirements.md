@@ -44,7 +44,7 @@ The workspace board gives teams a shared view of task progress, quick filtering 
 
 2. **Narrow focus with filters** – As a tech lead, I combine search, label, and quick filters to identify blockers.
    - Search terms match against card titles and summaries regardless of casing and update the badge summary in the header.【F:frontend/src/app/features/board/page.ts†L210-L276】【F:frontend/src/app/core/state/workspace-store.ts†L520-L608】
-   - Selecting filters persists to local storage per user and restores on reload.【F:frontend/src/app/core/state/workspace-store.ts†L36-L116】【F:frontend/src/app/core/state/workspace-store.ts†L520-L632】
+   - Selecting filters syncs per-user preferences through the `/board-layouts` API with local storage fallback for reloads.【F:frontend/src/app/core/api/board-layouts-api.service.ts†L1-L44】【F:frontend/src/app/core/state/workspace-store.ts†L684-L920】
    - Quick filters for assignments, due dates, recent work, and high priority stack together and restrict board columns and subtask lanes consistently.【F:frontend/src/app/features/board/page.ts†L210-L276】【F:frontend/src/app/core/state/workspace-store.ts†L520-L608】
 
 3. **Collaborate with comments** – As a team member, I log decisions on cards and manage comment timelines.
@@ -68,7 +68,7 @@ The workspace board gives teams a shared view of task progress, quick filtering 
    - The chosen AI recommendations are persisted with the card and logged in activity history to document automated assistance.
 
 ## 5. Functional Requirements
-1. Persist workspace settings and filters to browser storage namespaced by user IDs and migrate legacy keys automatically.【F:frontend/src/app/core/state/workspace-store.ts†L24-L120】
+1. Persist workspace settings to browser storage namespaced by user IDs while syncing board layout preferences through the `/board-layouts` API, migrating legacy keys automatically.【F:frontend/src/app/core/state/workspace-store.ts†L684-L980】【F:frontend/src/app/core/api/board-layouts-api.service.ts†L1-L44】
 2. Compute board columns dynamically based on grouping mode and filtered card IDs, including counts and accent colors per column.【F:frontend/src/app/core/state/workspace-store.ts†L520-L608】
 3. Highlight selected cards and subtasks to align board and subtask swimlanes, resetting forms when selection changes.【F:frontend/src/app/features/board/page.ts†L368-L460】
 4. Support inline card editing (title, summary, status, priority, assignee, story points) with validation and diff detection to avoid unnecessary writes.【F:frontend/src/app/features/board/page.ts†L178-L320】【F:frontend/src/app/core/state/workspace-store.ts†L808-L872】
@@ -85,7 +85,7 @@ The workspace board gives teams a shared view of task progress, quick filtering 
 | Metric | Target | Measurement |
 | --- | --- | --- |
 | Drag-and-drop adoption | 80% of board status changes recorded via `card_updated` activity entries | Count `card_updated` actions in `activity_log` table and compare to direct status edits.【F:backend/app/routers/cards.py†L420-L470】【F:backend/app/routers/activity.py†L46-L60】 |
-| Filter engagement | 60% of active users have non-default quick filters saved in preferences | Analyze persisted filter payloads under `workspace-preferences` storage namespace.【F:frontend/src/app/core/state/workspace-store.ts†L24-L120】【F:frontend/src/app/core/state/workspace-store.ts†L520-L632】 |
+| Filter engagement | 60% of active users have non-default quick filters saved in preferences | Analyze persisted filter payloads returned by `/board-layouts` and mirrored in the `workspace-preferences` storage namespace.【F:backend/app/routers/preferences.py†L1-L36】【F:frontend/src/app/core/state/workspace-store.ts†L684-L980】 |
 | Comment collaboration | Average of ≥2 comments per active card per week | Track comment counts per card via `/comments/` list endpoint filtered by owner.【F:backend/app/routers/comments.py†L16-L44】 |
 | Audit completeness | 100% of comment mutations emit `comment_created` or `comment_deleted` activity events | Validate `activity_log` entries after comment API calls during QA automation.【F:backend/app/routers/comments.py†L40-L82】 |
 | AI template adoption | 50% of ad-hoc card creations use the AI default template with at least one suggestion accepted | Measure `/cards` create events flagged with the AI default template identifier and compare accepted vs. overridden fields. |
