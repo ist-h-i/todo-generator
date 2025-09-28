@@ -9,11 +9,26 @@ _DEFAULT_MASK_CHAR = "*"
 _VISIBLE_SEGMENT_LENGTH = 4
 
 
+class SecretEncryptionKeyError(RuntimeError):
+    """Raised when the secret encryption key configuration is invalid."""
+
+
 def get_secret_cipher() -> SecretCipher:
     """Return a cipher configured for encrypting stored secrets."""
 
-    key = settings.secret_encryption_key or "verbalize-yourself"
-    return SecretCipher(key)
+    key = settings.secret_encryption_key
+    if key is None:
+        raise SecretEncryptionKeyError(
+            "Secret encryption key is not configured. Set the SECRET_ENCRYPTION_KEY environment variable.",
+        )
+
+    normalized_key = key.strip()
+    if not normalized_key:
+        raise SecretEncryptionKeyError(
+            "Secret encryption key must not be empty. Update the SECRET_ENCRYPTION_KEY environment variable.",
+        )
+
+    return SecretCipher(normalized_key)
 
 
 def build_secret_hint(secret: str, *, mask_char: str = _DEFAULT_MASK_CHAR) -> str:
@@ -44,4 +59,4 @@ def build_secret_hint(secret: str, *, mask_char: str = _DEFAULT_MASK_CHAR) -> st
     return prefix + (mask_char * masked_length) + suffix
 
 
-__all__ = ["build_secret_hint", "get_secret_cipher"]
+__all__ = ["SecretEncryptionKeyError", "build_secret_hint", "get_secret_cipher"]

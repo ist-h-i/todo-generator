@@ -27,7 +27,7 @@ from ..schemas import (
     AnalysisSubtask,
     UserProfile,
 )
-from ..utils.secrets import get_secret_cipher
+from ..utils.secrets import SecretEncryptionKeyError, get_secret_cipher
 
 logger = logging.getLogger(__name__)
 
@@ -481,7 +481,10 @@ def _load_chatgpt_configuration(db: Session, provider: str = "openai") -> tuple[
 
         raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
 
-    cipher = get_secret_cipher()
+    try:
+        cipher = get_secret_cipher()
+    except SecretEncryptionKeyError as exc:
+        raise ChatGPTConfigurationError(str(exc)) from exc
     try:
         secret = cipher.decrypt(credential.encrypted_secret)
     except Exception as exc:  # pragma: no cover - defensive path

@@ -1,7 +1,7 @@
 import pytest
 
 from app.utils.crypto import SecretCipher
-from app.utils.secrets import build_secret_hint, get_secret_cipher
+from app.utils.secrets import SecretEncryptionKeyError, build_secret_hint, get_secret_cipher
 
 
 @pytest.mark.parametrize(
@@ -32,3 +32,11 @@ def test_get_secret_cipher_uses_application_settings(monkeypatch: pytest.MonkeyP
     encrypted = cipher.encrypt("sensitive value")
     assert encrypted
     assert cipher.decrypt(encrypted) == "sensitive value"
+
+
+@pytest.mark.parametrize("value", [None, "", "   "])
+def test_get_secret_cipher_requires_secret_key(monkeypatch: pytest.MonkeyPatch, value: str | None) -> None:
+    monkeypatch.setattr("app.config.settings.secret_encryption_key", value)
+
+    with pytest.raises(SecretEncryptionKeyError):
+        get_secret_cipher()
