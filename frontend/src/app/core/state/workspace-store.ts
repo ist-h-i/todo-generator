@@ -2513,11 +2513,12 @@ export class WorkspaceStore {
         this.filtersSignal.set(preferences.filters);
       }
     } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+
       if (token !== this.preferencesRequestToken) {
         return;
       }
 
-      this.logger.error('WorkspaceStore', error);
       this.applyCachedPreferences(userId, settings);
     }
   }
