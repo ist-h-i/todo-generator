@@ -29,11 +29,11 @@ This document explains how the workspace persists data across board management, 
 
 ## 3. Reports and AI workflows
 ### 3.1 Analyzer intake
-- `/analysis` processes `AnalysisRequest` payloads. `services/chatgpt.py` builds prompts with profile metadata, validates JSON responses, and returns normalised proposals. Errors raise `ChatGPTError` with HTTP 502/503 codes, preserving graceful UI fallbacks.
+- `/analysis` processes `AnalysisRequest` payloads. `services/gemini.py` builds prompts with profile metadata, validates JSON responses, and returns normalised proposals. Errors raise `GeminiError` with HTTP 502/503 codes, preserving graceful UI fallbacks.
 - The analyzer page (`frontend/src/app/features/analyze/page.ts`) filters proposals client-side and publishes accepted cards via `WorkspaceStore.publishProposals`.
 
 ### 3.2 Status reports
-- `/status-reports` manages shift report drafts, submissions, and AI processing. `StatusReportService` (`backend/app/services/status_reports.py`) normalises sections, records lifecycle events, invokes ChatGPT for summaries, and caps generated card counts.
+- `/status-reports` manages shift report drafts, submissions, and AI processing. `StatusReportService` (`backend/app/services/status_reports.py`) normalises sections, records lifecycle events, invokes Gemini for summaries, and caps generated card counts.
 - Generated proposals are returned alongside `StatusReportDetail`. The frontend (`frontend/src/app/features/reports/reports-page.component.ts`) displays the audit trail and allows promoting proposals into cards through `WorkspaceStore` helpers.
 
 ### 3.3 Report templates and narratives

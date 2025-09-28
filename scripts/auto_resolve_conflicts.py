@@ -3,16 +3,19 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
-from openai import OpenAI
+import google.generativeai as genai
 
 MAX_RETRIES = 3
 
-client = OpenAI()
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+genai.configure()
+model = genai.GenerativeModel(MODEL_NAME)
 
 
 def run_cmd(cmd: Sequence[str], *, capture: bool = False, cwd: str | None = None) -> Tuple[str, str, int]:
@@ -48,19 +51,28 @@ def write_file_content(path: str, content: str) -> None:
 
 
 def _response_text(response) -> str:
-    chunks: List[str] = []
-    for item in getattr(response, "output", []) or []:
-        if getattr(item, "type", "") != "message":
+    text_value = getattr(response, "text", None)
+    if isinstance(text_value, str) and text_value.strip():
+        return text_value
+
+    fragments: List[str] = []
+    for candidate in getattr(response, "candidates", []) or []:
+        parts = getattr(candidate, "content", None) or getattr(candidate, "parts", None)
+        if not parts:
             continue
-        message = getattr(item, "message", None)
-        if not message:
-            continue
-        for part in getattr(message, "content", []) or []:
-            if getattr(part, "type", "") == "text":
-                chunks.append(getattr(part, "text", ""))
-    if not chunks and hasattr(response, "output_text"):
-        chunks.append(response.output_text)
-    return "".join(chunks).strip()
+        for part in parts:
+            text = getattr(part, "text", None) or getattr(part, "value", None)
+            if isinstance(text, str):
+                fragments.append(text)
+
+    if not fragments and getattr(response, "output", None):
+        for item in getattr(response, "output", []) or []:
+            for part in getattr(item, "content", []) or []:
+                text = getattr(part, "text", None)
+                if isinstance(text, str):
+                    fragments.append(text)
+
+    return "".join(fragments).strip()
 
 
 def ask_codex_to_resolve(filename: str, content: str, *, error_log: str | None = None) -> str:
@@ -94,13 +106,9 @@ def ask_codex_to_resolve(filename: str, content: str, *, error_log: str | None =
 {content}
 """
 
-    response = client.responses.create(
-        model="gpt-4o-mini",
-        input=[
-            {"role": "system", "content": "You are an expert software engineer."},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0,
+    response = model.generate_content(
+        prompt,
+        generation_config={"temperature": 0.0, "response_mime_type": "text/plain"},
     )
 
     return _response_text(response)

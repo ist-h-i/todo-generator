@@ -9,7 +9,7 @@ integration expectations until the implementation is completed.
   client instead of the existing ChatGPT client when generating proposals or
   narratives.
 - Gemini requests must continue to enforce structured JSON responses, schema
-  validation, and failure handling consistent with the current ChatGPT-based
+  validation, and failure handling consistent with the current Gemini-based
   behavior.
 - Error handling expectations remain unchanged: upstream Gemini errors should
   translate to HTTP 502 responses, while configuration issues should surface as

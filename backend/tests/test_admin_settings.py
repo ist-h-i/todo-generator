@@ -16,42 +16,42 @@ def _admin_headers(client: TestClient) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_admin_can_update_chatgpt_model_without_rotating_secret(client: TestClient) -> None:
+def test_admin_can_update_gemini_model_without_rotating_secret(client: TestClient) -> None:
     headers = _admin_headers(client)
 
     create = client.put(
-        "/admin/api-credentials/openai",
+        "/admin/api-credentials/gemini",
         headers=headers,
-        json={"secret": "sk-original", "model": "gpt-4o"},
+        json={"secret": "sk-original", "model": "gemini-1.5-pro"},
     )
     assert create.status_code == 200, create.text
     created_payload = create.json()
-    assert created_payload["model"] == "gpt-4o"
+    assert created_payload["model"] == "gemini-1.5-pro"
     assert created_payload["secret_hint"]
 
     update = client.put(
-        "/admin/api-credentials/openai",
+        "/admin/api-credentials/gemini",
         headers=headers,
-        json={"model": "gpt-4o-mini"},
+        json={"model": "gemini-1.5-flash"},
     )
     assert update.status_code == 200, update.text
     updated_payload = update.json()
-    assert updated_payload["model"] == "gpt-4o-mini"
+    assert updated_payload["model"] == "gemini-1.5-flash"
     assert updated_payload["secret_hint"] == created_payload["secret_hint"]
 
-    fetch = client.get("/admin/api-credentials/openai", headers=headers)
+    fetch = client.get("/admin/api-credentials/gemini", headers=headers)
     assert fetch.status_code == 200, fetch.text
     fetched_payload = fetch.json()
-    assert fetched_payload["model"] == "gpt-4o-mini"
+    assert fetched_payload["model"] == "gemini-1.5-flash"
 
 
 def test_admin_cannot_create_credential_without_secret(client: TestClient) -> None:
     headers = _admin_headers(client)
 
     response = client.put(
-        "/admin/api-credentials/openai",
+        "/admin/api-credentials/gemini",
         headers=headers,
-        json={"model": "gpt-4o"},
+        json={"model": "gemini-1.5-pro"},
     )
     assert response.status_code == 400, response.text
     assert response.json()["detail"] == "API トークンを入力してください。"

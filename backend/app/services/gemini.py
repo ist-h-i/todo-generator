@@ -9,12 +9,13 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 try:  # pragma: no cover - optional dependency wrapper
-    from openai import OpenAI, OpenAIError
+    import google.generativeai as genai
+    from google.api_core.exceptions import GoogleAPIError
 except ModuleNotFoundError:  # pragma: no cover - executed when SDK missing
-    OpenAI = None  # type: ignore[misc, assignment]
+    genai = None  # type: ignore[misc, assignment]
 
-    class OpenAIError(Exception):
-        """Fallback error raised when the OpenAI SDK is unavailable."""
+    class GoogleAPIError(Exception):
+        """Fallback error raised when the Gemini SDK is unavailable."""
 
 
 from .. import models
@@ -32,16 +33,16 @@ from ..utils.secrets import SecretEncryptionKeyError, get_secret_cipher
 logger = logging.getLogger(__name__)
 
 
-class ChatGPTError(RuntimeError):
-    """Base exception for ChatGPT integration errors."""
+class GeminiError(RuntimeError):
+    """Base exception for Gemini integration errors."""
 
 
-class ChatGPTConfigurationError(ChatGPTError):
-    """Raised when required configuration for ChatGPT is missing."""
+class GeminiConfigurationError(GeminiError):
+    """Raised when required configuration for Gemini is missing."""
 
 
-class ChatGPTClient:
-    """Real ChatGPT client that transforms notes into structured proposals."""
+class GeminiClient:
+    """Gemini client that transforms notes into structured proposals."""
 
     _BASE_RESPONSE_SCHEMA: ClassVar[dict[str, Any]] = {
         "type": "object",
@@ -124,18 +125,19 @@ class ChatGPTClient:
         model: str | None = None,
         api_key: str | None = None,
     ) -> None:
-        self.model = model or settings.chatgpt_model
+        self.model = model or settings.gemini_model
         self.api_key = api_key
 
         if not self.api_key:
-            raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
+            raise GeminiConfigurationError("Gemini API key is not configured. Update it from the admin settings.")
 
-        if OpenAI is None:
-            raise ChatGPTConfigurationError(
-                "OpenAI SDK is not installed. Install the 'openai' package to enable analysis."
+        if genai is None:
+            raise GeminiConfigurationError(
+                "Gemini SDK is not installed. Install the 'google-generativeai' package to enable analysis."
             )
 
-        self._client = OpenAI(api_key=self.api_key)
+        genai.configure(api_key=self.api_key)
+        self._client = genai.GenerativeModel(self.model)
 
     def analyze(
         self,
@@ -149,12 +151,12 @@ class ChatGPTClient:
 
         try:
             payload = self._request_analysis(text, request.max_cards, user_profile)
-        except OpenAIError as exc:
-            logger.exception("ChatGPT request failed")
-            raise ChatGPTError("ChatGPT request failed.") from exc
+        except GoogleAPIError as exc:
+            logger.exception("Gemini request failed")
+            raise GeminiError("Gemini request failed.") from exc
         except json.JSONDecodeError as exc:
-            logger.exception("Unable to decode ChatGPT response")
-            raise ChatGPTError("ChatGPT returned an invalid response.") from exc
+            logger.exception("Unable to decode Gemini response")
+            raise GeminiError("Gemini returned an invalid response.") from exc
 
         raw_proposals = payload.get("proposals", [])
         if not isinstance(raw_proposals, Sequence) or isinstance(raw_proposals, (str, bytes)):
@@ -174,33 +176,27 @@ class ChatGPTClient:
         prompt: str,
         response_schema: dict[str, Any],
     ) -> dict[str, Any]:
-        """Invoke the Responses API to craft appeal narratives."""
+        """Invoke the Gemini API to craft appeal narratives."""
 
         if not prompt.strip():
-            raise ChatGPTError("Prompt for appeal generation must not be empty.")
+            raise GeminiError("Prompt for appeal generation must not be empty.")
+
+        generation_config = self._build_generation_config(response_schema)
+        combined_prompt = f"{self._APPEAL_SYSTEM_PROMPT}\n\n{prompt}"
 
         try:
-            response = self._client.responses.create(
-                model=self.model,
-                instructions=self._APPEAL_SYSTEM_PROMPT,
-                input=prompt,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "appeal_generation_response",
-                        "strict": True,
-                        "schema": response_schema,
-                    },
-                },
+            response = self._client.generate_content(
+                combined_prompt,
+                generation_config=generation_config,
             )
-        except OpenAIError as exc:
-            logger.exception("ChatGPT appeal generation failed")
-            raise ChatGPTError("ChatGPT request failed.") from exc
+        except GoogleAPIError as exc:
+            logger.exception("Gemini appeal generation failed")
+            raise GeminiError("Gemini request failed.") from exc
 
         content = self._extract_content(response)
         data = self._parse_json_payload(content)
         if not isinstance(data, dict):
-            raise ChatGPTError("ChatGPT response must be a JSON object.")
+            raise GeminiError("Gemini response must be a JSON object.")
 
         payload = dict(data)
         if not payload.get("model") and getattr(response, "model", None):
@@ -226,18 +222,18 @@ class ChatGPTClient:
     ) -> dict[str, Any]:
         response_format = self._build_response_format(max_cards)
         user_prompt = self._build_user_prompt(text, max_cards, user_profile)
+        generation_config = self._build_generation_config(response_format["json_schema"]["schema"])
+        combined_prompt = f"{self._SYSTEM_PROMPT}\n\n{user_prompt}"
 
-        response = self._client.responses.create(
-            model=self.model,
-            instructions=self._SYSTEM_PROMPT,
-            input=user_prompt,
-            response_format=response_format,
+        response = self._client.generate_content(
+            combined_prompt,
+            generation_config=generation_config,
         )
 
         content = self._extract_content(response)
         data = self._parse_json_payload(content)
         if not isinstance(data, dict):
-            raise ChatGPTError("ChatGPT response must be a JSON object.")
+            raise GeminiError("Gemini response must be a JSON object.")
         if (not data.get("model")) and getattr(response, "model", None):
             enriched = dict(data)
             enriched["model"] = response.model
@@ -256,6 +252,19 @@ class ChatGPTClient:
                 "schema": schema,
             },
         }
+
+    def _build_generation_config(self, schema: dict[str, Any]) -> Any:
+        config: dict[str, Any] = {
+            "response_mime_type": "application/json",
+            "response_schema": schema,
+        }
+        generation_config_cls = getattr(getattr(genai, "types", None), "GenerationConfig", None)
+        if generation_config_cls is not None:
+            try:
+                return generation_config_cls(**config)
+            except Exception:  # pragma: no cover - fall back to dict
+                logger.debug("Falling back to dict generation config", exc_info=True)
+        return config
 
     def _build_user_prompt(
         self,
@@ -276,7 +285,7 @@ class ChatGPTClient:
         return "\n\n".join(sections)
 
     def _extract_usage(self, response: Any) -> dict[str, int]:
-        usage = getattr(response, "usage", None)
+        usage = getattr(response, "usage", None) or getattr(response, "usage_metadata", None)
         if not usage:
             return {}
 
@@ -286,19 +295,36 @@ class ChatGPTClient:
             return getattr(source, key, None)
 
         result: dict[str, int] = {}
-        for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
-            value = _value(usage, key)
+        key_mapping = {
+            "prompt_tokens": ("prompt_tokens", "input_tokens"),
+            "completion_tokens": ("completion_tokens", "output_tokens"),
+            "total_tokens": ("total_tokens", "total_tokens"),
+        }
+        for target, aliases in key_mapping.items():
+            value = None
+            for alias in aliases:
+                value = _value(usage, alias)
+                if value is not None:
+                    break
             if value is None and hasattr(usage, "get"):
-                value = usage.get(key)
+                for alias in aliases:
+                    value = usage.get(alias)
+                    if value is not None:
+                        break
             if value is None and hasattr(usage, "to_dict"):
                 try:
-                    value = usage.to_dict().get(key)  # type: ignore[call-arg]
+                    data = usage.to_dict()  # type: ignore[call-arg]
                 except Exception:  # pragma: no cover - defensive
-                    value = None
+                    data = None
+                if isinstance(data, dict):
+                    for alias in aliases:
+                        if alias in data:
+                            value = data[alias]
+                            break
             if value is None:
                 continue
             try:
-                result[key] = int(value)
+                result[target] = int(value)
             except (TypeError, ValueError):
                 continue
         return result
@@ -326,6 +352,25 @@ class ChatGPTClient:
         return json.dumps(metadata, ensure_ascii=False, indent=2)
 
     def _extract_content(self, response: Any) -> str:
+        text_value = getattr(response, "text", None)
+        if isinstance(text_value, str) and text_value.strip():
+            return text_value
+
+        if getattr(response, "candidates", None):
+            fragments: List[str] = []
+            for candidate in response.candidates:  # type: ignore[attr-defined]
+                content = getattr(candidate, "content", None)
+                parts = getattr(candidate, "parts", None)
+                iterable = content if isinstance(content, Sequence) else parts
+                if not iterable:
+                    continue
+                for part in iterable:
+                    text = getattr(part, "text", None) or getattr(part, "value", None)
+                    if isinstance(text, str):
+                        fragments.append(text)
+            if fragments:
+                return "".join(fragments)
+
         if getattr(response, "output", None):
             fragments: List[str] = []
             for item in response.output:  # type: ignore[attr-defined]
@@ -353,14 +398,14 @@ class ChatGPTClient:
             if first_message and getattr(first_message, "content", None):
                 return first_message.content
 
-        raise ChatGPTError("ChatGPT response did not contain any text output.")
+        raise GeminiError("Gemini response did not contain any text output.")
 
     def _parse_json_payload(self, content: str) -> Any:
-        """Decode ChatGPT output into Python objects.
+        """Decode Gemini output into Python objects.
 
-        The Responses API should honour the supplied JSON schema, but older
-        models occasionally wrap valid payloads in fenced code blocks. Try a
-        best-effort cleanup before bubbling the decoding error to the caller.
+        Gemini should honour the supplied JSON schema, but responses may still
+        wrap valid payloads in fenced code blocks. Try a best-effort cleanup
+        before bubbling the decoding error to the caller.
         """
 
         try:
@@ -454,7 +499,7 @@ class ChatGPTClient:
         return text
 
 
-def _load_chatgpt_configuration(db: Session, provider: str = "openai") -> tuple[str, str]:
+def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[str, str]:
     credential = (
         db.query(models.ApiCredential)
         .filter(
@@ -474,48 +519,54 @@ def _load_chatgpt_configuration(db: Session, provider: str = "openai") -> tuple[
             is not None
         )
         if disabled_credential_exists:
-            raise ChatGPTConfigurationError("ChatGPT API key is disabled. Update it from the admin settings.")
+            raise GeminiConfigurationError("Gemini API key is disabled. Update it from the admin settings.")
 
-        if settings.chatgpt_api_key:
-            return settings.chatgpt_api_key, settings.chatgpt_model
+        if provider == "gemini":
+            try:
+                return _load_gemini_configuration(db, provider="openai")
+            except GeminiConfigurationError:
+                pass
 
-        raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
+        if settings.gemini_api_key:
+            return settings.gemini_api_key, settings.gemini_model
+
+        raise GeminiConfigurationError("Gemini API key is not configured. Update it from the admin settings.")
 
     try:
         cipher = get_secret_cipher()
     except SecretEncryptionKeyError as exc:
-        raise ChatGPTConfigurationError(str(exc)) from exc
+        raise GeminiConfigurationError(str(exc)) from exc
     try:
         secret = cipher.decrypt(credential.encrypted_secret)
     except Exception as exc:  # pragma: no cover - defensive path
         logger.exception("Failed to decrypt API credential for provider '%s'", provider)
-        raise ChatGPTConfigurationError("Failed to decrypt ChatGPT API key.") from exc
+        raise GeminiConfigurationError("Failed to decrypt Gemini API key.") from exc
 
     if not secret:
-        raise ChatGPTConfigurationError("ChatGPT API key is not configured. Update it from the admin settings.")
+        raise GeminiConfigurationError("Gemini API key is not configured. Update it from the admin settings.")
 
-    model = credential.model or settings.chatgpt_model
+    model = credential.model or settings.gemini_model
     return secret, model
 
 
-def _load_chatgpt_api_key(db: Session, provider: str = "openai") -> str:
-    secret, _ = _load_chatgpt_configuration(db, provider)
+def _load_gemini_api_key(db: Session, provider: str = "gemini") -> str:
+    secret, _ = _load_gemini_configuration(db, provider)
     return secret
 
 
-def get_chatgpt_client(db: Session = Depends(get_db)) -> ChatGPTClient:
+def get_gemini_client(db: Session = Depends(get_db)) -> GeminiClient:
     try:
-        api_key, model = _load_chatgpt_configuration(db)
-        return ChatGPTClient(api_key=api_key, model=model)
-    except ChatGPTConfigurationError as exc:
+        api_key, model = _load_gemini_configuration(db)
+        return GeminiClient(api_key=api_key, model=model)
+    except GeminiConfigurationError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
 
 
-def get_optional_chatgpt_client(db: Session = Depends(get_db)) -> ChatGPTClient | None:
+def get_optional_gemini_client(db: Session = Depends(get_db)) -> GeminiClient | None:
     try:
-        return get_chatgpt_client(db)
+        return get_gemini_client(db)
     except HTTPException:
         return None

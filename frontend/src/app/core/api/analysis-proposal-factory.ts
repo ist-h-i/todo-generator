@@ -90,7 +90,7 @@ export class AnalysisProposalFactory {
   }
 
   private resolveBaseTitle(request: AnalysisRequest): string {
-    return request.notes.split('\n')[0]?.trim() || 'ChatGPT 提案';
+    return request.notes.split('\n')[0]?.trim() || 'Gemini 提案';
   }
 
   private resolveTemplateForIndex(

@@ -6,7 +6,7 @@
 
 ## Objectives
 - Allow contributors to draft structured reports, submit them for AI-assisted analysis, and immediately review generated task proposals without manual intervention.【F:frontend/src/app/features/reports/reports-page.component.ts†L19-L96】
-- Provide a repeatable workflow that records lifecycle events, captures ChatGPT analysis outcomes, and gracefully handles transient failures with retry support.【F:backend/app/routers/status_reports.py†L55-L109】【F:backend/app/services/status_reports.py†L138-L225】
+- Provide a repeatable workflow that records lifecycle events, captures Gemini analysis outcomes, and gracefully handles transient failures with retry support.【F:backend/app/routers/status_reports.py†L55-L109】【F:backend/app/services/status_reports.py†L138-L225】
 
 ## Scope
 - **In scope:**
@@ -25,7 +25,7 @@
 
 ## Acceptance Criteria
 - Report creation must require at least one non-empty section and persist normalized titles, tags, and auto-ticket preferences.【F:backend/app/services/status_reports.py†L31-L90】
-- Submissions must transition reports into a processing state, log submission and analysis-start events, and attempt ChatGPT analysis with a configurable card cap.【F:backend/app/services/status_reports.py†L138-L177】
+- Submissions must transition reports into a processing state, log submission and analysis-start events, and attempt Gemini analysis with a configurable card cap.【F:backend/app/services/status_reports.py†L138-L177】
 - On successful analysis, reports are marked completed, proposal metadata is stored, lifecycle events are appended, and the persisted row is removed after returning the detail payload to the client.【F:backend/app/services/status_reports.py†L178-L213】
 - On analysis failure, the failure reason is recorded, report status becomes failed, processing metadata captures the error, and a retry endpoint is exposed for failed reports only.【F:backend/app/routers/status_reports.py†L94-L109】【F:backend/app/services/status_reports.py†L154-L170】
 - The frontend must block duplicate submissions while a request is pending, reset the form after success, and surface localized error messaging when the backend returns validation or transport issues.【F:frontend/src/app/features/reports/reports-page.component.ts†L41-L125】
