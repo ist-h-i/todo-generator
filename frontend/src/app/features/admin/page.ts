@@ -48,7 +48,9 @@ export class AdminPage {
     { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
     { value: 'gpt-4.1', label: 'GPT-4.1' },
   ];
-  private readonly knownChatModelValues = new Set(this.chatModelOptions.map((option) => option.value));
+  private readonly knownChatModelValues = new Set(
+    this.chatModelOptions.map((option) => option.value),
+  );
 
   public readonly newCompetency = signal<CompetencyInput>({
     name: '',
@@ -241,6 +243,28 @@ export class AdminPage {
       card_daily_limit: user.card_daily_limit ?? null,
       evaluation_daily_limit: user.evaluation_daily_limit ?? null,
     });
+  }
+
+  public deleteUser(user: AdminUser): void {
+    this.clearError();
+
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm(`${user.email} を削除しますか？この操作は取り消せません。`);
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    this.api
+      .deleteUser(user.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.users.update((list) => list.filter((item) => item.id !== user.id));
+          this.notify('ユーザを削除しました。');
+        },
+        error: (err) => this.handleError(err, 'ユーザの削除に失敗しました。'),
+      });
   }
 
   public updateApiCredential(event: SubmitEvent): void {
