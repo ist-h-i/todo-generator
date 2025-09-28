@@ -176,6 +176,11 @@ const FALLBACK_LABEL_COLORS = [
   '#6366f1',
 ];
 
+const ASSIGNEE_UNASSIGNED_KEY = '__unassigned__';
+const ASSIGNEE_UNASSIGNED_ID = 'assignee/unassigned';
+const ASSIGNEE_UNASSIGNED_TITLE = '未割り当て';
+const ASSIGNEE_UNASSIGNED_ACCENT = '#94a3b8';
+
 const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 60;
 
 const filtersEqual = (left: BoardFilters, right: BoardFilters): boolean =>
@@ -1064,6 +1069,59 @@ export class WorkspaceStore {
             count: matches.length,
           };
         });
+    }
+
+    if (grouping === 'assignee') {
+      const palette = FALLBACK_LABEL_COLORS;
+      const grouped = new Map<string, string[]>();
+
+      for (const card of cards) {
+        if (!allowedIds.has(card.id)) {
+          continue;
+        }
+
+        const normalized = sanitizeString(card.assignee) ?? ASSIGNEE_UNASSIGNED_KEY;
+        const bucket = grouped.get(normalized);
+        if (bucket) {
+          bucket.push(card.id);
+        } else {
+          grouped.set(normalized, [card.id]);
+        }
+      }
+
+      const collator = new Intl.Collator('ja', { sensitivity: 'base' });
+      const entries = Array.from(grouped.entries()).sort(([left], [right]) => {
+        if (left === ASSIGNEE_UNASSIGNED_KEY) {
+          return -1;
+        }
+        if (right === ASSIGNEE_UNASSIGNED_KEY) {
+          return 1;
+        }
+        return collator.compare(left, right);
+      });
+
+      let paletteIndex = 0;
+      return entries.map(([key, cardIds]) => {
+        if (key === ASSIGNEE_UNASSIGNED_KEY) {
+          return {
+            id: ASSIGNEE_UNASSIGNED_ID,
+            title: ASSIGNEE_UNASSIGNED_TITLE,
+            accent: ASSIGNEE_UNASSIGNED_ACCENT,
+            cards: cardIds,
+            count: cardIds.length,
+          } satisfies BoardColumnView;
+        }
+
+        const accent = palette[paletteIndex % palette.length];
+        paletteIndex += 1;
+        return {
+          id: `assignee/${key}`,
+          title: key,
+          accent,
+          cards: cardIds,
+          count: cardIds.length,
+        } satisfies BoardColumnView;
+      });
     }
 
     return this.settingsSignal().labels.map((label) => {
@@ -2415,6 +2473,7 @@ export class WorkspaceStore {
       }
 
       if (!this.hasRemoteBoardPreferences(response)) {
+        this.applyCachedPreferences(userId, settings);
         return;
       }
 
@@ -2434,6 +2493,19 @@ export class WorkspaceStore {
       }
 
       this.logger.error('WorkspaceStore', error);
+      this.applyCachedPreferences(userId, settings);
+    }
+  }
+
+  private applyCachedPreferences(userId: string, settings: WorkspaceSettings): void {
+    const cached = this.loadPreferences(userId, settings);
+
+    if (this.groupingSignal() !== cached.grouping) {
+      this.groupingSignal.set(cached.grouping);
+    }
+
+    if (!filtersEqual(this.filtersSignal(), cached.filters)) {
+      this.filtersSignal.set(cached.filters);
     }
   }
 
@@ -2653,8 +2725,9 @@ export class WorkspaceStore {
   }
 
   private async persistPreferencesRemote(preferences: BoardPreferences): Promise<void> {
-    const userId = this.activeUserId();
-    if (!userId) {
+    const user = this.auth.user();
+    const userId = user?.id ?? null;
+    if (!userId || userId === ANONYMOUS_STORAGE_USER_ID) {
       return;
     }
 
@@ -2751,7 +2824,9 @@ export class WorkspaceStore {
 
     const record = raw as RawBoardPreferences;
     const grouping =
-      record.grouping === 'status' || record.grouping === 'label'
+      record.grouping === 'status' ||
+      record.grouping === 'label' ||
+      record.grouping === 'assignee'
         ? (record.grouping as BoardGrouping)
         : defaults.grouping;
     const filters = this.sanitizeFilters(record.filters, settings);
