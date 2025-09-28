@@ -344,6 +344,7 @@
                 <th scope="col">有効</th>
                 <th scope="col">カード起票/日</th>
                 <th scope="col">判定回数/日</th>
+                <th scope="col">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -390,6 +391,16 @@
                       placeholder="デフォルト"
                     />
                   </td>
+                  <td class="page-table__cell--center">
+                    <button
+                      type="button"
+                      class="button button--danger button--pill"
+                      (click)="deleteUser(user)"
+                      aria-label="{{ user.email }} を削除"
+                    >
+                      削除
+                    </button>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -421,11 +432,7 @@
       <form class="page-form" (submit)="updateApiCredential($event)">
         <label class="form-field">
           <span class="form-field__label">利用モデル</span>
-          <select
-            class="form-control"
-            name="api-model"
-            [(ngModel)]="apiModel"
-          >
+          <select class="form-control" name="api-model" [(ngModel)]="apiModel">
             @if (!isKnownModel(apiModel)) {
               <option [value]="apiModel">{{ apiModel }} (保存済み)</option>
             }
@@ -448,7 +455,8 @@
           />
         </label>
         <p class="form-note">
-          モデルの変更は次回の AI 実行から適用されます。高精度モデルはトークン消費が増えるため、チームの運用方針に合わせて選択してください。
+          モデルの変更は次回の AI
+          実行から適用されます。高精度モデルはトークン消費が増えるため、チームの運用方針に合わせて選択してください。
         </p>
         <button type="submit" class="button button--primary" [disabled]="loading()">保存</button>
       </form>
