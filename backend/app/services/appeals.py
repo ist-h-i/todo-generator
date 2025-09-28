@@ -17,10 +17,10 @@ from ..services.appeal_prompts import (
     AppealFallbackBuilder,
     AppealPromptBuilder,
 )
-from ..services.chatgpt import (
-    ChatGPTClient,
-    ChatGPTError,
-    get_optional_chatgpt_client,
+from ..services.gemini import (
+    GeminiClient,
+    GeminiError,
+    get_optional_gemini_client,
 )
 
 logger = logging.getLogger(__name__)
@@ -51,9 +51,9 @@ class AppealGenerationService:
         ),
     ]
 
-    def __init__(self, db: Session, chatgpt: ChatGPTClient | None = None) -> None:
+    def __init__(self, db: Session, gemini: GeminiClient | None = None) -> None:
         self._db = db
-        self._chatgpt = chatgpt
+        self._gemini = gemini
         self._prompt_builder_error: RuntimeError | None = None
         try:
             self._prompt_builder = AppealPromptBuilder()
@@ -114,7 +114,7 @@ class AppealGenerationService:
         token_usage = {fmt: payload.tokens_used or 0 for fmt, payload in fallback_formats.items()}
         generation_status = "fallback"
 
-        if self._chatgpt is not None and self._prompt_builder is not None:
+        if self._gemini is not None and self._prompt_builder is not None:
             try:
                 prompt = self._prompt_builder.build(
                     subject=sanitized_subject,
@@ -127,18 +127,18 @@ class AppealGenerationService:
                     workspace_profile=self._build_workspace_profile(owner),
                 )
                 response_schema = self._prompt_builder.build_response_schema(request.formats)
-                payload = self._chatgpt.generate_appeal(prompt=prompt, response_schema=response_schema)
+                payload = self._gemini.generate_appeal(prompt=prompt, response_schema=response_schema)
                 generated_formats, token_usage, generation_status = self._merge_ai_payload(
                     requested_formats=request.formats,
                     payload=payload,
                     fallback_formats=fallback_formats,
                     subject=sanitized_subject,
                 )
-            except ChatGPTError:
-                logger.warning("Appeal generation via ChatGPT failed; using fallback content", exc_info=True)
-        elif self._chatgpt is not None and self._prompt_builder is None:
+            except GeminiError:
+                logger.warning("Appeal generation via Gemini failed; using fallback content", exc_info=True)
+        elif self._gemini is not None and self._prompt_builder is None:
             logger.info(
-                "Skipping ChatGPT appeal generation because the prompt templates could not be loaded: %s",
+                "Skipping Gemini appeal generation because the prompt templates could not be loaded: %s",
                 self._prompt_builder_error,
             )
 
@@ -412,6 +412,6 @@ class AppealGenerationService:
 
 def get_appeal_service(
     db: Session = Depends(get_db),
-    chatgpt: ChatGPTClient | None = Depends(get_optional_chatgpt_client),
+    gemini: GeminiClient | None = Depends(get_optional_gemini_client),
 ) -> AppealGenerationService:
-    return AppealGenerationService(db, chatgpt)
+    return AppealGenerationService(db, gemini)

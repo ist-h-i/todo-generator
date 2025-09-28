@@ -177,6 +177,11 @@ const FALLBACK_LABEL_COLORS = [
   '#6366f1',
 ];
 
+const ASSIGNEE_UNASSIGNED_KEY = '__unassigned__';
+const ASSIGNEE_UNASSIGNED_ID = 'assignee/unassigned';
+const ASSIGNEE_UNASSIGNED_TITLE = '未割り当て';
+const ASSIGNEE_UNASSIGNED_ACCENT = '#94a3b8';
+
 const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 60;
 const UNASSIGNED_ASSIGNEE_COLUMN_ID = 'assignee:unassigned';
 const UNASSIGNED_ASSIGNEE_TITLE = '未割り当て';
@@ -2534,11 +2539,6 @@ export class WorkspaceStore {
       return;
     }
 
-    const cachedPreferences: BoardPreferences = {
-      grouping: this.groupingSignal(),
-      filters: cloneFilters(this.filtersSignal()),
-    };
-
     try {
       const response = await firstValueFrom(this.boardLayoutsApi.getBoardLayout());
       if (token !== this.preferencesRequestToken) {
@@ -2546,6 +2546,7 @@ export class WorkspaceStore {
       }
 
       if (!this.hasRemoteBoardPreferences(response)) {
+        this.applyCachedPreferences(userId, settings);
         return;
       }
 
@@ -2560,19 +2561,25 @@ export class WorkspaceStore {
         this.filtersSignal.set(preferences.filters);
       }
     } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+
       if (token !== this.preferencesRequestToken) {
         return;
       }
 
-      this.logger.error('WorkspaceStore', error);
+      this.applyCachedPreferences(userId, settings);
+    }
+  }
 
-      if (this.groupingSignal() !== cachedPreferences.grouping) {
-        this.groupingSignal.set(cachedPreferences.grouping);
-      }
+  private applyCachedPreferences(userId: string, settings: WorkspaceSettings): void {
+    const cached = this.loadPreferences(userId, settings);
 
-      if (!filtersEqual(this.filtersSignal(), cachedPreferences.filters)) {
-        this.filtersSignal.set(cloneFilters(cachedPreferences.filters));
-      }
+    if (this.groupingSignal() !== cached.grouping) {
+      this.groupingSignal.set(cached.grouping);
+    }
+
+    if (!filtersEqual(this.filtersSignal(), cached.filters)) {
+      this.filtersSignal.set(cached.filters);
     }
   }
 
@@ -2792,8 +2799,9 @@ export class WorkspaceStore {
   }
 
   private async persistPreferencesRemote(preferences: BoardPreferences): Promise<void> {
-    const userId = this.activeUserId();
-    if (!userId) {
+    const user = this.auth.user();
+    const userId = user?.id ?? null;
+    if (!userId || userId === ANONYMOUS_STORAGE_USER_ID) {
       return;
     }
 

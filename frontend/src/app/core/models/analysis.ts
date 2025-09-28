@@ -25,5 +25,6 @@ export interface AnalysisProposal {
  * Response returned from the analysis gateway.
  */
 export interface AnalysisResult {
+  readonly model: string | null;
   readonly proposals: readonly AnalysisProposal[];
 }

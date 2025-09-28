@@ -287,7 +287,7 @@ export class AdminPage {
 
     this.loading.set(true);
     this.api
-      .upsertApiCredential('openai', payload)
+      .upsertApiCredential('gemini', payload)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (credential) => {
@@ -410,7 +410,7 @@ export class AdminPage {
 
   private loadCredential(): void {
     this.api
-      .getApiCredential('openai')
+      .getApiCredential('gemini')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (credential) => {

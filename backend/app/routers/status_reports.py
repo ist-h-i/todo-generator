@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
-from ..services.chatgpt import ChatGPTClient, get_chatgpt_client
+from ..services.gemini import GeminiClient, get_gemini_client
 from ..services.status_reports import StatusReportService
 
 router = APIRouter(prefix="/status-reports", tags=["status-reports"])
@@ -77,7 +77,7 @@ def submit_status_report(
     report_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-    analyzer: ChatGPTClient = Depends(get_chatgpt_client),
+    analyzer: GeminiClient = Depends(get_gemini_client),
 ) -> schemas.StatusReportDetail:
     service = StatusReportService(db, analyzer=analyzer)
     report = service.get_report(report_id=report_id, owner_id=current_user.id, include_details=True)
@@ -93,7 +93,7 @@ def retry_status_report(
     report_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-    analyzer: ChatGPTClient = Depends(get_chatgpt_client),
+    analyzer: GeminiClient = Depends(get_gemini_client),
 ) -> schemas.StatusReportDetail:
     service = StatusReportService(db, analyzer=analyzer)
     report = service.get_report(report_id=report_id, owner_id=current_user.id, include_details=True)

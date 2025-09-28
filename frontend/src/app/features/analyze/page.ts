@@ -17,7 +17,7 @@ import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 
 type AnalyzerToastState = 'loading' | 'success' | 'notice' | 'error';
 /**
- * Analyzer page allowing users to submit notes and review ChatGPT-style proposals.
+ * Analyzer page allowing users to submit notes and review Gemini-style proposals.
  */
 @Component({
   selector: 'app-analyze-page',
