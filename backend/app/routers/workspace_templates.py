@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Iterable
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..services.workspace_template_defaults import default_field_visibility
 from ..utils.repository import (
     apply_updates,
     delete_model,
@@ -17,13 +19,6 @@ from ..utils.repository import (
 )
 
 router = APIRouter(prefix="/workspace/templates", tags=["workspace"])
-
-DEFAULT_FIELD_VISIBILITY = {
-    "show_story_points": True,
-    "show_due_date": False,
-    "show_assignee": True,
-    "show_confidence": True,
-}
 
 
 def _clamp_confidence_threshold(value: float | None) -> float:
@@ -57,28 +52,28 @@ def _validate_label_ids(db: Session, owner_id: str, label_ids: Iterable[str]) ->
     if not ids:
         return []
 
-    labels = (
-        db.query(models.Label)
-        .filter(models.Label.id.in_(ids), models.Label.owner_id == owner_id)
-        .all()
-    )
+    labels = db.query(models.Label).filter(models.Label.id.in_(ids), models.Label.owner_id == owner_id).all()
     if len(labels) != len(ids):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
     return ids
 
 
 def _serialize_field_visibility(
-    payload: schemas.WorkspaceTemplateFieldVisibility | None,
+    payload: schemas.WorkspaceTemplateFieldVisibility | Mapping[str, object] | None,
     existing: dict[str, bool] | None,
 ) -> dict[str, bool]:
-    state = dict(existing or DEFAULT_FIELD_VISIBILITY)
+    state = dict(existing or default_field_visibility())
     if not payload:
         return state
 
-    state["show_story_points"] = bool(payload.show_story_points)
-    state["show_due_date"] = bool(payload.show_due_date)
-    state["show_assignee"] = bool(payload.show_assignee)
-    state["show_confidence"] = bool(payload.show_confidence)
+    if isinstance(payload, schemas.WorkspaceTemplateFieldVisibility):
+        visibility_data = payload.model_dump()
+    else:
+        visibility_data = dict(payload)
+
+    for key in state:
+        if key in visibility_data:
+            state[key] = bool(visibility_data[key])
     return state
 
 
