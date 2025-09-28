@@ -2428,11 +2428,11 @@ export class WorkspaceStore {
     userId: string | null,
     settings: WorkspaceSettings,
   ): Promise<void> {
+    const token = ++this.preferencesRequestToken;
     if (!userId) {
       return;
     }
 
-    const token = ++this.preferencesRequestToken;
     const cachedPreferences: BoardPreferences = {
       grouping: this.groupingSignal(),
       filters: cloneFilters(this.filtersSignal()),
