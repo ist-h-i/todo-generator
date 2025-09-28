@@ -235,7 +235,9 @@
                     class="form-control form-control--textarea"
                     placeholder="テンプレートの利用シーンを記載してください"
                     [value]="templateEditForm.controls.description.value()"
-                    (input)="templateEditForm.controls.description.setValue($any($event.target).value)"
+                    (input)="
+                      templateEditForm.controls.description.setValue($any($event.target).value)
+                    "
                   ></textarea>
                 </label>
 
@@ -258,7 +260,9 @@
                 </label>
 
                 <label class="form-field">
-                  <span class="form-field__label" [attr.for]="'template-edit-threshold-' + template.id"
+                  <span
+                    class="form-field__label"
+                    [attr.for]="'template-edit-threshold-' + template.id"
                     >おすすめ度しきい値 (%)</span
                   >
                   <input
@@ -268,7 +272,7 @@
                     max="100"
                     step="5"
                     class="form-control"
-                    [value]="templateEditForm.controls.confidenceThreshold.value() * 100"
+                    [value]="templateEditForm.controls.confidenceThreshold.value()"
                     (input)="
                       updateConfidenceThreshold(
                         templateEditForm.controls.confidenceThreshold,
@@ -308,7 +312,9 @@
                       type="checkbox"
                       [checked]="templateEditForm.controls.showStoryPoints.value()"
                       (change)="
-                        templateEditForm.controls.showStoryPoints.setValue($any($event.target).checked)
+                        templateEditForm.controls.showStoryPoints.setValue(
+                          $any($event.target).checked
+                        )
                       "
                     />
                     <span>ストーリーポイント</span>
@@ -338,7 +344,9 @@
                       type="checkbox"
                       [checked]="templateEditForm.controls.showConfidence.value()"
                       (change)="
-                        templateEditForm.controls.showConfidence.setValue($any($event.target).checked)
+                        templateEditForm.controls.showConfidence.setValue(
+                          $any($event.target).checked
+                        )
                       "
                     />
                     <span>AIおすすめ度</span>
@@ -348,11 +356,7 @@
 
               <div class="form-actions">
                 <button type="submit" class="button button--primary">変更を保存</button>
-                <button
-                  type="button"
-                  class="button button--ghost"
-                  (click)="cancelTemplateEdit()"
-                >
+                <button type="button" class="button button--ghost" (click)="cancelTemplateEdit()">
                   キャンセル
                 </button>
               </div>
@@ -367,8 +371,7 @@
                 >初期ステータス: {{ template.defaultStatusId }}</span
               >
               <span class="page-badge"
-                >おすすめ度しきい値:
-                {{ template.confidenceThreshold * 100 | number: '1.0-0' }}%</span
+                >おすすめ度しきい値: {{ template.confidenceThreshold | number: '1.0-0' }}%</span
               >
             </div>
 
@@ -441,7 +444,7 @@
             max="100"
             step="5"
             class="form-control"
-            [value]="templateForm.controls.confidenceThreshold.value() * 100"
+            [value]="templateForm.controls.confidenceThreshold.value()"
             (input)="
               updateConfidenceThreshold(
                 templateForm.controls.confidenceThreshold,

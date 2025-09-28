@@ -40,7 +40,7 @@ export class SettingsPage {
     description: '',
     defaultStatusId: 'todo',
     defaultLabelIds: [] as readonly string[],
-    confidenceThreshold: 0.6,
+    confidenceThreshold: 60,
     showStoryPoints: true,
     showDueDate: false,
     showAssignee: true,
@@ -51,7 +51,7 @@ export class SettingsPage {
     description: '',
     defaultStatusId: 'todo',
     defaultLabelIds: [] as readonly string[],
-    confidenceThreshold: 0.6,
+    confidenceThreshold: 60,
     showStoryPoints: true,
     showDueDate: false,
     showAssignee: true,
@@ -63,8 +63,8 @@ export class SettingsPage {
     control: SignalControl<number>,
     percentValue: number,
   ): void => {
-    const normalized = Number.isFinite(percentValue) ? percentValue / 100 : control.value();
-    const clamped = Math.min(Math.max(normalized, 0), 1);
+    const normalized = Number.isFinite(percentValue) ? percentValue : control.value();
+    const clamped = Math.min(Math.max(normalized, 0), 100);
     control.setValue(clamped);
   };
 
@@ -124,8 +124,8 @@ export class SettingsPage {
       return;
     }
 
-    const normalized = Number.isFinite(value.confidenceThreshold) ? value.confidenceThreshold : 0.5;
-    const threshold = Math.min(Math.max(normalized, 0), 1);
+    const normalized = Number.isFinite(value.confidenceThreshold) ? value.confidenceThreshold : 60;
+    const threshold = Math.min(Math.max(normalized, 0), 100);
     this.workspace.addTemplate({
       name: value.name.trim(),
       description: value.description.trim(),
@@ -145,7 +145,7 @@ export class SettingsPage {
       description: '',
       defaultStatusId: 'todo',
       defaultLabelIds: [],
-      confidenceThreshold: 0.6,
+      confidenceThreshold: 60,
       showStoryPoints: true,
       showDueDate: false,
       showAssignee: true,
@@ -183,7 +183,7 @@ export class SettingsPage {
       description: '',
       defaultStatusId: 'todo',
       defaultLabelIds: [],
-      confidenceThreshold: 0.6,
+      confidenceThreshold: 60,
       showStoryPoints: true,
       showDueDate: false,
       showAssignee: true,
@@ -209,8 +209,8 @@ export class SettingsPage {
       return;
     }
 
-    const normalized = Number.isFinite(value.confidenceThreshold) ? value.confidenceThreshold : 0.5;
-    const threshold = Math.min(Math.max(normalized, 0), 1);
+    const normalized = Number.isFinite(value.confidenceThreshold) ? value.confidenceThreshold : 60;
+    const threshold = Math.min(Math.max(normalized, 0), 100);
     try {
       await this.workspace.updateTemplate(templateId, {
         name,

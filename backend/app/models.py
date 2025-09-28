@@ -194,7 +194,7 @@ class WorkspaceTemplate(Base, TimestampMixin):
         String, ForeignKey("statuses.id", ondelete="SET NULL"), nullable=True
     )
     default_label_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
-    confidence_threshold: Mapped[float] = mapped_column(Float, default=0.6)
+    confidence_threshold: Mapped[float] = mapped_column(Float, default=60.0)
     field_visibility: Mapped[dict[str, bool]] = mapped_column(
         JSON,
         default=lambda: {

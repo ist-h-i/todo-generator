@@ -83,7 +83,21 @@ const cloneSettings = (settings: WorkspaceSettings): WorkspaceSettings => ({
   storyPointScale: [...settings.storyPointScale],
 });
 
-const clampConfidence = (value: number): number => Math.min(Math.max(value, 0), 1);
+const clampConfidence = (value: number): number => Math.min(Math.max(value, 0), 100);
+
+const normalizeTemplateThreshold = (value: unknown, fallback: number): number => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+
+  const scaled = numeric > 0 && numeric <= 1 ? numeric * 100 : numeric;
+  return clampConfidence(scaled);
+};
 
 const unique = <T>(values: readonly T[]): T[] => Array.from(new Set(values));
 
@@ -151,6 +165,8 @@ const FALLBACK_LABEL_COLORS = [
   '#eab308',
   '#6366f1',
 ];
+
+const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 60;
 
 const filtersEqual = (left: BoardFilters, right: BoardFilters): boolean =>
   left.search === right.search &&
@@ -296,7 +312,7 @@ const sanitizeConfidence = (value: number | null | undefined): number | undefine
     return undefined;
   }
 
-  return Math.min(Math.max(numeric, 0), 1);
+  return clampConfidence(numeric);
 };
 
 const dedupeIds = (ids: readonly (string | null | undefined)[]): string[] => {
@@ -446,7 +462,10 @@ const mapTemplateResponse = (
         ),
       )
     : [];
-  const confidence = clampConfidence(response.confidence_threshold ?? 0.6);
+  const confidence = normalizeTemplateThreshold(
+    response.confidence_threshold,
+    DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD,
+  );
   const visibility = response.field_visibility ?? DEFAULT_TEMPLATE_FIELDS;
 
   return {
@@ -552,8 +571,6 @@ const QUICK_FILTER_VALUES: readonly BoardQuickFilter[] = [
 ];
 
 const QUICK_FILTER_LOOKUP = new Set<BoardQuickFilter>(QUICK_FILTER_VALUES);
-
-const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 0.5;
 
 type RawWorkspaceSettings = {
   statuses?: unknown;
@@ -1862,7 +1879,7 @@ export class WorkspaceStore {
       description: payload.description.trim(),
       default_status_id: payload.defaultStatusId,
       default_label_ids: payload.defaultLabelIds,
-      confidence_threshold: payload.confidenceThreshold,
+      confidence_threshold: clampConfidence(payload.confidenceThreshold),
       field_visibility: {
         show_story_points: payload.fieldVisibility.showStoryPoints,
         show_due_date: payload.fieldVisibility.showDueDate,
@@ -1911,7 +1928,9 @@ export class WorkspaceStore {
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'confidenceThreshold')) {
-      updatePayload['confidence_threshold'] = changes.confidenceThreshold;
+      const threshold = changes.confidenceThreshold;
+      updatePayload['confidence_threshold'] =
+        typeof threshold === 'number' ? clampConfidence(threshold) : threshold;
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'fieldVisibility')) {
@@ -2774,10 +2793,10 @@ export class WorkspaceStore {
           ),
         )
       : [];
-    const confidenceThreshold =
-      typeof record.confidenceThreshold === 'number' && Number.isFinite(record.confidenceThreshold)
-        ? clampConfidence(record.confidenceThreshold)
-        : DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD;
+    const confidenceThreshold = normalizeTemplateThreshold(
+      record.confidenceThreshold,
+      DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD,
+    );
     const fieldVisibility = this.sanitizeFieldVisibility(record.fieldVisibility);
 
     return {
