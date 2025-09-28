@@ -45,8 +45,12 @@ def _normalize_status_key(name: str | None) -> str | None:
     return _LEGACY_KEY_ALIASES.get(normalized, normalized)
 
 
-def ensure_default_statuses(db: Session, owner_id: str) -> list[models.Status]:
-    """Ensure that the canonical board statuses exist for the owner."""
+def ensure_default_statuses(db: Session, owner_id: str) -> tuple[list[models.Status], bool]:
+    """Ensure that the canonical board statuses exist for the owner.
+
+    Returns a tuple of the statuses belonging to the owner and a flag indicating
+    whether any records were created or updated.
+    """
 
     statuses = (
         db.query(models.Status)
@@ -108,7 +112,7 @@ def ensure_default_statuses(db: Session, owner_id: str) -> list[models.Status]:
     if created_or_updated:
         db.flush()
 
-    return statuses
+    return statuses, created_or_updated
 
 
 __all__ = ["ensure_default_statuses"]

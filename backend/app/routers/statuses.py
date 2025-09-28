@@ -22,7 +22,9 @@ def list_statuses(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> list[models.Status]:
-    ensure_default_statuses(db, owner_id=current_user.id)
+    _, created_or_updated = ensure_default_statuses(db, owner_id=current_user.id)
+    if created_or_updated:
+        db.commit()
     return (
         db.query(models.Status)
         .filter(models.Status.owner_id == current_user.id)
