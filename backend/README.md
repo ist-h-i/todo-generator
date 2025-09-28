@@ -118,8 +118,8 @@ All endpoints are served under the root path (`/`). Unless otherwise stated the 
   - `assignees` *(array of strings, defaults to empty list)*
   - `start_date`, `due_date` *(ISO 8601 date-time strings, optional)*
   - `dependencies` *(array of strings, defaults to empty list)*
-  - `ai_confidence` *(number between 0 and 1, optional)*
-  - `ai_notes` *(string, optional)*
+  - `ai_confidence` *(number between 0 and 100, read-only)* – Calculated on the server from label correlation and profile alignment.
+  - `ai_notes` *(string, read-only)* – Explanation describing how the recommendation score was derived.
   - `custom_fields` *(object, defaults to empty dict)*
   - `label_ids` *(array of strings, defaults to empty list)* – Relationship to labels.
   - `subtasks` *(array of `SubtaskCreate`, defaults to empty list)* – Only available on create.

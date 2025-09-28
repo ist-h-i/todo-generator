@@ -20,11 +20,29 @@ from ..utils.repository import (
 
 router = APIRouter(prefix="/workspace/templates", tags=["workspace"])
 
+DEFAULT_FIELD_VISIBILITY = {
+    "show_story_points": True,
+    "show_due_date": False,
+    "show_assignee": True,
+    "show_confidence": True,
+}
+
+DEFAULT_CONFIDENCE_THRESHOLD = 60.0
+
 
 def _clamp_confidence_threshold(value: float | None) -> float:
     if value is None:
-        return 0.6
-    return max(0.0, min(1.0, float(value)))
+        return DEFAULT_CONFIDENCE_THRESHOLD
+
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):  # pragma: no cover - defensive guard
+        return DEFAULT_CONFIDENCE_THRESHOLD
+
+    if 0.0 < numeric <= 1.0:
+        numeric *= 100.0
+
+    return max(0.0, min(100.0, numeric))
 
 
 def _normalize_name(value: str) -> str:
@@ -66,16 +84,13 @@ def _serialize_field_visibility(
     if not payload:
         return state
 
-    def _resolve(field: str) -> Any:
-        if isinstance(payload, Mapping):
-            return payload.get(field)
-        return getattr(payload, field, None)
+    if isinstance(payload, dict):  # pragma: no cover - defensive conversion
+        payload = schemas.WorkspaceTemplateFieldVisibility(**payload)
 
-    for key in ("show_story_points", "show_due_date", "show_assignee", "show_confidence"):
-        value = _resolve(key)
-        if value is None:
-            continue
-        state[key] = bool(value)
+    state["show_story_points"] = bool(payload.show_story_points)
+    state["show_due_date"] = bool(payload.show_due_date)
+    state["show_assignee"] = bool(payload.show_assignee)
+    state["show_confidence"] = bool(payload.show_confidence)
     return state
 
 

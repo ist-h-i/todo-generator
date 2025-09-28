@@ -50,6 +50,46 @@ def create_label(client: TestClient, headers: dict[str, str]) -> str:
     return response.json()["id"]
 
 
+def test_card_creation_populates_recommendation_score(client: TestClient) -> None:
+    email = "score@example.com"
+    headers = register_and_login(client, email)
+    status_id = create_status(client, headers)
+    label_id = create_label(client, headers)
+
+    response = client.post(
+        "/cards",
+        json={
+            "title": "Backend API alignment",
+            "summary": "Review backend integration tasks",
+            "description": "Ensure API endpoints match the backend label expectations.",
+            "status_id": status_id,
+            "label_ids": [label_id],
+            "ai_confidence": 1,
+            "ai_notes": "manual override",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    data = response.json()
+
+    assert 0 <= data["ai_confidence"] <= 100
+    assert data["ai_confidence"] > 0
+    assert data["ai_notes"].startswith("ラベル相関度")
+
+    card_id = data["id"]
+
+    update_response = client.put(
+        f"/cards/{card_id}",
+        json={"label_ids": []},
+        headers=headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    updated = update_response.json()
+
+    assert updated["ai_confidence"] == 0
+    assert "ラベルが未設定" in updated["ai_notes"]
+
+
 def test_create_card_with_subtasks(client: TestClient) -> None:
     email = "owner@example.com"
     headers = register_and_login(client, email)

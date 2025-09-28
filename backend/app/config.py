@@ -38,6 +38,22 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:4200"],
         validation_alias=AliasChoices("ALLOWED_ORIGINS", "allowed_origins"),
     )
+    recommendation_label_weight: float = Field(
+        default=0.6,
+        ge=0,
+        validation_alias=AliasChoices(
+            "RECOMMENDATION_WEIGHT_LABEL",
+            "recommendation_label_weight",
+        ),
+    )
+    recommendation_profile_weight: float = Field(
+        default=0.4,
+        ge=0,
+        validation_alias=AliasChoices(
+            "RECOMMENDATION_WEIGHT_PROFILE",
+            "recommendation_profile_weight",
+        ),
+    )
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
