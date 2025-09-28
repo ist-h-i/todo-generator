@@ -54,6 +54,10 @@ export class AdminApiService {
     return this.http.patch<AdminUser>(buildApiUrl(`/admin/users/${id}`), payload);
   }
 
+  public deleteUser(id: string): Observable<void> {
+    return this.http.delete<void>(buildApiUrl(`/admin/users/${id}`));
+  }
+
   public getApiCredential(provider: string): Observable<ApiCredential> {
     return this.http.get<ApiCredential>(buildApiUrl(`/admin/api-credentials/${provider}`));
   }
