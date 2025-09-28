@@ -91,6 +91,9 @@ class User(Base, TimestampMixin):
     workspace_templates: Mapped[list["WorkspaceTemplate"]] = relationship(
         "WorkspaceTemplate", back_populates="owner", cascade="all, delete-orphan"
     )
+    analysis_sessions: Mapped[list["AnalysisSession"]] = relationship(
+        "AnalysisSession", back_populates="user", cascade="all, delete-orphan"
+    )
     quota_override: Mapped[Optional["UserQuotaOverride"]] = relationship(
         "UserQuotaOverride", back_populates="user", cascade="all, delete-orphan", uselist=False
     )
@@ -745,6 +748,24 @@ class UserQuotaOverride(Base, TimestampMixin):
     updated_by: Mapped[str | None] = mapped_column(String)
 
     user: Mapped[User] = relationship("User", back_populates="quota_override")
+
+
+class AnalysisSession(Base, TimestampMixin):
+    __tablename__ = "analysis_sessions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    request_text: Mapped[str] = mapped_column(Text, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    objective: Mapped[str | None] = mapped_column(Text)
+    auto_objective: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    max_cards: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    response_model: Mapped[str | None] = mapped_column(String)
+    proposals: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String, default="pending", nullable=False)
+    failure_reason: Mapped[str | None] = mapped_column(Text)
+
+    user: Mapped[User] = relationship("User", back_populates="analysis_sessions")
 
 
 class AppealGeneration(Base, TimestampMixin):

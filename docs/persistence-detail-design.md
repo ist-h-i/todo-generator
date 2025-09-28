@@ -29,7 +29,7 @@ This document explains how the workspace persists data across board management, 
 
 ## 3. Reports and AI workflows
 ### 3.1 Analyzer intake
-- `/analysis` processes `AnalysisRequest` payloads. `services/chatgpt.py` builds prompts with profile metadata, validates JSON responses, and returns normalised proposals. Errors raise `ChatGPTError` with HTTP 502/503 codes, preserving graceful UI fallbacks.
+- `/analysis` processes `AnalysisRequest` payloads, stores each submission and normalized response in `analysis_sessions`, and delegates prompt construction to `services/chatgpt.py`. Errors raise `ChatGPTError` with HTTP 502/503 codes, preserving graceful UI fallbacks.【F:backend/app/routers/analysis.py†L1-L54】【F:backend/app/models.py†L120-L162】【F:backend/app/services/chatgpt.py†L138-L200】
 - The analyzer page (`frontend/src/app/features/analyze/page.ts`) filters proposals client-side and publishes accepted cards via `WorkspaceStore.publishProposals`.
 
 ### 3.2 Status reports
@@ -64,7 +64,7 @@ This document explains how the workspace persists data across board management, 
 - Analyzer and report submission forms keep transient state in signals, so restarts hand off to the backend without data loss once proposals are published.
 
 ## 8. Testing coverage
-- Backend persistence paths are exercised in `backend/tests/test_cards.py`, `test_comments.py`, `test_status_reports.py`, `test_workspace_templates.py`, and `test_migrations.py`, ensuring migrations and CRUD flows remain stable.
+- Backend persistence paths are exercised in `backend/tests/test_analysis.py`, `test_cards.py`, `test_comments.py`, `test_status_reports.py`, `test_workspace_templates.py`, and `test_migrations.py`, ensuring migrations and CRUD flows remain stable.
 - Frontend persistence logic is validated through signal store unit tests (`frontend/src/app/core/state` specs) and integration-style tests for analyzer and admin flows.
 
 This design ensures every mutable workflow now round-trips through the backend while still delivering responsive UX through client-side caching and optimistic updates.

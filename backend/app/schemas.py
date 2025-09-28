@@ -540,6 +540,9 @@ class ActivityLogRead(BaseModel):
 class AnalysisRequest(BaseModel):
     text: str
     max_cards: int = Field(default=3, ge=1, le=10)
+    notes: Optional[str] = None
+    objective: Optional[str] = None
+    auto_objective: Optional[bool] = None
 
 
 class AnalysisSubtask(BaseModel):
