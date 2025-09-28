@@ -1176,6 +1176,7 @@ export class WorkspaceStore {
               : [defaultLabel];
 
         const normalizedConfidence = normalizeProposalConfidence(proposal.confidence);
+        const fractionalConfidence = normalizedConfidence / 100;
 
         const card = await this.createCardFromSuggestion({
           title: proposal.title,
@@ -1184,7 +1185,7 @@ export class WorkspaceStore {
           labelIds,
           priority: 'medium',
           assignee: settings.defaultAssignee,
-          confidence: normalizedConfidence,
+          confidence: fractionalConfidence,
           originSuggestionId: proposal.id,
           subtasks: proposal.subtasks.map((task) => ({
             id: createId(),
@@ -1197,9 +1198,7 @@ export class WorkspaceStore {
       }
     } catch (error) {
       if (createdCardIds.size > 0) {
-        this.cardsSignal.update((cards) =>
-          cards.filter((card) => !createdCardIds.has(card.id)),
-        );
+        this.cardsSignal.update((cards) => cards.filter((card) => !createdCardIds.has(card.id)));
       }
 
       throw error;
