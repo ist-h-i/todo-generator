@@ -1892,36 +1892,36 @@ export class WorkspaceStore {
     const updatePayload: Record<string, unknown> = {};
 
     if (Object.prototype.hasOwnProperty.call(changes, 'name')) {
-      updatePayload.name = changes.name ? changes.name.trim() : changes.name ?? '';
+      updatePayload['name'] = changes.name ? changes.name.trim() : changes.name ?? '';
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'description')) {
-      updatePayload.description = changes.description ? changes.description.trim() : changes.description ?? '';
+      updatePayload['description'] = changes.description ? changes.description.trim() : changes.description ?? '';
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'defaultStatusId')) {
-      updatePayload.default_status_id = changes.defaultStatusId ?? null;
+      updatePayload['default_status_id'] = changes.defaultStatusId ?? null;
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'defaultLabelIds')) {
-      updatePayload.default_label_ids = changes.defaultLabelIds ?? [];
+      updatePayload['default_label_ids'] = changes.defaultLabelIds ?? [];
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'confidenceThreshold')) {
-      updatePayload.confidence_threshold = changes.confidenceThreshold;
+      updatePayload['confidence_threshold'] = changes.confidenceThreshold;
     }
 
     if (Object.prototype.hasOwnProperty.call(changes, 'fieldVisibility')) {
       const visibility = changes.fieldVisibility;
       if (visibility) {
-        updatePayload.field_visibility = {
+        updatePayload['field_visibility'] = {
           show_story_points: visibility.showStoryPoints,
           show_due_date: visibility.showDueDate,
           show_assignee: visibility.showAssignee,
           show_confidence: visibility.showConfidence,
         };
       } else {
-        updatePayload.field_visibility = null;
+        updatePayload['field_visibility'] = null;
       }
     }
 
