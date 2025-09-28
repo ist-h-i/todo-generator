@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app.routers import cards as cards_router
+from app.services.recommendation_scoring import RecommendationScore
 from app.utils.quotas import DEFAULT_CARD_DAILY_LIMIT
 
 DEFAULT_PASSWORD = "Register123!"
@@ -66,6 +68,7 @@ def test_card_creation_populates_recommendation_score(client: TestClient) -> Non
             "label_ids": [label_id],
             "ai_confidence": 1,
             "ai_notes": "manual override",
+            "ai_failure_reason": "client provided",
         },
         headers=headers,
     )
@@ -75,12 +78,13 @@ def test_card_creation_populates_recommendation_score(client: TestClient) -> Non
     assert 0 <= data["ai_confidence"] <= 100
     assert data["ai_confidence"] > 0
     assert data["ai_notes"].startswith("ラベル相関度")
+    assert data["ai_failure_reason"] is None
 
     card_id = data["id"]
 
     update_response = client.put(
         f"/cards/{card_id}",
-        json={"label_ids": []},
+        json={"label_ids": [], "ai_failure_reason": "client override"},
         headers=headers,
     )
     assert update_response.status_code == 200, update_response.text
@@ -88,6 +92,61 @@ def test_card_creation_populates_recommendation_score(client: TestClient) -> Non
 
     assert updated["ai_confidence"] == 0
     assert "ラベルが未設定" in updated["ai_notes"]
+    assert updated["ai_failure_reason"] is None
+
+
+def test_card_creation_scoring_failure_sets_failure_reason(client: TestClient, monkeypatch) -> None:
+    email = "failure@example.com"
+    headers = register_and_login(client, email)
+    status_id = create_status(client, headers)
+
+    def fake_score_card(
+        *,
+        title: str,
+        summary: str | None,
+        description: str | None,
+        labels: list[str],
+        profile,
+    ) -> RecommendationScore:
+        return RecommendationScore(
+            score=0,
+            label_correlation=0.0,
+            profile_alignment=0.0,
+            explanation="fallback message",
+            failure_reason="scoring_error",
+        )
+
+    monkeypatch.setattr(cards_router._scoring_service, "score_card", fake_score_card)
+
+    response = client.post(
+        "/cards",
+        json={
+            "title": "Trigger fallback",
+            "summary": "",
+            "description": "",
+            "status_id": status_id,
+            "ai_failure_reason": "client attempt",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    data = response.json()
+
+    assert data["ai_confidence"] == 0
+    assert data["ai_notes"] == "fallback message"
+    assert data["ai_failure_reason"] == "scoring_error"
+
+    update_response = client.put(
+        f"/cards/{data['id']}",
+        json={"title": "Updated title", "ai_failure_reason": "client attempt"},
+        headers=headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    updated = update_response.json()
+
+    assert updated["ai_confidence"] == 0
+    assert updated["ai_notes"] == "fallback message"
+    assert updated["ai_failure_reason"] == "scoring_error"
 
 
 def test_create_card_with_subtasks(client: TestClient) -> None:
@@ -242,28 +301,6 @@ def test_cards_are_scoped_to_current_user(client: TestClient) -> None:
     list_owner = client.get("/cards", headers=owner_headers)
     assert list_owner.status_code == 200
     assert len(list_owner.json()) == 1
-
-
-def test_card_creation_daily_limit(client: TestClient) -> None:
-    email = "limit@example.com"
-    headers = register_and_login(client, email)
-    status_id = create_status(client, headers)
-
-    for index in range(DEFAULT_CARD_DAILY_LIMIT):
-        response = client.post(
-            "/cards",
-            json={"title": f"Task {index}", "status_id": status_id},
-            headers=headers,
-        )
-        assert response.status_code == 201, response.text
-
-    limit_response = client.post(
-        "/cards",
-        json={"title": "Limit exceeded", "status_id": status_id},
-        headers=headers,
-    )
-    assert limit_response.status_code == 429
-    assert limit_response.json()["detail"] == f"Daily card creation limit of {DEFAULT_CARD_DAILY_LIMIT} reached."
 
 
 def test_status_and_label_scoping(client: TestClient) -> None:

@@ -133,6 +133,7 @@ class Card(Base, TimestampMixin):
     dependencies: Mapped[list[str]] = mapped_column(JSON, default=list)
     ai_confidence: Mapped[float | None] = mapped_column(Float)
     ai_notes: Mapped[str | None] = mapped_column(Text)
+    ai_failure_reason: Mapped[str | None] = mapped_column(Text)
     custom_fields: Mapped[dict] = mapped_column(JSON, default=dict)
     error_category_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("error_categories.id", ondelete="SET NULL"), nullable=True

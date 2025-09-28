@@ -13,7 +13,10 @@ from ..auth import get_current_user
 from ..database import get_db
 from ..services.card_limits import reserve_daily_card_quota
 from ..services.profile import build_user_profile
-from ..services.recommendation_scoring import RecommendationScoringService
+from ..services.recommendation_scoring import (
+    RecommendationScore,
+    RecommendationScoringService,
+)
 from ..utils.activity import record_activity
 from ..utils.quotas import get_card_daily_limit
 from ..utils.repository import (
@@ -71,11 +74,7 @@ def _load_owned_labels(db: Session, *, label_ids: list[str], owner_id: str) -> l
         return []
 
     unique_ids = list(dict.fromkeys(label_ids))
-    labels = (
-        db.query(models.Label)
-        .filter(models.Label.id.in_(unique_ids), models.Label.owner_id == owner_id)
-        .all()
-    )
+    labels = db.query(models.Label).filter(models.Label.id.in_(unique_ids), models.Label.owner_id == owner_id).all()
     if len(labels) != len(unique_ids):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
     return labels
@@ -98,7 +97,7 @@ def _score_card_from_payload(
     description: str | None,
     labels: Iterable[models.Label],
     profile: schemas.UserProfile,
-) -> tuple[int, str]:
+) -> RecommendationScore:
     result = _scoring_service.score_card(
         title=title,
         summary=summary,
@@ -106,10 +105,10 @@ def _score_card_from_payload(
         labels=_compose_label_texts(labels),
         profile=profile,
     )
-    return result.score, result.explanation
+    return result
 
 
-def _score_card_model(card: models.Card, profile: schemas.UserProfile) -> tuple[int, str]:
+def _score_card_model(card: models.Card, profile: schemas.UserProfile) -> RecommendationScore:
     return _score_card_from_payload(
         title=card.title,
         summary=card.summary,
@@ -364,12 +363,10 @@ def create_card(
     )
 
     status_obj = db.get(models.Status, payload.status_id) if payload.status_id else None
-    labels = _load_owned_labels(
-        db, label_ids=list(payload.label_ids or []), owner_id=current_user.id
-    )
+    labels = _load_owned_labels(db, label_ids=list(payload.label_ids or []), owner_id=current_user.id)
 
     profile = build_user_profile(current_user)
-    score_value, explanation = _score_card_from_payload(
+    score = _score_card_from_payload(
         title=payload.title,
         summary=payload.summary,
         description=payload.description,
@@ -389,8 +386,9 @@ def create_card(
         start_date=payload.start_date,
         due_date=payload.due_date,
         dependencies=payload.dependencies,
-        ai_confidence=score_value,
-        ai_notes=explanation,
+        ai_confidence=score.score,
+        ai_notes=score.explanation,
+        ai_failure_reason=score.failure_reason,
         custom_fields=payload.custom_fields,
         error_category_id=payload.error_category_id,
         initiative_id=payload.initiative_id,
@@ -441,10 +439,9 @@ def update_card(
     label_ids = update_data.pop("label_ids", None)
     update_data.pop("ai_confidence", None)
     update_data.pop("ai_notes", None)
+    update_data.pop("ai_failure_reason", None)
 
-    should_rescore = label_ids is not None or any(
-        field in update_data for field in ("title", "summary", "description")
-    )
+    should_rescore = label_ids is not None or any(field in update_data for field in ("title", "summary", "description"))
 
     previous_status = card.status
     status_was_done = _status_is_done(previous_status)
@@ -465,9 +462,7 @@ def update_card(
     apply_updates(card, update_data)
 
     if label_ids is not None:
-        labels = _load_owned_labels(
-            db, label_ids=list(label_ids or []), owner_id=current_user.id
-        )
+        labels = _load_owned_labels(db, label_ids=list(label_ids or []), owner_id=current_user.id)
         card.labels = labels
 
     if "status_id" in update_data:
@@ -481,9 +476,10 @@ def update_card(
 
     if should_rescore:
         profile = build_user_profile(current_user)
-        score_value, explanation = _score_card_model(card, profile)
-        card.ai_confidence = score_value
-        card.ai_notes = explanation
+        score = _score_card_model(card, profile)
+        card.ai_confidence = score.score
+        card.ai_notes = score.explanation
+        card.ai_failure_reason = score.failure_reason
 
     db.add(card)
     record_activity(db, action="card_updated", card_id=card.id, actor_id=current_user.id)
@@ -529,12 +525,7 @@ def list_subtasks(
         detail="Card not found",
     )
 
-    return (
-        db.query(models.Subtask)
-        .filter(models.Subtask.card_id == card_id)
-        .order_by(models.Subtask.created_at)
-        .all()
-    )
+    return db.query(models.Subtask).filter(models.Subtask.card_id == card_id).order_by(models.Subtask.created_at).all()
 
 
 @router.post(
