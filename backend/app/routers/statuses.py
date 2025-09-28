@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..services.status_defaults import ensure_default_statuses
 from ..utils.repository import (
     apply_updates,
     delete_model,
@@ -21,6 +22,7 @@ def list_statuses(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> list[models.Status]:
+    ensure_default_statuses(db, owner_id=current_user.id)
     return (
         db.query(models.Status)
         .filter(models.Status.owner_id == current_user.id)
