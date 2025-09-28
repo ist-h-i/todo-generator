@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Iterable, Mapping
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
@@ -57,28 +57,27 @@ def _validate_label_ids(db: Session, owner_id: str, label_ids: Iterable[str]) ->
     if not ids:
         return []
 
-    labels = (
-        db.query(models.Label)
-        .filter(models.Label.id.in_(ids), models.Label.owner_id == owner_id)
-        .all()
-    )
+    labels = db.query(models.Label).filter(models.Label.id.in_(ids), models.Label.owner_id == owner_id).all()
     if len(labels) != len(ids):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
     return ids
 
 
 def _serialize_field_visibility(
-    payload: schemas.WorkspaceTemplateFieldVisibility | None,
+    payload: schemas.WorkspaceTemplateFieldVisibility | Mapping[str, object] | None,
     existing: dict[str, bool] | None,
 ) -> dict[str, bool]:
     state = dict(existing or DEFAULT_FIELD_VISIBILITY)
     if not payload:
         return state
 
-    state["show_story_points"] = bool(payload.show_story_points)
-    state["show_due_date"] = bool(payload.show_due_date)
-    state["show_assignee"] = bool(payload.show_assignee)
-    state["show_confidence"] = bool(payload.show_confidence)
+    if isinstance(payload, schemas.WorkspaceTemplateFieldVisibility):
+        updates = payload.model_dump(exclude_unset=True)
+    else:
+        updates = {key: value for key, value in payload.items() if key in DEFAULT_FIELD_VISIBILITY}
+
+    for key, value in updates.items():
+        state[key] = bool(value)
     return state
 
 
