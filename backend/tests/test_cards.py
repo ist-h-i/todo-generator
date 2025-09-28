@@ -303,6 +303,28 @@ def test_cards_are_scoped_to_current_user(client: TestClient) -> None:
     assert len(list_owner.json()) == 1
 
 
+def test_card_creation_daily_limit_enforced(client: TestClient) -> None:
+    email = "limit@example.com"
+    headers = register_and_login(client, email)
+    status_id = create_status(client, headers)
+
+    for index in range(DEFAULT_CARD_DAILY_LIMIT):
+        response = client.post(
+            "/cards",
+            json={"title": f"Task {index}", "status_id": status_id},
+            headers=headers,
+        )
+        assert response.status_code == 201, response.text
+
+    limit_response = client.post(
+        "/cards",
+        json={"title": "Limit exceeded", "status_id": status_id},
+        headers=headers,
+    )
+    assert limit_response.status_code == 429
+    assert limit_response.json()["detail"] == f"Daily card creation limit of {DEFAULT_CARD_DAILY_LIMIT} reached."
+
+
 def test_status_and_label_scoping(client: TestClient) -> None:
     owner_headers = register_and_login(client, "owner-scope@example.com")
     status_response = client.post(
@@ -325,7 +347,8 @@ def test_status_and_label_scoping(client: TestClient) -> None:
 
     status_list_other = client.get("/statuses", headers=other_headers)
     assert status_list_other.status_code == 200
-    assert status_list_other.json() == []
+    other_status_names = {status["name"] for status in status_list_other.json()}
+    assert other_status_names == {"To Do", "Doing", "Done"}
 
     update_other = client.put(
         f"/statuses/{status_id}",
@@ -343,7 +366,9 @@ def test_status_and_label_scoping(client: TestClient) -> None:
 
     status_list_owner = client.get("/statuses", headers=owner_headers)
     assert status_list_owner.status_code == 200
-    assert len(status_list_owner.json()) == 1
+    owner_status_names = {status["name"] for status in status_list_owner.json()}
+    assert {"To Do", "Doing", "Done"}.issubset(owner_status_names)
+    assert "Todo" in owner_status_names
 
     label_list_owner = client.get("/labels", headers=owner_headers)
     assert label_list_owner.status_code == 200

@@ -162,7 +162,7 @@ describe('WorkspaceStore', () => {
           summary: 'Simplify the error messages and add success feedback.',
           status_id: 'status-todo',
           label_ids: ['label-ux'],
-          ai_confidence: 0.82,
+          ai_confidence: 82,
           assignees: [],
         }),
       );
@@ -180,7 +180,7 @@ describe('WorkspaceStore', () => {
         summary: 'Simplify the error messages and add success feedback.',
         status_id: 'status-todo',
         label_ids: ['label-ux'],
-        ai_confidence: 0.82,
+        ai_confidence: 82,
         created_at: '2024-06-01T00:00:00.000Z',
         labels: [],
         subtasks: [],
