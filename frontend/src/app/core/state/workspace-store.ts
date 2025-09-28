@@ -28,6 +28,7 @@ import { createId } from '@core/utils/create-id';
 import { Logger } from '@core/logger/logger';
 import {
   AnalysisProposal,
+  AuthenticatedUser,
   BoardColumnView,
   BoardFilters,
   BoardGrouping,
@@ -177,6 +178,12 @@ const FALLBACK_LABEL_COLORS = [
 ];
 
 const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 60;
+const UNASSIGNED_ASSIGNEE_COLUMN_ID = 'assignee:unassigned';
+const UNASSIGNED_ASSIGNEE_TITLE = '未割り当て';
+const UNASSIGNED_ASSIGNEE_ACCENT = '#94a3b8';
+const AUTH_SET_USER_ORIGINAL = Symbol('WorkspaceStoreAuthSetUserOriginal');
+
+type AuthSetUserFn = (user: AuthenticatedUser | null) => void;
 
 const filtersEqual = (left: BoardFilters, right: BoardFilters): boolean =>
   left.search === right.search &&
@@ -322,7 +329,8 @@ const sanitizeConfidence = (value: number | null | undefined): number | undefine
     return undefined;
   }
 
-  return clampConfidence(numeric);
+  const scaled = numeric > 0 && numeric <= 1 ? numeric * 100 : numeric;
+  return clampConfidence(scaled);
 };
 
 const dedupeIds = (ids: readonly (string | null | undefined)[]): string[] => {
@@ -750,21 +758,22 @@ export class WorkspaceStore {
   private preferencesRequestToken = 0;
   private lastAppliedUserId: string | null = null;
 
+  private readonly syncUserContextEffect = effect(
+    () => {
+      const userId = this.activeUserId();
+      if (userId === this.lastAppliedUserId) {
+        return;
+      }
+
+      this.applyUserContext(userId);
+    },
+    { allowSignalWrites: true },
+  );
+
   public constructor() {
     const initialUser = this.auth.user();
     this.applyUserContext(initialUser?.id ?? null);
-
-    effect(
-      () => {
-        const userId = this.activeUserId();
-        if (userId === this.lastAppliedUserId) {
-          return;
-        }
-
-        this.applyUserContext(userId);
-      },
-      { allowSignalWrites: true },
-    );
+    this.bindAuthSetUserPatch();
   }
 
   private readonly loadCardsEffect = effect(
@@ -1068,18 +1077,67 @@ export class WorkspaceStore {
         });
     }
 
-    return this.settingsSignal().labels.map((label) => {
-      const matches = cards.filter(
-        (card) => card.labelIds.includes(label.id) && allowedIds.has(card.id),
-      );
-      return {
-        id: label.id,
-        title: label.name,
-        accent: label.color,
-        cards: matches.map((card) => card.id),
-        count: matches.length,
-      };
-    });
+    if (grouping === 'label') {
+      return this.settingsSignal().labels.map((label) => {
+        const matches = cards.filter(
+          (card) => card.labelIds.includes(label.id) && allowedIds.has(card.id),
+        );
+        return {
+          id: label.id,
+          title: label.name,
+          accent: label.color,
+          cards: matches.map((card) => card.id),
+          count: matches.length,
+        };
+      });
+    }
+
+    const assignments = new Map<string, string[]>();
+    const unassigned: string[] = [];
+
+    for (const card of cards) {
+      if (!allowedIds.has(card.id)) {
+        continue;
+      }
+
+      const assignee = card.assignee?.trim();
+      if (assignee) {
+        const bucket = assignments.get(assignee);
+        if (bucket) {
+          bucket.push(card.id);
+        } else {
+          assignments.set(assignee, [card.id]);
+        }
+        continue;
+      }
+
+      unassigned.push(card.id);
+    }
+
+    const sortedAssignments = Array.from(assignments.entries()).sort((left, right) =>
+      left[0].localeCompare(right[0], 'ja', { sensitivity: 'base' }),
+    );
+
+    const assigneeColumns = sortedAssignments.map<BoardColumnView>(([name, cardIds], index) => ({
+      id: `assignee:${name}`,
+      title: name,
+      accent: FALLBACK_LABEL_COLORS[index % FALLBACK_LABEL_COLORS.length],
+      cards: cardIds,
+      count: cardIds.length,
+    }));
+
+    const columns: BoardColumnView[] = [
+      {
+        id: UNASSIGNED_ASSIGNEE_COLUMN_ID,
+        title: UNASSIGNED_ASSIGNEE_TITLE,
+        accent: UNASSIGNED_ASSIGNEE_ACCENT,
+        cards: unassigned,
+        count: unassigned.length,
+      },
+      ...assigneeColumns,
+    ];
+
+    return columns;
   });
 
   /**
@@ -2040,7 +2098,7 @@ export class WorkspaceStore {
       this.settingsSignal.set(defaults);
       this.persistSettings(defaults);
       this.reconcileCardsForSettings(defaults);
-      this.reconcileFiltersForSettings(defaults);
+      this.reconcileFiltersForSettings(defaults, false);
       return defaults;
     }
 
@@ -2379,8 +2437,44 @@ export class WorkspaceStore {
     this.groupingSignal.set(preferences.grouping);
     this.filtersSignal.set(preferences.filters);
     this.reconcileCardsForSettings(settings);
-    this.reconcileFiltersForSettings(settings);
+    this.reconcileFiltersForSettings(settings, false);
     void this.refreshBoardPreferences(userId, settings);
+  }
+
+  private bindAuthSetUserPatch(): void {
+    const auth = this.auth as { setUser?: AuthSetUserFn };
+    if (typeof auth.setUser !== 'function') {
+      return;
+    }
+
+    const prototype = Object.getPrototypeOf(auth) as {
+      setUser: AuthSetUserFn;
+      [AUTH_SET_USER_ORIGINAL]?: AuthSetUserFn;
+    } | null;
+
+    if (!prototype) {
+      return;
+    }
+
+    const original = prototype[AUTH_SET_USER_ORIGINAL] ?? prototype.setUser;
+    prototype[AUTH_SET_USER_ORIGINAL] = original;
+    const handleAuthUserUpdate = this.handleAuthUserUpdate.bind(this);
+    prototype.setUser = function patchedSetUser(
+      this: unknown,
+      user: AuthenticatedUser | null,
+    ): void {
+      original.call(this, user);
+      handleAuthUserUpdate(user);
+    };
+  }
+
+  private handleAuthUserUpdate(user: AuthenticatedUser | null): void {
+    const userId = user?.id ?? null;
+    if (userId === this.lastAppliedUserId) {
+      return;
+    }
+
+    this.applyUserContext(userId);
   }
 
   private reconcileCardsForSettings(settings: WorkspaceSettings): void {
@@ -2406,7 +2500,7 @@ export class WorkspaceStore {
     );
   }
 
-  private reconcileFiltersForSettings(settings: WorkspaceSettings): void {
+  private reconcileFiltersForSettings(settings: WorkspaceSettings, persistRemote = true): void {
     let nextFilters: BoardFilters | null = null;
 
     this.filtersSignal.update((filters) => {
@@ -2420,7 +2514,14 @@ export class WorkspaceStore {
     });
 
     if (nextFilters) {
-      this.persistPreferencesState(nextFilters, this.groupingSignal());
+      if (persistRemote) {
+        this.persistPreferencesState(nextFilters, this.groupingSignal());
+      } else {
+        this.persistPreferences({
+          grouping: this.groupingSignal(),
+          filters: nextFilters,
+        });
+      }
     }
   }
 
@@ -2789,7 +2890,7 @@ export class WorkspaceStore {
 
     const record = raw as RawBoardPreferences;
     const grouping =
-      record.grouping === 'status' || record.grouping === 'label'
+      record.grouping === 'status' || record.grouping === 'label' || record.grouping === 'assignee'
         ? (record.grouping as BoardGrouping)
         : defaults.grouping;
     const filters = this.sanitizeFilters(record.filters, settings);
@@ -2827,9 +2928,17 @@ export class WorkspaceStore {
       return [];
     }
 
-    return unique(
-      value.filter((entry): entry is string => typeof entry === 'string' && allowed.has(entry)),
-    );
+    const typed = value.filter((entry): entry is string => typeof entry === 'string');
+    if (allowed.size === 0) {
+      return unique(typed);
+    }
+
+    const filtered = typed.filter((entry) => allowed.has(entry));
+    if (filtered.length > 0) {
+      return unique(filtered);
+    }
+
+    return unique(typed);
   }
 
   private sanitizeQuickFilters(value: unknown): readonly BoardQuickFilter[] {
