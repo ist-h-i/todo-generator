@@ -2389,6 +2389,10 @@ export class WorkspaceStore {
         return;
       }
 
+      if (!this.hasRemoteBoardPreferences(response)) {
+        return;
+      }
+
       const preferences = this.sanitizeRemotePreferences(response, settings);
       this.persistPreferences(preferences, userId);
 
@@ -2654,6 +2658,18 @@ export class WorkspaceStore {
     } satisfies Record<string, unknown>;
 
     return { filters: filterPayload } satisfies Record<string, unknown>;
+  }
+
+  private hasRemoteBoardPreferences(response: BoardLayoutResponse | null): boolean {
+    if (!response) {
+      return false;
+    }
+
+    if (response.board_grouping !== null && response.board_grouping !== undefined) {
+      return true;
+    }
+
+    return this.resolveBoardLayoutFilters(response.board_layout) !== undefined;
   }
 
   private sanitizeRemotePreferences(

@@ -303,6 +303,48 @@ describe('WorkspaceStore', () => {
       expect(logger.error).toHaveBeenCalled();
     });
 
+    it('retains cached preferences when the remote payload is empty', async () => {
+      const user = createAuthenticatedUser({ id: 'user-55' });
+      const storageKey = `verbalize-yourself/workspace-preferences/${user.id}`;
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          grouping: 'assignee',
+          filters: {
+            search: 'product launch',
+            labelIds: ['label-beta'],
+            statusIds: ['status-review'],
+            quickFilters: ['myAssignments'],
+          },
+        }),
+      );
+
+      boardLayoutsApi.getBoardLayout.and.returnValue(
+        of(
+          createBoardLayoutResponse({
+            user_id: user.id,
+            board_grouping: null,
+            board_layout: null,
+          }),
+        ),
+      );
+
+      auth.setUser(user);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(store.grouping()).toBe('assignee');
+      expect(store.filters()).toEqual(
+        jasmine.objectContaining({
+          search: 'product launch',
+          labelIds: ['label-beta'],
+          statusIds: ['status-review'],
+          quickFilters: ['myAssignments'],
+        }),
+      );
+    });
+
     it('persists grouping updates via the board layout API', async () => {
       const user = createAuthenticatedUser({ id: 'user-88' });
       auth.setUser(user);
