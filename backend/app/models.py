@@ -183,7 +183,6 @@ class DailyCardQuota(Base):
     __table_args__ = (UniqueConstraint("owner_id", "quota_date", name="uq_daily_card_quota_owner_date"),)
 
 
-
 class WorkspaceTemplate(Base, TimestampMixin):
     __tablename__ = "workspace_templates"
 
@@ -205,8 +204,10 @@ class WorkspaceTemplate(Base, TimestampMixin):
             "show_confidence": True,
         },
     )
+    is_system_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     owner: Mapped["User"] = relationship("User", back_populates="workspace_templates")
+
 
 class Subtask(Base, TimestampMixin):
     __tablename__ = "subtasks"
@@ -519,9 +520,7 @@ class ReportTemplate(Base, TimestampMixin):
     audience: Mapped[str | None] = mapped_column(String)
     sections_json: Mapped[list[dict] | list[str]] = mapped_column(JSON, default=list)
     branding: Mapped[dict] = mapped_column(JSON, default=dict)
-    owner_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     reports: Mapped[list["GeneratedReport"]] = relationship("GeneratedReport", back_populates="template")
     owner: Mapped[User] = relationship("User", back_populates="report_templates")
