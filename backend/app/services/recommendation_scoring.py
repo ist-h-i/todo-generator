@@ -5,6 +5,7 @@ import math
 import re
 from collections import Counter
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Iterable, Sequence
 
 from ..config import settings
@@ -32,7 +33,7 @@ class RecommendationScoringService:
     The production system integrates an LLM-powered engine, but for the local
     environment and tests we approximate the behaviour with deterministic
     token-based similarity so that downstream components can rely on the same
-    contract (0–100 range, explanation text, and failure fallbacks).
+    contract (0-100 range, explanation text, and failure fallbacks).
     """
 
     def __init__(
@@ -41,14 +42,8 @@ class RecommendationScoringService:
         label_weight: float | None = None,
         profile_weight: float | None = None,
     ) -> None:
-        configured_label_weight = (
-            settings.recommendation_label_weight if label_weight is None else label_weight
-        )
-        configured_profile_weight = (
-            settings.recommendation_profile_weight
-            if profile_weight is None
-            else profile_weight
-        )
+        configured_label_weight = settings.recommendation_label_weight if label_weight is None else label_weight
+        configured_profile_weight = settings.recommendation_profile_weight if profile_weight is None else profile_weight
 
         if configured_label_weight < 0 or configured_profile_weight < 0:
             raise ValueError("Recommendation weights must be non-negative.")
@@ -72,6 +67,7 @@ class RecommendationScoringService:
     ) -> RecommendationScore:
         """Calculate a recommendation score for a prospective card."""
 
+        start_time = perf_counter()
         try:
             text = self._compose_text(title, summary, description)
             tokens = self._tokenize(text)
@@ -89,6 +85,19 @@ class RecommendationScoringService:
                 has_profile=bool(profile_tokens),
             )
 
+            elapsed_ms = (perf_counter() - start_time) * 1000
+            logger.debug(
+                "Recommendation scoring completed",
+                extra={
+                    "elapsed_ms": elapsed_ms,
+                    "label_weight": self._label_weight,
+                    "profile_weight": self._profile_weight,
+                    "label_score": label_score,
+                    "profile_score": profile_score,
+                    "score": score,
+                },
+            )
+
             return RecommendationScore(
                 score=score,
                 label_correlation=label_score,
@@ -97,9 +106,19 @@ class RecommendationScoringService:
             )
         except Exception:  # pragma: no cover - defensive safeguard
             logger.exception("Failed to compute recommendation score.")
-            fallback_message = (
-                "AIスコアリングが利用できなかったため、おすすめ度を0として登録しました。"
+            elapsed_ms = (perf_counter() - start_time) * 1000
+            logger.debug(
+                "Recommendation scoring failed; returning fallback",
+                extra={
+                    "elapsed_ms": elapsed_ms,
+                    "label_weight": self._label_weight,
+                    "profile_weight": self._profile_weight,
+                    "label_score": None,
+                    "profile_score": None,
+                    "score": 0,
+                },
             )
+            fallback_message = "AIスコアリングが利用できなかったため、おすすめ度を0として登録しました。"
             return RecommendationScore(
                 score=0,
                 label_correlation=0.0,
@@ -180,11 +199,9 @@ class RecommendationScoringService:
         if weight_sum <= 0:
             return 0
 
-        weighted = (
-            label_score * self._label_weight + profile_score * self._profile_weight
-        ) / weight_sum
+        weighted = (label_score * self._label_weight + profile_score * self._profile_weight) / weight_sum
         clamped = max(0.0, min(100.0, weighted))
-        return int(round(clamped))
+        return round(clamped)
 
     @staticmethod
     def _build_explanation(
