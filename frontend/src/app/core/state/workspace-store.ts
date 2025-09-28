@@ -2928,17 +2928,9 @@ export class WorkspaceStore {
       return [];
     }
 
-    const typed = value.filter((entry): entry is string => typeof entry === 'string');
-    if (allowed.size === 0) {
-      return unique(typed);
-    }
-
-    const filtered = typed.filter((entry) => allowed.has(entry));
-    if (filtered.length > 0) {
-      return unique(filtered);
-    }
-
-    return unique(typed);
+    return unique(
+      value.filter((entry): entry is string => typeof entry === 'string' && allowed.has(entry)),
+    );
   }
 
   private sanitizeQuickFilters(value: unknown): readonly BoardQuickFilter[] {
