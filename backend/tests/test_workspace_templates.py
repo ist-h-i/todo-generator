@@ -17,7 +17,7 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
             "description": "Used for sprint boards",
             "default_status_id": status_id,
             "default_label_ids": [label_id],
-            "confidence_threshold": 0.7,
+            "confidence_threshold": 70,
             "field_visibility": {
                 "show_story_points": True,
                 "show_due_date": True,
@@ -50,7 +50,7 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
         json={
             "name": "Updated Template",
             "default_label_ids": [],
-            "confidence_threshold": 0.5,
+            "confidence_threshold": 50,
             "field_visibility": {
                 "show_story_points": False,
                 "show_due_date": True,
