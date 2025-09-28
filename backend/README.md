@@ -7,7 +7,8 @@ This FastAPI application implements the backend described in the project require
 - FastAPI service with modular routers and automatic OpenAPI documentation.
 - SQLAlchemy data models reflecting cards, subtasks, labels, statuses, user preferences, comments, and activity logs.
 - SQLite database by default (configurable via the `DATABASE_URL` environment variable).
-- Real ChatGPT integration that converts free-form text into card proposals using OpenAI's Responses API.
+- Gemini integration that converts free-form text into card proposals with structured JSON outputs, with automatic fallback to
+  the legacy ChatGPT client when Gemini credentials are not configured.
 - CRUD endpoints for all primary entities, including nested operations for subtasks.
 - Activity logging to track significant changes.
 - Automated tests using `pytest` and FastAPI's `TestClient`.
@@ -55,10 +56,19 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 
 - `DATABASE_URL`: SQLAlchemy connection string. Defaults to `sqlite:///./todo.db`.
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
-- `CHATGPT_MODEL`: Logical name for the ChatGPT model (default: `gpt-4o-mini`).
+- `GEMINI_MODEL`: Logical name for the Gemini model (default: `models/gemini-1.5-flash`). Falls back to `CHATGPT_MODEL` when only legacy
+  settings are provided.
+- `GEMINI_API_KEY`: API key used for Gemini requests. If omitted, the application falls back to stored Gemini credentials or
+  (as a final resort) the legacy `CHATGPT_API_KEY`.
+- `CHATGPT_MODEL`: Legacy OpenAI model name kept for backward compatibility (default: `gpt-4o-mini`).
 - `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).
 - `SECRET_ENCRYPTION_KEY`: Optional key used to encrypt stored API credentials (defaults to an internal fallback; configure in production).
-- **AI API token**: Manage the ChatGPT API key from the admin settings screen. The backend reads the encrypted value from the database.
+- **AI API token**: Manage the Gemini API key from the admin settings screen. Existing ChatGPT credentials remain available and are
+  used automatically when no Gemini key is present so upgrades remain seamless.
+
+> **Migration note:** Install the `google-generativeai` package and store a Gemini API key to adopt the new provider. Deployments
+> that still rely on ChatGPT do not need immediate changes, but they must keep the optional `openai` package available if the
+> fallback path is required.
 
 ## Project Structure
 
@@ -71,7 +81,7 @@ backend/
 │   ├── models.py        # ORM models
 │   ├── schemas.py       # Pydantic schemas
 │   ├── routers/         # API routers (analysis, cards, labels, etc.)
-│   ├── services/        # External integrations (ChatGPT client)
+│   ├── services/        # External integrations (Gemini + legacy ChatGPT clients)
 │   └── utils/           # Shared helpers (activity logging)
 └── tests/
     ├── conftest.py      # Test fixtures and client setup

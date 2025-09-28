@@ -30,8 +30,8 @@ def test_analysis_requires_api_key(client: TestClient) -> None:
     )
 
     if response.status_code != 503:
-        pytest.skip("ChatGPT integration is enabled; skipping configuration error assertion.")
+        pytest.skip("Gemini integration is enabled; skipping configuration error assertion.")
 
     assert response.status_code == 503
     payload = response.json()
-    assert "ChatGPT API key is not configured" in payload["detail"]
+    assert "Gemini API key is not configured" in payload["detail"]

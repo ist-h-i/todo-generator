@@ -8,7 +8,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
-from .chatgpt import ChatGPTClient, ChatGPTError
+from .gemini import GeminiClient
+from .llm_shared import LLMError
 
 _MAX_GENERATED_CARDS = 5
 
@@ -26,7 +27,7 @@ class StatusReportProcessResult:
 class StatusReportService:
     """Orchestrates CRUD and analysis flows for status reports."""
 
-    def __init__(self, db: Session, analyzer: ChatGPTClient | None = None) -> None:
+    def __init__(self, db: Session, analyzer: GeminiClient | None = None) -> None:
         self.db = db
         self.analyzer = analyzer
 
@@ -184,7 +185,7 @@ class StatusReportService:
             response = self.analyzer.analyze(
                 schemas.AnalysisRequest(text=analysis_text, max_cards=max_cards)
             )
-        except ChatGPTError as exc:
+        except LLMError as exc:
             error_message = str(exc)
         else:
             proposals = list(response.proposals or [])

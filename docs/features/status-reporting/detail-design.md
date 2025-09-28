@@ -5,7 +5,7 @@
 - `GET /status-reports` — Lists reports owned by the user with optional status filtering, eagerly loading linked cards to surface counts in list responses.【F:backend/app/routers/status_reports.py†L30-L53】【F:backend/app/services/status_reports.py†L96-L133】
 - `GET /status-reports/{report_id}` — Retrieves a single report with detailed events, card summaries, and pending proposals when `include_details` is requested.【F:backend/app/routers/status_reports.py†L39-L54】【F:backend/app/services/status_reports.py†L96-L190】
 - `PUT /status-reports/{report_id}` — Updates draft or failed reports by re-normalizing sections/tags and appending an `UPDATED` event. Requests against other statuses return a 400 error.【F:backend/app/routers/status_reports.py†L55-L73】【F:backend/app/services/status_reports.py†L62-L90】
-- `POST /status-reports/{report_id}/submit` — Transitions the report into `PROCESSING`, records submission/analysis-start events, and orchestrates ChatGPT analysis. Returns the latest detail snapshot and pending proposals without deleting the record yet.【F:backend/app/routers/status_reports.py†L74-L93】【F:backend/app/services/status_reports.py†L138-L177】
+- `POST /status-reports/{report_id}/submit` — Transitions the report into `PROCESSING`, records submission/analysis-start events, and orchestrates Gemini analysis. Returns the latest detail snapshot and pending proposals without deleting the record yet.【F:backend/app/routers/status_reports.py†L74-L93】【F:backend/app/services/status_reports.py†L138-L177】
 - `POST /status-reports/{report_id}/retry` — Re-runs analysis exclusively for failed reports. The service enforces status validation, reuses the same submission pipeline, and returns the refreshed detail payload.【F:backend/app/routers/status_reports.py†L94-L109】【F:backend/app/services/status_reports.py†L138-L205】
 
 ## Event Logging & Processing Metadata
@@ -13,9 +13,9 @@
 - Processing metadata tracks pending proposals, created card IDs, confidence scores, and the last error. Helpers ensure the JSON column is always a dictionary and merges incremental updates safely.【F:backend/app/services/status_reports.py†L182-L217】
 - Events are sorted by normalized timestamps before serialization to ensure deterministic timelines even when timezone metadata is missing.【F:backend/app/services/status_reports.py†L200-L238】
 
-## ChatGPT Integration
-- The `StatusReportService` accepts an optional `ChatGPTClient`. Submission calls compose a prompt from normalized sections, invoke the `analyze` method with a capped number of proposals, and capture the `model` identifier returned by ChatGPT.【F:backend/app/services/status_reports.py†L118-L177】
-- Errors from ChatGPT raise a `ChatGPTError`, leading to a failed status, failure reason, and captured error message. Successful analyses store proposals, log completion events, and mark the report `COMPLETED` before the database row is deleted and the detail payload returned.【F:backend/app/services/status_reports.py†L150-L213】
+## Gemini Integration
+- The `StatusReportService` accepts an optional Gemini client. Submission calls compose a prompt from normalized sections, invoke the `analyze` method with a capped number of proposals, and capture the `model` identifier returned by the upstream provider.【F:backend/app/services/status_reports.py†L118-L177】
+- Errors from the Gemini client raise an `LLMError`, leading to a failed status, failure reason, and captured error message. Successful analyses store proposals, log completion events, and mark the report `COMPLETED` before the database row is deleted and the detail payload returned.【F:backend/app/services/status_reports.py†L150-L213】
 
 ## Data Model Usage
 - Reports persist normalized sections as JSON content and tags as deduplicated lists, allowing idempotent updates via the update endpoint.【F:backend/app/services/status_reports.py†L62-L117】

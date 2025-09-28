@@ -20,6 +20,12 @@ from ..utils.secrets import SecretEncryptionKeyError, build_secret_hint, get_sec
 router = APIRouter(prefix="/admin", tags=["admin", "settings"])
 
 
+def _default_model_for_provider(provider: str) -> str:
+    if provider.lower() == "openai":
+        return settings.chatgpt_model
+    return settings.gemini_model
+
+
 @router.get("/api-credentials/{provider}", response_model=schemas.ApiCredentialRead)
 def get_api_credential(
     provider: str,
@@ -62,7 +68,7 @@ def upsert_api_credential(
             encrypted_secret=encrypted_secret,
             secret_hint=secret_hint,
             is_active=True if payload.is_active is None else payload.is_active,
-            model=model_name or settings.chatgpt_model,
+            model=model_name or _default_model_for_provider(provider),
             created_by_user=admin_user,
         )
     else:
@@ -70,7 +76,7 @@ def upsert_api_credential(
             credential.encrypted_secret = cipher.encrypt(secret)
             credential.secret_hint = build_secret_hint(secret)
         if model_name is not None:
-            credential.model = model_name or settings.chatgpt_model
+            credential.model = model_name or _default_model_for_provider(provider)
         if payload.is_active is not None:
             credential.is_active = payload.is_active
         credential.created_by_user = credential.created_by_user or admin_user

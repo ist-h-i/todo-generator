@@ -502,7 +502,7 @@ def _ensure_api_credentials_model_column(engine: Engine) -> None:
         if not _is_duplicate_column_error(exc):
             raise
 
-    default_model = settings.chatgpt_model
+    default_model = settings.gemini_model
     if not default_model:
         return
 

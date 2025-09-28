@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import AliasChoices, Field, field_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,14 @@ class Settings(BaseSettings):
             "OPENAI_API_KEY",
             "openai_api_key",
         ),
+    )
+    gemini_model: str = Field(
+        default="models/gemini-1.5-flash",
+        validation_alias=AliasChoices("GEMINI_MODEL", "gemini_model"),
+    )
+    gemini_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("GEMINI_API_KEY", "gemini_api_key"),
     )
     secret_encryption_key: str | None = Field(
         default=None,
@@ -89,6 +97,21 @@ class Settings(BaseSettings):
 
         stripped = origin.strip()
         return stripped.rstrip("/") if stripped else ""
+
+    @model_validator(mode="after")
+    def _apply_legacy_fallbacks(self) -> "Settings":
+        """Populate Gemini settings from legacy ChatGPT values when absent."""
+
+        if self.gemini_api_key is None and self.chatgpt_api_key:
+            object.__setattr__(self, "gemini_api_key", self.chatgpt_api_key)
+
+        if (
+            ("gemini_model" not in self.model_fields_set or not self.gemini_model)
+            and self.chatgpt_model
+        ):
+            object.__setattr__(self, "gemini_model", self.chatgpt_model)
+
+        return self
 
 
 def get_settings() -> Settings:

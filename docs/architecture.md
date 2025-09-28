@@ -8,7 +8,7 @@ flowchart LR
     User((Workspace users)) -->|Browser| Frontend[Angular SPA]
     Frontend -->|REST / JSON| Backend[FastAPI application]
     Backend -->|SQLAlchemy ORM| Database[(SQLite or PostgreSQL)]
-    Backend -->|Responses API| OpenAI[(ChatGPT)]
+    Backend -->|Generative API| Gemini[(Google AI Gemini / ChatGPT fallback)]
     Backend <-->|Tokens & profile| Frontend
     Backend -->|Reports & analytics| AdminTools[(Admin & analytics UIs)]
 ```
@@ -56,13 +56,13 @@ HTTP concerns are centralised under `core/api`:
 ### Router surface
 - **Authentication and profile**: `/auth` issues session tokens, hashes them in the database, and rotates credentials on login. `/profile` returns enriched user metadata. `/board-layouts` (preferences router) persists per-user column widths, filters, and layout choices. `/preferences` is complemented by `/filters` for saved board queries.
 - **Workspace operations**: `/cards` handles card CRUD, drag-and-drop updates, nested `/subtasks`, and `/cards/{id}/similar`. `/comments` and `/activity-log` manage discussions and manual activity entries. `/labels`, `/statuses`, `/error-categories`, and `/workspace/templates` provide configuration endpoints used by the settings UX.
-- **Analysis and automation**: `/analysis` forwards intake requests to `ChatGPTClient` and returns JSON-schema validated proposals. `/status-reports` orchestrates shift report CRUD plus AI processing through `StatusReportService`. `/reports` manages report templates and generated narratives and formats analytics context. `/suggested-actions` promotes AI-generated follow-up actions into cards, while `/appeals` produces Japanese appeal narratives for external escalation workflows.
+- **Analysis and automation**: `/analysis` forwards intake requests to `GeminiClient` (with a transparent ChatGPT fallback) and returns JSON-schema validated proposals. `/status-reports` orchestrates shift report CRUD plus AI processing through `StatusReportService`. `/reports` manages report templates and generated narratives and formats analytics context. `/suggested-actions` promotes AI-generated follow-up actions into cards, while `/appeals` produces Japanese appeal narratives for external escalation workflows.
 - **Analytics and improvement**: `/analytics` serves snapshots, root-cause analyses, and token metrics. `/initiatives` coordinates improvement initiatives linked to analytics snapshots.
 - **Competency management**: `/admin/competencies` allows administrators to manage competency rubrics and trigger evaluations. `/admin/evaluations` and `/users/me/evaluations` expose evaluation history and quotas for administrators and end users respectively.
 - **Administration**: `/admin/users` manages user roles, quota overrides, and invites. `/admin/api-credentials`, `/admin/quotas/defaults`, and `/admin/quotas/{user_id}` (exposed through `admin_settings.py`) provide credential storage and quota configuration guarded by `require_admin`.
 
 ### Services and utilities
-- **ChatGPT integration (`services/chatgpt.py`)** validates requests against strict JSON schemas, encrypts credentials, records token usage, and exposes helpers for analysis, status report enrichment, and appeal generation. Missing API keys raise `ChatGPTConfigurationError` at dependency resolution time.
+- **Gemini integration (`services/gemini.py`)** validates requests against strict JSON schemas, encrypts credentials, records token usage, and exposes helpers for analysis, status report enrichment, and appeal generation. Missing API keys raise `GeminiConfigurationError`, and the dependency layer automatically falls back to the legacy ChatGPT client when Gemini credentials are absent.
 - **Status report orchestration (`services/status_reports.py`)** normalises section content, records lifecycle events, invokes ChatGPT for analysis, and caps generated card counts. It returns structured `StatusReportProcessResult` payloads that combine report details with AI proposals.
 - **Appeals service (`services/appeals.py`)** crafts appeal prompts, deduplicates narrative sections, and stores generated appeals with source tracking.
 - **Competency evaluator (`services/competency_evaluator.py`)** builds chat prompts for evaluations, respects daily limits via `utils.quotas`, and persists evaluation jobs with summary statistics.
@@ -95,9 +95,9 @@ Timestamp mixins enforce UTC-aware audit fields, and helper methods normalise ID
 
 ### Analyzer and report automation
 1. The analyzer page collects trimmed notes and optional objectives, then posts an `AnalysisRequest` with profile metadata to `/analysis`.
-2. `ChatGPTClient` builds the system prompt, validates the JSON response against `_BASE_RESPONSE_SCHEMA`, and returns cleaned proposals with fallback content when the model produces unusable items.
+2. `GeminiClient` builds the system prompt, validates the JSON response against the shared schema, and returns cleaned proposals with fallback content when the model produces unusable items. When Gemini credentials are unavailable, the dependency layer instantiates the legacy `ChatGPTClient` instead.
 3. Accepted proposals call `WorkspaceStore.publishProposals`, which maps them into `CardCreateRequest` payloads and persists them via `/cards`.
-4. Status reports follow a similar path: editors submit sections to `/status-reports`, `StatusReportService` stores a draft, invokes ChatGPT for insights, records events, and returns proposals that the frontend can publish or discard.
+4. Status reports follow a similar path: editors submit sections to `/status-reports`, `StatusReportService` stores a draft, invokes the configured LLM client for insights (Gemini by default), records events, and returns proposals that the frontend can publish or discard.
 
 ### Analytics and improvement loop
 1. Admins import analytics snapshots and root-cause analyses through `/analytics`.
