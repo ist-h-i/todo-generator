@@ -686,6 +686,7 @@ type CardSuggestionPayload = {
   readonly originSuggestionId?: string;
   readonly initiativeId?: string;
   readonly confidence?: number;
+  readonly confidenceDisplay?: number;
   readonly storyPoints?: number;
   readonly subtasks?: readonly Subtask[];
 };
@@ -747,19 +748,20 @@ export class WorkspaceStore {
   private configRequest: Promise<WorkspaceSettings> | null = null;
   private lastConfigUserId: string | null = null;
   private preferencesRequestToken = 0;
+  private lastAppliedUserId: string | null = null;
 
   public constructor() {
+    const initialUser = this.auth.user();
+    this.applyUserContext(initialUser?.id ?? null);
+
     effect(
       () => {
         const userId = this.activeUserId();
-        const settings = this.loadSettings(userId);
-        const preferences = this.loadPreferences(userId, settings);
-        this.settingsSignal.set(settings);
-        this.groupingSignal.set(preferences.grouping);
-        this.filtersSignal.set(preferences.filters);
-        this.reconcileCardsForSettings(settings);
-        this.reconcileFiltersForSettings(settings);
-        void this.refreshBoardPreferences(userId, settings);
+        if (userId === this.lastAppliedUserId) {
+          return;
+        }
+
+        this.applyUserContext(userId);
       },
       { allowSignalWrites: true },
     );
@@ -1176,6 +1178,10 @@ export class WorkspaceStore {
               : [defaultLabel];
 
         const normalizedConfidence = normalizeProposalConfidence(proposal.confidence);
+        const requestConfidence =
+          typeof proposal.confidence === 'number' && Number.isFinite(proposal.confidence)
+            ? proposal.confidence
+            : undefined;
 
         const card = await this.createCardFromSuggestion({
           title: proposal.title,
@@ -1184,7 +1190,8 @@ export class WorkspaceStore {
           labelIds,
           priority: 'medium',
           assignee: settings.defaultAssignee,
-          confidence: normalizedConfidence,
+          confidence: requestConfidence,
+          confidenceDisplay: normalizedConfidence,
           originSuggestionId: proposal.id,
           subtasks: proposal.subtasks.map((task) => ({
             id: createId(),
@@ -1656,8 +1663,14 @@ export class WorkspaceStore {
 
     try {
       const response = await firstValueFrom(this.cardsApi.createCard(request));
+      const mapped = mapCardFromResponse(response, fallbackStatusId);
+      const confidence =
+        payload.confidenceDisplay !== undefined
+          ? payload.confidenceDisplay
+          : normalizeProposalConfidence(mapped.confidence ?? 0);
       const card = {
-        ...mapCardFromResponse(response, fallbackStatusId),
+        ...mapped,
+        confidence,
         originSuggestionId: payload.originSuggestionId,
       } satisfies Card;
 
@@ -2357,6 +2370,19 @@ export class WorkspaceStore {
     this.reconcileFiltersForSettings(updatedSettings);
   }
 
+  private applyUserContext(userId: string | null): void {
+    this.lastAppliedUserId = userId;
+    const settings = this.loadSettings(userId);
+    const preferences = this.loadPreferences(userId, settings);
+
+    this.settingsSignal.set(settings);
+    this.groupingSignal.set(preferences.grouping);
+    this.filtersSignal.set(preferences.filters);
+    this.reconcileCardsForSettings(settings);
+    this.reconcileFiltersForSettings(settings);
+    void this.refreshBoardPreferences(userId, settings);
+  }
+
   private reconcileCardsForSettings(settings: WorkspaceSettings): void {
     const allowedStatusIds = new Set(settings.statuses.map((status) => status.id));
     const allowedLabelIds = new Set(settings.labels.map((label) => label.id));
@@ -2407,6 +2433,11 @@ export class WorkspaceStore {
       return;
     }
 
+    const cachedPreferences: BoardPreferences = {
+      grouping: this.groupingSignal(),
+      filters: cloneFilters(this.filtersSignal()),
+    };
+
     try {
       const response = await firstValueFrom(this.boardLayoutsApi.getBoardLayout());
       if (token !== this.preferencesRequestToken) {
@@ -2433,6 +2464,14 @@ export class WorkspaceStore {
       }
 
       this.logger.error('WorkspaceStore', error);
+
+      if (this.groupingSignal() !== cachedPreferences.grouping) {
+        this.groupingSignal.set(cachedPreferences.grouping);
+      }
+
+      if (!filtersEqual(this.filtersSignal(), cachedPreferences.filters)) {
+        this.filtersSignal.set(cloneFilters(cachedPreferences.filters));
+      }
     }
   }
 
