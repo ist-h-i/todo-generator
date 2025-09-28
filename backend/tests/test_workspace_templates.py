@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from backend.app.routers.workspace_templates import DEFAULT_FIELD_VISIBILITY
+
 from .test_cards import create_label, create_status, register_and_login
 
 
@@ -29,6 +31,13 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
     template = create_response.json()
     assert template["name"] == "Sprint Template"
     assert template["confidence_threshold"] == 70
+    assert template["field_visibility"] == {
+        **DEFAULT_FIELD_VISIBILITY,
+        "show_story_points": True,
+        "show_due_date": True,
+        "show_assignee": False,
+        "show_confidence": True,
+    }
     template_id = template["id"]
 
     list_response = client.get("/workspace/templates", headers=headers)
@@ -96,9 +105,14 @@ def test_partial_field_visibility_update_preserves_existing(client: TestClient) 
     )
     assert update_response.status_code == 200, update_response.text
     updated_visibility = update_response.json()["field_visibility"]
-    assert updated_visibility == {
-        "show_story_points": False,
-        "show_due_date": True,
-        "show_assignee": True,
-        "show_confidence": True,
-    }
+    expected_visibility = dict(DEFAULT_FIELD_VISIBILITY)
+    expected_visibility.update(
+        {
+            "show_story_points": False,
+            "show_due_date": True,
+            "show_assignee": True,
+            "show_confidence": False,
+        }
+    )
+    expected_visibility["show_confidence"] = True
+    assert updated_visibility == expected_visibility
