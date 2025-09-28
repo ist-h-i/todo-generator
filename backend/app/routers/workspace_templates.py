@@ -25,11 +25,22 @@ DEFAULT_FIELD_VISIBILITY = {
     "show_confidence": True,
 }
 
+DEFAULT_CONFIDENCE_THRESHOLD = 60.0
+
 
 def _clamp_confidence_threshold(value: float | None) -> float:
     if value is None:
-        return 0.6
-    return max(0.0, min(1.0, float(value)))
+        return DEFAULT_CONFIDENCE_THRESHOLD
+
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):  # pragma: no cover - defensive guard
+        return DEFAULT_CONFIDENCE_THRESHOLD
+
+    if 0.0 < numeric <= 1.0:
+        numeric *= 100.0
+
+    return max(0.0, min(100.0, numeric))
 
 
 def _normalize_name(value: str) -> str:
@@ -57,11 +68,7 @@ def _validate_label_ids(db: Session, owner_id: str, label_ids: Iterable[str]) ->
     if not ids:
         return []
 
-    labels = (
-        db.query(models.Label)
-        .filter(models.Label.id.in_(ids), models.Label.owner_id == owner_id)
-        .all()
-    )
+    labels = db.query(models.Label).filter(models.Label.id.in_(ids), models.Label.owner_id == owner_id).all()
     if len(labels) != len(ids):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
     return ids

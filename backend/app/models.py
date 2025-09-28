@@ -183,7 +183,6 @@ class DailyCardQuota(Base):
     __table_args__ = (UniqueConstraint("owner_id", "quota_date", name="uq_daily_card_quota_owner_date"),)
 
 
-
 class WorkspaceTemplate(Base, TimestampMixin):
     __tablename__ = "workspace_templates"
 
@@ -195,7 +194,7 @@ class WorkspaceTemplate(Base, TimestampMixin):
         String, ForeignKey("statuses.id", ondelete="SET NULL"), nullable=True
     )
     default_label_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
-    confidence_threshold: Mapped[float] = mapped_column(Float, default=0.6)
+    confidence_threshold: Mapped[float] = mapped_column(Float, default=60.0)
     field_visibility: Mapped[dict[str, bool]] = mapped_column(
         JSON,
         default=lambda: {
@@ -207,6 +206,7 @@ class WorkspaceTemplate(Base, TimestampMixin):
     )
 
     owner: Mapped["User"] = relationship("User", back_populates="workspace_templates")
+
 
 class Subtask(Base, TimestampMixin):
     __tablename__ = "subtasks"
@@ -519,9 +519,7 @@ class ReportTemplate(Base, TimestampMixin):
     audience: Mapped[str | None] = mapped_column(String)
     sections_json: Mapped[list[dict] | list[str]] = mapped_column(JSON, default=list)
     branding: Mapped[dict] = mapped_column(JSON, default=dict)
-    owner_id: Mapped[str] = mapped_column(
-        String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     reports: Mapped[list["GeneratedReport"]] = relationship("GeneratedReport", back_populates="template")
     owner: Mapped[User] = relationship("User", back_populates="report_templates")

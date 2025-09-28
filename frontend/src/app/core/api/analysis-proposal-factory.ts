@@ -84,7 +84,7 @@ export class AnalysisProposalFactory {
       suggestedStatusId: template?.defaultStatusId ?? settings.defaultStatusId,
       suggestedLabelIds,
       subtasks,
-      confidence: 0.62 + index * 0.12,
+      confidence: Math.min(100, 62 + index * 12),
       templateId: template?.id ?? null,
     } satisfies AnalysisProposal;
   }
