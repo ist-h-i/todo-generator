@@ -34,7 +34,7 @@ class Settings(BaseSettings):
         default=None,
         validation_alias=AliasChoices("SECRET_ENCRYPTION_KEY", "secret_encryption_key"),
     )
-    allowed_origins: list[str] = Field(
+    allowed_origins: str | list[str] = Field(
         default_factory=lambda: ["http://localhost:4200"],
         validation_alias=AliasChoices("ALLOWED_ORIGINS", "allowed_origins"),
     )
@@ -47,14 +47,32 @@ class Settings(BaseSettings):
         if value is None:
             parsed: list[str] = []
         elif isinstance(value, str):
-            parsed = [origin.strip() for origin in value.split(",") if origin.strip()]
+            parsed = []
+            for origin in value.split(","):
+                normalized = cls._normalize_origin(origin)
+                if normalized:
+                    parsed.append(normalized)
         else:
-            parsed = list(value)
+            parsed = []
+            for origin in value:
+                if isinstance(origin, str):
+                    normalized = cls._normalize_origin(origin)
+                    if normalized:
+                        parsed.append(normalized)
+                elif origin:
+                    parsed.append(origin)
 
         if parsed and any(origin == "*" for origin in parsed):
             raise ValueError("Wildcard origins are not permitted when credentials are allowed.")
 
         return parsed
+
+    @staticmethod
+    def _normalize_origin(origin: str) -> str:
+        """Trim whitespace and trailing slashes from a CORS origin string."""
+
+        stripped = origin.strip()
+        return stripped.rstrip("/") if stripped else ""
 
 
 def get_settings() -> Settings:

@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from backend.app.routers.workspace_templates import DEFAULT_FIELD_VISIBILITY
+
 from .test_cards import create_label, create_status, register_and_login
 
 
@@ -28,6 +30,13 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
     assert create_response.status_code == 201, create_response.text
     template = create_response.json()
     assert template["name"] == "Sprint Template"
+    assert template["field_visibility"] == {
+        **DEFAULT_FIELD_VISIBILITY,
+        "show_story_points": True,
+        "show_due_date": True,
+        "show_assignee": False,
+        "show_confidence": True,
+    }
     template_id = template["id"]
 
     list_response = client.get("/workspace/templates", headers=headers)
@@ -60,3 +69,48 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
     assert delete_response.status_code == 204
     remaining = client.get("/workspace/templates", headers=headers).json()
     assert all(entry["id"] != template_id for entry in remaining)
+
+
+def test_partial_field_visibility_update_preserves_existing(client: TestClient) -> None:
+    headers = register_and_login(client, "workspace-template-visibility@example.com")
+    status_id = create_status(client, headers)
+
+    create_response = client.post(
+        "/workspace/templates",
+        json={
+            "name": "Visibility Template",
+            "default_status_id": status_id,
+            "field_visibility": {
+                "show_story_points": False,
+                "show_due_date": True,
+                "show_assignee": True,
+                "show_confidence": False,
+            },
+        },
+        headers=headers,
+    )
+    assert create_response.status_code == 201, create_response.text
+    template_id = create_response.json()["id"]
+
+    update_response = client.patch(
+        f"/workspace/templates/{template_id}",
+        json={
+            "field_visibility": {
+                "show_confidence": True,
+            }
+        },
+        headers=headers,
+    )
+    assert update_response.status_code == 200, update_response.text
+    updated_visibility = update_response.json()["field_visibility"]
+    expected_visibility = dict(DEFAULT_FIELD_VISIBILITY)
+    expected_visibility.update(
+        {
+            "show_story_points": False,
+            "show_due_date": True,
+            "show_assignee": True,
+            "show_confidence": False,
+        }
+    )
+    expected_visibility["show_confidence"] = True
+    assert updated_visibility == expected_visibility
