@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Iterable, Mapping
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -67,16 +68,22 @@ def _serialize_field_visibility(
     payload: schemas.WorkspaceTemplateFieldVisibility | Mapping[str, object] | None,
     existing: dict[str, bool] | None,
 ) -> dict[str, bool]:
-    state = dict(existing or DEFAULT_FIELD_VISIBILITY)
-    if not payload:
+    state: dict[str, bool] = dict(DEFAULT_FIELD_VISIBILITY)
+    if existing:
+        state.update(existing)
+    if payload is None:
         return state
 
-    if isinstance(payload, schemas.WorkspaceTemplateFieldVisibility):
-        updates = payload.model_dump(exclude_unset=True)
-    else:
-        updates = {key: value for key, value in payload.items() if key in DEFAULT_FIELD_VISIBILITY}
+    try:
+        visibility = (
+            payload
+            if isinstance(payload, schemas.WorkspaceTemplateFieldVisibility)
+            else schemas.WorkspaceTemplateFieldVisibility.model_validate(payload)
+        )
+    except ValidationError as exc:  # pragma: no cover - fastapi will translate this
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors()) from exc
 
-    for key, value in updates.items():
+    for key, value in visibility.model_dump(exclude_unset=True).items():
         state[key] = bool(value)
     return state
 
