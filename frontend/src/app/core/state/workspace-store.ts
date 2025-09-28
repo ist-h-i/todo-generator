@@ -177,11 +177,6 @@ const FALLBACK_LABEL_COLORS = [
   '#6366f1',
 ];
 
-const ASSIGNEE_UNASSIGNED_KEY = '__unassigned__';
-const ASSIGNEE_UNASSIGNED_ID = 'assignee/unassigned';
-const ASSIGNEE_UNASSIGNED_TITLE = '未割り当て';
-const ASSIGNEE_UNASSIGNED_ACCENT = '#94a3b8';
-
 const DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD = 60;
 const UNASSIGNED_ASSIGNEE_COLUMN_ID = 'assignee:unassigned';
 const UNASSIGNED_ASSIGNEE_TITLE = '未割り当て';
