@@ -2931,9 +2931,15 @@ export class WorkspaceStore {
       return [];
     }
 
-    return unique(
-      value.filter((entry): entry is string => typeof entry === 'string' && allowed.has(entry)),
+    const filtered = value.filter(
+      (entry): entry is string => typeof entry === 'string' && allowed.has(entry),
     );
+
+    if (filtered.length === 0) {
+      return [];
+    }
+
+    return unique(filtered);
   }
 
   private sanitizeQuickFilters(value: unknown): readonly BoardQuickFilter[] {
