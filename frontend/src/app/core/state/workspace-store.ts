@@ -2491,11 +2491,6 @@ export class WorkspaceStore {
       return;
     }
 
-    const cachedPreferences: BoardPreferences = {
-      grouping: this.groupingSignal(),
-      filters: cloneFilters(this.filtersSignal()),
-    };
-
     try {
       const response = await firstValueFrom(this.boardLayoutsApi.getBoardLayout());
       if (token !== this.preferencesRequestToken) {
