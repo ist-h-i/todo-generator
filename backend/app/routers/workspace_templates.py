@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping
-from collections.abc import Mapping
+from typing import Iterable, Mapping
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import ValidationError
