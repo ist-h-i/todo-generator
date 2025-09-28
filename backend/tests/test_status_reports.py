@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from app import schemas
 from app.main import app
-from app.services.chatgpt import ChatGPTError, get_chatgpt_client
+from app.services.gemini import GeminiError, get_gemini_client
 
 DEFAULT_PASSWORD = "Register123!"
 
@@ -24,7 +24,7 @@ def register_and_login(client: TestClient, email: str, password: str = DEFAULT_P
     return {"Authorization": f"Bearer {token}"}
 
 
-class StubChatGPT:
+class StubGemini:
     def analyze(self, request: schemas.AnalysisRequest) -> schemas.AnalysisResponse:
         return schemas.AnalysisResponse(
             model="stub-model",
@@ -45,14 +45,14 @@ class StubChatGPT:
         )
 
 
-class FailingThenSucceedingChatGPT:
+class FailingThenSucceedingGemini:
     def __init__(self) -> None:
         self.call_count = 0
 
     def analyze(self, request: schemas.AnalysisRequest) -> schemas.AnalysisResponse:
         self.call_count += 1
         if self.call_count == 1:
-            raise ChatGPTError("Temporary analysis failure")
+            raise GeminiError("Temporary analysis failure")
         return schemas.AnalysisResponse(
             model="stub-model",
             proposals=[
@@ -108,11 +108,11 @@ def test_submit_status_report_returns_proposals(client: TestClient) -> None:
     )
     report_id = create_response.json()["id"]
 
-    app.dependency_overrides[get_chatgpt_client] = lambda: StubChatGPT()
+    app.dependency_overrides[get_gemini_client] = lambda: StubGemini()
     try:
         submit_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
     finally:
-        app.dependency_overrides.pop(get_chatgpt_client, None)
+        app.dependency_overrides.pop(get_gemini_client, None)
 
     assert submit_response.status_code == 200, submit_response.text
     detail = submit_response.json()
@@ -139,8 +139,8 @@ def test_retry_status_report_after_failure_succeeds(client: TestClient) -> None:
     )
     report_id = create_response.json()["id"]
 
-    stub = FailingThenSucceedingChatGPT()
-    app.dependency_overrides[get_chatgpt_client] = lambda: stub
+    stub = FailingThenSucceedingGemini()
+    app.dependency_overrides[get_gemini_client] = lambda: stub
     try:
         first_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
         assert first_response.status_code == 200, first_response.text
@@ -152,7 +152,7 @@ def test_retry_status_report_after_failure_succeeds(client: TestClient) -> None:
         assert retry_response.status_code == 200, retry_response.text
         retry_detail = retry_response.json()
     finally:
-        app.dependency_overrides.pop(get_chatgpt_client, None)
+        app.dependency_overrides.pop(get_gemini_client, None)
 
     assert retry_detail["status"] == "completed"
     assert retry_detail["cards"] == []

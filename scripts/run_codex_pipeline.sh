@@ -83,7 +83,7 @@ if [ -z "${TASK_INPUT}" ]; then
 fi
 
 if ! command -v codex >/dev/null 2>&1; then
-  echo "Codex CLI not found in PATH. Please install @openai/codex before running the pipeline." >&2
+  echo "Codex CLI not found in PATH. Please install @google/generative-ai before running the pipeline." >&2
   exit 1
 fi
 

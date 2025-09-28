@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app import models, schemas
 from app.main import app
-from app.services.chatgpt import ChatGPTError, get_chatgpt_client
+from app.services.gemini import GeminiError, get_gemini_client
 
 from .conftest import TestingSessionLocal
 
@@ -36,18 +36,18 @@ def test_analysis_requires_api_key(client: TestClient) -> None:
     )
 
     if response.status_code != 503:
-        pytest.skip("ChatGPT integration is enabled; skipping configuration error assertion.")
+        pytest.skip("Gemini integration is enabled; skipping configuration error assertion.")
 
     assert response.status_code == 503
     payload = response.json()
-    assert "ChatGPT API key is not configured" in payload["detail"]
+    assert "Gemini API key is not configured" in payload["detail"]
 
 
 def test_analysis_persists_session(client: TestClient) -> None:
     headers = _register_and_login(client, "analysis-db@example.com")
 
     response_payload = schemas.AnalysisResponse(
-        model="gpt-test-4o",
+        model="gemini-pro-test",
         proposals=[
             schemas.AnalysisCard(
                 title="Add login coverage",
@@ -61,12 +61,12 @@ def test_analysis_persists_session(client: TestClient) -> None:
         ],
     )
 
-    class StubChatGPT:
+    class StubGemini:
         def analyze(self, request: schemas.AnalysisRequest, *, user_profile=None) -> schemas.AnalysisResponse:
             assert request.text
             return response_payload
 
-    app.dependency_overrides[get_chatgpt_client] = lambda: StubChatGPT()
+    app.dependency_overrides[get_gemini_client] = lambda: StubGemini()
     payload = {
         "text": "Objective: Improve QA coverage\n\nNotes:\nLogin flow intermittently fails",
         "max_cards": 3,
@@ -77,11 +77,11 @@ def test_analysis_persists_session(client: TestClient) -> None:
     try:
         response = client.post("/analysis", json=payload, headers=headers)
     finally:
-        app.dependency_overrides.pop(get_chatgpt_client, None)
+        app.dependency_overrides.pop(get_gemini_client, None)
 
     assert response.status_code == 200, response.text
     data = response.json()
-    assert data["model"] == "gpt-test-4o"
+    assert data["model"] == "gemini-pro-test"
     assert len(data["proposals"]) == 1
     assert data["proposals"][0]["title"] == "Add login coverage"
 
@@ -92,18 +92,18 @@ def test_analysis_persists_session(client: TestClient) -> None:
         assert session.status == "completed"
         assert session.objective == "Improve QA coverage"
         assert session.notes == "Login flow intermittently fails"
-        assert session.response_model == "gpt-test-4o"
+        assert session.response_model == "gemini-pro-test"
         assert session.proposals and session.proposals[0]["title"] == "Add login coverage"
 
 
 def test_analysis_records_failure(client: TestClient) -> None:
     headers = _register_and_login(client, "analysis-failure@example.com")
 
-    class FailingChatGPT:
+    class FailingGemini:
         def analyze(self, request: schemas.AnalysisRequest, *, user_profile=None) -> schemas.AnalysisResponse:
-            raise ChatGPTError("Upstream failure")
+            raise GeminiError("Upstream failure")
 
-    app.dependency_overrides[get_chatgpt_client] = lambda: FailingChatGPT()
+    app.dependency_overrides[get_gemini_client] = lambda: FailingGemini()
     payload = {
         "text": "Notes: Investigate outage",
         "max_cards": 2,
@@ -114,7 +114,7 @@ def test_analysis_records_failure(client: TestClient) -> None:
     try:
         response = client.post("/analysis", json=payload, headers=headers)
     finally:
-        app.dependency_overrides.pop(get_chatgpt_client, None)
+        app.dependency_overrides.pop(get_gemini_client, None)
 
     assert response.status_code == 502
     detail = response.json()["detail"]

@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app import models
+from app.utils.secrets import build_secret_hint, get_secret_cipher
+
+from .conftest import TestingSessionLocal
+
 
 def _admin_headers(client: TestClient) -> dict[str, str]:
     email = "owner@example.com"
@@ -16,42 +21,69 @@ def _admin_headers(client: TestClient) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_admin_can_update_chatgpt_model_without_rotating_secret(client: TestClient) -> None:
+def test_admin_can_update_gemini_model_without_rotating_secret(client: TestClient) -> None:
     headers = _admin_headers(client)
 
     create = client.put(
-        "/admin/api-credentials/openai",
+        "/admin/api-credentials/gemini",
         headers=headers,
-        json={"secret": "sk-original", "model": "gpt-4o"},
+        json={"secret": "sk-original", "model": "gemini-1.5-pro"},
     )
     assert create.status_code == 200, create.text
     created_payload = create.json()
-    assert created_payload["model"] == "gpt-4o"
+    assert created_payload["model"] == "gemini-1.5-pro"
     assert created_payload["secret_hint"]
 
     update = client.put(
-        "/admin/api-credentials/openai",
+        "/admin/api-credentials/gemini",
         headers=headers,
-        json={"model": "gpt-4o-mini"},
+        json={"model": "gemini-1.5-flash"},
     )
     assert update.status_code == 200, update.text
     updated_payload = update.json()
-    assert updated_payload["model"] == "gpt-4o-mini"
+    assert updated_payload["model"] == "gemini-1.5-flash"
     assert updated_payload["secret_hint"] == created_payload["secret_hint"]
 
-    fetch = client.get("/admin/api-credentials/openai", headers=headers)
+    fetch = client.get("/admin/api-credentials/gemini", headers=headers)
     assert fetch.status_code == 200, fetch.text
     fetched_payload = fetch.json()
-    assert fetched_payload["model"] == "gpt-4o-mini"
+    assert fetched_payload["model"] == "gemini-1.5-flash"
 
 
 def test_admin_cannot_create_credential_without_secret(client: TestClient) -> None:
     headers = _admin_headers(client)
 
     response = client.put(
-        "/admin/api-credentials/openai",
+        "/admin/api-credentials/gemini",
         headers=headers,
-        json={"model": "gpt-4o"},
+        json={"model": "gemini-1.5-pro"},
     )
     assert response.status_code == 400, response.text
     assert response.json()["detail"] == "API トークンを入力してください。"
+
+
+def test_existing_openai_credential_is_accessible_via_gemini_alias(client: TestClient) -> None:
+    headers = _admin_headers(client)
+
+    with TestingSessionLocal() as db:
+        user = db.query(models.User).filter(models.User.email == "owner@example.com").first()
+        assert user is not None
+
+        cipher = get_secret_cipher()
+        secret = "sk-alias-token"
+        credential = models.ApiCredential(
+            provider="openai",
+            encrypted_secret=cipher.encrypt(secret),
+            secret_hint=build_secret_hint(secret),
+            is_active=True,
+            model="gpt-4o-mini",
+            created_by_user=user,
+        )
+        db.add(credential)
+        db.commit()
+
+    fetch = client.get("/admin/api-credentials/gemini", headers=headers)
+    assert fetch.status_code == 200, fetch.text
+    payload = fetch.json()
+    assert payload["model"] == "gpt-4o-mini"
+    assert payload["secret_hint"] == build_secret_hint("sk-alias-token")

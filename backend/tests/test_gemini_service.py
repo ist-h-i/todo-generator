@@ -11,17 +11,17 @@ from app import models
 from app.config import settings
 from app.database import get_db
 from app.schemas import UserProfile
-from app.services.chatgpt import (
-    ChatGPTClient,
-    ChatGPTConfigurationError,
-    ChatGPTError,
-    _load_chatgpt_configuration,
+from app.services.gemini import (
+    GeminiClient,
+    GeminiConfigurationError,
+    GeminiError,
+    _load_gemini_configuration,
 )
 from app.utils.secrets import get_secret_cipher
 
 
-def _make_client() -> ChatGPTClient:
-    client = object.__new__(ChatGPTClient)
+def _make_client() -> GeminiClient:
+    client = object.__new__(GeminiClient)
     client.model = "test-model"
     return client  # type: ignore[return-value]
 
@@ -29,7 +29,7 @@ def _make_client() -> ChatGPTClient:
 def test_build_response_format_sets_strict_and_max_items() -> None:
     client = _make_client()
 
-    result = ChatGPTClient._build_response_format(client, 4)
+    result = GeminiClient._build_response_format(client, 4)
 
     assert result["type"] == "json_schema"
     json_schema = result["json_schema"]
@@ -41,8 +41,8 @@ def test_build_response_format_sets_strict_and_max_items() -> None:
 def test_build_response_format_is_idempotent() -> None:
     client = _make_client()
 
-    first = ChatGPTClient._build_response_format(client, 1)
-    second = ChatGPTClient._build_response_format(client, 6)
+    first = GeminiClient._build_response_format(client, 1)
+    second = GeminiClient._build_response_format(client, 6)
 
     assert first["json_schema"]["schema"]["properties"]["proposals"]["maxItems"] == 1
     assert second["json_schema"]["schema"]["properties"]["proposals"]["maxItems"] == 6
@@ -54,7 +54,7 @@ def test_extract_content_reads_text_values() -> None:
         output=[SimpleNamespace(content=[SimpleNamespace(text=SimpleNamespace(value='{"ok": true}'))])]
     )
 
-    content = ChatGPTClient._extract_content(client, response)
+    content = GeminiClient._extract_content(client, response)
 
     assert content == '{"ok": true}'
 
@@ -63,15 +63,15 @@ def test_extract_content_requires_text() -> None:
     client = _make_client()
     response = SimpleNamespace(output=[])
 
-    with pytest.raises(ChatGPTError):
-        ChatGPTClient._extract_content(client, response)
+    with pytest.raises(GeminiError):
+        GeminiClient._extract_content(client, response)
 
 
 def test_parse_json_payload_strips_code_fences() -> None:
     client = _make_client()
     payload = '```json\n{"proposals": []}\n```'
 
-    parsed = ChatGPTClient._parse_json_payload(client, payload)
+    parsed = GeminiClient._parse_json_payload(client, payload)
 
     assert parsed == {"proposals": []}
 
@@ -80,7 +80,7 @@ def test_parse_json_payload_raises_for_invalid_json() -> None:
     client = _make_client()
 
     with pytest.raises(json.JSONDecodeError):
-        ChatGPTClient._parse_json_payload(client, "not-json")
+        GeminiClient._parse_json_payload(client, "not-json")
 
 
 def test_request_analysis_enriches_model_from_response() -> None:
@@ -88,20 +88,21 @@ def test_request_analysis_enriches_model_from_response() -> None:
 
     recorded: dict[str, object] = {}
 
-    def fake_create(**kwargs: object) -> SimpleNamespace:
-        recorded.update(kwargs)
+    def fake_generate(prompt: str, *, generation_config: object) -> SimpleNamespace:
+        recorded["prompt"] = prompt
+        recorded["generation_config"] = generation_config
         return SimpleNamespace(
-            model="gpt-test",
-            output=[SimpleNamespace(content=[SimpleNamespace(text='{"proposals": []}')])],
+            model="gemini-test",
+            text='{"proposals": []}',
         )
 
-    client._client = SimpleNamespace(responses=SimpleNamespace(create=fake_create))  # type: ignore[attr-defined]
+    client._client = SimpleNamespace(generate_content=fake_generate)  # type: ignore[attr-defined]
 
-    data = ChatGPTClient._request_analysis(client, "Analyse Notes", 2)
+    data = GeminiClient._request_analysis(client, "Analyse Notes", 2)
 
-    assert data == {"model": "gpt-test", "proposals": []}
-    assert recorded["instructions"] == ChatGPTClient._SYSTEM_PROMPT
-    assert "Analyse Notes" in recorded["input"]
+    assert data == {"model": "gemini-test", "proposals": []}
+    assert GeminiClient._SYSTEM_PROMPT in recorded["prompt"]
+    assert "Analyse Notes" in recorded["prompt"]
 
 
 def test_build_user_prompt_includes_profile_metadata() -> None:
@@ -119,7 +120,7 @@ def test_build_user_prompt_includes_profile_metadata() -> None:
         bio="Builds resilient APIs.",
     )
 
-    prompt = ChatGPTClient._build_user_prompt(
+    prompt = GeminiClient._build_user_prompt(
         client,
         "Investigate login failures",
         3,
@@ -132,38 +133,38 @@ def test_build_user_prompt_includes_profile_metadata() -> None:
     assert "Investigate login failures" in prompt
 
 
-def test_load_chatgpt_configuration_uses_stored_model(client: TestClient) -> None:
+def test_load_gemini_configuration_uses_stored_model(client: TestClient) -> None:
     override = client.app.dependency_overrides[get_db]
     db_gen = override()
     db = next(db_gen)
     try:
         cipher = get_secret_cipher()
         credential = models.ApiCredential(
-            provider="openai",
+            provider="gemini",
             encrypted_secret=cipher.encrypt("sk-live"),
             secret_hint="sk-****",  # noqa: S106 - test data
             is_active=True,
-            model="gpt-4o",
+            model="gemini-1.5-pro",
         )
         db.add(credential)
         db.commit()
 
-        secret, model = _load_chatgpt_configuration(db)
+        secret, model = _load_gemini_configuration(db)
     finally:
         db_gen.close()
 
     assert secret == "sk-live"  # noqa: S105 - test data
-    assert model == "gpt-4o"
+    assert model == "gemini-1.5-pro"
 
 
-def test_load_chatgpt_configuration_defaults_to_settings_model(client: TestClient) -> None:
+def test_load_gemini_configuration_defaults_to_settings_model(client: TestClient) -> None:
     override = client.app.dependency_overrides[get_db]
     db_gen = override()
     db = next(db_gen)
     try:
         cipher = get_secret_cipher()
         credential = models.ApiCredential(
-            provider="openai",
+            provider="gemini",
             encrypted_secret=cipher.encrypt("sk-default"),
             is_active=True,
             model=None,
@@ -171,53 +172,53 @@ def test_load_chatgpt_configuration_defaults_to_settings_model(client: TestClien
         db.add(credential)
         db.commit()
 
-        secret, model = _load_chatgpt_configuration(db)
+        secret, model = _load_gemini_configuration(db)
     finally:
         db_gen.close()
 
     assert secret == "sk-default"  # noqa: S105 - test data
-    assert model == settings.chatgpt_model
+    assert model == settings.gemini_model
 
 
-def test_load_chatgpt_configuration_falls_back_to_settings_api_key(client: TestClient) -> None:
+def test_load_gemini_configuration_falls_back_to_settings_api_key(client: TestClient) -> None:
     override = client.app.dependency_overrides[get_db]
     db_gen = override()
     db = next(db_gen)
-    original_key = settings.chatgpt_api_key
+    original_key = settings.gemini_api_key
     try:
-        settings.chatgpt_api_key = "sk-env"
+        settings.gemini_api_key = "sk-env"
 
-        secret, model = _load_chatgpt_configuration(db)
+        secret, model = _load_gemini_configuration(db)
     finally:
-        settings.chatgpt_api_key = original_key
+        settings.gemini_api_key = original_key
         db_gen.close()
 
     assert secret == "sk-env"  # noqa: S105 - test data
-    assert model == settings.chatgpt_model
+    assert model == settings.gemini_model
 
 
-def test_load_chatgpt_configuration_respects_disabled_credential(client: TestClient) -> None:
+def test_load_gemini_configuration_respects_disabled_credential(client: TestClient) -> None:
     override = client.app.dependency_overrides[get_db]
     db_gen = override()
     db = next(db_gen)
-    original_key = settings.chatgpt_api_key
+    original_key = settings.gemini_api_key
     try:
         cipher = get_secret_cipher()
         credential = models.ApiCredential(
-            provider="openai",
+            provider="gemini",
             encrypted_secret=cipher.encrypt("sk-disabled"),
             is_active=False,
         )
         db.add(credential)
         db.commit()
 
-        settings.chatgpt_api_key = "sk-env"
+        settings.gemini_api_key = "sk-env"
 
-        with pytest.raises(ChatGPTConfigurationError):
-            _load_chatgpt_configuration(db)
+        with pytest.raises(GeminiConfigurationError):
+            _load_gemini_configuration(db)
 
         db.delete(credential)
         db.commit()
     finally:
-        settings.chatgpt_api_key = original_key
+        settings.gemini_api_key = original_key
         db_gen.close()

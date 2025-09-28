@@ -7,7 +7,7 @@ This FastAPI application implements the backend described in the project require
 - FastAPI service with modular routers and automatic OpenAPI documentation.
 - SQLAlchemy data models reflecting cards, subtasks, labels, statuses, user preferences, comments, and activity logs.
 - SQLite database by default (configurable via the `DATABASE_URL` environment variable).
-- Real ChatGPT integration that converts free-form text into card proposals using OpenAI's Responses API.
+- Gemini integration that converts free-form text into card proposals using Google AI Studio models.
 - CRUD endpoints for all primary entities, including nested operations for subtasks.
 - Activity logging to track significant changes.
 - Automated tests using `pytest` and FastAPI's `TestClient`.
@@ -55,10 +55,10 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 
 - `DATABASE_URL`: SQLAlchemy connection string. Defaults to `sqlite:///./todo.db`.
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
-- `CHATGPT_MODEL`: Logical name for the ChatGPT model (default: `gpt-4o-mini`).
+- `GEMINI_MODEL`: Logical name for the Gemini model (default: `gemini-1.5-flash`).
 - `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).
 - `SECRET_ENCRYPTION_KEY`: Optional key used to encrypt stored API credentials (defaults to an internal fallback; configure in production).
-- **AI API token**: Manage the ChatGPT API key from the admin settings screen. The backend reads the encrypted value from the database.
+- **AI API token**: Manage the Gemini API key from the admin settings screen. The backend reads the encrypted value from the database.
 
 ## Project Structure
 
@@ -71,7 +71,7 @@ backend/
 │   ├── models.py        # ORM models
 │   ├── schemas.py       # Pydantic schemas
 │   ├── routers/         # API routers (analysis, cards, labels, etc.)
-│   ├── services/        # External integrations (ChatGPT client)
+│   ├── services/        # External integrations (Gemini client)
 │   └── utils/           # Shared helpers (activity logging)
 └── tests/
     ├── conftest.py      # Test fixtures and client setup
@@ -221,6 +221,6 @@ All endpoints are served under the root path (`/`). Unless otherwise stated the 
 
 ## Notes
 
-- The ChatGPT integration requires a valid OpenAI API key. If the key is missing the `/analysis` endpoint returns HTTP 503. When
-  configured, the backend calls the official ChatGPT Responses API and enforces the response schema via structured outputs.
+- The Gemini integration requires a valid Gemini API key. If the key is missing the `/analysis` endpoint returns HTTP 503. When
+  configured, the backend calls Google AI Studio and enforces the response schema via structured outputs.
 - Authentication and real-time collaboration are not yet implemented but the architecture leaves room for future expansion.

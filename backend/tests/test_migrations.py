@@ -319,7 +319,7 @@ def test_run_startup_migrations_adds_api_credentials_model_column() -> None:
                 """
             ),
             {
-                "provider": "openai",
+                "provider": "gemini",
                 "encrypted_secret": "ciphertext",
                 "secret_hint": "sk-***",
                 "is_active": True,
@@ -335,7 +335,7 @@ def test_run_startup_migrations_adds_api_credentials_model_column() -> None:
     with engine.connect() as connection:
         row = connection.execute(
             text("SELECT model FROM api_credentials WHERE provider = :provider"),
-            {"provider": "openai"},
+            {"provider": "gemini"},
         ).one()
 
-    assert row.model == migrations.settings.chatgpt_model
+    assert row.model == migrations.settings.gemini_model

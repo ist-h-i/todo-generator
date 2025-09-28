@@ -5,7 +5,7 @@ from .. import models
 from ..auth import get_current_user
 from ..database import get_db
 from ..schemas import AnalysisRequest, AnalysisResponse
-from ..services.chatgpt import ChatGPTClient, ChatGPTError, get_chatgpt_client
+from ..services.gemini import GeminiClient, GeminiError, get_gemini_client
 from ..services.profile import build_user_profile
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/analysis", tags=["analysis"])
 @router.post("", response_model=AnalysisResponse)
 def analyze(
     payload: AnalysisRequest,
-    chatgpt: ChatGPTClient = Depends(get_chatgpt_client),
+    gemini: GeminiClient = Depends(get_gemini_client),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AnalysisResponse:
@@ -35,8 +35,8 @@ def analyze(
     db.add(record)
     db.flush()
     try:
-        response = chatgpt.analyze(payload, user_profile=profile)
-    except ChatGPTError as exc:
+        response = gemini.analyze(payload, user_profile=profile)
+    except GeminiError as exc:
         record.status = "failed"
         record.failure_reason = str(exc)
         db.commit()

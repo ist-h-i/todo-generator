@@ -17,13 +17,22 @@ class Settings(BaseSettings):
         default=False,
         validation_alias=AliasChoices("DEBUG", "debug"),
     )
-    chatgpt_model: str = Field(
-        default="gpt-4o-mini",
-        validation_alias=AliasChoices("CHATGPT_MODEL", "chatgpt_model"),
+    gemini_model: str = Field(
+        default="gemini-1.5-flash",
+        validation_alias=AliasChoices(
+            "GEMINI_MODEL",
+            "gemini_model",
+            "CHATGPT_MODEL",
+            "chatgpt_model",
+        ),
     )
-    chatgpt_api_key: str | None = Field(
+    gemini_api_key: str | None = Field(
         default=None,
         validation_alias=AliasChoices(
+            "GEMINI_API_KEY",
+            "gemini_api_key",
+            "GOOGLE_API_KEY",
+            "google_api_key",
             "CHATGPT_API_KEY",
             "chatgpt_api_key",
             "OPENAI_API_KEY",
