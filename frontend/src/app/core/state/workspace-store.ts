@@ -291,7 +291,7 @@ const sanitizeConfidence = (value: number | null | undefined): number | undefine
     return undefined;
   }
 
-  return Math.min(Math.max(numeric, 0), 1);
+  return Math.min(Math.max(numeric, 0), 100);
 };
 
 const dedupeIds = (ids: readonly (string | null | undefined)[]): string[] => {

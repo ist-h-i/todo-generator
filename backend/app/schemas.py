@@ -251,7 +251,7 @@ class CardBase(BaseModel):
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     dependencies: List[str] = Field(default_factory=list)
-    ai_confidence: Optional[float] = Field(default=None, ge=0, le=1)
+    ai_confidence: Optional[float] = Field(default=None, ge=0, le=100)
     ai_notes: Optional[str] = None
     custom_fields: dict[str, Any] = Field(default_factory=dict)
     label_ids: List[str] = Field(default_factory=list)
@@ -276,7 +276,7 @@ class CardUpdate(BaseModel):
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     dependencies: Optional[List[str]] = None
-    ai_confidence: Optional[float] = Field(default=None, ge=0, le=1)
+    ai_confidence: Optional[float] = Field(default=None, ge=0, le=100)
     ai_notes: Optional[str] = None
     custom_fields: Optional[dict[str, Any]] = None
     label_ids: Optional[List[str]] = None

@@ -75,6 +75,9 @@ def _serialize_field_visibility(
     if not payload:
         return state
 
+    if isinstance(payload, dict):  # pragma: no cover - defensive conversion
+        payload = schemas.WorkspaceTemplateFieldVisibility(**payload)
+
     state["show_story_points"] = bool(payload.show_story_points)
     state["show_due_date"] = bool(payload.show_due_date)
     state["show_assignee"] = bool(payload.show_assignee)
