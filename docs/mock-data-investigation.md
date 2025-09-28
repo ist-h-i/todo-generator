@@ -5,8 +5,7 @@ This note captures the current areas where the product still relies on mock or d
 ## Frontend findings
 
 ### Analyzer proposals
-- `AnalysisGateway` does not call the FastAPI `/analysis` endpoint; instead it waits 420 ms and locally generates a proposal list by feeding the analyzer request and workspace settings into `AnalysisProposalFactory`.【F:frontend/src/app/core/api/analysis-gateway.ts†L1-L74】
-- `AnalysisProposalFactory` synthesises two proposals per request using hard-coded label heuristics, deterministic confidence scores, and canned subtask templates. This keeps the UI responsive but means analyzer results are mock data.【F:frontend/src/app/core/api/analysis-proposal-factory.ts†L1-L200】
+- ✅ Resolved: `AnalysisGateway` now posts analyzer requests to the FastAPI `/analysis` endpoint, maps responses into UI resources, and lets the backend persist each submission in `analysis_sessions`, removing the mock-only proposal factory.【F:frontend/src/app/core/api/analysis-gateway.ts†L1-L176】【F:backend/app/routers/analysis.py†L1-L54】【F:backend/app/models.py†L120-L162】
 
 ### Continuous improvement dashboard
 - `ContinuousImprovementStore` seeds analytics snapshots, cause trees, and initiatives from the `CONTINUOUS_IMPROVEMENT_*` fixtures rather than fetching from `/analytics` APIs.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L1-L149】

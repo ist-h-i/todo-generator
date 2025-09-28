@@ -1,7 +1,7 @@
 /**
  * View grouping applied to the board.
  */
-export type BoardGrouping = 'status' | 'label';
+export type BoardGrouping = 'status' | 'label' | 'assignee';
 
 /**
  * Quick filter categories available from the board toolbar.

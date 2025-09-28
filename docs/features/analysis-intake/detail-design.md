@@ -10,9 +10,9 @@
 
 ## 1. Sequence Overview
 1. The analyzer form validates and trims input, synthesises an objective when `autoObjective` is enabled, and writes a request payload into a signal once all local checks pass.【F:frontend/src/app/features/analyze/page.ts†L53-L133】
-2. `AnalysisGateway` (not covered in this document) observes the request signal, issues a POST to `/analysis`, and stores the `AnalysisResponse` in a resource object consumed by the page component.【F:frontend/src/app/features/analyze/page.ts†L30-L47】
-3. The FastAPI router resolves the authenticated user, builds a profile snapshot, and delegates to the Gemini client for proposal generation.【F:backend/app/routers/analysis.py†L12-L27】
-4. The Gemini client assembles prompts and response formats, invokes the Google AI Responses API, normalizes returned cards/subtasks, and appends a fallback card when necessary before sending the payload back to the frontend.【F:backend/app/services/gemini.py†L219-L433】
+2. `AnalysisGateway` observes the request signal, posts the payload to `/analysis`, and maps the persisted response into a resource object consumed by the page component.【F:frontend/src/app/core/api/analysis-gateway.ts†L1-L149】
+3. The FastAPI router resolves the authenticated user, records the submission in `analysis_sessions`, builds a profile snapshot, and delegates to the Gemini client for proposal generation.【F:backend/app/routers/analysis.py†L1-L51】【F:backend/app/models.py†L753-L768】
+4. The Gemini client assembles prompts and response formats, invokes the Google AI Responses API, normalizes returned cards/subtasks, and appends a fallback card when necessary before sending the payload back to the frontend.【F:backend/app/services/gemini.py†L123-L241】
 5. The analyzer page filters proposals through `WorkspaceStore` eligibility checks and offers publishing/reset actions to push accepted cards into the workspace state.【F:frontend/src/app/features/analyze/page.ts†L36-L138】
 
 ## 2. Request Validation
@@ -22,7 +22,7 @@
 - `handleSubmit` prevents native form submission to keep SPA state intact and rely entirely on reactive signals.【F:frontend/src/app/features/analyze/page.ts†L66-L74】
 
 ### Backend Schema & Sanitization
-- `AnalysisRequest` (imported schema) ensures FastAPI receives validated payloads; the router passes the object directly to the Gemini client, which then trims `request.text` for defensive checks.【F:backend/app/routers/analysis.py†L12-L27】【F:backend/app/services/gemini.py†L138-L167】
+- `AnalysisRequest` (imported schema) ensures FastAPI receives validated payloads; the router records the submission and passes the object to the Gemini client, which then trims `request.text` for defensive checks.【F:backend/app/routers/analysis.py†L1-L51】【F:backend/app/services/gemini.py†L138-L167】
 - When the trimmed text is empty, the client returns an empty `AnalysisResponse` without calling Google AI, shielding the system from unnecessary token usage.【F:backend/app/services/gemini.py†L143-L167】
 
 ## 3. Gemini Profile Enrichment & Prompt Composition
@@ -39,8 +39,8 @@
 
 ## 5. Error Handling & Fallback Behaviour
 ### Backend
-- Gemini client initialization fails fast when API keys are missing or the SDK is not installed, raising `GeminiConfigurationError`, which the dependency layer converts to HTTP 503 responses.【F:backend/app/services/gemini.py†L120-L488】
-- During analysis, Google AI or JSON parsing failures are logged and wrapped in `GeminiError`. The router translates these into HTTP 502 errors for the caller.【F:backend/app/services/gemini.py†L148-L200】【F:backend/app/routers/analysis.py†L21-L27】
+- Gemini client initialization fails fast when API keys are missing or the SDK is not installed, raising `GeminiConfigurationError`, which the dependency layer converts to HTTP 503 responses.【F:backend/app/services/gemini.py†L120-L212】
+- During analysis, Google AI or JSON parsing failures are logged and wrapped in `GeminiError`. The router records the failure reason and translates these into HTTP 502 errors for the caller.【F:backend/app/services/gemini.py†L148-L200】【F:backend/app/routers/analysis.py†L37-L49】
 - `_parse_card` and `_parse_subtask` skip malformed entries, while `_fallback_card` ensures at least one proposal is returned if Google AI does not provide usable content.【F:backend/app/services/gemini.py†L387-L433】
 - `_extract_content` and `_parse_json_payload` recover from streaming/fenced JSON responses, reducing noise from model variations.【F:backend/app/services/gemini.py†L326-L371】
 

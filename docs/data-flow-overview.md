@@ -20,9 +20,9 @@ This document explains how the main user-facing workflows traverse the Angular U
 ## 2. Analyzer and Analytics Driven Workflows
 
 ### 2.1 Analyzer proposals → cards
-- The Analyze page gathers free-form notes, feeds them through `AnalysisGateway`, and renders synthesized proposals while tracking submission state and feedback banners.【F:frontend/src/app/features/analyze/page.ts†L1-L188】【F:frontend/src/app/core/api/analysis-gateway.ts†L1-L74】
+- The Analyze page gathers free-form notes, feeds them through `AnalysisGateway`, and renders synthesized proposals while tracking submission state and feedback banners.【F:frontend/src/app/features/analyze/page.ts†L1-L188】【F:frontend/src/app/core/api/analysis-gateway.ts†L1-L176】
 - Publishing an accepted proposal invokes `WorkspaceStore.createCardFromSuggestion`, which normalizes the request, calls `CardsApiService.createCard`, and injects the created card into the signal store before the backend responds.【F:frontend/src/app/core/state/workspace-store.ts†L1613-L1678】 The backend runs the same quota, scoring, and persistence flow described in §1.1, storing any AI-generated subtasks alongside the card.【F:backend/app/routers/cards.py†L327-L419】
-- The `/analysis` endpoint is available for server-side generation: it enriches the request with the user profile and delegates to the Gemini client, returning structured proposals without persisting anything yet.【F:backend/app/routers/analysis.py†L12-L27】
+- The `/analysis` endpoint enriches requests with the user profile, delegates to the Gemini client, and stores each submission and response in `analysis_sessions` before returning structured proposals.【F:backend/app/routers/analysis.py†L1-L51】【F:backend/app/models.py†L753-L768】
 
 ### 2.2 Analytics insights → improvement records
 - The analytics dashboard reads derived board metrics and improvement fixtures while offering a “convert to card” action for suggested improvements.【F:frontend/src/app/features/analytics/page.ts†L46-L144】 When a suggestion is promoted, `ContinuousImprovementStore.convertSuggestedAction` routes the payload to `WorkspaceStore.createCardFromSuggestion` and annotates the originating suggestion and initiative progress locally.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L155-L218】
