@@ -13,7 +13,7 @@ Verbalize Yourself is an AI-assisted operations workspace that turns free-form s
 - Frontend: Angular standalone components with signal-based state management, Angular CDK drag-and-drop, Tailwind-inspired design tokens, ESLint, and Prettier.
 - Backend: FastAPI with SQLAlchemy ORM models, layered routers and services, startup migrations, and JSON schema validation for AI responses.
 - Database: SQLite by default with PostgreSQL support via `DATABASE_URL`.
-- AI integration: `ChatGPTClient` wraps the OpenAI Responses API, encrypts credentials, enforces schema validation, and tracks token usage.
+- AI integration: Gemini support is now the target architecture. Follow the [Gemini migration spec](docs/spec-updates/gemini-migration.md) while the existing `ChatGPTClient` implementation is transitioned to a Gemini-aware client.
 - Quality tooling: pytest, Ruff, Black, Angular unit tests, and Nx/ESBuild driven builds.
 
 ## Repository Layout
@@ -33,7 +33,7 @@ Verbalize Yourself is an AI-assisted operations workspace that turns free-form s
 - Python 3.11 or later with `pip`.
 - Node.js 20+ and npm.
 - SQLite (bundled) or a PostgreSQL instance.
-- An OpenAI API key stored through the admin settings UI.
+- A Gemini API key (Google AI Studio) stored through the admin settings UI. Until the implementation migrates, the existing ChatGPT key path remains available for backward compatibility.
 - Optionally set `SECRET_ENCRYPTION_KEY` for encrypting stored secrets.
 
 ### Environment Variables
@@ -43,7 +43,8 @@ Create a `.env` file in the repository root or export variables before launching
 | --- | --- | --- |
 | `DATABASE_URL` | SQLAlchemy connection string. Use PostgreSQL for production workloads. | `sqlite:///./todo.db` |
 | `DEBUG` | Enables verbose logging and exception responses. | `False` |
-| `CHATGPT_MODEL` | OpenAI model name used by the ChatGPT client. | `gpt-4o-mini` |
+| `GEMINI_MODEL` | Gemini model identifier targeted by the upcoming Gemini client. | `gemini-1.5-flash` |
+| `CHATGPT_MODEL` | Legacy OpenAI model name used by the ChatGPT client until the Gemini migration is complete. | `gpt-4o-mini` |
 | `SECRET_ENCRYPTION_KEY` | AES key for encrypting stored secrets. | `verbalize-yourself` |
 | `ALLOWED_ORIGINS` | Comma-separated list of CORS origins for the SPA. | `http://localhost:4200` |
 
