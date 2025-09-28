@@ -3,9 +3,9 @@
 ## Document Control
 | Field | Value |
 | --- | --- |
-| Version | 1.0 |
+| Version | 1.1 |
 | Author | Product Design Team |
-| Last Updated | 2024-07-01 |
+| Last Updated | 2024-07-08 |
 | Status | Draft |
 
 ## 1. Goals & Background
@@ -38,8 +38,28 @@ The analysis intake flow converts free-form workspace notes into structured task
 4. **Response sanitisation** – Responses must be validated against the JSON schema, discard malformed cards or subtasks, and coerce strings/integers before returning proposals to the client.【F:backend/app/services/chatgpt.py†L46-L447】
 5. **Workspace filtering & publishing** – The frontend must filter proposals via the workspace store eligibility check and only publish confirmed items back into the workspace state.【F:frontend/src/app/features/analyze/page.ts†L36-L138】
 
+6. **AI-driven recommendation score** – When cards are published or created from analysis proposals, the backend must invoke an AI scoring service that calculates the `ai_confidence` value on the server, ensuring clients cannot override persisted scores.
+
+7. **Score persistence contract** – The card persistence layer shall treat `ai_confidence` as a read-only field for inbound requests, always replacing client-supplied values with the AI-generated score before storage and when emitting domain events.
+
+8. **Telemetry for recommendation scoring** – The backend must log scoring latency and the contributing feature weights (label correlation, profile match) at debug level so that operations can validate the AI model while avoiding PII leakage.
+
 ## 6. Non-Functional Requirements
 - **Reliability** – Misconfigured API keys or SDK issues should surface as 503 errors during dependency injection, while runtime ChatGPT failures should be logged and translated to 502 responses with fallback content when possible.【F:backend/app/services/chatgpt.py†L120-L495】
 - **Usability** – Auto-generated objectives must mirror the user's first meaningful line, supporting Japanese phrasing out of the box, so facilitators can quickly confirm context.【F:frontend/src/app/features/analyze/page.ts†L96-L133】
 - **Security & Privacy** – Profile metadata injected into prompts should include only sanitized fields (ID, email, nickname, experience, roles, bio, timestamps) to avoid leaking unrelated workspace data.【F:backend/app/services/chatgpt.py†L304-L325】
 - **Observability** – Token usage from OpenAI responses must be merged into payloads when available so downstream analytics can track consumption.【F:backend/app/services/chatgpt.py†L203-L217】
+
+## 7. Recommendation Scoring Specification
+
+1. **Input signals** – The scoring engine shall consume (a) the normalized card description and objectives derived from the analysis proposal, (b) the set of labels associated with the destination board, and (c) the requesting user's role, department, and competency metadata available in the profile snapshot.
+
+2. **Label correlation factor** – The engine must compute a 0–100 sub-score representing the semantic similarity between the card content and each board label, weighting the highest-matching label at ≥60% of the total correlation factor contribution.
+
+3. **Profile alignment factor** – The engine must compute a 0–100 sub-score indicating how well the proposed work aligns with the user's functional responsibilities, using role-to-label mappings and historical acceptance data when available.
+
+4. **Composite scoring** – The final recommendation score shall be a weighted sum of the correlation and profile factors (default weights 0.6 and 0.4 respectively), clamped between 0 and 100, and rounded to the nearest integer before persistence.
+
+5. **Model fallback** – If AI inference fails, the system must emit a score of 0 with an associated diagnostic flag so UI surfaces can signal low confidence rather than blocking card creation.
+
+6. **Extensibility** – The scoring service shall expose configuration hooks for future feature inputs (e.g., proposal acceptance rates) without requiring schema changes to card records; additional inputs must default to neutral weightings when absent.
