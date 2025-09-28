@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from app import models
+from app.utils.secrets import build_secret_hint, get_secret_cipher
+
+from .conftest import TestingSessionLocal
+
 
 def _admin_headers(client: TestClient) -> dict[str, str]:
     email = "owner@example.com"
@@ -55,3 +60,30 @@ def test_admin_cannot_create_credential_without_secret(client: TestClient) -> No
     )
     assert response.status_code == 400, response.text
     assert response.json()["detail"] == "API トークンを入力してください。"
+
+
+def test_existing_openai_credential_is_accessible_via_gemini_alias(client: TestClient) -> None:
+    headers = _admin_headers(client)
+
+    with TestingSessionLocal() as db:
+        user = db.query(models.User).filter(models.User.email == "owner@example.com").first()
+        assert user is not None
+
+        cipher = get_secret_cipher()
+        secret = "sk-alias-token"
+        credential = models.ApiCredential(
+            provider="openai",
+            encrypted_secret=cipher.encrypt(secret),
+            secret_hint=build_secret_hint(secret),
+            is_active=True,
+            model="gpt-4o-mini",
+            created_by_user=user,
+        )
+        db.add(credential)
+        db.commit()
+
+    fetch = client.get("/admin/api-credentials/gemini", headers=headers)
+    assert fetch.status_code == 200, fetch.text
+    payload = fetch.json()
+    assert payload["model"] == "gpt-4o-mini"
+    assert payload["secret_hint"] == build_secret_hint("sk-alias-token")
