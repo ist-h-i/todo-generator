@@ -10,8 +10,8 @@
 
 ## 1. Sequence Overview
 1. The analyzer form validates and trims input, synthesises an objective when `autoObjective` is enabled, and writes a request payload into a signal once all local checks pass.【F:frontend/src/app/features/analyze/page.ts†L53-L133】
-2. `AnalysisGateway` (not covered in this document) observes the request signal, issues a POST to `/analysis`, and stores the `AnalysisResponse` in a resource object consumed by the page component.【F:frontend/src/app/features/analyze/page.ts†L30-L47】
-3. The FastAPI router resolves the authenticated user, builds a profile snapshot, and delegates to the ChatGPT client for proposal generation.【F:backend/app/routers/analysis.py†L12-L27】
+2. `AnalysisGateway` observes the request signal, posts the payload to `/analysis`, and maps the persisted response into a resource object consumed by the page component.【F:frontend/src/app/core/api/analysis-gateway.ts†L1-L176】
+3. The FastAPI router resolves the authenticated user, records the submission in `analysis_sessions`, builds a profile snapshot, and delegates to the ChatGPT client for proposal generation.【F:backend/app/routers/analysis.py†L1-L54】【F:backend/app/models.py†L120-L162】
 4. The ChatGPT client assembles prompts and response formats, invokes the OpenAI Responses API, normalizes returned cards/subtasks, and appends a fallback card when necessary before sending the payload back to the frontend.【F:backend/app/services/chatgpt.py†L219-L433】
 5. The analyzer page filters proposals through `WorkspaceStore` eligibility checks and offers publishing/reset actions to push accepted cards into the workspace state.【F:frontend/src/app/features/analyze/page.ts†L36-L138】
 
@@ -22,7 +22,7 @@
 - `handleSubmit` prevents native form submission to keep SPA state intact and rely entirely on reactive signals.【F:frontend/src/app/features/analyze/page.ts†L66-L74】
 
 ### Backend Schema & Sanitization
-- `AnalysisRequest` (imported schema) ensures FastAPI receives validated payloads; the router passes the object directly to the ChatGPT client, which then trims `request.text` for defensive checks.【F:backend/app/routers/analysis.py†L12-L27】【F:backend/app/services/chatgpt.py†L138-L167】
+- `AnalysisRequest` (imported schema) ensures FastAPI receives validated payloads; the router records the submission and passes the object to the ChatGPT client, which then trims `request.text` for defensive checks.【F:backend/app/routers/analysis.py†L1-L54】【F:backend/app/services/chatgpt.py†L138-L167】
 - When the trimmed text is empty, the client returns an empty `AnalysisResponse` without calling OpenAI, shielding the system from unnecessary token usage.【F:backend/app/services/chatgpt.py†L143-L167】
 
 ## 3. ChatGPT Profile Enrichment & Prompt Composition
@@ -40,7 +40,7 @@
 ## 5. Error Handling & Fallback Behaviour
 ### Backend
 - ChatGPT client initialization fails fast when API keys are missing or the SDK is not installed, raising `ChatGPTConfigurationError`, which the dependency layer converts to HTTP 503 responses.【F:backend/app/services/chatgpt.py†L120-L488】
-- During analysis, OpenAI or JSON parsing failures are logged and wrapped in `ChatGPTError`. The router translates these into HTTP 502 errors for the caller.【F:backend/app/services/chatgpt.py†L148-L200】【F:backend/app/routers/analysis.py†L21-L27】
+- During analysis, OpenAI or JSON parsing failures are logged and wrapped in `ChatGPTError`. The router stores the failure reason and translates these into HTTP 502 errors for the caller.【F:backend/app/services/chatgpt.py†L148-L200】【F:backend/app/routers/analysis.py†L1-L54】
 - `_parse_card` and `_parse_subtask` skip malformed entries, while `_fallback_card` ensures at least one proposal is returned if OpenAI does not provide usable content.【F:backend/app/services/chatgpt.py†L387-L433】
 - `_extract_content` and `_parse_json_payload` recover from streaming/fenced JSON responses, reducing noise from model variations.【F:backend/app/services/chatgpt.py†L326-L371】
 

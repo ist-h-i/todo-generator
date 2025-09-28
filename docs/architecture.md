@@ -40,7 +40,7 @@ HTTP concerns are centralised under `core/api`:
 - `cards-api.service.ts` exposes card CRUD, nested `/subtasks` management, and the `/cards/{id}/similar` helper used by the analyzer.
 - `comments-api.service.ts` wires comment CRUD endpoints to the board drawer.
 - `workspace-config-api.service.ts` wraps `/statuses`, `/labels`, and `/workspace/templates` plus related request/response contracts.
-- `analysis-gateway.ts` and `analysis-proposal-factory.ts` prepare analyzer submissions and normalise AI proposals.
+- `analysis-gateway.ts` posts analyzer submissions to `/analysis`, maps persisted responses into workspace proposals, and surfaces them to the UI.
 - `status-reports-gateway.ts`, `admin-api.service.ts`, and `competency-api.service.ts` cover the remaining feature areas.
 
 ### UI and UX
