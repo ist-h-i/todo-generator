@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from typing import Any, Iterable, Mapping
 from collections.abc import Mapping
-from typing import Any, Iterable
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -77,20 +78,26 @@ def _validate_label_ids(db: Session, owner_id: str, label_ids: Iterable[str]) ->
 
 
 def _serialize_field_visibility(
-    payload: schemas.WorkspaceTemplateFieldVisibility | Mapping[str, Any] | None,
+    payload: schemas.WorkspaceTemplateFieldVisibility | Mapping[str, object] | None,
     existing: dict[str, bool] | None,
 ) -> dict[str, bool]:
-    state = dict(existing or default_field_visibility())
-    if not payload:
+    state: dict[str, bool] = dict(DEFAULT_FIELD_VISIBILITY)
+    if existing:
+        state.update(existing)
+    if payload is None:
         return state
 
-    if isinstance(payload, dict):  # pragma: no cover - defensive conversion
-        payload = schemas.WorkspaceTemplateFieldVisibility(**payload)
+    try:
+        visibility = (
+            payload
+            if isinstance(payload, schemas.WorkspaceTemplateFieldVisibility)
+            else schemas.WorkspaceTemplateFieldVisibility.model_validate(payload)
+        )
+    except ValidationError as exc:  # pragma: no cover - fastapi will translate this
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors()) from exc
 
-    state["show_story_points"] = bool(payload.show_story_points)
-    state["show_due_date"] = bool(payload.show_due_date)
-    state["show_assignee"] = bool(payload.show_assignee)
-    state["show_confidence"] = bool(payload.show_confidence)
+    for key, value in visibility.model_dump(exclude_unset=True).items():
+        state[key] = bool(value)
     return state
 
 
