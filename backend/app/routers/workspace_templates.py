@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Iterable
+from collections.abc import Mapping
+from typing import Any, Iterable
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
+from ..services.workspace_template_defaults import default_field_visibility
 from ..utils.repository import (
     apply_updates,
     delete_model,
@@ -75,10 +77,10 @@ def _validate_label_ids(db: Session, owner_id: str, label_ids: Iterable[str]) ->
 
 
 def _serialize_field_visibility(
-    payload: schemas.WorkspaceTemplateFieldVisibility | None,
+    payload: schemas.WorkspaceTemplateFieldVisibility | Mapping[str, Any] | None,
     existing: dict[str, bool] | None,
 ) -> dict[str, bool]:
-    state = dict(existing or DEFAULT_FIELD_VISIBILITY)
+    state = dict(existing or default_field_visibility())
     if not payload:
         return state
 

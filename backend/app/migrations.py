@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime, timezone
+from uuid import uuid4
 
-from sqlalchemy import inspect, text
+from sqlalchemy import JSON, bindparam, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 from .config import settings
+from .services.workspace_template_defaults import (
+    DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD,
+    DEFAULT_TEMPLATE_DESCRIPTION,
+    DEFAULT_TEMPLATE_FIELD_VISIBILITY,
+    DEFAULT_TEMPLATE_NAME,
+)
 
 
 def _table_exists(inspector, table_name: str) -> bool:
@@ -234,6 +242,101 @@ def _ensure_comment_subtask_column(engine: Engine) -> None:
             raise
 
 
+def _ensure_workspace_template_default_flag(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "workspace_templates"):
+            return
+
+        column_names = _column_names(inspector, "workspace_templates")
+
+    if "is_system_default" in column_names:
+        return
+
+    false_literal = _false_literal(engine.dialect.name)
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE workspace_templates "
+                    "ADD COLUMN is_system_default BOOLEAN NOT NULL "
+                    f"DEFAULT {false_literal}"
+                )
+            )
+    except SQLAlchemyError as exc:
+        if not _is_duplicate_column_error(exc):
+            raise
+
+    with engine.begin() as connection:
+        connection.execute(
+            text("UPDATE workspace_templates " "SET is_system_default = :false " "WHERE is_system_default IS NULL"),
+            {"false": False},
+        )
+
+
+def _ensure_workspace_default_templates(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "users"):
+            return
+        if not _table_exists(inspector, "workspace_templates"):
+            return
+
+        template_columns = _column_names(inspector, "workspace_templates")
+        if "is_system_default" not in template_columns:
+            return
+
+    timestamp = datetime.now(timezone.utc)
+    insert_statement = (
+        text(
+            "INSERT INTO workspace_templates ("
+            "id, owner_id, name, description, default_status_id, default_label_ids, "
+            "confidence_threshold, field_visibility, is_system_default, created_at, updated_at"
+            ") VALUES ("
+            ":id, :owner_id, :name, :description, :default_status_id, :default_label_ids, "
+            ":confidence_threshold, :field_visibility, :is_system_default, :created_at, :updated_at"
+            ")"
+        )
+        .bindparams(bindparam("default_label_ids", type_=JSON))
+        .bindparams(bindparam("field_visibility", type_=JSON))
+    )
+
+    with engine.begin() as connection:
+        missing_users = connection.execute(
+            text(
+                "SELECT users.id "
+                "FROM users "
+                "WHERE NOT EXISTS ("
+                "    SELECT 1 FROM workspace_templates "
+                "    WHERE workspace_templates.owner_id = users.id "
+                "      AND workspace_templates.is_system_default = :true"
+                ")"
+            ),
+            {"true": True},
+        ).fetchall()
+
+        if not missing_users:
+            return
+
+        for row in missing_users:
+            connection.execute(
+                insert_statement,
+                {
+                    "id": str(uuid4()),
+                    "owner_id": row.id,
+                    "name": DEFAULT_TEMPLATE_NAME,
+                    "description": DEFAULT_TEMPLATE_DESCRIPTION,
+                    "default_status_id": None,
+                    "default_label_ids": [],
+                    "confidence_threshold": DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD,
+                    "field_visibility": dict(DEFAULT_TEMPLATE_FIELD_VISIBILITY),
+                    "is_system_default": True,
+                    "created_at": timestamp,
+                    "updated_at": timestamp,
+                },
+            )
+
+
 def _drop_status_report_report_date(engine: Engine) -> None:
     with engine.connect() as connection:
         inspector = inspect(connection)
@@ -400,6 +503,8 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_comment_subtask_column(engine)
     _rename_daily_report_tables(engine)
     _drop_status_report_report_date(engine)
+    _ensure_workspace_template_default_flag(engine)
+    _ensure_workspace_default_templates(engine)
     _ensure_api_credentials_model_column(engine)
 
 

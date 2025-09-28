@@ -203,6 +203,7 @@ class WorkspaceTemplateRead(WorkspaceTemplateBase):
     owner_id: str
     created_at: datetime
     updated_at: datetime
+    is_system_default: bool
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -208,12 +208,14 @@ export class AnalyzePage {
    *
    * @param proposals - Proposals confirmed by the user.
    */
-  public readonly publishProposals = (proposals: readonly AnalysisProposal[]): void => {
+  public readonly publishProposals = async (
+    proposals: readonly AnalysisProposal[],
+  ): Promise<void> => {
     if (proposals.length === 0) {
       return;
     }
     try {
-      this.workspace.importProposals(proposals);
+      await this.workspace.importProposals(proposals);
       this.showPublishFeedback({
         status: 'success',
         message: this.formatPublishSuccessMessage(proposals),
@@ -320,9 +322,7 @@ export class AnalyzePage {
     return `${type}:${this.requestVersion}:${detail ?? 'none'}`;
   }
 
-  private computeProposalsFingerprint(
-    proposals: readonly AnalysisProposal[],
-  ): string {
+  private computeProposalsFingerprint(proposals: readonly AnalysisProposal[]): string {
     return proposals.map((proposal) => proposal.id).join('|');
   }
 

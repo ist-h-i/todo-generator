@@ -204,6 +204,7 @@ class WorkspaceTemplate(Base, TimestampMixin):
             "show_confidence": True,
         },
     )
+    is_system_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     owner: Mapped["User"] = relationship("User", back_populates="workspace_templates")
 

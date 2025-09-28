@@ -62,3 +62,41 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
     assert delete_response.status_code == 204
     remaining = client.get("/workspace/templates", headers=headers).json()
     assert all(entry["id"] != template_id for entry in remaining)
+
+
+def test_default_template_is_provisioned_for_each_user(client: TestClient) -> None:
+    headers = register_and_login(client, "default-template@example.com")
+
+    response = client.get("/workspace/templates", headers=headers)
+    assert response.status_code == 200
+    templates = response.json()
+    default_template = next((entry for entry in templates if entry["is_system_default"]), None)
+
+    assert default_template is not None
+    assert default_template["name"] == "標準テンプレート"
+    assert default_template["owner_id"] is not None
+
+
+def test_removing_default_template_does_not_affect_other_users(client: TestClient) -> None:
+    owner_headers = register_and_login(client, "default-owner@example.com")
+    other_headers = register_and_login(client, "default-other@example.com")
+
+    owner_templates = client.get("/workspace/templates", headers=owner_headers).json()
+    other_templates = client.get("/workspace/templates", headers=other_headers).json()
+
+    owner_default = next(entry for entry in owner_templates if entry["is_system_default"])
+    other_default = next(entry for entry in other_templates if entry["is_system_default"])
+
+    assert owner_default["id"] != other_default["id"]
+
+    delete_response = client.delete(
+        f"/workspace/templates/{owner_default['id']}",
+        headers=owner_headers,
+    )
+    assert delete_response.status_code == 204
+
+    owner_after = client.get("/workspace/templates", headers=owner_headers).json()
+    other_after = client.get("/workspace/templates", headers=other_headers).json()
+
+    assert all(entry["id"] != owner_default["id"] for entry in owner_after)
+    assert any(entry["id"] == other_default["id"] for entry in other_after)

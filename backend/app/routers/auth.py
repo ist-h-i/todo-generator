@@ -8,13 +8,13 @@ from ..auth import (
     create_session_token,
     get_current_user,
     get_email_lookup_candidates,
-    normalize_email,
     hash_password,
     normalize_email,
     verify_password,
 )
 from ..database import get_db
 from ..services.profile import build_user_profile
+from ..services.workspace_template_defaults import ensure_default_workspace_template
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -29,17 +29,11 @@ def register(
     db: Session = Depends(get_db),
 ) -> schemas.TokenResponse:
     payload_data = (
-        payload.model_dump()
-        if hasattr(payload, "model_dump")
-        else payload.dict()  # type: ignore[attr-defined]
+        payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()  # type: ignore[attr-defined]
     )
     raw_email = str(payload_data.get("email", payload.email))
     email_candidates = get_email_lookup_candidates(raw_email)
-    existing = (
-        db.query(models.User)
-        .filter(models.User.email.in_(email_candidates))
-        .first()
-    )
+    existing = db.query(models.User).filter(models.User.email.in_(email_candidates)).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -49,11 +43,7 @@ def register(
     is_first_user = db.query(models.User).count() == 0
     password = payload_data.get("password", payload.password)
     normalized_email = normalize_email(raw_email)
-    remaining_fields = {
-        key: value
-        for key, value in payload_data.items()
-        if key not in {"email", "password"}
-    }
+    remaining_fields = {key: value for key, value in payload_data.items() if key not in {"email", "password"}}
     user_values = {
         **remaining_fields,
         "email": normalized_email,
@@ -63,6 +53,7 @@ def register(
     user = models.User(**user_values)
     db.add(user)
     db.flush()
+    ensure_default_workspace_template(db, owner_id=user.id)
     token_value = create_session_token(db, user)
     db.commit()
     db.refresh(user)
@@ -78,12 +69,8 @@ def login(
     email_candidates = get_email_lookup_candidates(payload.email)
     user: models.User | None = None
     for candidate in email_candidates:
-        candidate_user = (
-            db.query(models.User).filter(models.User.email == candidate).first()
-        )
-        if candidate_user and verify_password(
-            payload.password, candidate_user.password_hash
-        ):
+        candidate_user = db.query(models.User).filter(models.User.email == candidate).first()
+        if candidate_user and verify_password(payload.password, candidate_user.password_hash):
             user = candidate_user
             break
 

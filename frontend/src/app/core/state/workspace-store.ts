@@ -1126,7 +1126,9 @@ export class WorkspaceStore {
    *
    * @param proposals - AI generated proposals ready for publication.
    */
-  public readonly importProposals = (proposals: readonly AnalysisProposal[]): void => {
+  public readonly importProposals = async (
+    proposals: readonly AnalysisProposal[],
+  ): Promise<void> => {
     if (proposals.length === 0) {
       return;
     }
@@ -1140,7 +1142,7 @@ export class WorkspaceStore {
     const defaultStatus = settings.defaultStatusId;
     const defaultLabel = settings.labels[0]?.id ?? 'general';
 
-    const mapped: Card[] = eligible.map((proposal) => {
+    for (const proposal of eligible) {
       const template = proposal.templateId
         ? settings.templates.find((entry) => entry.id === proposal.templateId)
         : undefined;
@@ -1153,7 +1155,7 @@ export class WorkspaceStore {
             ? [...template.defaultLabelIds]
             : [defaultLabel];
 
-      return this.buildLocalCardFromPayload({
+      await this.createCardFromSuggestion({
         title: proposal.title,
         summary: proposal.summary,
         statusId,
@@ -1161,15 +1163,14 @@ export class WorkspaceStore {
         priority: 'medium',
         assignee: settings.defaultAssignee,
         confidence: proposal.confidence,
+        originSuggestionId: proposal.id,
         subtasks: proposal.subtasks.map((task) => ({
           id: createId(),
           title: task,
           status: 'todo',
         })),
       });
-    });
-
-    this.cardsSignal.update((current) => [...mapped, ...current]);
+    }
   };
 
   /**
