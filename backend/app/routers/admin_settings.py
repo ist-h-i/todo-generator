@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..config import settings
 from ..database import get_db
-from ..utils.secrets import build_secret_hint, get_secret_cipher
 from ..utils.dependencies import require_admin
 from ..utils.quotas import (
     get_quota_defaults,
@@ -16,6 +15,7 @@ from ..utils.quotas import (
     set_quota_defaults,
     upsert_user_quota,
 )
+from ..utils.secrets import SecretEncryptionKeyError, build_secret_hint, get_secret_cipher
 
 router = APIRouter(prefix="/admin", tags=["admin", "settings"])
 
@@ -41,7 +41,13 @@ def upsert_api_credential(
 ) -> models.ApiCredential:
     credential = db.query(models.ApiCredential).filter(models.ApiCredential.provider == provider).first()
 
-    cipher = get_secret_cipher()
+    try:
+        cipher = get_secret_cipher()
+    except SecretEncryptionKeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
     secret = payload.secret
     model_name = payload.model
 
