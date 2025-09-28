@@ -132,7 +132,6 @@ class StatusRead(StatusBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-
 class WorkspaceTemplateFieldVisibility(BaseModel):
     show_story_points: bool = True
     show_due_date: bool = False
@@ -146,9 +145,7 @@ class WorkspaceTemplateBase(BaseModel):
     default_status_id: Optional[str] = None
     default_label_ids: List[str] = Field(default_factory=list)
     confidence_threshold: float = Field(default=0.6, ge=0, le=1)
-    field_visibility: WorkspaceTemplateFieldVisibility = Field(
-        default_factory=WorkspaceTemplateFieldVisibility
-    )
+    field_visibility: WorkspaceTemplateFieldVisibility = Field(default_factory=WorkspaceTemplateFieldVisibility)
 
 
 class WorkspaceTemplateCreate(WorkspaceTemplateBase):
@@ -169,8 +166,10 @@ class WorkspaceTemplateRead(WorkspaceTemplateBase):
     owner_id: str
     created_at: datetime
     updated_at: datetime
+    is_system_default: bool
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class ErrorCategoryBase(BaseModel):
     name: str
