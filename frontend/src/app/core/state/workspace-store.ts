@@ -11,6 +11,7 @@ import {
   SubtaskResponse,
   SubtaskUpdateRequest,
 } from '@core/api/cards-api.service';
+import { BoardLayoutsApiService, BoardLayoutResponse } from '@core/api/board-layouts-api.service';
 import {
   CommentCreateRequest,
   CommentResponse,
@@ -623,6 +624,9 @@ type RawBoardFilters = {
   labelIds?: unknown;
   statusIds?: unknown;
   quickFilters?: unknown;
+  label_ids?: unknown;
+  status_ids?: unknown;
+  quick_filters?: unknown;
 };
 
 type RawBoardPreferences = {
@@ -685,6 +689,7 @@ export class WorkspaceStore {
   private readonly auth = inject(AuthService);
   private readonly cardsApi = inject(CardsApiService);
   private readonly commentsApi = inject(CommentsApiService);
+  private readonly boardLayoutsApi = inject(BoardLayoutsApiService);
   private readonly workspaceConfigApi = inject(WorkspaceConfigApiService);
   private readonly logger = inject(Logger);
   private readonly storage = this.resolveStorage();
@@ -732,6 +737,7 @@ export class WorkspaceStore {
   private activeCardRequestToken = 0;
   private configRequest: Promise<WorkspaceSettings> | null = null;
   private lastConfigUserId: string | null = null;
+  private preferencesRequestToken = 0;
 
   public constructor() {
     effect(
@@ -744,6 +750,7 @@ export class WorkspaceStore {
         this.filtersSignal.set(preferences.filters);
         this.reconcileCardsForSettings(settings);
         this.reconcileFiltersForSettings(settings);
+        void this.refreshBoardPreferences(userId, settings);
       },
       { allowSignalWrites: true },
     );
@@ -2367,6 +2374,40 @@ export class WorkspaceStore {
     }
   }
 
+  private async refreshBoardPreferences(
+    userId: string | null,
+    settings: WorkspaceSettings,
+  ): Promise<void> {
+    const token = ++this.preferencesRequestToken;
+    if (!userId) {
+      return;
+    }
+
+    try {
+      const response = await firstValueFrom(this.boardLayoutsApi.getBoardLayout());
+      if (token !== this.preferencesRequestToken) {
+        return;
+      }
+
+      const preferences = this.sanitizeRemotePreferences(response, settings);
+      this.persistPreferences(preferences, userId);
+
+      if (this.groupingSignal() !== preferences.grouping) {
+        this.groupingSignal.set(preferences.grouping);
+      }
+
+      if (!filtersEqual(this.filtersSignal(), preferences.filters)) {
+        this.filtersSignal.set(preferences.filters);
+      }
+    } catch (error) {
+      if (token !== this.preferencesRequestToken) {
+        return;
+      }
+
+      this.logger.error('WorkspaceStore', error);
+    }
+  }
+
   private resolveStorage(): Storage | null {
     if (typeof window === 'undefined') {
       return null;
@@ -2517,8 +2558,11 @@ export class WorkspaceStore {
     }
   }
 
-  private persistPreferences(preferences: BoardPreferences): void {
-    const storageUserId = this.resolveStorageUserId(this.activeUserId());
+  private persistPreferences(
+    preferences: BoardPreferences,
+    userId: string | null = this.activeUserId(),
+  ): void {
+    const storageUserId = this.resolveStorageUserId(userId);
     if (!storageUserId) {
       return;
     }
@@ -2570,10 +2614,92 @@ export class WorkspaceStore {
   }
 
   private persistPreferencesState(filters: BoardFilters, grouping: BoardGrouping): void {
-    this.persistPreferences({
+    const preferences: BoardPreferences = {
       grouping,
       filters: cloneFilters(filters),
-    });
+    };
+
+    this.persistPreferences(preferences);
+    void this.persistPreferencesRemote(preferences);
+  }
+
+  private async persistPreferencesRemote(preferences: BoardPreferences): Promise<void> {
+    const userId = this.activeUserId();
+    if (!userId) {
+      return;
+    }
+
+    try {
+      await firstValueFrom(
+        this.boardLayoutsApi.updateBoardLayout({
+          board_grouping: preferences.grouping,
+          board_layout: this.buildBoardLayoutPayload(preferences.filters),
+        }),
+      );
+    } catch (error) {
+      this.logger.error('WorkspaceStore', error);
+    }
+  }
+
+  private buildBoardLayoutPayload(filters: BoardFilters): Record<string, unknown> {
+    const cloned = cloneFilters(filters);
+    const filterPayload = {
+      search: cloned.search,
+      labelIds: [...cloned.labelIds],
+      statusIds: [...cloned.statusIds],
+      quickFilters: [...cloned.quickFilters],
+      label_ids: [...cloned.labelIds],
+      status_ids: [...cloned.statusIds],
+      quick_filters: [...cloned.quickFilters],
+    } satisfies Record<string, unknown>;
+
+    return { filters: filterPayload } satisfies Record<string, unknown>;
+  }
+
+  private sanitizeRemotePreferences(
+    response: BoardLayoutResponse,
+    settings: WorkspaceSettings,
+  ): BoardPreferences {
+    const defaults = this.buildDefaultPreferences();
+    if (!response) {
+      return defaults;
+    }
+
+    const rawPreferences: RawBoardPreferences = {
+      grouping: response.board_grouping ?? undefined,
+      filters: this.resolveBoardLayoutFilters(response.board_layout),
+    };
+
+    const sanitized = this.sanitizePreferences(rawPreferences, settings);
+    return {
+      grouping: sanitized.grouping,
+      filters: cloneFilters(sanitized.filters),
+    } satisfies BoardPreferences;
+  }
+
+  private resolveBoardLayoutFilters(layout: unknown): unknown {
+    if (!layout || typeof layout !== 'object') {
+      return undefined;
+    }
+
+    const record = layout as Record<string, unknown>;
+    if ('filters' in record) {
+      return record['filters'];
+    }
+
+    if (
+      'search' in record ||
+      'labelIds' in record ||
+      'label_ids' in record ||
+      'statusIds' in record ||
+      'status_ids' in record ||
+      'quickFilters' in record ||
+      'quick_filters' in record
+    ) {
+      return record;
+    }
+
+    return undefined;
   }
 
   private sanitizePreferences(raw: unknown, settings: WorkspaceSettings): BoardPreferences {
@@ -2602,9 +2728,12 @@ export class WorkspaceStore {
     const search = typeof record.search === 'string' ? record.search : defaults.search;
     const allowedStatusIds = new Set(settings.statuses.map((status) => status.id));
     const allowedLabelIds = new Set(settings.labels.map((label) => label.id));
-    const statusIds = this.sanitizeFilterIds(record.statusIds, allowedStatusIds);
-    const labelIds = this.sanitizeFilterIds(record.labelIds, allowedLabelIds);
-    const quickFilters = this.sanitizeQuickFilters(record.quickFilters);
+    const statusSource = record.statusIds ?? record.status_ids;
+    const labelSource = record.labelIds ?? record.label_ids;
+    const quickFiltersSource = record.quickFilters ?? record.quick_filters;
+    const statusIds = this.sanitizeFilterIds(statusSource, allowedStatusIds);
+    const labelIds = this.sanitizeFilterIds(labelSource, allowedLabelIds);
+    const quickFilters = this.sanitizeQuickFilters(quickFiltersSource);
 
     return {
       search,
