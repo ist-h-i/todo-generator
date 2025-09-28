@@ -99,6 +99,15 @@ const normalizeTemplateThreshold = (value: unknown, fallback: number): number =>
   return clampConfidence(scaled);
 };
 
+const normalizeProposalConfidence = (confidence: number): number => {
+  if (!Number.isFinite(confidence)) {
+    return 0;
+  }
+
+  const scaled = confidence > 0 && confidence <= 1 ? confidence * 100 : confidence;
+  return clampConfidence(scaled);
+};
+
 const unique = <T>(values: readonly T[]): T[] => Array.from(new Set(values));
 
 const cloneFilters = (filters: BoardFilters): BoardFilters => ({
@@ -921,7 +930,8 @@ export class WorkspaceStore {
         ? this.templateConfidenceThresholds().get(proposal.templateId)
         : undefined;
 
-    return proposal.confidence >= (threshold ?? DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD);
+    const normalizedConfidence = normalizeProposalConfidence(proposal.confidence);
+    return normalizedConfidence >= (threshold ?? DEFAULT_TEMPLATE_CONFIDENCE_THRESHOLD);
   };
 
   public readonly summary = computed<WorkspaceSummary>(() => {
@@ -1142,34 +1152,50 @@ export class WorkspaceStore {
     const defaultStatus = settings.defaultStatusId;
     const defaultLabel = settings.labels[0]?.id ?? 'general';
 
-    for (const proposal of eligible) {
-      const template = proposal.templateId
-        ? settings.templates.find((entry) => entry.id === proposal.templateId)
-        : undefined;
+    const createdCardIds = new Set<string>();
 
-      const statusId = proposal.suggestedStatusId || template?.defaultStatusId || defaultStatus;
-      const labelIds =
-        proposal.suggestedLabelIds.length > 0
-          ? [...proposal.suggestedLabelIds]
-          : template
-            ? [...template.defaultLabelIds]
-            : [defaultLabel];
+    try {
+      for (const proposal of eligible) {
+        const template = proposal.templateId
+          ? settings.templates.find((entry) => entry.id === proposal.templateId)
+          : undefined;
 
-      await this.createCardFromSuggestion({
-        title: proposal.title,
-        summary: proposal.summary,
-        statusId,
-        labelIds,
-        priority: 'medium',
-        assignee: settings.defaultAssignee,
-        confidence: proposal.confidence,
-        originSuggestionId: proposal.id,
-        subtasks: proposal.subtasks.map((task) => ({
-          id: createId(),
-          title: task,
-          status: 'todo',
-        })),
-      });
+        const statusId = proposal.suggestedStatusId || template?.defaultStatusId || defaultStatus;
+        const labelIds =
+          proposal.suggestedLabelIds.length > 0
+            ? [...proposal.suggestedLabelIds]
+            : template
+              ? [...template.defaultLabelIds]
+              : [defaultLabel];
+
+        const normalizedConfidence = normalizeProposalConfidence(proposal.confidence);
+
+        const card = await this.createCardFromSuggestion({
+          title: proposal.title,
+          summary: proposal.summary,
+          statusId,
+          labelIds,
+          priority: 'medium',
+          assignee: settings.defaultAssignee,
+          confidence: normalizedConfidence,
+          originSuggestionId: proposal.id,
+          subtasks: proposal.subtasks.map((task) => ({
+            id: createId(),
+            title: task,
+            status: 'todo',
+          })),
+        });
+
+        createdCardIds.add(card.id);
+      }
+    } catch (error) {
+      if (createdCardIds.size > 0) {
+        this.cardsSignal.update((cards) =>
+          cards.filter((card) => !createdCardIds.has(card.id)),
+        );
+      }
+
+      throw error;
     }
   };
 
