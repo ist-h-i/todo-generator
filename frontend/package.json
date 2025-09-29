@@ -12,7 +12,7 @@
     "lint": "node ./scripts/run-eslint-legacy.cjs \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\"",
     "format:write": "prettier --write \"src/**/*.{ts,html,scss}\"",
-    "postinstall": "node node_modules/puppeteer/install.mjs"
+    "postinstall": "node node_modules/puppeteer/install.mjs && patch-package"
   },
   "prettier": {
     "printWidth": 100,
@@ -63,7 +63,14 @@
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
     "puppeteer": "^24.22.3",
+    "patch-package": "^8.0.1",
     "tailwindcss": "^3.4.3",
     "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "karma": {
+      "glob": "^10.4.5",
+      "rimraf": "^4.4.1"
+    }
   }
 }
