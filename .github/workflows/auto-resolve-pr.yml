@@ -125,6 +125,57 @@ jobs:
             ran_tests=true
             pushd frontend > /dev/null
             npm ci
+            npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
+            popd > /dev/null
+          elif [ -f package.json ]; then
+            ran_tests=true
+            npm ci
+            npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
+          fi
+
+          if [ -f pytest.ini ] || [ -f conftest.py ] || [ -f requirements.txt ]; then
+            ran_tests=true
+            if [ -f requirements.txt ]; then
+              pip install -r requirements.txt
+            fi
+            pytest
+          fi
+
+          if [ -f backend/requirements.txt ]; then
+            ran_tests=true
+            pip install -r backend/requirements.txt
+            pushd backend > /dev/null
+            pytest
+            popd > /dev/null
+          fi
+
+          if [ "$ran_tests" = false ]; then
+            echo "No test framework detected, skipping."
+          fi
+
+          set -e
+          ran_tests=false
+
+          chrome_candidates="google-chrome google-chrome-stable chromium chromium-browser chrome-headless-shell"
+          for candidate in $chrome_candidates; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              if "$candidate" --version >/dev/null 2>&1 || "$candidate" --product-version >/dev/null 2>&1; then
+                export CHROME_BIN="$(command -v "$candidate")"
+                break
+              fi
+            fi
+          done
+
+          if [ -n "${CHROME_BIN:-}" ]; then
+            echo "Using Chrome binary: $CHROME_BIN"
+          else
+            echo "No Chrome binary detected in PATH."
+          fi
+
+          if [ -f frontend/package.json ]; then
+            ran_tests=true
+            pushd frontend > /dev/null
+            npm ci
             # Angularは必ずCLI経由でテストする
             npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage
             popd > /dev/null

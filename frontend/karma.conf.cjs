@@ -1,10 +1,8 @@
-const { join } = require('path');
-
-// The Angular CLI adapter defines __karma__.start so the runner can bootstrap.
+const { join } = require('node:path');
+const puppeteer = require('puppeteer');
 const angularCliKarmaPlugin = require('@angular-devkit/build-angular/plugins/karma');
 
-// Use Chrome from the system path
-process.env.CHROME_BIN = require('puppeteer').executablePath();
+process.env.CHROME_BIN = puppeteer.executablePath();
 
 module.exports = function (config) {
   config.set({
@@ -19,46 +17,21 @@ module.exports = function (config) {
     ],
     client: {
       clearContext: false,
-      jasmine: {
-        random: false
-      }
-    },
-    jasmineHtmlReporter: {
-      suppressAll: true,
     },
     coverageReporter: {
       dir: join(__dirname, './coverage'),
       subdir: '.',
-      reporters: [
-        { type: 'html' },
-        { type: 'text-summary' },
-      ],
+      reporters: [{ type: 'html' }, { type: 'text-summary' }],
     },
     reporters: ['progress', 'kjhtml'],
-    browsers: ['ChromeHeadlessCustom'],
+    browsers: ['ChromeHeadless'],
     customLaunchers: {
-      ChromeHeadlessCustom: {
+      ChromeHeadless: {
         base: 'ChromeHeadless',
-        flags: [
-          '--no-sandbox',
-          '--disable-gpu',
-          '--disable-dev-shm-usage',
-          '--disable-software-rasterizer',
-          '--disable-setuid-sandbox',
-          '--no-zygote',
-          '--remote-debugging-port=9222',
-          '--disable-web-security',
-          '--disable-features=IsolateOrigins,site-per-process'
-        ]
-      }
+        flags: ['--no-sandbox', '--disable-dev-shm-usage'],
+      },
     },
     singleRun: true,
-    autoWatch: false,
     restartOnFileChange: false,
-    browserNoActivityTimeout: 60000,
-    browserDisconnectTimeout: 10000,
-    browserDisconnectTolerance: 3,
-    captureTimeout: 60000,
-    logLevel: config.LOG_INFO
   });
 };
