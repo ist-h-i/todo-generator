@@ -1,6 +1,10 @@
 const { join } = require('node:path');
 
-process.env.CHROME_BIN = require('puppeteer').executablePath();
+const puppeteer = require('puppeteer');
+// The Angular CLI adapter defines __karma__.start so the runner can bootstrap.
+const angularCliKarmaPlugin = require('@angular-devkit/build-angular/plugins/karma');
+
+process.env.CHROME_BIN = puppeteer.executablePath();
 
 module.exports = function (config) {
   config.set({
@@ -11,7 +15,7 @@ module.exports = function (config) {
       require('karma-chrome-launcher'),
       require('karma-jasmine-html-reporter'),
       require('karma-coverage'),
-      require('@angular-devkit/build-angular/plugins/karma'),
+      angularCliKarmaPlugin,
     ],
     client: {
       clearContext: false,
