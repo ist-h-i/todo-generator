@@ -6,6 +6,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { AdminApiService } from '@core/api/admin-api.service';
+import { AuthService } from '@core/auth/auth.service';
 import {
   AdminUser,
   AdminUserUpdate,
@@ -30,6 +31,7 @@ type AdminTab = 'competencies' | 'evaluations' | 'users' | 'settings';
 export class AdminPage {
   private readonly api = inject(AdminApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
 
   public readonly activeTab = signal<AdminTab>('competencies');
   public readonly competencies = signal<Competency[]>([]);
@@ -249,6 +251,11 @@ export class AdminPage {
   public deleteUser(user: AdminUser): void {
     this.clearError();
 
+    if (this.isCurrentUser(user)) {
+      this.error.set('自分のアカウントは削除できません…');
+      return;
+    }
+
     if (typeof window !== 'undefined') {
       const confirmed = window.confirm(`${user.email} を削除しますか？この操作は取り消せません。`);
       if (!confirmed) {
@@ -266,6 +273,11 @@ export class AdminPage {
         },
         error: (err) => this.handleError(err, 'ユーザの削除に失敗しました。'),
       });
+  }
+
+  public isCurrentUser(user: AdminUser): boolean {
+    const currentUser = this.auth.user();
+    return currentUser?.id === user.id;
   }
 
   public updateApiCredential(event: SubmitEvent): void {
