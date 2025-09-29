@@ -4,7 +4,18 @@ from __future__ import annotations
 
 import base64
 import hashlib
+from dataclasses import dataclass
 from typing import Optional
+
+from ..config import DEFAULT_SECRET_ENCRYPTION_KEY
+
+
+@dataclass(slots=True)
+class SecretDecryptionResult:
+    """Container describing the outcome of a decryption attempt."""
+
+    plaintext: str
+    reencrypted_payload: str | None = None
 
 
 class SecretCipher:
@@ -30,17 +41,51 @@ class SecretCipher:
         transformed = bytes(byte ^ key[index % len(key)] for index, byte in enumerate(raw))
         return base64.urlsafe_b64encode(transformed).decode("ascii")
 
-    def decrypt(self, payload: str) -> str:
+    def decrypt(self, payload: str) -> SecretDecryptionResult:
         if not payload:
-            return ""
+            return SecretDecryptionResult(plaintext="")
 
         decoded = base64.urlsafe_b64decode(payload.encode("ascii"))
         if not self._key_bytes:
-            return decoded.decode("utf-8")
+            return SecretDecryptionResult(plaintext=decoded.decode("utf-8"))
 
         key = self._key_bytes
         restored = bytes(byte ^ key[index % len(key)] for index, byte in enumerate(decoded))
-        return restored.decode("utf-8")
+        try:
+            plaintext = restored.decode("utf-8")
+        except UnicodeDecodeError:
+            plaintext = _attempt_legacy_recovery(decoded, key)
+            if plaintext is None:
+                raise
+
+            reencrypted_payload = self.encrypt(plaintext)
+            if reencrypted_payload == payload:
+                reencrypted_payload = None
+            return SecretDecryptionResult(plaintext=plaintext, reencrypted_payload=reencrypted_payload)
+
+        return SecretDecryptionResult(plaintext=plaintext)
 
 
-__all__ = ["SecretCipher"]
+def _attempt_legacy_recovery(decoded: bytes, current_key: bytes) -> str | None:
+    """Attempt to recover plaintext from legacy payload formats."""
+
+    # Legacy format stored secrets as plain UTF-8 bytes encoded with base64.
+    try:
+        return decoded.decode("utf-8")
+    except UnicodeDecodeError:
+        pass
+
+    default_key_digest = hashlib.sha256(DEFAULT_SECRET_ENCRYPTION_KEY.encode("utf-8")).digest()
+    if current_key == default_key_digest:
+        return None
+
+    transformed = bytes(
+        byte ^ default_key_digest[index % len(default_key_digest)] for index, byte in enumerate(decoded)
+    )
+    try:
+        return transformed.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
+__all__ = ["SecretCipher", "SecretDecryptionResult"]

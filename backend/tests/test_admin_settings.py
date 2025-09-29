@@ -65,7 +65,9 @@ def test_admin_credentials_use_default_secret_key(client: TestClient) -> None:
         credential = db.query(models.ApiCredential).filter(models.ApiCredential.provider == "gemini").one()
 
     cipher = get_secret_cipher()
-    assert cipher.decrypt(credential.encrypted_secret) == secret
+    decrypted = cipher.decrypt(credential.encrypted_secret)
+    assert decrypted.plaintext == secret
+    assert decrypted.reencrypted_payload is None
 
     fetch = client.get("/admin/api-credentials/gemini", headers=headers)
     assert fetch.status_code == 200, fetch.text
