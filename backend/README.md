@@ -10,6 +10,7 @@ This FastAPI application implements the backend described in the project require
 - Gemini integration that converts free-form text into card proposals using Google AI Studio models.
 - CRUD endpoints for all primary entities, including nested operations for subtasks.
 - Activity logging to track significant changes.
+- Recommendation scoring service that assigns `ai_confidence` and human-readable `ai_notes` on every card mutation, while surfacing `ai_failure_reason` when the heuristic fallback path runs.
 - Automated tests using `pytest` and FastAPI's `TestClient`.
 
 ## Getting Started
@@ -58,6 +59,8 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 - `GEMINI_MODEL`: Logical name for the Gemini model (default: `gemini-1.5-flash`).
 - `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).
 - `SECRET_ENCRYPTION_KEY`: Optional key used to encrypt stored API credentials (defaults to an internal fallback; configure in production).
+- `RECOMMENDATION_WEIGHT_LABEL`: Weight applied to label correlation when combining recommendation scores (default: `0.6`).
+- `RECOMMENDATION_WEIGHT_PROFILE`: Weight applied to profile alignment when combining recommendation scores (default: `0.4`).
 - **AI API token**: Manage the Gemini API key from the admin settings screen. The backend reads the encrypted value from the database.
 
 ## Project Structure
@@ -120,6 +123,7 @@ All endpoints are served under the root path (`/`). Unless otherwise stated the 
   - `dependencies` *(array of strings, defaults to empty list)*
   - `ai_confidence` *(number between 0 and 100, read-only)* – Calculated on the server from label correlation and profile alignment.
   - `ai_notes` *(string, read-only)* – Explanation describing how the recommendation score was derived.
+  - `ai_failure_reason` *(string, read-only)* – Diagnostic code (e.g., `scoring_error`) populated when scoring falls back to safe defaults.
   - `custom_fields` *(object, defaults to empty dict)*
   - `label_ids` *(array of strings, defaults to empty list)* – Relationship to labels.
   - `subtasks` *(array of `SubtaskCreate`, defaults to empty list)* – Only available on create.
@@ -141,12 +145,12 @@ All endpoints are served under the root path (`/`). Unless otherwise stated the 
   - **Query parameters**: `status_id` (filter by status), `label_id` (filter by label), `search` (case-insensitive substring search on title/summary).
   - **Response**: array of `CardRead` ordered by `created_at` descending.
 - `POST /cards`
-  - **Request body**: `CardCreate`.
+  - **Request body**: `CardCreate`. Client-supplied values for `ai_confidence`, `ai_notes`, and `ai_failure_reason` are ignored.
   - **Response**: `CardRead` of the newly created card (HTTP 201).
 - `GET /cards/{card_id}`
   - **Response**: `CardRead` for the requested card.
 - `PUT /cards/{card_id}`
-  - **Request body**: `CardUpdate` (partial update, omit fields to leave unchanged).
+  - **Request body**: `CardUpdate` (partial update, omit fields to leave unchanged). When card metadata changes, the backend recalculates the recommendation score and overwrites the read-only AI fields.
   - **Response**: Updated `CardRead`.
 - `DELETE /cards/{card_id}`
   - **Response**: Empty body (HTTP 204) on success.
@@ -218,6 +222,12 @@ All endpoints are served under the root path (`/`). Unless otherwise stated the 
     - **Query parameters**: optional `card_id`, `limit` (integer, default 100, max 500).
     - **Response**: array of `ActivityLogRead` ordered by newest first.
   - `POST /activity-log` → create from `ActivityCreate`, responds with `ActivityLogRead` (HTTP 201).
+
+### Recommendation scoring lifecycle
+
+- Card creation and updates call `RecommendationScoringService.score_card` with the title, summary, description, label names, and the requester's profile. The service tokenises content, measures cosine similarity against board labels and profile metadata, and combines the subscores using the configured weights.【F:backend/app/routers/cards.py†L93-L120】【F:backend/app/services/recommendation_scoring.py†L59-L124】【F:backend/app/services/recommendation_scoring.py†L197-L217】
+- Successful runs emit an integer score (`ai_confidence`) alongside Japanese explanations that summarise label correlation and profile alignment. Missing metadata triggers helper text in the generated notes.【F:backend/app/services/recommendation_scoring.py†L95-L118】【F:backend/app/services/recommendation_scoring.py†L208-L217】
+- Exceptions fall back to a zero score, preserve execution flow, and stamp `ai_failure_reason="scoring_error"` so clients can surface diagnostics without exposing stack traces.【F:backend/app/services/recommendation_scoring.py†L108-L124】【F:backend/app/routers/cards.py†L369-L482】
 
 ## Notes
 
