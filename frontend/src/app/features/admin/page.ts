@@ -41,15 +41,16 @@ export class AdminPage {
   public readonly feedback = signal<string | null>(null);
   public readonly error = signal<string | null>(null);
 
-  private readonly defaultChatModel = 'gpt-4o-mini';
-  public readonly chatModelOptions: ReadonlyArray<{ value: string; label: string }> = [
-    { value: 'gpt-4o-mini', label: 'GPT-4o mini (推奨)' },
-    { value: 'gpt-4o', label: 'GPT-4o' },
-    { value: 'gpt-4.1-mini', label: 'GPT-4.1 mini' },
-    { value: 'gpt-4.1', label: 'GPT-4.1' },
+  private readonly defaultGeminiModel = 'gemini-1.5-flash';
+  public readonly geminiModelOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (推奨)' },
+    { value: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash Latest' },
+    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+    { value: 'gemini-1.0-pro', label: 'Gemini 1.0 Pro' },
+    { value: 'gemini-1.0-pro-vision', label: 'Gemini 1.0 Pro Vision' },
   ];
-  private readonly knownChatModelValues = new Set(
-    this.chatModelOptions.map((option) => option.value),
+  private readonly knownGeminiModelValues = new Set(
+    this.geminiModelOptions.map((option) => option.value),
   );
 
   public readonly newCompetency = signal<CompetencyInput>({
@@ -65,7 +66,7 @@ export class AdminPage {
   public evaluationPeriodStart = '';
   public evaluationPeriodEnd = '';
   public apiSecret = '';
-  public apiModel = this.defaultChatModel;
+  public apiModel = this.defaultGeminiModel;
   public defaultCardLimit: number | null = null;
   public defaultEvaluationLimit: number | null = null;
 
@@ -420,7 +421,7 @@ export class AdminPage {
         error: (err: unknown) => {
           if (err instanceof HttpErrorResponse && err.status === 404) {
             this.apiCredential.set(null);
-            this.apiModel = this.defaultChatModel;
+            this.apiModel = this.defaultGeminiModel;
             return;
           }
           this.handleError(err, 'API トークンの取得に失敗しました。');
@@ -429,18 +430,18 @@ export class AdminPage {
   }
 
   public isKnownModel(value: string): boolean {
-    return this.knownChatModelValues.has(value);
+    return this.knownGeminiModelValues.has(value);
   }
 
   private resolveChatModel(model: string | null | undefined): string {
     if (!model) {
-      return this.defaultChatModel;
+      return this.defaultGeminiModel;
     }
     const trimmed = model.trim();
     if (!trimmed) {
-      return this.defaultChatModel;
+      return this.defaultGeminiModel;
     }
-    if (this.knownChatModelValues.has(trimmed)) {
+    if (this.knownGeminiModelValues.has(trimmed)) {
       return trimmed;
     }
     return trimmed;
