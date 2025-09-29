@@ -245,6 +245,33 @@ def _ensure_card_ai_failure_reason_column(engine: Engine) -> None:
             raise
 
 
+def _ensure_card_ai_similarity_vector_column(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "cards"):
+            return
+
+        column_names = _column_names(inspector, "cards")
+
+    if "ai_similarity_vector_id" in column_names:
+        return
+
+    column_type = _string_column_type(engine.dialect.name)
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE cards "
+                    "ADD COLUMN ai_similarity_vector_id "
+                    f"{column_type}"
+                )
+            )
+    except SQLAlchemyError as exc:
+        if not _is_duplicate_column_error(exc):
+            raise
+
+
 def _ensure_comment_subtask_column(engine: Engine) -> None:
     with engine.connect() as connection:
         inspector = inspect(connection)
@@ -729,6 +756,7 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_completion_timestamps(engine)
     _ensure_card_error_category_column(engine)
     _ensure_card_ai_failure_reason_column(engine)
+    _ensure_card_ai_similarity_vector_column(engine)
     _ensure_comment_subtask_column(engine)
     _ensure_card_owner_column(engine)
     _ensure_status_owner_column(engine)
