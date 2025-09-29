@@ -12,20 +12,13 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from app.config import settings
+from app.config import DEFAULT_SECRET_ENCRYPTION_KEY
 from app.database import Base, get_db
 from app.main import app
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, future=True)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
-
-
-@pytest.fixture(autouse=True)
-def configure_secret_encryption_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Ensure a deterministic encryption key for tests that access secrets."""
-
-    monkeypatch.setattr(settings, "secret_encryption_key", "unit-test-secret-encryption-key")
 
 
 @pytest.fixture()
@@ -44,7 +37,14 @@ def email(email_factory: Callable[[], str]) -> str:
 
 
 @pytest.fixture()
-def client() -> Generator[TestClient, None, None]:
+def secret_encryption_key(monkeypatch: pytest.MonkeyPatch) -> str:
+    key = DEFAULT_SECRET_ENCRYPTION_KEY
+    monkeypatch.setattr("app.config.settings.secret_encryption_key", key)
+    return key
+
+
+@pytest.fixture()
+def client(secret_encryption_key: str) -> Generator[TestClient, None, None]:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 

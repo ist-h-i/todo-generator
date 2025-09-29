@@ -50,6 +50,29 @@ def test_admin_can_update_gemini_model_without_rotating_secret(client: TestClien
     assert fetched_payload["model"] == "gemini-1.5-flash"
 
 
+def test_admin_credentials_use_default_secret_key(client: TestClient) -> None:
+    headers = _admin_headers(client)
+    secret = "sk-fallback-secret"  # noqa: S105 - test secret
+
+    create = client.put(
+        "/admin/api-credentials/gemini",
+        headers=headers,
+        json={"secret": secret, "model": "gemini-1.5-flash"},
+    )
+    assert create.status_code == 200, create.text
+
+    with TestingSessionLocal() as db:
+        credential = db.query(models.ApiCredential).filter(models.ApiCredential.provider == "gemini").one()
+
+    cipher = get_secret_cipher()
+    assert cipher.decrypt(credential.encrypted_secret) == secret
+
+    fetch = client.get("/admin/api-credentials/gemini", headers=headers)
+    assert fetch.status_code == 200, fetch.text
+    payload = fetch.json()
+    assert payload["secret_hint"] == build_secret_hint(secret)
+
+
 def test_admin_cannot_create_credential_without_secret(client: TestClient) -> None:
     headers = _admin_headers(client)
 
@@ -70,7 +93,7 @@ def test_existing_openai_credential_is_accessible_via_gemini_alias(client: TestC
         assert user is not None
 
         cipher = get_secret_cipher()
-        secret = "sk-alias-token"
+        secret = "sk-alias-token"  # noqa: S105 - test secret
         credential = models.ApiCredential(
             provider="openai",
             encrypted_secret=cipher.encrypt(secret),

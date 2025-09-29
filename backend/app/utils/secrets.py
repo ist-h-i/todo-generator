@@ -16,11 +16,12 @@ class SecretEncryptionKeyError(RuntimeError):
 def get_secret_cipher() -> SecretCipher:
     """Return a cipher configured for encrypting stored secrets."""
 
-    key = settings.secret_encryption_key
-    if key is None:
+    if "secret_encryption_key" not in getattr(settings, "model_fields_set", set()):
         raise SecretEncryptionKeyError(
             "Secret encryption key is not configured. Set the SECRET_ENCRYPTION_KEY environment variable.",
         )
+
+    key = settings.secret_encryption_key
 
     normalized_key = key.strip()
     if not normalized_key:

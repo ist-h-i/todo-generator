@@ -3,6 +3,8 @@ from typing import Any
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_SECRET_ENCRYPTION_KEY = "verbalize-yourself"  # noqa: S105 - documented fallback value
+
 
 class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
@@ -40,7 +42,7 @@ class Settings(BaseSettings):
         ),
     )
     secret_encryption_key: str | None = Field(
-        default=None,
+        default=DEFAULT_SECRET_ENCRYPTION_KEY,
         validation_alias=AliasChoices("SECRET_ENCRYPTION_KEY", "secret_encryption_key"),
     )
     allowed_origins: str | list[str] = Field(
