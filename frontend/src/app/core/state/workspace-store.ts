@@ -766,9 +766,7 @@ export class WorkspaceStore {
       }
 
       this.applyUserContext(userId);
-    },
-    { allowSignalWrites: true },
-  );
+    });
 
   public constructor() {
     const initialUser = this.auth.user();
@@ -786,9 +784,7 @@ export class WorkspaceStore {
       }
 
       this.fetchCards();
-    },
-    { allowSignalWrites: true },
-  );
+    });
 
   private readonly loadWorkspaceConfigEffect = effect(
     () => {
@@ -799,9 +795,7 @@ export class WorkspaceStore {
 
       this.lastConfigUserId = userId;
       void this.refreshWorkspaceConfig(true);
-    },
-    { allowSignalWrites: true },
-  );
+    });
 
   private readonly syncDefaultAssigneeWithNicknameEffect = effect(
     () => {
@@ -911,9 +905,7 @@ export class WorkspaceStore {
       }
 
       this.lastSyncedAssigneeName = preferredName;
-    },
-    { allowSignalWrites: true },
-  );
+    });
 
   private resolveStorageUserId(userId: string | null): string | null {
     if (!this.storage) {

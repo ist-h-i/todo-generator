@@ -173,9 +173,7 @@ export class AnalyzePage {
       ) {
         this.triggerResultsHighlight();
       }
-    },
-    { allowSignalWrites: true },
-  );
+    });
 
   private readonly dispatchAnalyze = this.analyzeForm.submit((value) => {
     const payload = this.createRequestPayload(value);

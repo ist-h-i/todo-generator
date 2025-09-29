@@ -241,9 +241,7 @@ export class BoardPage {
       }
 
       this.searchForm.controls.search.setValue(search);
-    },
-    { allowSignalWrites: true },
-  );
+    });
 
   private readonly commentDraftsState = signal<Record<string, string>>({ card: '' });
   private readonly editingCommentState = signal<{ id: string; contextId: string } | null>(null);
@@ -498,9 +496,7 @@ export class BoardPage {
       }
 
       this.lastSelectedCardId = active.id;
-    },
-    { allowSignalWrites: true },
-  );
+    });
 
   public readonly saveCardDetails = (event: Event): void => {
     event.preventDefault();
