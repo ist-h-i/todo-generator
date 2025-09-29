@@ -67,7 +67,7 @@ jobs:
       - name: Install quality tooling
         run: |
           npm install -g eslint retire
-          pip install openai flake8 bandit pytest
+          pip install openai flake8 bandit pytest google-generativeai
 
       - name: Run Codex auto-resolve
         env:
