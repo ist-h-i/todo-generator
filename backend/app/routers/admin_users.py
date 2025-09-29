@@ -112,6 +112,16 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    db.query(models.ApiCredential).filter(models.ApiCredential.created_by_id == user_id).update(
+        {models.ApiCredential.created_by_id: None}, synchronize_session=False
+    )
+    db.query(models.CompetencyEvaluationJob).filter(models.CompetencyEvaluationJob.triggered_by_id == user_id).update(
+        {models.CompetencyEvaluationJob.triggered_by_id: None}, synchronize_session=False
+    )
+    db.query(models.CompetencyEvaluationJob).filter(models.CompetencyEvaluationJob.user_id == user_id).update(
+        {models.CompetencyEvaluationJob.user_id: None}, synchronize_session=False
+    )
+
     db.delete(user)
     db.commit()
 
