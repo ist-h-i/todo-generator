@@ -2439,6 +2439,11 @@ export class WorkspaceStore {
     this.reconcileCardsForSettings(settings);
     this.reconcileFiltersForSettings(settings, false);
     void this.refreshBoardPreferences(userId, settings);
+
+    if (userId !== this.lastConfigUserId) {
+      this.lastConfigUserId = userId;
+      void this.refreshWorkspaceConfig(true);
+    }
   }
 
   private bindAuthSetUserPatch(): void {
