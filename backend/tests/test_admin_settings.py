@@ -85,7 +85,7 @@ def test_admin_cannot_create_credential_without_secret(client: TestClient) -> No
     assert response.json()["detail"] == "API トークンを入力してください。"
 
 
-def test_existing_openai_credential_is_accessible_via_gemini_alias(client: TestClient) -> None:
+def test_existing_gemini_credential_is_accessible_via_case_insensitive_alias(client: TestClient) -> None:
     headers = _admin_headers(client)
 
     with TestingSessionLocal() as db:
@@ -95,11 +95,11 @@ def test_existing_openai_credential_is_accessible_via_gemini_alias(client: TestC
         cipher = get_secret_cipher()
         secret = "sk-alias-token"  # noqa: S105 - test secret
         credential = models.ApiCredential(
-            provider="openai",
+            provider="Gemini",
             encrypted_secret=cipher.encrypt(secret),
             secret_hint=build_secret_hint(secret),
             is_active=True,
-            model="gpt-4o-mini",
+            model="gemini-1.5-pro",
             created_by_user=user,
         )
         db.add(credential)
@@ -108,5 +108,5 @@ def test_existing_openai_credential_is_accessible_via_gemini_alias(client: TestC
     fetch = client.get("/admin/api-credentials/gemini", headers=headers)
     assert fetch.status_code == 200, fetch.text
     payload = fetch.json()
-    assert payload["model"] == "gpt-4o-mini"
+    assert payload["model"] == "gemini-1.5-pro"
     assert payload["secret_hint"] == build_secret_hint("sk-alias-token")

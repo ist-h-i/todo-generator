@@ -24,8 +24,6 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices(
             "GEMINI_MODEL",
             "gemini_model",
-            "CHATGPT_MODEL",
-            "chatgpt_model",
         ),
     )
     gemini_api_key: str | None = Field(
@@ -35,10 +33,6 @@ class Settings(BaseSettings):
             "gemini_api_key",
             "GOOGLE_API_KEY",
             "google_api_key",
-            "CHATGPT_API_KEY",
-            "chatgpt_api_key",
-            "OPENAI_API_KEY",
-            "openai_api_key",
         ),
     )
     secret_encryption_key: str | None = Field(

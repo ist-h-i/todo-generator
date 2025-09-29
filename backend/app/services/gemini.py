@@ -521,12 +521,6 @@ def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[s
         if disabled_credential_exists:
             raise GeminiConfigurationError("Gemini API key is disabled. Update it from the admin settings.")
 
-        if provider == "gemini":
-            try:
-                return _load_gemini_configuration(db, provider="openai")
-            except GeminiConfigurationError:
-                pass
-
         if settings.gemini_api_key:
             return settings.gemini_api_key, settings.gemini_model
 
