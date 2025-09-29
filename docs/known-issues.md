@@ -35,3 +35,23 @@
 - Invoke the `/statuses/{id}` endpoint directly via REST client or console snippet that calls `workspaceConfigApi.updateStatus(...)` until inline editing ships.
 - When status edits are frequent, prefer using database scripts off-hours to adjust affected columns and card references.
 - Future work: add inline edit controls (mirroring the template editor) that patch existing statuses through `WorkspaceConfigApiService.updateStatus`.
+
+## Workspace data is not persisted outside the container
+**Impact**: All boards, cards, and configuration disappear whenever the FastAPI process restarts in the default development environment because the SQLite database file lives only inside the running container or virtual environment.
+
+**Root cause**: The default `DATABASE_URL` points to `sqlite:///./todo.db`, creating the database in the application directory, and `Base.metadata.create_all` bootstraps it at startup. Without an external volume or managed database, the file is discarded when the environment rebuilds.【F:backend/app/config.py†L13-L36】【F:backend/app/main.py†L1-L43】
+
+**Mitigation**:
+- Point `DATABASE_URL` to a managed PostgreSQL instance (or another persistent backend) before deploying.
+- Mount a persistent volume for `todo.db` during local development so data survives container restarts.
+- Export data regularly if you must rely on the bundled SQLite database.
+
+## AI recommendation services run without a live provider
+**Impact**: Recommendation scores and explanations never reflect real-time AI output. Operators see heuristic-based values, so confidence indicators may drift from the production-grade LLM behaviour.
+
+**Root cause**: `RecommendationScoringService` replaces the intended AI integration with deterministic token similarity heuristics and returns a static fallback when scoring fails; no HTTP client or SDK connects to an external provider yet.【F:backend/app/services/recommendation_scoring.py†L29-L89】
+
+**Mitigation**:
+- Implement the real AI client and wire it into `RecommendationScoringService` before relying on recommendation scores operationally.
+- Guard the heuristic scorer behind a feature flag for offline development once live integration ships.
+- Document dashboards and workflows that depend on the production scorer so teams can validate behaviour after enabling the provider.
