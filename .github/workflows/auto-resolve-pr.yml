@@ -86,12 +86,12 @@ jobs:
             ran_tests=true
             pushd frontend > /dev/null
             npm ci
-            npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage
+            npx ng test --karma-config=karma.conf.cjs --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage
             popd > /dev/null
           elif [ -f package.json ]; then
             ran_tests=true
             npm ci
-            npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage
+            npx ng test --karma-config=karma.conf.cjs --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage
           fi
 
           if [ -f requirements.txt ]; then
