@@ -1,50 +1,10 @@
-const { join } = require('node:path');
-const { spawnSync } = require('node:child_process');
+const { join } = require('path');
 
-const puppeteer = require('puppeteer');
 // The Angular CLI adapter defines __karma__.start so the runner can bootstrap.
 const angularCliKarmaPlugin = require('@angular-devkit/build-angular/plugins/karma');
 
-const FALLBACK_CHROME_BINARIES = [
-  process.env.CHROME_BIN,
-  '/usr/bin/google-chrome-stable',
-  '/usr/bin/google-chrome',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/chromium',
-];
-
-const canLaunch = (binaryPath) => {
-  if (!binaryPath) {
-    return false;
-  }
-
-  const result = spawnSync(binaryPath, ['--version'], {
-    stdio: 'ignore',
-  });
-
-  if (result.error) {
-    return false;
-  }
-
-  return result.status === 0;
-};
-
-const resolveChromeBin = () => {
-  const bundledChrome = puppeteer.executablePath();
-  if (canLaunch(bundledChrome)) {
-    return bundledChrome;
-  }
-
-  for (const fallback of FALLBACK_CHROME_BINARIES) {
-    if (canLaunch(fallback)) {
-      return fallback;
-    }
-  }
-
-  return bundledChrome;
-};
-
-process.env.CHROME_BIN = resolveChromeBin();
+// Use Chrome from the system path
+process.env.CHROME_BIN = require('puppeteer').executablePath();
 
 module.exports = function (config) {
   config.set({
@@ -59,6 +19,12 @@ module.exports = function (config) {
     ],
     client: {
       clearContext: false,
+      jasmine: {
+        random: false
+      }
+    },
+    jasmineHtmlReporter: {
+      suppressAll: true,
     },
     coverageReporter: {
       dir: join(__dirname, './coverage'),
@@ -69,14 +35,30 @@ module.exports = function (config) {
       ],
     },
     reporters: ['progress', 'kjhtml'],
-    browsers: ['ChromeHeadlessNoSandbox'],
+    browsers: ['ChromeHeadlessCustom'],
     customLaunchers: {
-      ChromeHeadlessNoSandbox: {
+      ChromeHeadlessCustom: {
         base: 'ChromeHeadless',
-        flags: ['--no-sandbox', '--disable-dev-shm-usage'],
-      },
+        flags: [
+          '--no-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-software-rasterizer',
+          '--disable-setuid-sandbox',
+          '--no-zygote',
+          '--remote-debugging-port=9222',
+          '--disable-web-security',
+          '--disable-features=IsolateOrigins,site-per-process'
+        ]
+      }
     },
     singleRun: true,
+    autoWatch: false,
     restartOnFileChange: false,
+    browserNoActivityTimeout: 60000,
+    browserDisconnectTimeout: 10000,
+    browserDisconnectTolerance: 3,
+    captureTimeout: 60000,
+    logLevel: config.LOG_INFO
   });
 };
