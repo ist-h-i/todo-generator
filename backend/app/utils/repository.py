@@ -6,6 +6,8 @@ from collections.abc import Mapping
 from typing import Any, TypeVar
 
 from fastapi import HTTPException, status
+from sqlalchemy.exc import NoInspectionAvailable
+from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Session
 
 T = TypeVar("T")
@@ -24,7 +26,21 @@ def save_model(db: Session, instance: T, *, refresh: bool = True) -> T:
 def apply_updates(instance: T, updates: Mapping[str, Any]) -> T:
     """Apply attribute updates to an arbitrary SQLAlchemy model instance."""
 
+    try:
+        inspected = inspect(instance)
+    except NoInspectionAvailable:
+        inspected = None
+
+    valid_fields: set[str] | None = None
+    if inspected is not None and hasattr(inspected, "mapper"):
+        valid_fields = set(inspected.mapper.attrs.keys())
+
     for field, value in updates.items():
+        if valid_fields is not None:
+            if field not in valid_fields:
+                raise AttributeError(f"{instance.__class__.__name__!s} has no mapped attribute '{field}'")
+        elif not hasattr(instance, field):
+            raise AttributeError(f"{instance.__class__.__name__!s} has no attribute '{field}'")
         setattr(instance, field, value)
     return instance
 
