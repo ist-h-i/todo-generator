@@ -177,12 +177,12 @@ jobs:
             pushd frontend > /dev/null
             npm ci
             # Angularは必ずCLI経由でテストする
-            npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage
+            npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
             popd > /dev/null
           elif [ -f package.json ]; then
             ran_tests=true
             npm ci
-            npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage
+            npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
           fi
 
           if [ -f pytest.ini ] || [ -f conftest.py ] || [ -f requirements.txt ]; then
