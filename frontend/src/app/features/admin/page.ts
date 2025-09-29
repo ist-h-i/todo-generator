@@ -1,6 +1,13 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import {
+  FormArray,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -18,13 +25,29 @@ import {
   CompetencyInput,
   QuotaDefaults,
 } from '@core/models';
+import { signalForms } from '@shared/utils/signal-forms';
 
 type AdminTab = 'competencies' | 'evaluations' | 'users' | 'settings';
+type CriterionFormGroup = FormGroup<{
+  title: FormControl<string>;
+  description: FormControl<string>;
+}>;
+type UserQuotaForm = FormGroup<{
+  cardDailyLimit: FormControl<number | null>;
+  evaluationDailyLimit: FormControl<number | null>;
+}>;
+type CompetencyFormControls = {
+  name: FormControl<string>;
+  level: FormControl<CompetencyInput['level']>;
+  description: FormControl<string>;
+  is_active: FormControl<boolean>;
+  criteria: FormArray<CriterionFormGroup>;
+};
 
 @Component({
   selector: 'app-admin-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -32,6 +55,7 @@ export class AdminPage {
   private readonly api = inject(AdminApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
+  private readonly formBuilder = inject(FormBuilder);
 
   public readonly activeTab = signal<AdminTab>('competencies');
   public readonly competencies = signal<Competency[]>([]);
@@ -44,6 +68,67 @@ export class AdminPage {
   public readonly error = signal<string | null>(null);
 
   private readonly defaultGeminiModel = 'gemini-1.5-flash';
+  private readonly competencyCriteria = new FormArray<CriterionFormGroup>([
+    this.createCriterionGroup(),
+  ]);
+  public readonly competencyForm: FormGroup<CompetencyFormControls> = new FormGroup({
+    name: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    level: new FormControl<CompetencyInput['level']>('junior', {
+      nonNullable: true,
+    }),
+    description: new FormControl('', {
+      nonNullable: true,
+    }),
+    is_active: new FormControl(true, { nonNullable: true }),
+    criteria: this.competencyCriteria,
+  });
+  private readonly competencyFormState = signalForms(this.competencyForm);
+
+  public readonly evaluationForm: FormGroup<{
+    userId: FormControl<string>;
+    competencyId: FormControl<string>;
+    periodStart: FormControl<string>;
+    periodEnd: FormControl<string>;
+  }> = new FormGroup({
+    userId: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    competencyId: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    periodStart: new FormControl('', { nonNullable: true }),
+    periodEnd: new FormControl('', { nonNullable: true }),
+  });
+  private readonly evaluationFormState = signalForms(this.evaluationForm);
+
+  public readonly apiForm: FormGroup<{
+    model: FormControl<string>;
+    secret: FormControl<string>;
+  }> = new FormGroup({
+    model: new FormControl(this.defaultGeminiModel, { nonNullable: true }),
+    secret: new FormControl('', { nonNullable: true }),
+  });
+  private readonly apiFormState = signalForms(this.apiForm);
+
+  public readonly quotaDefaultsForm: FormGroup<{
+    cardDailyLimit: FormControl<number | null>;
+    evaluationDailyLimit: FormControl<number | null>;
+  }> = new FormGroup({
+    cardDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    evaluationDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+  });
+  private readonly quotaDefaultsFormState = signalForms(this.quotaDefaultsForm);
+
+  private readonly userQuotaForms = signal(new Map<string, UserQuotaForm>());
   public readonly geminiModelOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (推奨)' },
     { value: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash Latest' },
@@ -54,23 +139,6 @@ export class AdminPage {
   private readonly knownGeminiModelValues = new Set(
     this.geminiModelOptions.map((option) => option.value),
   );
-
-  public readonly newCompetency = signal<CompetencyInput>({
-    name: '',
-    level: 'junior',
-    description: '',
-    is_active: true,
-    criteria: [{ title: '', description: '' }],
-  });
-
-  public evaluationUserId = '';
-  public evaluationCompetencyId = '';
-  public evaluationPeriodStart = '';
-  public evaluationPeriodEnd = '';
-  public apiSecret = '';
-  public apiModel = this.defaultGeminiModel;
-  public defaultCardLimit: number | null = null;
-  public defaultEvaluationLimit: number | null = null;
 
   public constructor() {
     this.bootstrap();
@@ -88,51 +156,25 @@ export class AdminPage {
     this.error.set(null);
   }
 
-  public updateNewCompetencyField<K extends keyof CompetencyInput>(
-    field: K,
-    value: CompetencyInput[K],
-  ): void {
-    this.newCompetency.update((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }
-
-  public updateCriterionField(
-    index: number,
-    field: keyof CompetencyCriterionInput,
-    value: unknown,
-  ): void {
-    this.newCompetency.update((current) => {
-      const next = current.criteria.map((criterion, idx) =>
-        idx === index ? { ...criterion, [field]: value } : criterion,
-      );
-      return {
-        ...current,
-        criteria: next,
-      };
-    });
-  }
-
   public addCriterion(): void {
-    this.newCompetency.update((current) => ({
-      ...current,
-      criteria: [...current.criteria, { title: '', description: '' }],
-    }));
+    this.competencyCriteria.push(this.createCriterionGroup());
   }
 
   public removeCriterion(index: number): void {
-    this.newCompetency.update((current) => ({
-      ...current,
-      criteria: current.criteria.filter((_, idx) => idx !== index),
-    }));
+    if (this.competencyCriteria.length === 1) {
+      return;
+    }
+    this.competencyCriteria.removeAt(index);
   }
 
-  public createCompetency(event: SubmitEvent): void {
-    event.preventDefault();
+  public createCompetency(): void {
     this.clearError();
 
-    const value = this.newCompetency();
+    if (this.competencyForm.invalid) {
+      this.competencyForm.markAllAsTouched();
+    }
+
+    const value = this.competencyForm.getRawValue();
     const name = value.name.trim();
     if (name.length === 0) {
       this.error.set('コンピテンシー名を入力してください。');
@@ -142,19 +184,18 @@ export class AdminPage {
     const payload: CompetencyInput = {
       name,
       level: value.level,
-      description: value.description?.trim() ?? '',
-      sort_order: value.sort_order ?? 0,
-      is_active: value.is_active ?? true,
-      rubric: value.rubric ?? {},
+      description: value.description.trim(),
+      is_active: value.is_active,
+      rubric: {},
       criteria: value.criteria
         .map((criterion, index) => ({
-          title: (criterion.title ?? '').trim(),
-          description: criterion.description?.toString().trim() ?? undefined,
-          is_active: criterion.is_active ?? true,
-          order_index: criterion.order_index ?? index,
-          weight: criterion.weight ?? undefined,
-          intentionality_prompt: criterion.intentionality_prompt?.toString().trim() || undefined,
-          behavior_prompt: criterion.behavior_prompt?.toString().trim() || undefined,
+          title: criterion.title.trim(),
+          description: criterion.description.trim() || undefined,
+          is_active: true,
+          order_index: index,
+          weight: undefined,
+          intentionality_prompt: undefined,
+          behavior_prompt: undefined,
         }))
         .filter((criterion) => criterion.title.length > 0),
     };
@@ -178,13 +219,17 @@ export class AdminPage {
   }
 
   public resetCompetencyForm(): void {
-    this.newCompetency.set({
+    while (this.competencyCriteria.length > 1) {
+      this.competencyCriteria.removeAt(this.competencyCriteria.length - 1);
+    }
+    this.competencyForm.reset({
       name: '',
       level: 'junior',
       description: '',
       is_active: true,
-      criteria: [{ title: '', description: '' }],
     });
+    const first = this.competencyCriteria.at(0);
+    first?.reset({ title: '', description: '' });
   }
 
   public toggleCompetencyActive(competency: Competency, active: boolean): void {
@@ -200,25 +245,29 @@ export class AdminPage {
       });
   }
 
-  public triggerEvaluation(event: SubmitEvent): void {
-    event.preventDefault();
+  public triggerEvaluation(): void {
     this.clearError();
 
-    if (!this.evaluationUserId || !this.evaluationCompetencyId) {
+    if (this.evaluationForm.invalid) {
+      this.evaluationForm.markAllAsTouched();
+    }
+
+    const evaluation = this.evaluationForm.getRawValue();
+    if (!evaluation.userId || !evaluation.competencyId) {
       this.error.set('ユーザとコンピテンシーを選択してください。');
       return;
     }
 
     const payload = {
-      user_id: this.evaluationUserId,
-      period_start: this.evaluationPeriodStart || undefined,
-      period_end: this.evaluationPeriodEnd || undefined,
+      user_id: evaluation.userId,
+      period_start: evaluation.periodStart || undefined,
+      period_end: evaluation.periodEnd || undefined,
       triggered_by: 'manual' as const,
     };
 
     this.loading.set(true);
     this.api
-      .triggerEvaluation(this.evaluationCompetencyId, payload)
+      .triggerEvaluation(evaluation.competencyId, payload)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (evaluation) => {
@@ -242,9 +291,14 @@ export class AdminPage {
   }
 
   public saveUserQuota(user: AdminUser): void {
+    const form = this.userQuotaForms().get(user.id);
+    if (!form) {
+      return;
+    }
+    const { cardDailyLimit, evaluationDailyLimit } = form.getRawValue();
     this.updateUser(user, {
-      card_daily_limit: user.card_daily_limit ?? null,
-      evaluation_daily_limit: user.evaluation_daily_limit ?? null,
+      card_daily_limit: cardDailyLimit ?? null,
+      evaluation_daily_limit: evaluationDailyLimit ?? null,
     });
   }
 
@@ -269,6 +323,7 @@ export class AdminPage {
       .subscribe({
         next: () => {
           this.users.update((list) => list.filter((item) => item.id !== user.id));
+          this.syncUserQuotaForms(this.users());
           this.notify('ユーザを削除しました。');
         },
         error: (err) => this.handleError(err, 'ユーザの削除に失敗しました。'),
@@ -284,7 +339,8 @@ export class AdminPage {
     event.preventDefault();
     this.clearError();
 
-    const secret = this.apiSecret.trim();
+    const formValue = this.apiForm.getRawValue();
+    const secret = formValue.secret.trim();
     const hasCredential = this.apiCredential() !== null;
     if (!secret && !hasCredential) {
       this.error.set('API トークンを入力してください。');
@@ -292,7 +348,7 @@ export class AdminPage {
     }
 
     const payload: ApiCredentialUpdate = {
-      model: this.apiModel,
+      model: formValue.model,
     };
     if (secret) {
       payload.secret = secret;
@@ -306,8 +362,10 @@ export class AdminPage {
         next: (credential) => {
           this.loading.set(false);
           this.apiCredential.set(credential);
-          this.apiSecret = '';
-          this.apiModel = this.resolveChatModel(credential.model);
+          this.apiForm.reset({
+            model: this.resolveChatModel(credential.model),
+            secret: '',
+          });
           this.notify('API トークンを更新しました。');
         },
         error: (err) => {
@@ -322,34 +380,24 @@ export class AdminPage {
     return match?.email ?? userId;
   }
 
-  public onCardLimitChange(user: AdminUser, value: string | number | null): void {
-    if (value === null || value === '') {
-      user.card_daily_limit = null;
-      return;
-    }
-    user.card_daily_limit = Number(value);
-  }
-
-  public onEvaluationLimitChange(user: AdminUser, value: string | number | null): void {
-    if (value === null || value === '') {
-      user.evaluation_daily_limit = null;
-      return;
-    }
-    user.evaluation_daily_limit = Number(value);
-  }
-
   public updateQuotaDefaults(event: SubmitEvent): void {
     event.preventDefault();
     this.clearError();
 
-    if (this.defaultCardLimit === null || this.defaultEvaluationLimit === null) {
+    if (this.quotaDefaultsForm.invalid) {
+      this.quotaDefaultsForm.markAllAsTouched();
+    }
+
+    const formValue = this.quotaDefaultsForm.getRawValue();
+    const { cardDailyLimit, evaluationDailyLimit } = formValue;
+    if (cardDailyLimit === null || evaluationDailyLimit === null) {
       this.error.set('日次上限を入力してください。');
       return;
     }
 
     const payload = {
-      card_daily_limit: this.defaultCardLimit,
-      evaluation_daily_limit: this.defaultEvaluationLimit,
+      card_daily_limit: cardDailyLimit,
+      evaluation_daily_limit: evaluationDailyLimit,
     };
 
     this.loading.set(true);
@@ -360,6 +408,10 @@ export class AdminPage {
         next: (defaults) => {
           this.loading.set(false);
           this.quotaDefaults.set(defaults);
+          this.quotaDefaultsForm.setValue({
+            cardDailyLimit: defaults.card_daily_limit,
+            evaluationDailyLimit: defaults.evaluation_daily_limit,
+          });
           this.notify('デフォルト日次上限を更新しました。');
         },
         error: (err) => {
@@ -392,7 +444,10 @@ export class AdminPage {
       .listUsers()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (users) => this.users.set(users),
+        next: (users) => {
+          this.users.set(users);
+          this.syncUserQuotaForms(users);
+        },
         error: (err) => this.handleError(err, 'ユーザ一覧の取得に失敗しました。'),
       });
   }
@@ -414,8 +469,10 @@ export class AdminPage {
       .subscribe({
         next: (defaults) => {
           this.quotaDefaults.set(defaults);
-          this.defaultCardLimit = defaults.card_daily_limit;
-          this.defaultEvaluationLimit = defaults.evaluation_daily_limit;
+          this.quotaDefaultsForm.setValue({
+            cardDailyLimit: defaults.card_daily_limit,
+            evaluationDailyLimit: defaults.evaluation_daily_limit,
+          });
         },
         error: (err) => this.handleError(err, '日次上限の取得に失敗しました。'),
       });
@@ -428,12 +485,15 @@ export class AdminPage {
       .subscribe({
         next: (credential) => {
           this.apiCredential.set(credential);
-          this.apiModel = this.resolveChatModel(credential.model);
+          this.apiForm.patchValue({
+            model: this.resolveChatModel(credential.model),
+            secret: '',
+          });
         },
         error: (err: unknown) => {
           if (err instanceof HttpErrorResponse && err.status === 404) {
             this.apiCredential.set(null);
-            this.apiModel = this.defaultGeminiModel;
+            this.apiForm.setValue({ model: this.defaultGeminiModel, secret: '' });
             return;
           }
           this.handleError(err, 'API トークンの取得に失敗しました。');
@@ -468,6 +528,7 @@ export class AdminPage {
           this.users.update((list) =>
             list.map((item) => (item.id === updated.id ? updated : item)),
           );
+          this.syncUserQuotaForms(this.users());
           this.notify('ユーザ情報を更新しました。');
         },
         error: (err) => this.handleError(err, 'ユーザ情報の更新に失敗しました。'),
@@ -478,6 +539,43 @@ export class AdminPage {
     this.competencies.update((list) =>
       list.map((item) => (item.id === updated.id ? updated : item)),
     );
+  }
+
+  public quotaForm(userId: string): UserQuotaForm | undefined {
+    return this.userQuotaForms().get(userId);
+  }
+
+  private createCriterionGroup(initial?: Partial<CompetencyCriterionInput>): CriterionFormGroup {
+    return this.formBuilder.group({
+      title: this.formBuilder.control(initial?.title ?? '', { nonNullable: true }),
+      description: this.formBuilder.control(initial?.description ?? '', { nonNullable: true }),
+    });
+  }
+
+  private createUserQuotaForm(user: AdminUser): UserQuotaForm {
+    return this.formBuilder.group({
+      cardDailyLimit: this.formBuilder.control<number | null>(user.card_daily_limit ?? null),
+      evaluationDailyLimit: this.formBuilder.control<number | null>(
+        user.evaluation_daily_limit ?? null,
+      ),
+    });
+  }
+
+  private syncUserQuotaForms(users: AdminUser[]): void {
+    const next = new Map<string, UserQuotaForm>();
+    const current = this.userQuotaForms();
+    for (const user of users) {
+      const existing = current.get(user.id) ?? this.createUserQuotaForm(user);
+      existing.patchValue(
+        {
+          cardDailyLimit: user.card_daily_limit ?? null,
+          evaluationDailyLimit: user.evaluation_daily_limit ?? null,
+        },
+        { emitEvent: false },
+      );
+      next.set(user.id, existing);
+    }
+    this.userQuotaForms.set(next);
   }
 
   private notify(message: string): void {
