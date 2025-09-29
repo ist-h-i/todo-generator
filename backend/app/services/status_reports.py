@@ -181,9 +181,7 @@ class StatusReportService:
         error_message: str | None = None
 
         try:
-            response = self.analyzer.analyze(
-                schemas.AnalysisRequest(text=analysis_text, max_cards=max_cards)
-            )
+            response = self.analyzer.analyze(schemas.AnalysisRequest(text=analysis_text, max_cards=max_cards))
         except GeminiError as exc:
             error_message = str(exc)
         else:
@@ -296,9 +294,7 @@ class StatusReportService:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _normalize_sections(
-        self, sections: Sequence[schemas.StatusReportSection]
-    ) -> list[schemas.StatusReportSection]:
+    def _normalize_sections(self, sections: Sequence[schemas.StatusReportSection]) -> list[schemas.StatusReportSection]:
         normalized: list[schemas.StatusReportSection] = []
         for section in sections:
             body = section.body.strip()
@@ -387,6 +383,8 @@ class StatusReportService:
 
     def _serialize_card_link(self, link: models.StatusReportCardLink) -> schemas.StatusReportCardSummary:
         card = link.card
+        relationship = getattr(link, "link_role", None) or "primary"
+
         if not card:
             return schemas.StatusReportCardSummary(
                 id=link.card_id,
@@ -398,7 +396,7 @@ class StatusReportService:
                 due_date=None,
                 assignees=[],
                 subtasks=[],
-                relationship=getattr(link, "link_role", "primary"),
+                relationship=relationship,
                 confidence=link.confidence,
             )
 
@@ -413,7 +411,7 @@ class StatusReportService:
             due_date=card.due_date,
             assignees=list(card.assignees or []),
             subtasks=[schemas.SubtaskRead.model_validate(sub) for sub in card.subtasks],
-            relationship=getattr(link, "link_role", "primary"),
+            relationship=relationship,
             confidence=link.confidence,
         )
 
@@ -429,7 +427,7 @@ class StatusReportService:
                 continue
             try:
                 results.append(schemas.AnalysisCard.model_validate(item))
-            except Exception:  # pragma: no cover - defensive parsing
+            except Exception:  # pragma: no cover - defensive parsing  # noqa: S112
                 continue
         return results
 
@@ -445,4 +443,3 @@ class StatusReportService:
         if value.tzinfo is None:
             return value.replace(tzinfo=timezone.utc)
         return value
-
