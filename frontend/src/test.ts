@@ -21,6 +21,26 @@ declare const require: {
 // First, initialize the Angular testing environment.
 const testBed = getTestBed();
 
+type KarmaReporter = {
+  info?: (message: string) => void;
+  error?: (message: string) => void;
+};
+
+const karmaReporter: KarmaReporter | undefined =
+  (globalThis as { __karma__?: KarmaReporter }).__karma__;
+
+function reportTestIssue(message: string, error?: unknown) {
+  if (karmaReporter?.error) {
+    const detailedMessage =
+      error instanceof Error
+        ? `${message}: ${error.message}`
+        : error
+          ? `${message}: ${String(error)}`
+          : message;
+    karmaReporter.error(detailedMessage);
+  }
+}
+
 // Initialize the Angular testing environment
 function initializeTestEnvironment() {
   try {
@@ -33,10 +53,9 @@ function initializeTestEnvironment() {
         errorOnUnknownProperties: true
       }
     );
-    console.log('Test environment initialized successfully');
     return true;
   } catch (error) {
-    console.error('Error initializing test environment:', error);
+    reportTestIssue('Error initializing test environment', error);
     return false;
   }
 }
@@ -53,10 +72,9 @@ function loadTestFiles() {
     
     // Load each test file
     context.keys().map(context);
-    console.log('Test files loaded successfully');
     return true;
   } catch (error) {
-    console.error('Error loading test files:', error);
+    reportTestIssue('Error loading test files', error);
     return false;
   }
 }
@@ -66,9 +84,9 @@ const initSuccess = initializeTestEnvironment();
 if (initSuccess) {
   loadTestFiles();
 } else {
-  console.error('Test setup failed');
+  reportTestIssue('Test setup failed');
   // Use window.alert for better error visibility in browser
   if (typeof window !== 'undefined') {
-    window.alert('Test setup failed. Check console for details.');
+    window.alert('Test setup failed. Check Karma logs for details.');
   }
 }
