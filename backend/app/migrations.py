@@ -29,6 +29,10 @@ def _false_literal(dialect_name: str) -> str:
     return "FALSE" if dialect_name == "postgresql" else "0"
 
 
+def _string_column_type(dialect_name: str) -> str:
+    return "TEXT" if dialect_name == "sqlite" else "VARCHAR(255)"
+
+
 _DUPLICATE_COLUMN_TOKENS = (
     "duplicate column",
     "duplicate column name",
@@ -203,8 +207,7 @@ def _ensure_card_error_category_column(engine: Engine) -> None:
     if "error_category_id" in column_names:
         return
 
-    dialect = engine.dialect.name
-    column_type = "TEXT" if dialect == "sqlite" else "VARCHAR"
+    column_type = _string_column_type(engine.dialect.name)
     # Keep the inline REFERENCES clause so ON DELETE SET NULL behaves consistently for
     # PostgreSQL/MySQL, matching the ORM definition.
     add_column_sql = (
@@ -258,6 +261,210 @@ def _ensure_comment_subtask_column(engine: Engine) -> None:
     try:
         with engine.begin() as connection:
             connection.execute(text(f"ALTER TABLE comments ADD COLUMN subtask_id {column_type}"))
+    except SQLAlchemyError as exc:
+        if not _is_duplicate_column_error(exc):
+            raise
+
+
+def _backfill_owner_from_cards(connection, table: str, owner_column: str) -> None:
+    inspector = inspect(connection)
+    if not _table_exists(inspector, "cards"):
+        return
+
+    card_columns = _column_names(inspector, "cards")
+    if "owner_id" not in card_columns:
+        return
+
+    if table == "labels":
+        if not _table_exists(inspector, "card_labels"):
+            return
+        join_sql = " ".join(
+            [
+                "SELECT cards.owner_id FROM card_labels",
+                "JOIN cards ON cards.id = card_labels.card_id",
+                "WHERE card_labels.label_id = labels.id",
+                "AND cards.owner_id IS NOT NULL LIMIT 1",
+            ]
+        )
+    elif table == "statuses":
+        join_sql = " ".join(
+            [
+                "SELECT owner_id FROM cards",
+                "WHERE cards.status_id = statuses.id",
+                "AND owner_id IS NOT NULL LIMIT 1",
+            ]
+        )
+    else:
+        return
+
+    update_sql = " ".join(
+        [
+            f"UPDATE {table} SET {owner_column} = ({join_sql})",
+            f"WHERE {owner_column} IS NULL",
+        ]
+    )
+    connection.execute(text(update_sql))
+
+
+def _backfill_card_owner(connection) -> None:
+    inspector = inspect(connection)
+    if not _table_exists(inspector, "cards"):
+        return
+
+    card_columns = _column_names(inspector, "cards")
+    if "owner_id" not in card_columns:
+        return
+
+    if _table_exists(inspector, "statuses"):
+        status_columns = _column_names(inspector, "statuses")
+    else:
+        status_columns = set()
+
+    if "status_id" in card_columns and "owner_id" in status_columns:
+        connection.execute(
+            text(
+                "UPDATE cards "
+                "SET owner_id = ("
+                "    SELECT statuses.owner_id FROM statuses "
+                "    WHERE statuses.id = cards.status_id "
+                "      AND statuses.owner_id IS NOT NULL"
+                "    LIMIT 1"
+                ") "
+                "WHERE owner_id IS NULL"
+            )
+        )
+
+    fallback_owner = _fallback_owner_id(connection)
+    if fallback_owner:
+        connection.execute(
+            text("UPDATE cards SET owner_id = :owner WHERE owner_id IS NULL"),
+            {"owner": fallback_owner},
+        )
+
+
+def _fallback_owner_id(connection) -> str | None:
+    inspector = inspect(connection)
+    if not _table_exists(inspector, "users"):
+        return None
+
+    owner = connection.execute(text("SELECT id FROM users ORDER BY created_at ASC LIMIT 1")).scalar()
+    if owner:
+        return owner
+    return connection.execute(text("SELECT id FROM users ORDER BY id ASC LIMIT 1")).scalar()
+
+
+def _ensure_status_owner_column(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "statuses"):
+            return
+
+        column_names = _column_names(inspector, "statuses")
+
+    if "owner_id" in column_names:
+        return
+
+    column_type = _string_column_type(engine.dialect.name)
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(f"ALTER TABLE statuses ADD COLUMN owner_id {column_type}"))
+    except SQLAlchemyError as exc:
+        if not _is_duplicate_column_error(exc):
+            raise
+
+    with engine.begin() as connection:
+        _backfill_owner_from_cards(connection, "statuses", "owner_id")
+        fallback_owner = _fallback_owner_id(connection)
+        if fallback_owner:
+            connection.execute(
+                text("UPDATE statuses SET owner_id = :owner WHERE owner_id IS NULL"),
+                {"owner": fallback_owner},
+            )
+
+
+def _ensure_card_owner_column(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "cards"):
+            return
+
+        column_names = _column_names(inspector, "cards")
+        users_exists = _table_exists(inspector, "users")
+
+    if "owner_id" not in column_names:
+        column_type = _string_column_type(engine.dialect.name)
+        references_clause = " REFERENCES users(id) ON DELETE CASCADE" if users_exists else ""
+
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text("ALTER TABLE cards " "ADD COLUMN owner_id " f"{column_type}{references_clause}")
+                )
+        except SQLAlchemyError as exc:
+            if not _is_duplicate_column_error(exc):
+                raise
+
+    with engine.begin() as connection:
+        _backfill_card_owner(connection)
+
+
+def _ensure_label_owner_column(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "labels"):
+            return
+
+        column_names = _column_names(inspector, "labels")
+
+    if "owner_id" in column_names:
+        return
+
+    column_type = _string_column_type(engine.dialect.name)
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(f"ALTER TABLE labels ADD COLUMN owner_id {column_type}"))
+    except SQLAlchemyError as exc:
+        if not _is_duplicate_column_error(exc):
+            raise
+
+    with engine.begin() as connection:
+        _backfill_owner_from_cards(connection, "labels", "owner_id")
+        fallback_owner = _fallback_owner_id(connection)
+        if fallback_owner:
+            connection.execute(
+                text("UPDATE labels SET owner_id = :owner WHERE owner_id IS NULL"),
+                {"owner": fallback_owner},
+            )
+
+
+def _ensure_card_initiative_column(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "cards"):
+            return
+
+        column_names = _column_names(inspector, "cards")
+        has_initiatives = _table_exists(inspector, "improvement_initiatives")
+
+    if "initiative_id" in column_names:
+        return
+
+    column_type = _string_column_type(engine.dialect.name)
+
+    if has_initiatives:
+        add_column_sql = (
+            "ALTER TABLE cards "
+            "ADD COLUMN initiative_id "
+            f"{column_type} REFERENCES improvement_initiatives(id) ON DELETE SET NULL"
+        )
+    else:
+        add_column_sql = f"ALTER TABLE cards ADD COLUMN initiative_id {column_type}"
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(add_column_sql))
     except SQLAlchemyError as exc:
         if not _is_duplicate_column_error(exc):
             raise
@@ -523,6 +730,10 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_card_error_category_column(engine)
     _ensure_card_ai_failure_reason_column(engine)
     _ensure_comment_subtask_column(engine)
+    _ensure_card_owner_column(engine)
+    _ensure_status_owner_column(engine)
+    _ensure_label_owner_column(engine)
+    _ensure_card_initiative_column(engine)
     _rename_daily_report_tables(engine)
     _drop_status_report_report_date(engine)
     _ensure_workspace_template_default_flag(engine)
