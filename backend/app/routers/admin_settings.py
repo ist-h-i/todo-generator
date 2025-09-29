@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -20,7 +21,7 @@ from ..utils.secrets import SecretEncryptionKeyError, build_secret_hint, get_sec
 router = APIRouter(prefix="/admin", tags=["admin", "settings"])
 
 _PROVIDER_ALIASES: dict[str, tuple[str, ...]] = {
-    "gemini": ("gemini", "openai"),
+    "gemini": ("gemini",),
 }
 
 
@@ -39,9 +40,10 @@ def _provider_candidates(provider: str) -> list[str]:
 
     normalized = _normalize_provider(provider)
     candidates: list[str] = []
-    for candidate in (normalized, *_PROVIDER_ALIASES.get(normalized, ())):
-        if candidate not in candidates:
-            candidates.append(candidate)
+    for candidate in (normalized, provider, *_PROVIDER_ALIASES.get(normalized, ())):
+        lowered_candidate = candidate.lower()
+        if lowered_candidate not in candidates:
+            candidates.append(lowered_candidate)
     return candidates
 
 
@@ -50,9 +52,7 @@ def _get_existing_credential(db: Session, provider: str) -> models.ApiCredential
 
     for candidate in _provider_candidates(provider):
         credential = (
-            db.query(models.ApiCredential)
-            .filter(models.ApiCredential.provider == candidate)
-            .first()
+            db.query(models.ApiCredential).filter(func.lower(models.ApiCredential.provider) == candidate).first()
         )
         if credential:
             return credential
