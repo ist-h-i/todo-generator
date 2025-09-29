@@ -531,10 +531,17 @@ def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[s
     except SecretEncryptionKeyError as exc:
         raise GeminiConfigurationError(str(exc)) from exc
     try:
-        secret = cipher.decrypt(credential.encrypted_secret)
+        decryption = cipher.decrypt(credential.encrypted_secret)
+        secret = decryption.plaintext
     except Exception as exc:  # pragma: no cover - defensive path
         logger.exception("Failed to decrypt API credential for provider '%s'", provider)
         raise GeminiConfigurationError("Failed to decrypt Gemini API key.") from exc
+
+    if decryption.reencrypted_payload:
+        credential.encrypted_secret = decryption.reencrypted_payload
+        db.add(credential)
+        db.commit()
+        db.refresh(credential)
 
     if not secret:
         raise GeminiConfigurationError("Gemini API key is not configured. Update it from the admin settings.")
