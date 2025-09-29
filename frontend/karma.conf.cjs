@@ -2,6 +2,7 @@ const { join } = require('node:path');
 const puppeteer = require('puppeteer');
 const angularCliKarmaPlugin = require('@angular-devkit/build-angular/plugins/karma');
 
+// Puppeteer 経由でインストールされた Chrome のパスを環境変数に設定
 process.env.CHROME_BIN = puppeteer.executablePath();
 
 module.exports = function (config) {
@@ -24,11 +25,17 @@ module.exports = function (config) {
       reporters: [{ type: 'html' }, { type: 'text-summary' }],
     },
     reporters: ['progress', 'kjhtml'],
-    browsers: ['ChromeHeadless'],
+    browsers: ['ChromeHeadlessNoSandbox'],
     customLaunchers: {
-      ChromeHeadless: {
+      ChromeHeadlessNoSandbox: {
         base: 'ChromeHeadless',
-        flags: ['--no-sandbox', '--disable-dev-shm-usage'],
+        flags: [
+          '--no-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-setuid-sandbox',
+          '--remote-debugging-port=9222',
+        ],
       },
     },
     singleRun: true,
