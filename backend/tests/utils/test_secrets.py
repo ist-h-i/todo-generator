@@ -1,5 +1,6 @@
 import pytest
 
+from app.config import DEFAULT_SECRET_ENCRYPTION_KEY
 from app.utils.crypto import SecretCipher
 from app.utils.secrets import SecretEncryptionKeyError, build_secret_hint, get_secret_cipher
 
@@ -34,8 +35,19 @@ def test_get_secret_cipher_uses_application_settings(monkeypatch: pytest.MonkeyP
     assert cipher.decrypt(encrypted) == "sensitive value"
 
 
-@pytest.mark.parametrize("value", [None, "", "   "])
-def test_get_secret_cipher_requires_secret_key(monkeypatch: pytest.MonkeyPatch, value: str | None) -> None:
+def test_get_secret_cipher_uses_documented_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.config.settings.secret_encryption_key", None)
+
+    cipher = get_secret_cipher()
+
+    fallback_cipher = SecretCipher(DEFAULT_SECRET_ENCRYPTION_KEY)
+    sample = "sensitive value"
+    assert cipher.encrypt(sample) == fallback_cipher.encrypt(sample)
+    assert cipher.decrypt(cipher.encrypt(sample)) == sample
+
+
+@pytest.mark.parametrize("value", ["", "   "])
+def test_get_secret_cipher_requires_secret_key(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
     monkeypatch.setattr("app.config.settings.secret_encryption_key", value)
 
     with pytest.raises(SecretEncryptionKeyError):

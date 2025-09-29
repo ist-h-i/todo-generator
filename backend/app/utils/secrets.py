@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ..config import settings
+from ..config import DEFAULT_SECRET_ENCRYPTION_KEY, settings
 from .crypto import SecretCipher
 
 _DEFAULT_MASK_CHAR = "*"
@@ -16,11 +16,8 @@ class SecretEncryptionKeyError(RuntimeError):
 def get_secret_cipher() -> SecretCipher:
     """Return a cipher configured for encrypting stored secrets."""
 
-    key = settings.secret_encryption_key
-    if key is None:
-        raise SecretEncryptionKeyError(
-            "Secret encryption key is not configured. Set the SECRET_ENCRYPTION_KEY environment variable.",
-        )
+    configured_key = settings.secret_encryption_key
+    key = DEFAULT_SECRET_ENCRYPTION_KEY if configured_key is None else configured_key
 
     normalized_key = key.strip()
     if not normalized_key:

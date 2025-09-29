@@ -12,20 +12,12 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
-from app.config import settings
 from app.database import Base, get_db
 from app.main import app
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, future=True)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
-
-
-@pytest.fixture(autouse=True)
-def configure_secret_encryption_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Ensure a deterministic encryption key for tests that access secrets."""
-
-    monkeypatch.setattr(settings, "secret_encryption_key", "unit-test-secret-encryption-key")
 
 
 @pytest.fixture()
