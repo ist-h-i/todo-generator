@@ -102,6 +102,7 @@ describe('WorkspaceStore', () => {
   let boardLayoutsApi: MockBoardLayoutsApiService;
   let auth: MockAuthService;
   let logger: MockLogger;
+  let workspaceConfigApi: MockWorkspaceConfigApiService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -123,6 +124,9 @@ describe('WorkspaceStore', () => {
     boardLayoutsApi = TestBed.inject(
       BoardLayoutsApiService,
     ) as unknown as MockBoardLayoutsApiService;
+    workspaceConfigApi = TestBed.inject(
+      WorkspaceConfigApiService,
+    ) as unknown as MockWorkspaceConfigApiService;
     auth = TestBed.inject(AuthService) as unknown as MockAuthService;
     logger = TestBed.inject(Logger) as unknown as MockLogger;
 
@@ -343,6 +347,70 @@ describe('WorkspaceStore', () => {
           quickFilters: ['myAssignments'],
         }),
       );
+    });
+
+    it('clears filters that reference removed statuses when settings refresh', async () => {
+      const user = createAuthenticatedUser({ id: 'user-legacy' });
+      const settingsKey = `verbalize-yourself/workspace-settings/${user.id}`;
+      localStorage.setItem(
+        settingsKey,
+        JSON.stringify({
+          defaultStatusId: 'status-obsolete',
+          defaultAssignee: '',
+          timezone: 'UTC',
+          statuses: [
+            {
+              id: 'status-obsolete',
+              name: 'Obsolete',
+              category: 'todo',
+              order: 0,
+              color: '#64748b',
+            },
+          ],
+          labels: [],
+          templates: [],
+          storyPointScale: [],
+        }),
+      );
+
+      const preferencesKey = `verbalize-yourself/workspace-preferences/${user.id}`;
+      localStorage.setItem(
+        preferencesKey,
+        JSON.stringify({
+          grouping: 'status',
+          filters: {
+            search: '',
+            labelIds: [],
+            statusIds: ['status-obsolete'],
+            quickFilters: [],
+          },
+        }),
+      );
+
+      workspaceConfigApi.listStatuses.and.returnValue(
+        of([
+          {
+            id: 'status-active',
+            name: 'Active',
+            category: 'todo',
+            order: 0,
+            color: '#2563eb',
+            wip_limit: null,
+          },
+        ]),
+      );
+
+      auth.setUser(user);
+
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(workspaceConfigApi.listStatuses).toHaveBeenCalled();
+      expect(store.filters().statusIds).toEqual([]);
+
+      const persisted = JSON.parse(localStorage.getItem(preferencesKey) ?? '{}');
+      expect(persisted.filters?.statusIds).toEqual([]);
     });
 
     it('persists grouping updates via the board layout API', async () => {
