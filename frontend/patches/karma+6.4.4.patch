@@ -1,0 +1,150 @@
+diff --git a/node_modules/karma/lib/completion.js b/node_modules/karma/lib/completion.js
+index eb05852..5969a55 100644
+--- a/node_modules/karma/lib/completion.js
++++ b/node_modules/karma/lib/completion.js
+@@ -1,6 +1,6 @@
+ 'use strict'
+ 
+-const glob = require('glob')
++const { glob } = require('glob')
+ 
+ const CUSTOM = ['']
+ const BOOLEAN = false
+@@ -51,16 +51,18 @@ function sendCompletion (possibleWords, env) {
+     })
+ }
+ 
+-function sendCompletionFiles (env) {
+-  glob(env.last + '*', { mark: true, nocase: true }, (err, files) => {
+-    if (err) return console.error(err)
++async function sendCompletionFiles (env) {
++  try {
++    const files = await glob(env.last + '*', { mark: true, nocase: true })
+ 
+     if (files.length === 1 && files[0].endsWith('/')) {
+-      sendCompletionFiles({ last: files[0] })
++      await sendCompletionFiles({ last: files[0] })
+     } else {
+       console.log(files.join('\n'))
+     }
+-  })
++  } catch (err) {
++    console.error(err)
++  }
+ }
+ 
+ function complete (env) {
+diff --git a/node_modules/karma/lib/file-list.js b/node_modules/karma/lib/file-list.js
+index b4ec01d..563793b 100644
+--- a/node_modules/karma/lib/file-list.js
++++ b/node_modules/karma/lib/file-list.js
+@@ -2,7 +2,7 @@
+ 
+ const { promisify } = require('util')
+ const mm = require('minimatch')
+-const Glob = require('glob').Glob
++const { globSync } = require('glob')
+ const fs = require('graceful-fs')
+ const statAsync = promisify(fs.stat.bind(fs))
+ const pathLib = require('path')
+@@ -68,21 +68,35 @@ class FileList {
+           return
+         }
+ 
+-        const mg = new Glob(pathLib.normalize(pattern), { cwd: '/', follow: true, nodir: true, sync: true })
+-
+-        const files = mg.found
+-          .filter((path) => {
+-            if (this._findExcluded(path)) {
+-              log.debug(`Excluded file "${path}"`)
+-              return false
+-            } else if (matchedFiles.has(path)) {
+-              return false
+-            } else {
+-              matchedFiles.add(path)
+-              return true
+-            }
+-          })
+-          .map((path) => new File(path, mg.statCache[path].mtime, nocache, type, isBinary))
++        let matches = []
++        try {
++          matches = globSync(pathLib.normalize(pattern), { cwd: '/', follow: true, nodir: true })
++        } catch (error) {
++          log.error(`Error processing pattern "${pattern}": ${error.message}`)
++        }
++
++        const files = []
++        for (const filePath of matches) {
++          if (this._findExcluded(filePath)) {
++            log.debug(`Excluded file "${filePath}"`)
++            continue
++          }
++
++          if (matchedFiles.has(filePath)) {
++            continue
++          }
++
++          let stats
++          try {
++            stats = await statAsync(filePath)
++          } catch (error) {
++            log.error(`Error stating "${filePath}": ${error.message}`)
++            continue
++          }
++
++          matchedFiles.add(filePath)
++          files.push(new File(filePath, stats.mtime, nocache, type, isBinary))
++        }
+ 
+         if (nocache) {
+           log.debug(`Not preprocessing "${pattern}" due to nocache`)
+@@ -92,7 +106,7 @@ class FileList {
+ 
+         this.buckets.set(pattern, files)
+ 
+-        if (_.isEmpty(mg.found)) {
++        if (_.isEmpty(matches)) {
+           log.warn(`Pattern "${pattern}" does not match any file.`)
+         } else if (_.isEmpty(files)) {
+           log.warn(`All files matched by "${pattern}" were excluded or matched by prior matchers.`)
+diff --git a/node_modules/karma/lib/init.js b/node_modules/karma/lib/init.js
+index f55f94e..0bd12df 100755
+--- a/node_modules/karma/lib/init.js
++++ b/node_modules/karma/lib/init.js
+@@ -2,7 +2,7 @@
+ 
+ const readline = require('readline')
+ const path = require('path')
+-const glob = require('glob')
++const { globSync } = require('glob')
+ const mm = require('minimatch')
+ const exec = require('child_process').exec
+ 
+@@ -60,7 +60,7 @@ function installPackage (pkgName) {
+ }
+ 
+ function validatePattern (pattern) {
+-  if (!glob.sync(pattern).length) {
++  if (!globSync(pattern).length) {
+     log.warn('There is no file matching this pattern.\n')
+   }
+ }
+diff --git a/node_modules/karma/lib/temp_dir.js b/node_modules/karma/lib/temp_dir.js
+index 225059b..95b9e6e 100644
+--- a/node_modules/karma/lib/temp_dir.js
++++ b/node_modules/karma/lib/temp_dir.js
+@@ -26,6 +26,13 @@ module.exports = {
+ 
+   remove (path, done) {
+     log.debug(`Cleaning temp dir ${path}`)
+-    rimraf(path, done)
++    Promise.resolve(rimraf(path))
++      .then(() => {
++        if (done) done()
++      })
++      .catch((error) => {
++        log.error(`Failed to clean temp dir ${path}: ${error.message}`)
++        if (done) done(error)
++      })
+   }
+ }
