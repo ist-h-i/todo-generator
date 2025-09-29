@@ -414,9 +414,9 @@
   @if (activeTab() === 'settings') {
     <section class="page-section">
       <header class="page-section__header">
-        <h2 class="page-section__title">AI API トークン</h2>
+        <h2 class="page-section__title">Gemini API キー</h2>
         <p class="page-section__subtitle">
-          OpenAI などの API キーを安全に保管し、判定処理に利用します。
+          Google AI Studio で発行した Gemini API キーを安全に保管し、判定処理に利用します。
         </p>
       </header>
 
@@ -436,27 +436,26 @@
             @if (!isKnownModel(apiModel)) {
               <option [value]="apiModel">{{ apiModel }} (保存済み)</option>
             }
-            @for (option of chatModelOptions; track option.value) {
+            @for (option of geminiModelOptions; track option.value) {
               <option [value]="option.value">{{ option.label }}</option>
             }
           </select>
         </label>
 
         <label class="form-field form-field--full">
-          <span class="form-field__label">新しい API トークン</span>
+          <span class="form-field__label">新しい Gemini API キー</span>
           <input
             type="text"
             class="form-control"
             name="api-secret"
             autocomplete="off"
             [(ngModel)]="apiSecret"
-            placeholder="sk-..."
+            placeholder="例: AIzaSy..."
             [required]="!apiCredential()"
           />
         </label>
         <p class="form-note">
-          モデルの変更は次回の AI
-          実行から適用されます。高精度モデルはトークン消費が増えるため、チームの運用方針に合わせて選択してください。
+          モデルの変更は次回の AI 実行から適用されます。高精度モデルは消費トークンが増えるため、チームの運用方針に合わせて選択してください。
         </p>
         <button type="submit" class="button button--primary" [disabled]="loading()">保存</button>
       </form>
