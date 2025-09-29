@@ -29,12 +29,22 @@
 ## Settings page cannot edit status details
 **Impact**: Administrators can add or delete statuses from `/settings`, but there is no way to update the name, category, or colour once a status exists. Teams must delete the entry and recreate it to correct typos or adjust workflow columns, which also disrupts existing cards referencing the status.
 
-**Root cause**: The settings template renders existing statuses with a delete button only, and the component class exposes `addStatus`/`removeStatus` helpers without any edit action. No inline form is wired to call the status update API, so the workspace store never invokes `workspaceConfigApi.updateStatus` for existing rows.【F:frontend/src/app/features/settings/page.html†L17-L40】【F:frontend/src/app/features/settings/page.ts†L22-L87】【F:frontend/src/app/core/state/workspace-store.ts†L1910-L1946】
+**Root cause**: The settings template renders existing statuses with a delete button only, and the component class exposes `addStatus`/`removeStatus` helpers without any edit action. No inline form is wired to call the status update API, so the workspace store never invokes `workspaceConfigApi.updateStatus` for existing rows.【F:frontend/src/app/features/settings/page.html†L17-L95】【F:frontend/src/app/features/settings/page.ts†L22-L113】【F:frontend/src/app/core/state/workspace-store.ts†L1910-L1955】
 
 **Mitigation**:
 - Invoke the `/statuses/{id}` endpoint directly via REST client or console snippet that calls `workspaceConfigApi.updateStatus(...)` until inline editing ships.
 - When status edits are frequent, prefer using database scripts off-hours to adjust affected columns and card references.
 - Future work: add inline edit controls (mirroring the template editor) that patch existing statuses through `WorkspaceConfigApiService.updateStatus`.
+
+## Settings page cannot edit label details
+**Impact**: Workspace managers cannot rename labels, adjust colours, or toggle system flags once a label is created from `/settings`. Typos or colour mismatches require deleting the label, which cascades to every card using it.
+
+**Root cause**: The settings page lists labels with only a delete button and the form always creates new entries. The component calls `WorkspaceStore.addLabel`/`removeLabel` but never exposes an edit path, leaving `workspaceConfigApi.updateLabel` unused.【F:frontend/src/app/features/settings/page.html†L105-L155】【F:frontend/src/app/features/settings/page.ts†L32-L89】【F:frontend/src/app/core/state/workspace-store.ts†L1868-L1903】【F:frontend/src/app/core/api/workspace-config-api.service.ts†L106-L119】
+
+**Mitigation**:
+- Until inline editing exists, call `PUT /labels/{id}` through the API client or browser console helper that invokes `workspaceConfigApi.updateLabel(...)`.
+- Audit label usage before deleting entries so cards can be re-tagged quickly.
+- Future work: add inline edit controls with colour pickers and validation that route through `WorkspaceConfigApiService.updateLabel`.
 
 ## Workspace data is not persisted outside the container
 **Impact**: All boards, cards, and configuration disappear whenever the FastAPI process restarts in the default development environment because the SQLite database file lives only inside the running container or virtual environment.

@@ -8,7 +8,7 @@ Verbalize Yourself is an AI-assisted operations workspace that turns free-form s
 - Status reporting: compose shift reports, trigger automated analysis, convert generated actions into linked cards, and review submission history.
 - Analytics dashboards: inspect recurrence trends, root-cause trees, and suggested actions, then promote recommendations into cards without leaving analytics.
 - Governance and competency management: administer API credentials, daily quotas, error categories, and competency evaluations from the admin console.
-- Server-side recommendation scoring: every created or updated card receives an `ai_confidence` score, human-readable `ai_notes`, and an optional `ai_failure_reason` sourced from the FastAPI scoring service so reviewers understand why a suggestion ranked the way it did.
+- Heuristic recommendation scoring: every created or updated card receives an `ai_confidence` score, human-readable `ai_notes`, and an optional `ai_failure_reason` from the FastAPI scoring service, which currently relies on deterministic token similarity until a live provider integration ships.
 
 ## Technology Stack
 - Frontend: Angular standalone components with signal-based state management, Angular CDK drag-and-drop, Tailwind-inspired design tokens, ESLint, and Prettier.
