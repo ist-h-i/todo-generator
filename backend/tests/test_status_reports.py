@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 from fastapi.testclient import TestClient
 
-from app import schemas
+from app import models, schemas
 from app.main import app
 from app.services.gemini import GeminiError, get_gemini_client
+from app.services.status_reports import StatusReportService
 
-DEFAULT_PASSWORD = "Register123!"
+DEFAULT_PASSWORD = "Register123!"  # noqa: S105 - test helper credential
 
 
 def register_and_login(client: TestClient, email: str, password: str = DEFAULT_PASSWORD) -> dict[str, str]:
@@ -58,7 +61,7 @@ class FailingThenSucceedingGemini:
             proposals=[
                 schemas.AnalysisCard(
                     title="フォローアップタスク (再解析)",
-                    summary="再解析後の提案", 
+                    summary="再解析後の提案",
                     priority="medium",
                     due_in_days=None,
                     subtasks=[],
@@ -170,3 +173,27 @@ def test_retry_status_report_after_failure_succeeds(client: TestClient) -> None:
 
     get_response = client.get(f"/status-reports/{report_id}", headers=headers)
     assert get_response.status_code == 404
+
+
+def test_serialize_card_link_defaults_relationship_when_card_missing() -> None:
+    service = StatusReportService(db=MagicMock())
+    link = models.StatusReportCardLink(card_id="card-1", link_role=None, confidence=0.5)
+
+    summary = service._serialize_card_link(link)
+
+    assert summary.relationship == "primary"
+    assert summary.id == "card-1"
+    assert summary.title == "(deleted card)"
+
+
+def test_serialize_card_link_defaults_relationship_for_existing_card() -> None:
+    service = StatusReportService(db=MagicMock())
+    card = models.Card(id="card-2", title="Investigate issue", owner_id="owner-1", assignees=["alice"])
+    card.subtasks = []
+    link = models.StatusReportCardLink(card_id=card.id, card=card, link_role="")
+
+    summary = service._serialize_card_link(link)
+
+    assert summary.relationship == "primary"
+    assert summary.id == card.id
+    assert summary.assignees == ["alice"]
