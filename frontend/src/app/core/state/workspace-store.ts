@@ -2931,10 +2931,16 @@ export class WorkspaceStore {
       return [];
     }
 
-    const filtered = value.filter(
-      (entry): entry is string => typeof entry === 'string' && allowed.has(entry),
-    );
+    const entries = value.filter((entry): entry is string => typeof entry === 'string');
+    if (entries.length === 0) {
+      return [];
+    }
 
+    if (allowed.size === 0) {
+      return unique(entries);
+    }
+
+    const filtered = entries.filter((entry) => allowed.has(entry));
     if (filtered.length === 0) {
       return [];
     }

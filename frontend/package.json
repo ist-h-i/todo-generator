@@ -9,10 +9,10 @@
     "test": "ng test --browsers=ChromeHeadless --watch=false --code-coverage=false",
     "test:debug": "ng test --browsers=Chrome --watch=true",
     "test:ci": "ng test --browsers=ChromeHeadless --watch=false --no-progress --code-coverage",
-    "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
+    "lint": "node ./scripts/run-eslint-legacy.cjs \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\"",
     "format:write": "prettier --write \"src/**/*.{ts,html,scss}\"",
-    "postinstall": "node node_modules/puppeteer/install.js"
+    "postinstall": "node node_modules/puppeteer/install.mjs"
   },
   "prettier": {
     "printWidth": 100,
@@ -51,7 +51,6 @@
     "@typescript-eslint/eslint-plugin": "^8.44.1",
     "@typescript-eslint/parser": "^8.44.1",
     "autoprefixer": "^10.4.21",
-    "cross-env": "^10.0.0",
     "esbuild": "^0.25.10",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
