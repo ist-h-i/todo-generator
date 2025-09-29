@@ -48,16 +48,19 @@ def test_get_secret_cipher_allows_documented_fallback_when_configured(
     assert cipher.decrypt(cipher.encrypt(sample)) == sample
 
 
-def test_get_secret_cipher_raises_when_key_is_unconfigured(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_secret_cipher_uses_fallback_when_key_is_unconfigured(monkeypatch: pytest.MonkeyPatch) -> None:
     class _StubSettings:
         def __init__(self) -> None:
-            self.secret_encryption_key = DEFAULT_SECRET_ENCRYPTION_KEY
-            self.model_fields_set: set[str] = set()
+            self.secret_encryption_key = None
 
     monkeypatch.setattr("app.utils.secrets.settings", _StubSettings())
 
-    with pytest.raises(SecretEncryptionKeyError):
-        get_secret_cipher()
+    cipher = get_secret_cipher()
+
+    fallback_cipher = SecretCipher(DEFAULT_SECRET_ENCRYPTION_KEY)
+    sample = "sensitive value"
+    assert cipher.encrypt(sample) == fallback_cipher.encrypt(sample)
+    assert cipher.decrypt(cipher.encrypt(sample)) == sample
 
 
 @pytest.mark.parametrize("value", ["", "   "])

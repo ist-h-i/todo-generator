@@ -38,7 +38,15 @@ Verbalize Yourself is an AI-assisted operations workspace that turns free-form s
 - Optionally set `SECRET_ENCRYPTION_KEY` for encrypting stored secrets.
 
 ### Environment Variables
-Create a `.env` file in the repository root or export variables before launching the backend.
+Create a `.env` file in the repository root or export variables before launching the backend. The backend uses [Pydantic `BaseSettings`](backend/app/config.py) so anything defined in the environment (shell exports, Docker/Render/Heroku config vars, etc.) will be read automatically.
+
+> 💡 **Where do I set `SECRET_ENCRYPTION_KEY`?**
+>
+> Add the variable to the same place you configure the rest of the backend environment:
+> - **Local development:** create a `.env` file alongside this README and add `SECRET_ENCRYPTION_KEY=your-32-byte-key`. The `uvicorn` command in the setup section loads it automatically.
+> - **Production / hosted deployments:** register the variable in your platform's secret manager or environment variable settings (for example, `systemd` unit `Environment=` entries, Docker Compose `.env`, Fly.io/Render/Heroku config vars, or Kubernetes secrets mounted as env vars).
+>
+> The application still falls back to the documented default (`"verbalize-yourself"`) when the variable is missing, but you should always set a unique key outside of test environments.
 
 | Variable | Description | Default |
 | --- | --- | --- |
