@@ -77,7 +77,7 @@
           "builder": "@angular/build:extract-i18n"
         },
         "test": {
-          "builder": "@angular/build:karma",
+          "builder": "@angular-devkit/build-angular:karma",
           "options": {
             "karmaConfig": "karma.conf.cjs",
             "polyfills": [
