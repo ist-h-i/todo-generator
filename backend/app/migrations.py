@@ -207,8 +207,7 @@ def _ensure_card_error_category_column(engine: Engine) -> None:
     if "error_category_id" in column_names:
         return
 
-    dialect = engine.dialect.name
-    column_type = "TEXT" if dialect == "sqlite" else "VARCHAR"
+    column_type = _string_column_type(engine.dialect.name)
     # Keep the inline REFERENCES clause so ON DELETE SET NULL behaves consistently for
     # PostgreSQL/MySQL, matching the ORM definition.
     add_column_sql = (
@@ -452,8 +451,7 @@ def _ensure_card_initiative_column(engine: Engine) -> None:
     if "initiative_id" in column_names:
         return
 
-    dialect = engine.dialect.name
-    column_type = "TEXT" if dialect == "sqlite" else "VARCHAR"
+    column_type = _string_column_type(engine.dialect.name)
 
     if has_initiatives:
         add_column_sql = (
