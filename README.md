@@ -8,6 +8,7 @@ Verbalize Yourself is an AI-assisted operations workspace that turns free-form s
 - Status reporting: compose shift reports, trigger automated analysis, convert generated actions into linked cards, and review submission history.
 - Analytics dashboards: inspect recurrence trends, root-cause trees, and suggested actions, then promote recommendations into cards without leaving analytics.
 - Governance and competency management: administer API credentials, daily quotas, error categories, and competency evaluations from the admin console.
+- Server-side recommendation scoring: every created or updated card receives an `ai_confidence` score, human-readable `ai_notes`, and an optional `ai_failure_reason` sourced from the FastAPI scoring service so reviewers understand why a suggestion ranked the way it did.
 
 ## Technology Stack
 - Frontend: Angular standalone components with signal-based state management, Angular CDK drag-and-drop, Tailwind-inspired design tokens, ESLint, and Prettier.
@@ -46,6 +47,8 @@ Create a `.env` file in the repository root or export variables before launching
 | `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `gemini-1.5-flash` |
 | `CHATGPT_MODEL` | Legacy alias for `GEMINI_MODEL` kept for backward compatibility. | `gpt-4o-mini` |
 | `SECRET_ENCRYPTION_KEY` | AES key for encrypting stored secrets. | `verbalize-yourself` |
+| `RECOMMENDATION_WEIGHT_LABEL` | Weight applied to label correlation when computing `ai_confidence`. | `0.6` |
+| `RECOMMENDATION_WEIGHT_PROFILE` | Weight applied to profile alignment when computing `ai_confidence`. | `0.4` |
 | `ALLOWED_ORIGINS` | Comma-separated list of CORS origins for the SPA. | `http://localhost:4200` |
 
 ### Windows one-click setup
@@ -93,6 +96,13 @@ Documentation-only updates may skip automated checks, but keep README and `docs/
 - `docs/development-rules.md` captures workflow expectations, test strategy, and PR guidelines.
 - Prompt reference files for AI orchestration are stored under `prompts/`.
 - `scripts/run_codex_pipeline.sh` runs the Codex automation pipeline; `start-mcp-servers.*` launches Model Context Protocol helper servers.
+
+### Documentation quick links
+- [Documentation index](docs/README.md) – curated map of the most frequently referenced specs and playbooks.
+- [Architecture overview](docs/architecture.md) – high-level system diagram and component breakdown.
+- [Data flow reference](docs/data-flow-overview.md) – end-to-end traces for core workflows.
+- [Known issues](docs/known-issues.md) – outstanding UX and engineering gaps to factor into planning.
+- [Development rules](docs/development-rules.md) – working agreements, quality bars, and automation hints.
 
 ## Troubleshooting
 ### WinError 10055 on Windows
