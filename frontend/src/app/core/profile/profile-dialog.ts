@@ -303,7 +303,7 @@ const ROLE_OPTION_LOOKUP = new Map(ROLE_OPTIONS.map((option) => [option.value, o
 const MAX_NICKNAME_LENGTH = 30;
 const MAX_BIO_LENGTH = 500;
 const MAX_EXPERIENCE_YEARS = 50;
-const MAX_ROLES = 5;
+const MAX_ROLES = 10;
 const MAX_CUSTOM_ROLE_LENGTH = 32;
 const ALLOWED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp'] as const;
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
