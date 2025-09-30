@@ -140,6 +140,7 @@ def parse_roles(value: str | None) -> list[str]:
         )
 
     normalized: list[str] = []
+    seen: set[str] = set()
     for item in parsed:
         if not isinstance(item, str):
             raise HTTPException(
@@ -157,8 +158,12 @@ def parse_roles(value: str | None) -> list[str]:
                 detail=f"業務内容は1項目あたり{_MAX_ROLE_LENGTH}文字以内で入力してください。",
             )
 
-        if role not in normalized:
-            normalized.append(role)
+        canonical = role.casefold()
+        if canonical in seen:
+            continue
+
+        seen.add(canonical)
+        normalized.append(role)
 
         if len(normalized) > _MAX_ROLES:
             raise HTTPException(
@@ -209,10 +214,13 @@ async def process_avatar_upload(upload: UploadFile) -> tuple[bytes, str]:
 
     if side > _MAX_AVATAR_DIMENSION:
         resampling = getattr(pillow.Image, "Resampling", pillow.Image)
-        cropped = cropped.resize((
-            _MAX_AVATAR_DIMENSION,
-            _MAX_AVATAR_DIMENSION,
-        ), resampling.LANCZOS)
+        cropped = cropped.resize(
+            (
+                _MAX_AVATAR_DIMENSION,
+                _MAX_AVATAR_DIMENSION,
+            ),
+            resampling.LANCZOS,
+        )
 
     buffer = io.BytesIO()
     cropped.save(buffer, format="WEBP", quality=85, method=6)

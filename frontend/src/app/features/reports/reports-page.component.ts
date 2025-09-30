@@ -485,7 +485,7 @@ export class ReportAssistantPageComponent {
   }
 
   private createSubtaskGroup(subtask?: StatusReportProposalSubtask): FormGroup {
-    const status = this.normalizeStatusForEditing(subtask?.status);
+    const status = this.normalizeSubtaskStatusForEditing(subtask?.status);
     return this.fb.group({
       title: [subtask?.title ?? ''],
       description: [subtask?.description ?? ''],
@@ -511,6 +511,48 @@ export class ReportAssistantPageComponent {
 
     const normalized = trimmed.toLowerCase();
     return index.get(normalized) ?? trimmed;
+  }
+
+  private normalizeSubtaskStatusForEditing(status: string | null | undefined): string {
+    if (!status) {
+      return '';
+    }
+
+    const trimmed = status.trim();
+    if (!trimmed) {
+      return '';
+    }
+
+    const normalized = trimmed.toLowerCase();
+    const settings = this.workspace.settings();
+
+    const matchById = settings.statuses.find(
+      (candidate) => candidate.id.trim().toLowerCase() === normalized,
+    );
+    if (matchById?.category) {
+      return matchById.category;
+    }
+
+    const matchByName = settings.statuses.find(
+      (candidate) => candidate.name.trim().toLowerCase() === normalized,
+    );
+    if (matchByName?.category) {
+      return matchByName.category;
+    }
+
+    const matchByCategory = settings.statuses.find(
+      (candidate) => candidate.category === normalized,
+    );
+    if (matchByCategory?.category) {
+      return matchByCategory.category;
+    }
+
+    const resolved = this.resolveSubtaskStatus(trimmed);
+    if (resolved === 'todo' && normalized !== 'todo') {
+      return '';
+    }
+
+    return resolved;
   }
 
   private buildCreatePayload(): StatusReportCreateRequest | null {

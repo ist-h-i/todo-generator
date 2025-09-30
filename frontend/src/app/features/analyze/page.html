@@ -264,7 +264,6 @@
                       [value]="proposal.statusId"
                       (change)="updateProposalStatus(proposal.id, $any($event.target).value)"
                     >
-                      <option value="">未設定</option>
                       @for (status of workspaceStatuses(); track status.id) {
                         <option [value]="status.id">{{ status.name }}</option>
                       }
