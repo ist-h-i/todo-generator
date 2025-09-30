@@ -38,6 +38,30 @@ export class ReportAssistantPageComponent {
   private readonly publishPendingState = signal(false);
   private readonly publishErrorState = signal<string | null>(null);
   private readonly publishSuccessState = signal<string | null>(null);
+  private readonly statusNameIndex = computed(() => {
+    const index = new Map<string, string>();
+    for (const status of this.workspace.settings().statuses) {
+      index.set(status.id, status.name);
+
+      const normalizedId = status.id.trim().toLowerCase();
+      if (normalizedId) {
+        index.set(normalizedId, status.name);
+      }
+
+      const normalizedName = status.name.trim().toLowerCase();
+      if (normalizedName) {
+        index.set(normalizedName, status.name);
+      }
+
+      if (status.category) {
+        const normalizedCategory = status.category.trim().toLowerCase();
+        if (normalizedCategory) {
+          index.set(normalizedCategory, status.name);
+        }
+      }
+    }
+    return index;
+  });
 
   public readonly form = this.fb.group({
     tags: [''],
@@ -51,6 +75,25 @@ export class ReportAssistantPageComponent {
   public readonly publishPending = computed(() => this.publishPendingState());
   public readonly publishError = computed(() => this.publishErrorState());
   public readonly publishSuccess = computed(() => this.publishSuccessState());
+
+  public readonly formatProposalStatus = (status: string | null | undefined): string => {
+    if (!status) {
+      return '未設定';
+    }
+
+    const index = this.statusNameIndex();
+    const directMatch = index.get(status);
+    if (directMatch) {
+      return directMatch;
+    }
+
+    const normalized = status.trim().toLowerCase();
+    if (!normalized) {
+      return '未設定';
+    }
+
+    return index.get(normalized) ?? '未設定';
+  };
 
   public get sections(): FormArray<FormGroup> {
     return this.form.get('sections') as FormArray<FormGroup>;
