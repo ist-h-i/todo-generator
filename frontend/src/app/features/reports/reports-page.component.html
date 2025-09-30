@@ -124,7 +124,7 @@
         <div class="report-assistant-page__status-group">
           <span class="page-badge page-badge--accent">ステータス {{ active.status }}</span>
           <span class="page-badge">カード {{ active.cards.length }} 件</span>
-          <span class="page-badge">提案 {{ active.pending_proposals.length }} 件</span>
+          <span class="page-badge">提案 {{ proposalControls.length }} 件</span>
         </div>
 
         <div class="app-alert app-alert--error" *ngIf="active.failure_reason" role="alert">
@@ -169,15 +169,23 @@
           </ul>
         </section>
 
-        <section
-          class="report-assistant-page__group"
-          *ngIf="active.pending_proposals.length > 0"
-        >
-          <header class="report-assistant-page__group-header">
-            <h3 class="page-section__title">提案中のタスク</h3>
-            <p class="page-section__subtitle">
-              必要な提案を個別にカードとして起票できます。
-            </p>
+        <section class="report-assistant-page__group">
+          <header
+            class="report-assistant-page__group-header report-assistant-page__group-header--with-action"
+          >
+            <div>
+              <h3 class="page-section__title">提案中のタスク</h3>
+              <p class="page-section__subtitle">
+                必要な提案を個別にカードとして起票できます。内容を編集したり、提案を追加・削除したりできます。
+              </p>
+            </div>
+            <button
+              type="button"
+              class="button button--secondary focus-ring"
+              (click)="addProposal()"
+            >
+              提案を追加
+            </button>
           </header>
 
           <div
@@ -195,57 +203,167 @@
             {{ errorMessage }}
           </div>
 
-          <ul class="page-list" aria-label="提案中のタスク">
-            <li
-              class="page-list__item"
-              *ngFor="let proposal of active.pending_proposals; index as index"
-            >
-              <div class="page-list__heading">
-                <p class="page-list__title">{{ proposal.title }}</p>
-                <div class="report-assistant-page__proposal-actions">
-                  <button
-                    type="button"
-                    class="button button--secondary focus-ring"
-                    (click)="publishProposal(proposal)"
-                    [disabled]="publishPending()"
-                  >
-                    この提案をカードに追加
-                  </button>
+          <ng-container *ngIf="proposalControls.length > 0; else emptyProposals">
+            <ul class="page-list" aria-label="提案中のタスク">
+              <li class="page-list__item" *ngFor="let proposal of proposalControls; index as index">
+                <div class="report-assistant-page__proposal-editor" [formGroup]="proposal">
+                  <div class="report-assistant-page__proposal-header">
+                    <div class="form-field form-field--full">
+                      <label class="form-field__label">
+                        タイトル <span aria-hidden="true">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        formControlName="title"
+                        placeholder="提案するタスクのタイトルを入力"
+                      />
+                    </div>
+                    <div class="report-assistant-page__proposal-actions">
+                      <button
+                        type="button"
+                        class="button button--secondary focus-ring"
+                        (click)="publishProposal(index)"
+                        [disabled]="publishPending()"
+                      >
+                        この提案をカードに追加
+                      </button>
+                      <button
+                        type="button"
+                        class="button button--ghost focus-ring"
+                        (click)="removeProposal(index)"
+                      >
+                        提案を削除
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="form-field form-field--full">
+                    <label class="form-field__label">
+                      概要 <span aria-hidden="true">*</span>
+                    </label>
+                    <textarea
+                      class="form-control form-control--textarea"
+                      formControlName="summary"
+                      rows="3"
+                      placeholder="提案の背景や詳細を入力"
+                    ></textarea>
+                  </div>
+
+                  <div class="form-grid form-grid--two report-assistant-page__proposal-grid">
+                    <div class="form-field">
+                      <label class="form-field__label">推奨ステータス</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        formControlName="status"
+                        placeholder="例: In Progress"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label class="form-field__label">推奨ラベル</label>
+                      <input
+                        type="text"
+                        class="form-control"
+                        formControlName="labels"
+                        placeholder="カンマまたはスペース区切りで入力"
+                      />
+                      <p class="form-note">例: backend, リリース準備</p>
+                    </div>
+                    <div class="form-field">
+                      <label class="form-field__label">優先度</label>
+                      <select class="form-control" formControlName="priority">
+                        <option value="urgent">urgent</option>
+                        <option value="high">high</option>
+                        <option value="medium">medium</option>
+                        <option value="low">low</option>
+                      </select>
+                    </div>
+                    <div class="form-field">
+                      <label class="form-field__label">期限目安 (日)</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        formControlName="dueInDays"
+                        min="0"
+                        placeholder="例: 3"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="report-assistant-page__subtasks-editor" formArrayName="subtasks">
+                    <header class="report-assistant-page__subtasks-header">
+                      <h4 class="page-section__title">サブタスク</h4>
+                      <button
+                        type="button"
+                        class="button button--ghost focus-ring"
+                        (click)="addSubtask(index)"
+                      >
+                        サブタスクを追加
+                      </button>
+                    </header>
+
+                    <ng-container *ngIf="proposalSubtasks(index).length > 0; else emptySubtasks">
+                      <div
+                        class="report-assistant-page__subtask-editor"
+                        *ngFor="let subtask of proposalSubtasks(index).controls; index as subIndex"
+                        [formGroupName]="subIndex"
+                      >
+                        <div class="form-grid form-grid--two">
+                          <div class="form-field">
+                            <label class="form-field__label">タイトル</label>
+                            <input
+                              type="text"
+                              class="form-control"
+                              formControlName="title"
+                              placeholder="例: 調査"
+                            />
+                          </div>
+                          <div class="form-field">
+                            <label class="form-field__label">ステータス</label>
+                            <input
+                              type="text"
+                              class="form-control"
+                              formControlName="status"
+                              placeholder="todo / in-progress / done"
+                            />
+                          </div>
+                          <div class="form-field form-field--full">
+                            <label class="form-field__label">詳細</label>
+                            <textarea
+                              class="form-control form-control--textarea"
+                              formControlName="description"
+                              rows="2"
+                              placeholder="補足情報を入力"
+                            ></textarea>
+                          </div>
+                        </div>
+                        <div class="report-assistant-page__subtask-actions">
+                          <button
+                            type="button"
+                            class="button button--ghost focus-ring"
+                            (click)="removeSubtask(index, subIndex)"
+                          >
+                            サブタスクを削除
+                          </button>
+                        </div>
+                      </div>
+                    </ng-container>
+                    <ng-template #emptySubtasks>
+                      <p class="form-note">
+                        サブタスクはまだありません。必要に応じて「サブタスクを追加」をクリックしてください。
+                      </p>
+                    </ng-template>
+                  </div>
                 </div>
-              </div>
-              <p class="page-list__description">{{ proposal.summary }}</p>
-
-              <div class="page-list__meta">
-                <span class="page-badge page-badge--accent">
-                  優先度 {{ proposal.priority || 'medium' }}
-                </span>
-                <span class="page-badge" *ngIf="proposal.status">
-                  推奨ステータス: {{ formatProposalStatus(proposal.status) }}
-                </span>
-                <span class="page-badge" *ngIf="proposal.labels.length > 0">
-                  推奨ラベル: {{ proposal.labels.join(', ') }}
-                </span>
-                <span
-                  class="page-badge"
-                  *ngIf="proposal.due_in_days !== null && proposal.due_in_days !== undefined"
-                >
-                  期限目安: {{ proposal.due_in_days }} 日以内
-                </span>
-              </div>
-
-              <div class="report-assistant-page__subtasks" *ngIf="proposal.subtasks.length > 0">
-                <span class="surface-pill px-3 py-1" *ngFor="let sub of proposal.subtasks">
-                  <ng-container *ngIf="sub.title; else subDescriptionOnly">
-                    {{ sub.title }}
-                    <ng-container *ngIf="sub.description"> — {{ sub.description }}</ng-container>
-                  </ng-container>
-                  <ng-template #subDescriptionOnly>
-                    {{ sub.description }}
-                  </ng-template>
-                </span>
-              </div>
-            </li>
-          </ul>
+              </li>
+            </ul>
+          </ng-container>
+          <ng-template #emptyProposals>
+            <p class="form-note">
+              提案がありません。手動で提案を追加してカード化することもできます。
+            </p>
+          </ng-template>
         </section>
 
         <section class="report-assistant-page__group">
