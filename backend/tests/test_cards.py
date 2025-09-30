@@ -189,6 +189,38 @@ def test_create_card_with_subtasks(client: TestClient) -> None:
     assert detail_response.json()["title"] == "Implement API skeleton"
 
 
+def test_create_card_registers_missing_labels(client: TestClient) -> None:
+    email = "labels-missing@example.com"
+    headers = register_and_login(client, email)
+    status_id = create_status(client, headers)
+    existing_label_id = create_label(client, headers)
+
+    response = client.post(
+        "/cards",
+        json={
+            "title": "Auto register labels",
+            "status_id": status_id,
+            "label_ids": [existing_label_id, "  未登録ラベル  "],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    data = response.json()
+
+    label_lookup = {label["name"]: label for label in data["labels"]}
+    assert "未登録ラベル" in label_lookup
+    new_label = label_lookup["未登録ラベル"]
+    assert new_label["color"].startswith("#")
+
+    assert existing_label_id in data["label_ids"]
+    assert new_label["id"] in data["label_ids"]
+
+    labels_response = client.get("/labels", headers=headers)
+    assert labels_response.status_code == 200
+    labels = labels_response.json()
+    assert any(label["id"] == new_label["id"] and label["name"] == "未登録ラベル" for label in labels)
+
+
 def test_subtask_crud_flow(client: TestClient) -> None:
     email = "subtasks@example.com"
     headers = register_and_login(client, email)

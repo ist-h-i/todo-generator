@@ -32,6 +32,23 @@ router = APIRouter(prefix="/cards", tags=["cards"])
 _scoring_service = RecommendationScoringService()
 
 
+_FALLBACK_LABEL_COLOURS = [
+    "#38bdf8",
+    "#a855f7",
+    "#ec4899",
+    "#f97316",
+    "#14b8a6",
+    "#eab308",
+    "#6366f1",
+]
+
+
+def _next_label_colour(index: int) -> str:
+    if not _FALLBACK_LABEL_COLOURS:
+        return "#38bdf8"
+    return _FALLBACK_LABEL_COLOURS[index % len(_FALLBACK_LABEL_COLOURS)]
+
+
 def _card_query(db: Session, *, owner_id: str | None = None):
     query = db.query(models.Card).options(
         selectinload(models.Card.subtasks),
@@ -69,15 +86,70 @@ def _subtask_status_is_done(value: str | None) -> bool:
     return value.strip().lower() in _DONE_STATUS_TOKENS
 
 
-def _load_owned_labels(db: Session, *, label_ids: list[str], owner_id: str) -> list[models.Label]:
-    if not label_ids:
+def _sanitize_label_inputs(values: Iterable[str | None]) -> list[str]:
+    cleaned: list[str] = []
+    for raw in values:
+        if raw is None:
+            continue
+        candidate = raw.strip()
+        if candidate:
+            cleaned.append(candidate)
+    return list(dict.fromkeys(cleaned))
+
+
+def _resolve_card_labels(
+    db: Session,
+    *,
+    label_inputs: Iterable[str | None],
+    owner: models.User,
+) -> list[models.Label]:
+    unique_inputs = _sanitize_label_inputs(label_inputs)
+    if not unique_inputs:
         return []
 
-    unique_ids = list(dict.fromkeys(label_ids))
+    labels = db.query(models.Label).filter(models.Label.id.in_(unique_inputs), models.Label.owner_id == owner.id).all()
+    resolved: dict[str, models.Label] = {label.id: label for label in labels}
+
+    missing = [value for value in unique_inputs if value not in resolved]
+    if missing:
+        normalized_lookup = {value.strip().lower(): value for value in missing}
+        existing_by_name = (
+            db.query(models.Label)
+            .filter(
+                models.Label.owner_id == owner.id,
+                func.lower(func.trim(models.Label.name)).in_(list(normalized_lookup.keys())),
+            )
+            .all()
+        )
+        for label in existing_by_name:
+            key = (label.name or "").strip().lower()
+            original = normalized_lookup.get(key)
+            if original:
+                resolved[original] = label
+
+    remaining = [value for value in unique_inputs if value not in resolved]
+    if remaining:
+        existing_count = db.query(func.count(models.Label.id)).filter(models.Label.owner_id == owner.id).scalar() or 0
+        for offset, value in enumerate(remaining):
+            colour = _next_label_colour(existing_count + offset)
+            label = models.Label(name=value, color=colour, owner=owner)
+            db.add(label)
+            resolved[value] = label
+
+    return [resolved[value] for value in unique_inputs]
+
+
+def _load_owned_labels(db: Session, *, label_ids: list[str], owner_id: str) -> list[models.Label]:
+    unique_ids = _sanitize_label_inputs(label_ids)
+    if not unique_ids:
+        return []
+
     labels = db.query(models.Label).filter(models.Label.id.in_(unique_ids), models.Label.owner_id == owner_id).all()
     if len(labels) != len(unique_ids):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found")
-    return labels
+
+    lookup = {label.id: label for label in labels}
+    return [lookup[label_id] for label_id in unique_ids]
 
 
 def _compose_label_texts(labels: Iterable[models.Label]) -> list[str]:
@@ -363,7 +435,11 @@ def create_card(
     )
 
     status_obj = db.get(models.Status, payload.status_id) if payload.status_id else None
-    labels = _load_owned_labels(db, label_ids=list(payload.label_ids or []), owner_id=current_user.id)
+    labels = _resolve_card_labels(
+        db,
+        label_inputs=list(payload.label_ids or []),
+        owner=current_user,
+    )
 
     profile = build_user_profile(current_user)
     score = _score_card_from_payload(
