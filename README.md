@@ -44,7 +44,7 @@ Create a `.env` file in the repository root or export variables before launching
 | --- | --- | --- |
 | `DATABASE_URL` | SQLAlchemy connection string. Use PostgreSQL for production workloads. | `sqlite:///./todo.db` |
 | `DEBUG` | Enables verbose logging and exception responses. | `False` |
-| `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `gemini-1.5-flash` |
+| `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `gemini-1.5-flash-latest` |
 | `SECRET_ENCRYPTION_KEY` | AES key for encrypting stored secrets. | `verbalize-yourself` |
 | `RECOMMENDATION_WEIGHT_LABEL` | Weight applied to label correlation when computing `ai_confidence`. | `0.6` |
 | `RECOMMENDATION_WEIGHT_PROFILE` | Weight applied to profile alignment when computing `ai_confidence`. | `0.4` |

@@ -67,7 +67,7 @@ export class AdminPage {
   public readonly feedback = signal<string | null>(null);
   public readonly error = signal<string | null>(null);
 
-  private readonly defaultGeminiModel = 'gemini-1.5-flash';
+  private readonly defaultGeminiModel = 'gemini-1.5-flash-latest';
   private readonly competencyCriteria = new FormArray<CriterionFormGroup>([
     this.createCriterionGroup(),
   ]);
@@ -130,8 +130,8 @@ export class AdminPage {
 
   private readonly userQuotaForms = signal(new Map<string, UserQuotaForm>());
   public readonly geminiModelOptions: ReadonlyArray<{ value: string; label: string }> = [
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (推奨)' },
-    { value: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash Latest' },
+    { value: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash (推奨)' },
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (旧バージョン)' },
     { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
     { value: 'gemini-1.0-pro', label: 'Gemini 1.0 Pro' },
     { value: 'gemini-1.0-pro-vision', label: 'Gemini 1.0 Pro Vision' },

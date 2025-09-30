@@ -13,7 +13,7 @@ import google.generativeai as genai
 
 MAX_RETRIES = 3
 
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-latest")
 genai.configure()
 model = genai.GenerativeModel(MODEL_NAME)
 
@@ -21,7 +21,7 @@ model = genai.GenerativeModel(MODEL_NAME)
 def run_cmd(cmd: Sequence[str], *, capture: bool = False, cwd: str | None = None) -> Tuple[str, str, int]:
     """Run a shell command and optionally capture its output."""
     print(f"$ {' '.join(cmd)}", flush=True)
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603
         list(cmd),
         cwd=cwd,
         check=False,
@@ -158,7 +158,11 @@ def _run_python_tests() -> Tuple[bool, str, str]:
         stderr_parts.append(err)
         success = success and code == 0
 
-    return success, "\n".join(part for part in stdout_parts if part).strip(), "\n".join(part for part in stderr_parts if part).strip()
+    return (
+        success,
+        "\n".join(part for part in stdout_parts if part).strip(),
+        "\n".join(part for part in stderr_parts if part).strip(),
+    )
 
 
 def _run_node_tests() -> Tuple[bool, str, str]:
@@ -182,7 +186,11 @@ def _run_node_tests() -> Tuple[bool, str, str]:
         stderr_parts.append(err)
         success = success and code == 0
 
-    return success, "\n".join(part for part in stdout_parts if part).strip(), "\n".join(part for part in stderr_parts if part).strip()
+    return (
+        success,
+        "\n".join(part for part in stdout_parts if part).strip(),
+        "\n".join(part for part in stderr_parts if part).strip(),
+    )
 
 
 def run_tests() -> Tuple[bool, str, str]:
@@ -216,10 +224,10 @@ def main() -> None:
         success, out, err = run_tests()
 
         if success:
-            print(f"✅ テスト成功！（{attempt}回目）", flush=True)
+            print(f"✅ テスト成功！（{attempt}回目）", flush=True)  # noqa: RUF001
             return
 
-        print(f"❌ テスト失敗（{attempt}回目） 修正を試みます...", flush=True)
+        print(f"❌ テスト失敗（{attempt}回目） 修正を試みます...", flush=True)  # noqa: RUF001
         error_log = "\n".join(part for part in [out, err] if part)
 
         for file_path in conflicted_files:

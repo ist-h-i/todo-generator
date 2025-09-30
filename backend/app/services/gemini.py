@@ -171,12 +171,19 @@ class GeminiClient:
         "uniqueItems",
     }
 
+    _LEGACY_MODEL_ALIASES: ClassVar[dict[str, str]] = {
+        "gemini-1.5-flash": "gemini-1.5-flash-latest",
+        "models/gemini-1.5-flash": "gemini-1.5-flash-latest",
+        "models/gemini-1.5-flash-latest": "gemini-1.5-flash-latest",
+    }
+
     def __init__(
         self,
         model: str | None = None,
         api_key: str | None = None,
     ) -> None:
-        self.model = model or settings.gemini_model
+        resolved_model = model or settings.gemini_model
+        self.model = self.normalize_model_name(resolved_model)
         self.api_key = api_key
 
         if not self.api_key:
@@ -189,6 +196,15 @@ class GeminiClient:
 
         genai.configure(api_key=self.api_key)
         self._client = genai.GenerativeModel(self.model)
+
+    @classmethod
+    def normalize_model_name(cls, model: str) -> str:
+        """Return a supported Gemini model name."""
+
+        normalized = model.strip()
+        if not normalized:
+            return normalized
+        return cls._LEGACY_MODEL_ALIASES.get(normalized, normalized)
 
     def analyze(
         self,
@@ -607,7 +623,7 @@ def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[s
             raise GeminiConfigurationError("Gemini API key is disabled. Update it from the admin settings.")
 
         if settings.gemini_api_key:
-            return settings.gemini_api_key, settings.gemini_model
+            return settings.gemini_api_key, GeminiClient.normalize_model_name(settings.gemini_model)
 
         raise GeminiConfigurationError("Gemini API key is not configured. Update it from the admin settings.")
 
@@ -632,7 +648,13 @@ def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[s
         raise GeminiConfigurationError("Gemini API key is not configured. Update it from the admin settings.")
 
     model = credential.model or settings.gemini_model
-    return secret, model
+    normalized_model = GeminiClient.normalize_model_name(model)
+    if credential.model and credential.model != normalized_model:
+        credential.model = normalized_model
+        db.add(credential)
+        db.commit()
+        db.refresh(credential)
+    return secret, normalized_model
 
 
 def _load_gemini_api_key(db: Session, provider: str = "gemini") -> str:

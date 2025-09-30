@@ -41,13 +41,13 @@ def test_admin_can_update_gemini_model_without_rotating_secret(client: TestClien
     )
     assert update.status_code == 200, update.text
     updated_payload = update.json()
-    assert updated_payload["model"] == "gemini-1.5-flash"
+    assert updated_payload["model"] == "gemini-1.5-flash-latest"
     assert updated_payload["secret_hint"] == created_payload["secret_hint"]
 
     fetch = client.get("/admin/api-credentials/gemini", headers=headers)
     assert fetch.status_code == 200, fetch.text
     fetched_payload = fetch.json()
-    assert fetched_payload["model"] == "gemini-1.5-flash"
+    assert fetched_payload["model"] == "gemini-1.5-flash-latest"
 
 
 def test_admin_credentials_use_default_secret_key(client: TestClient) -> None:
@@ -57,7 +57,7 @@ def test_admin_credentials_use_default_secret_key(client: TestClient) -> None:
     create = client.put(
         "/admin/api-credentials/gemini",
         headers=headers,
-        json={"secret": secret, "model": "gemini-1.5-flash"},
+        json={"secret": secret, "model": "gemini-1.5-flash-latest"},
     )
     assert create.status_code == 200, create.text
 

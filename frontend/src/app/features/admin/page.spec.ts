@@ -28,7 +28,7 @@ class MockAdminApiService {
     is_active: true,
     created_at: '2024-01-01T00:00:00.000Z',
     updated_at: '2024-01-01T00:00:00.000Z',
-    model: 'gemini-1.5-flash',
+    model: 'gemini-1.5-flash-latest',
     secret_hint: null,
   };
 
