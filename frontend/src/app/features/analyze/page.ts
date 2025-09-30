@@ -498,11 +498,11 @@ export class AnalyzePage {
       .map((subtask) => subtask.title.trim())
       .filter((title) => title.length > 0);
 
-    if (sanitized.length > 0) {
-      return sanitized;
+    if (sanitized.length === 0) {
+      return [];
     }
 
-    return original?.subtasks ?? [];
+    return sanitized;
   }
 
   private showLoadingToast(): void {
