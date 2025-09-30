@@ -220,7 +220,7 @@
                   優先度 {{ proposal.priority || 'medium' }}
                 </span>
                 <span class="page-badge" *ngIf="proposal.status">
-                  推奨ステータス: {{ proposal.status }}
+                  推奨ステータス: {{ formatProposalStatus(proposal.status) }}
                 </span>
                 <span class="page-badge" *ngIf="proposal.labels.length > 0">
                   推奨ラベル: {{ proposal.labels.join(', ') }}
