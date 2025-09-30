@@ -61,6 +61,7 @@ export interface WorkspaceTemplateResponse {
   readonly default_label_ids?: readonly string[] | null;
   readonly confidence_threshold: number;
   readonly field_visibility: WorkspaceTemplateFieldVisibilityResponse;
+  readonly is_system_default: boolean;
   readonly created_at: string;
   readonly updated_at: string;
 }

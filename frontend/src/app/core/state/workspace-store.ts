@@ -73,6 +73,7 @@ const cloneTemplate = (template: TemplatePreset): TemplatePreset => ({
   defaultLabelIds: [...template.defaultLabelIds],
   confidenceThreshold: template.confidenceThreshold,
   fieldVisibility: { ...template.fieldVisibility },
+  isSystemDefault: template.isSystemDefault,
 });
 
 const cloneSettings = (settings: WorkspaceSettings): WorkspaceSettings => ({
@@ -499,6 +500,7 @@ const mapTemplateResponse = (
       showAssignee: visibility.show_assignee ?? DEFAULT_TEMPLATE_FIELDS.showAssignee,
       showConfidence: visibility.show_confidence ?? DEFAULT_TEMPLATE_FIELDS.showConfidence,
     },
+    isSystemDefault: Boolean(response.is_system_default),
   } satisfies TemplatePreset;
 };
 
@@ -622,6 +624,7 @@ type RawTemplateRecord = {
   defaultLabelIds?: unknown;
   confidenceThreshold?: unknown;
   fieldVisibility?: unknown;
+  isSystemDefault?: unknown;
 };
 
 type RawTemplateFieldVisibility = {
@@ -1995,7 +1998,7 @@ export class WorkspaceStore {
    */
   public readonly updateTemplate = async (
     templateId: string,
-    changes: Partial<Omit<TemplatePreset, 'id'>>,
+    changes: Partial<Omit<TemplatePreset, 'id' | 'isSystemDefault'>>,
   ): Promise<void> => {
     const updatePayload: Record<string, unknown> = {};
 
@@ -2056,8 +2059,12 @@ export class WorkspaceStore {
    * @param templateId - Identifier of the template to delete.
    */
   public readonly removeTemplate = async (templateId: string): Promise<void> => {
-    const existed = this.settingsSignal().templates.some((template) => template.id === templateId);
-    if (!existed) {
+    const template = this.settingsSignal().templates.find((entry) => entry.id === templateId);
+    if (!template) {
+      return;
+    }
+
+    if (template.isSystemDefault) {
       return;
     }
 
@@ -2121,7 +2128,12 @@ export class WorkspaceStore {
             mapTemplateResponse(response, allowedStatusIds, allowedLabelIds, defaultStatusFallback),
           )
           .filter((template): template is TemplatePreset => template !== null)
-          .sort((left, right) => left.name.localeCompare(right.name));
+          .sort((left, right) => {
+            if (left.isSystemDefault === right.isSystemDefault) {
+              return left.name.localeCompare(right.name);
+            }
+            return left.isSystemDefault ? -1 : 1;
+          });
 
         const defaultStatusId = allowedStatusIds.has(currentSettings.defaultStatusId)
           ? currentSettings.defaultStatusId
@@ -3146,6 +3158,7 @@ export class WorkspaceStore {
       defaultLabelIds,
       confidenceThreshold,
       fieldVisibility,
+      isSystemDefault: Boolean(record.isSystemDefault),
     } satisfies TemplatePreset;
   }
 

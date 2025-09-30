@@ -276,6 +276,11 @@ export class SettingsPage {
    * @param templateId - Identifier of the template to remove.
    */
   public readonly removeTemplate = async (templateId: string): Promise<void> => {
+    const template = this.settingsSignal().templates.find((entry) => entry.id === templateId);
+    if (!template || template.isSystemDefault) {
+      return;
+    }
+
     try {
       await this.workspace.removeTemplate(templateId);
       if (this.editingTemplateId() === templateId) {
