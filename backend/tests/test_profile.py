@@ -114,7 +114,7 @@ def test_avatar_upload_missing_pillow(monkeypatch, client: TestClient, email: st
 def test_profile_roles_limit(client: TestClient, email: str) -> None:
     _, headers = _register_and_login(client, email)
 
-    too_many_roles = [f"Role {index}" for index in range(6)]
+    too_many_roles = [f"Role {index}" for index in range(11)]
 
     response = client.put(
         "/profile/me",
