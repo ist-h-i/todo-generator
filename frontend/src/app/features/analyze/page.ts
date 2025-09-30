@@ -46,6 +46,12 @@ export class AnalyzePage {
     message: string;
   } | null>(null);
   private readonly highlightResults = signal(false);
+  private readonly statusNameMap = computed(
+    () => new Map(this.workspace.settings().statuses.map((status) => [status.id, status.name])),
+  );
+  private readonly labelNameMap = computed(
+    () => new Map(this.workspace.settings().labels.map((label) => [label.id, label.name])),
+  );
 
   private toastTimer: number | null = null;
   private highlightTimer: number | null = null;
@@ -113,6 +119,26 @@ export class AnalyzePage {
   public readonly generationToastMessage = computed(() => this.toastMessageSignal());
 
   public readonly proposalPublishFeedback = computed(() => this.publishFeedback());
+
+  public readonly formatSuggestedStatus = (statusId: string | null | undefined): string => {
+    if (!statusId) {
+      return '未設定';
+    }
+
+    return this.statusNameMap().get(statusId) ?? '未設定';
+  };
+
+  public readonly formatSuggestedLabels = (labelIds: readonly string[]): string => {
+    if (!labelIds || labelIds.length === 0) {
+      return '未設定';
+    }
+
+    const names = labelIds
+      .map((labelId) => this.labelNameMap().get(labelId))
+      .filter((name): name is string => Boolean(name));
+
+    return names.length > 0 ? names.join('、') : '未設定';
+  };
 
   private readonly analyzerLifecycle = effect(() => {
     const request = this.requestSignal();
