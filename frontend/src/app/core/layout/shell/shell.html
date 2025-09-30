@@ -38,22 +38,24 @@
         </button>
       </div>
     }
-    @let profileToast = profileToastMessage();
-    @if (profileToast) {
+    @let hoverMessages = hoverMessageList();
+    @if (hoverMessages.length > 0) {
       <div class="shell-toast-stack" role="region" aria-live="polite" aria-label="グローバル通知">
-        <div class="shell-toast" role="status">
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            class="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5 10 17l9-10" />
-          </svg>
-          <span>{{ profileToast }}</span>
-        </div>
+        @for (toast of hoverMessages; track toast.id) {
+          <div class="shell-toast" role="status">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5 10 17l9-10" />
+            </svg>
+            <span>{{ toast.text }}</span>
+          </div>
+        }
       </div>
     }
     <div class="shell-header__content shell-container">

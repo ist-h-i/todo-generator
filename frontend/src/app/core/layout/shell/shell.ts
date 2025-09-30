@@ -16,6 +16,11 @@ import { ProfileDialogComponent } from '@core/profile/profile-dialog';
 import { UserProfile } from '@core/profile/profile.models';
 import { HelpDialogComponent } from './help-dialog';
 
+type HoverMessage = {
+  readonly id: number;
+  readonly text: string;
+};
+
 function extractRoleLabel(role: string): string {
   const separator = ' / ';
   const lastSeparatorIndex = role.lastIndexOf(separator);
@@ -60,8 +65,9 @@ export class Shell {
   private readonly legacyThemeStorageKey = 'todo-generator:theme-preference';
   private readonly helpDialogVisible = signal(false);
   private readonly profileDialogVisible = signal(false);
-  private readonly profileToastStore = signal<string | null>(null);
-  private toastTimeoutHandle: number | null = null;
+  private readonly hoverMessageStore = signal<readonly HoverMessage[]>([]);
+  private readonly hoverMessageTimers = new Map<number, number>();
+  private hoverMessageSequence = 0;
 
   private readonly themeLabels: Record<ThemePreference, string> = {
     light: 'ライトモード',
@@ -90,7 +96,7 @@ export class Shell {
   );
   public readonly isHelpDialogOpen = computed(() => this.helpDialogVisible());
   public readonly isProfileDialogOpen = computed(() => this.profileDialogVisible());
-  public readonly profileToastMessage = computed(() => this.profileToastStore());
+  public readonly hoverMessageList = computed(() => this.hoverMessageStore());
   public readonly globalErrorMessage = this.errorNotifier.message;
 
   private readonly syncTheme = effect(() => {
@@ -190,7 +196,7 @@ export class Shell {
   public constructor() {
     this.setupSystemThemeListener();
     this.destroyRef.onDestroy(() => {
-      this.clearToastTimer();
+      this.clearHoverMessageTimers();
     });
   }
 
@@ -318,27 +324,41 @@ export class Shell {
   }
 
   private showProfileToast(message: string): void {
-    this.profileToastStore.set(message);
-
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    this.clearToastTimer();
-    this.toastTimeoutHandle = window.setTimeout(() => {
-      this.profileToastStore.set(null);
-      this.toastTimeoutHandle = null;
-    }, 4000);
+    this.enqueueHoverMessage(message);
   }
 
-  private clearToastTimer(): void {
+  private enqueueHoverMessage(text: string): void {
+    const entry: HoverMessage = {
+      id: ++this.hoverMessageSequence,
+      text,
+    };
+
+    this.hoverMessageStore.update((messages) => [entry, ...messages]);
+
     if (typeof window === 'undefined') {
       return;
     }
 
-    if (this.toastTimeoutHandle !== null) {
-      window.clearTimeout(this.toastTimeoutHandle);
-      this.toastTimeoutHandle = null;
+    const timer = window.setTimeout(() => {
+      this.hoverMessageTimers.delete(entry.id);
+      this.hoverMessageStore.update((messages) =>
+        messages.filter((message) => message.id !== entry.id),
+      );
+    }, 4000);
+
+    this.hoverMessageTimers.set(entry.id, timer);
+  }
+
+  private clearHoverMessageTimers(): void {
+    if (typeof window === 'undefined') {
+      return;
     }
+
+    for (const timer of this.hoverMessageTimers.values()) {
+      window.clearTimeout(timer);
+    }
+
+    this.hoverMessageTimers.clear();
+    this.hoverMessageStore.set([]);
   }
 }

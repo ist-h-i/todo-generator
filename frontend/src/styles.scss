@@ -676,7 +676,7 @@ app-shell .shell-user__email {
 
 app-shell .shell-toast-stack {
   position: fixed;
-  bottom: clamp(24px, 6vh, 72px);
+  top: clamp(88px, 8vh, 128px);
   right: clamp(12px, 5vw, 48px);
   display: flex;
   flex-direction: column;
@@ -752,7 +752,7 @@ app-shell .shell-global-error__dismiss:hover {
 @keyframes shell-toast-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(-10px);
   }
 
   to {
