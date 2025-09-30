@@ -67,7 +67,7 @@ class GeminiClient:
                         },
                         "priority": {"type": "string", "default": "medium"},
                         "due_in_days": {
-                            "type": ["integer", "null"],
+                            "type": "integer",
                         },
                         "subtasks": {
                             "type": "array",
@@ -82,7 +82,7 @@ class GeminiClient:
                                         "minLength": 1,
                                     },
                                     "description": {
-                                        "type": ["string", "null"],
+                                        "type": "string",
                                     },
                                     "status": {
                                         "type": "string",
@@ -480,23 +480,29 @@ class GeminiClient:
 
     def _string_list(self, value: Any) -> List[str]:
         if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
-            items = [self._clean_string(item) for item in value]
-            return [item for item in items if item]
+            results: List[str] = []
+            for item in value:
+                text = self._clean_string(item)
+                if text:
+                    results.append(text)
+            return results
         return []
 
     def _to_optional_int(self, value: Any) -> Optional[int]:
         if value is None:
+            return None
+        if isinstance(value, str) and not value.strip():
             return None
         try:
             return int(value)
         except (TypeError, ValueError):
             return None
 
-    def _clean_string(self, value: Any) -> str:
+    def _clean_string(self, value: Any) -> Optional[str]:
         if value is None:
-            return ""
+            return None
         text = str(value).strip()
-        return text
+        return text or None
 
 
 def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[str, str]:

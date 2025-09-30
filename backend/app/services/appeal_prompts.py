@@ -102,7 +102,7 @@ class AppealPromptBuilder:
                             "additionalProperties": False,
                             "properties": {
                                 "content": {"type": "string", "minLength": 1},
-                                "tokens_used": {"type": ["integer", "null"]},
+                                "tokens_used": {"type": "integer"},
                             },
                             "required": ["content"],
                         }
@@ -111,7 +111,7 @@ class AppealPromptBuilder:
                 "token_usage": {
                     "type": "object",
                     "additionalProperties": {
-                        "type": ["integer", "number", "null"],
+                        "type": "number",
                     },
                 },
             },
