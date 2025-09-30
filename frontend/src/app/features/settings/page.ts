@@ -19,6 +19,10 @@ import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 export class SettingsPage {
   private readonly workspace = inject(WorkspaceStore);
 
+  public constructor() {
+    void this.workspace.refreshWorkspaceData();
+  }
+
   public readonly settingsSignal = this.workspace.settings;
   public readonly labelsById = computed(() => {
     const map = new Map<string, string>();

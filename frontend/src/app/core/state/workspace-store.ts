@@ -758,15 +758,14 @@ export class WorkspaceStore {
   private preferencesRequestToken = 0;
   private lastAppliedUserId: string | null = null;
 
-  private readonly syncUserContextEffect = effect(
-    () => {
-      const userId = this.activeUserId();
-      if (userId === this.lastAppliedUserId) {
-        return;
-      }
+  private readonly syncUserContextEffect = effect(() => {
+    const userId = this.activeUserId();
+    if (userId === this.lastAppliedUserId) {
+      return;
+    }
 
-      this.applyUserContext(userId);
-    });
+    this.applyUserContext(userId);
+  });
 
   public constructor() {
     const initialUser = this.auth.user();
@@ -774,138 +773,135 @@ export class WorkspaceStore {
     this.bindAuthSetUserPatch();
   }
 
-  private readonly loadCardsEffect = effect(
-    () => {
-      const userId = this.activeUserId();
-      if (!userId) {
-        this.activeCardRequestToken += 1;
-        this.cardsSignal.set([]);
-        return;
-      }
+  private readonly loadCardsEffect = effect(() => {
+    const userId = this.activeUserId();
+    if (!userId) {
+      this.activeCardRequestToken += 1;
+      this.cardsSignal.set([]);
+      return;
+    }
 
-      this.fetchCards();
-    });
+    void this.fetchCards();
+  });
 
-  private readonly loadWorkspaceConfigEffect = effect(
-    () => {
-      const userId = this.activeUserId();
-      if (userId === this.lastConfigUserId) {
-        return;
-      }
+  private readonly loadWorkspaceConfigEffect = effect(() => {
+    const userId = this.activeUserId();
+    if (userId === this.lastConfigUserId) {
+      return;
+    }
 
-      this.lastConfigUserId = userId;
-      void this.refreshWorkspaceConfig(true);
-    });
+    this.lastConfigUserId = userId;
+    void this.refreshWorkspaceConfig(true);
+  });
 
-  private readonly syncDefaultAssigneeWithNicknameEffect = effect(
-    () => {
-      const nickname = this.activeUserNickname();
-      const email = this.activeUserEmail();
-      const preferredName =
-        nickname && nickname.trim().length > 0
-          ? nickname.trim()
-          : email && email.trim().length > 0
-            ? email.trim()
-            : null;
+  private readonly syncDefaultAssigneeWithNicknameEffect = effect(() => {
+    const nickname = this.activeUserNickname();
+    const email = this.activeUserEmail();
+    const preferredName =
+      nickname && nickname.trim().length > 0
+        ? nickname.trim()
+        : email && email.trim().length > 0
+          ? email.trim()
+          : null;
 
-      if (!preferredName) {
-        this.lastSyncedAssigneeName = null;
-        return;
-      }
+    if (!preferredName) {
+      this.lastSyncedAssigneeName = null;
+      return;
+    }
 
-      const settings = this.settingsSignal();
-      const previousDefaultRaw = settings.defaultAssignee;
-      const previousDefault = previousDefaultRaw.trim();
-      const lastSynced = this.lastSyncedAssigneeName?.trim() ?? null;
-      const normalizedEmail = email?.trim() ?? null;
+    const settings = this.settingsSignal();
+    const previousDefaultRaw = settings.defaultAssignee;
+    const previousDefault = previousDefaultRaw.trim();
+    const lastSynced = this.lastSyncedAssigneeName?.trim() ?? null;
+    const normalizedEmail = email?.trim() ?? null;
 
-      const canUpdateDefault =
-        previousDefault.length === 0 ||
-        previousDefault === '匿名ユーザー' ||
-        (lastSynced !== null && previousDefault === lastSynced) ||
-        (normalizedEmail !== null && previousDefault === normalizedEmail);
+    const canUpdateDefault =
+      previousDefault.length === 0 ||
+      previousDefault === '匿名ユーザー' ||
+      (lastSynced !== null && previousDefault === lastSynced) ||
+      (normalizedEmail !== null && previousDefault === normalizedEmail);
 
-      if (canUpdateDefault && previousDefault !== preferredName) {
-        const nextSettings: WorkspaceSettings = {
-          ...settings,
-          defaultAssignee: preferredName,
-        };
-        this.settingsSignal.set(nextSettings);
-        this.persistSettings(nextSettings);
-      }
-
-      const aliasValues = new Set<string>();
-      const registerAlias = (value: string | null | undefined): void => {
-        if (!value) {
-          return;
-        }
-
-        const normalized = value.trim();
-        if (normalized.length === 0 || normalized === preferredName) {
-          return;
-        }
-
-        aliasValues.add(normalized);
+    if (canUpdateDefault && previousDefault !== preferredName) {
+      const nextSettings: WorkspaceSettings = {
+        ...settings,
+        defaultAssignee: preferredName,
       };
+      this.settingsSignal.set(nextSettings);
+      this.persistSettings(nextSettings);
+    }
 
-      if (canUpdateDefault) {
-        registerAlias(previousDefault);
+    const aliasValues = new Set<string>();
+    const registerAlias = (value: string | null | undefined): void => {
+      if (!value) {
+        return;
       }
-      registerAlias(lastSynced);
-      registerAlias(normalizedEmail);
-      registerAlias('匿名ユーザー');
 
-      if (aliasValues.size > 0) {
-        this.cardsSignal.update((cards) => {
-          let mutated = false;
-          const nextCards = cards.map((card) => {
-            let updated = false;
-            let nextAssignee = card.assignee;
+      const normalized = value.trim();
+      if (normalized.length === 0 || normalized === preferredName) {
+        return;
+      }
 
-            if (nextAssignee) {
-              const normalizedAssignee = nextAssignee.trim();
-              if (normalizedAssignee.length > 0 && aliasValues.has(normalizedAssignee)) {
-                nextAssignee = preferredName;
-                updated = true;
-              }
-            }
+      aliasValues.add(normalized);
+    };
 
-            let nextSubtasks = card.subtasks;
-            if (
-              card.subtasks.some((subtask) => {
-                const normalized = subtask.assignee?.trim();
-                return normalized && aliasValues.has(normalized);
-              })
-            ) {
-              nextSubtasks = card.subtasks.map((subtask) => {
-                const normalized = subtask.assignee?.trim();
-                if (normalized && aliasValues.has(normalized)) {
-                  return { ...subtask, assignee: preferredName } satisfies Subtask;
-                }
+    if (canUpdateDefault) {
+      registerAlias(previousDefault);
+    }
+    registerAlias(lastSynced);
+    registerAlias(normalizedEmail);
+    registerAlias('匿名ユーザー');
 
-                return subtask;
-              });
+    if (aliasValues.size > 0) {
+      this.cardsSignal.update((cards) => {
+        let mutated = false;
+        const nextCards = cards.map((card) => {
+          let updated = false;
+          let nextAssignee = card.assignee;
+
+          if (nextAssignee) {
+            const normalizedAssignee = nextAssignee.trim();
+            if (normalizedAssignee.length > 0 && aliasValues.has(normalizedAssignee)) {
+              nextAssignee = preferredName;
               updated = true;
             }
+          }
 
-            if (!updated) {
-              return card;
-            }
+          let nextSubtasks = card.subtasks;
+          if (
+            card.subtasks.some((subtask) => {
+              const normalized = subtask.assignee?.trim();
+              return normalized && aliasValues.has(normalized);
+            })
+          ) {
+            nextSubtasks = card.subtasks.map((subtask) => {
+              const normalized = subtask.assignee?.trim();
+              if (normalized && aliasValues.has(normalized)) {
+                return { ...subtask, assignee: preferredName } satisfies Subtask;
+              }
 
-            mutated = true;
-            return {
-              ...card,
-              assignee: nextAssignee,
-              subtasks: nextSubtasks,
-            } satisfies Card;
-          });
+              return subtask;
+            });
+            updated = true;
+          }
 
-          return mutated ? nextCards : cards;
+          if (!updated) {
+            return card;
+          }
+
+          mutated = true;
+          return {
+            ...card,
+            assignee: nextAssignee,
+            subtasks: nextSubtasks,
+          } satisfies Card;
         });
-      }
 
-      this.lastSyncedAssigneeName = preferredName;
-    });
+        return mutated ? nextCards : cards;
+      });
+    }
+
+    this.lastSyncedAssigneeName = preferredName;
+  });
 
   private resolveStorageUserId(userId: string | null): string | null {
     if (!this.storage) {
@@ -2159,10 +2155,29 @@ export class WorkspaceStore {
     }
   }
 
-  private fetchCards(): void {
+  public readonly refreshWorkspaceData = async (): Promise<void> => {
+    const userId = this.activeUserId();
+
+    if (!userId) {
+      this.activeCardRequestToken += 1;
+      this.cardsSignal.set([]);
+      await this.refreshWorkspaceConfig(true);
+      return;
+    }
+
+    try {
+      await this.refreshWorkspaceConfig(true);
+    } catch {
+      // Errors are already logged inside refreshWorkspaceConfig.
+    } finally {
+      await this.fetchCards();
+    }
+  };
+
+  private fetchCards(): Promise<void> {
     const requestToken = ++this.activeCardRequestToken;
 
-    firstValueFrom(this.cardsApi.listCards())
+    return firstValueFrom(this.cardsApi.listCards())
       .then((response) => {
         if (requestToken !== this.activeCardRequestToken) {
           return;

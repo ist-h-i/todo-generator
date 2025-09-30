@@ -31,6 +31,10 @@ export class ReportAssistantPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly workspace = inject(WorkspaceStore);
 
+  public constructor() {
+    void this.workspace.refreshWorkspaceData();
+  }
+
   private readonly pendingState = signal(false);
   private readonly errorState = signal<string | null>(null);
   private readonly successState = signal<string | null>(null);
@@ -148,9 +152,7 @@ export class ReportAssistantPageComponent {
     await this.publishProposals([proposal]);
   }
 
-  private async publishProposals(
-    proposals: readonly StatusReportProposal[],
-  ): Promise<void> {
+  private async publishProposals(proposals: readonly StatusReportProposal[]): Promise<void> {
     if (proposals.length === 0) {
       return;
     }
@@ -215,9 +217,7 @@ export class ReportAssistantPageComponent {
       return undefined;
     }
 
-    const byId = settings.statuses.find(
-      (status) => status.id.trim().toLowerCase() === normalized,
-    );
+    const byId = settings.statuses.find((status) => status.id.trim().toLowerCase() === normalized);
     if (byId) {
       return byId.id;
     }
@@ -340,9 +340,7 @@ export class ReportAssistantPageComponent {
     return description ?? '';
   }
 
-  private resolveSubtaskStatus(
-    statusName: string | null | undefined,
-  ): Subtask['status'] {
+  private resolveSubtaskStatus(statusName: string | null | undefined): Subtask['status'] {
     if (!statusName) {
       return 'todo';
     }
@@ -378,9 +376,7 @@ export class ReportAssistantPageComponent {
     }
   }
 
-  private formatPublishSuccessMessage(
-    proposals: readonly StatusReportProposal[],
-  ): string {
+  private formatPublishSuccessMessage(proposals: readonly StatusReportProposal[]): string {
     if (proposals.length === 1) {
       return `カード「${proposals[0]?.title ?? ''}」をボードに追加しました。`;
     }

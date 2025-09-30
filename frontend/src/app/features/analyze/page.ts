@@ -215,6 +215,7 @@ export class AnalyzePage {
   });
 
   public constructor() {
+    void this.workspace.refreshWorkspaceData();
     this.destroyRef.onDestroy(() => {
       this.clearVisualTimers();
       this.clearPublishFeedbackTimer();
