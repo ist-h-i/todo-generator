@@ -37,6 +37,7 @@ export class AnalyticsPage {
   private readonly statusVisibilityMs = 5000;
 
   public constructor() {
+    void this.workspace.refreshWorkspaceData();
     this.destroyRef.onDestroy(() => {
       this.statusTimers.forEach((timer) => clearTimeout(timer));
       this.statusTimers.clear();

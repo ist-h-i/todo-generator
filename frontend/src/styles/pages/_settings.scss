@@ -136,6 +136,12 @@ app-settings-page .settings-template__labels-list {
   gap: 0.5rem;
 }
 
+app-settings-page .settings-template__editor {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.15rem, 1.5vw, 1.5rem);
+}
+
 app-settings-page .settings-checkbox-group {
   display: flex;
   flex-wrap: wrap;

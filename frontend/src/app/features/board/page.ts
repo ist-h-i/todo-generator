@@ -134,6 +134,10 @@ const RESOLVED_SUBTASK_STATUSES = new Set<SubtaskStatus>(['done', 'non-issue']);
 export class BoardPage {
   private readonly workspace = inject(WorkspaceStore);
 
+  public constructor() {
+    void this.workspace.refreshWorkspaceData();
+  }
+
   public readonly groupingSignal = this.workspace.grouping;
   public readonly groupingLabelSignal = computed(() =>
     this.groupingSignal() === 'status' ? 'ステータス別' : 'ラベル別',
@@ -232,16 +236,15 @@ export class BoardPage {
     status: 'todo' as SubtaskStatus,
   });
 
-  private readonly syncSearchFormEffect = effect(
-    () => {
-      const search = this.filtersSignal().search;
-      const currentValue = this.searchForm.controls.search.value();
-      if (currentValue === search) {
-        return;
-      }
+  private readonly syncSearchFormEffect = effect(() => {
+    const search = this.filtersSignal().search;
+    const currentValue = this.searchForm.controls.search.value();
+    if (currentValue === search) {
+      return;
+    }
 
-      this.searchForm.controls.search.setValue(search);
-    });
+    this.searchForm.controls.search.setValue(search);
+  });
 
   private readonly commentDraftsState = signal<Record<string, string>>({ card: '' });
   private readonly editingCommentState = signal<{ id: string; contextId: string } | null>(null);
@@ -422,81 +425,80 @@ export class BoardPage {
 
   public readonly selectedCardSignal = this.workspace.selectedCard;
 
-  private readonly syncSelectedCardFormsEffect = effect(
-    () => {
-      const active = this.selectedCardSignal();
-      const formSnapshot = this.cardForm.value();
+  private readonly syncSelectedCardFormsEffect = effect(() => {
+    const active = this.selectedCardSignal();
+    const formSnapshot = this.cardForm.value();
 
-      if (!active) {
-        const statuses = this.statusesSignal();
-        const fallback: CardFormState = {
-          title: '',
-          summary: '',
-          statusId: statuses[0]?.id ?? '',
-          assignee: '',
-          storyPoints: '',
-          priority: 'medium',
-        };
-
-        if (!this.areCardFormStatesEqual(formSnapshot, fallback)) {
-          this.cardForm.reset(fallback);
-        }
-        this.lastCardFormBaseline = fallback;
-        this.commentDraftsState.set({ card: '' });
-        this.editingCommentState.set(null);
-        this.newSubtaskForm.reset({
-          title: '',
-          assignee: '',
-          estimateHours: '',
-          dueDate: '',
-          status: 'todo',
-        });
-        this.lastSelectedCardId = null;
-        return;
-      }
-
-      const baseline: CardFormState = {
-        title: active.title,
-        summary: active.summary,
-        statusId: active.statusId,
-        assignee: active.assignee ?? '',
-        storyPoints: active.storyPoints.toString(),
-        priority: active.priority,
+    if (!active) {
+      const statuses = this.statusesSignal();
+      const fallback: CardFormState = {
+        title: '',
+        summary: '',
+        statusId: statuses[0]?.id ?? '',
+        assignee: '',
+        storyPoints: '',
+        priority: 'medium',
       };
 
-      let baselineChanged = true;
-      let hasUnsavedChanges = false;
-
-      if (this.lastCardFormBaseline) {
-        baselineChanged = !this.areCardFormStatesEqual(baseline, this.lastCardFormBaseline);
-        hasUnsavedChanges = !this.areCardFormStatesEqual(formSnapshot, this.lastCardFormBaseline);
+      if (!this.areCardFormStatesEqual(formSnapshot, fallback)) {
+        this.cardForm.reset(fallback);
       }
+      this.lastCardFormBaseline = fallback;
+      this.commentDraftsState.set({ card: '' });
+      this.editingCommentState.set(null);
+      this.newSubtaskForm.reset({
+        title: '',
+        assignee: '',
+        estimateHours: '',
+        dueDate: '',
+        status: 'todo',
+      });
+      this.lastSelectedCardId = null;
+      return;
+    }
 
-      const selectedCardChanged = this.lastSelectedCardId !== active.id;
+    const baseline: CardFormState = {
+      title: active.title,
+      summary: active.summary,
+      statusId: active.statusId,
+      assignee: active.assignee ?? '',
+      storyPoints: active.storyPoints.toString(),
+      priority: active.priority,
+    };
 
-      if (selectedCardChanged || (!hasUnsavedChanges && baselineChanged)) {
-        this.cardForm.reset(baseline);
-        this.lastCardFormBaseline = baseline;
-      } else if (baselineChanged && this.areCardFormStatesEqual(formSnapshot, baseline)) {
-        this.lastCardFormBaseline = baseline;
-      } else if (!this.lastCardFormBaseline) {
-        this.lastCardFormBaseline = baseline;
-      }
+    let baselineChanged = true;
+    let hasUnsavedChanges = false;
 
-      if (selectedCardChanged) {
-        this.commentDraftsState.set({ card: '' });
-        this.editingCommentState.set(null);
-        this.newSubtaskForm.reset({
-          title: '',
-          assignee: '',
-          estimateHours: '',
-          dueDate: '',
-          status: 'todo',
-        });
-      }
+    if (this.lastCardFormBaseline) {
+      baselineChanged = !this.areCardFormStatesEqual(baseline, this.lastCardFormBaseline);
+      hasUnsavedChanges = !this.areCardFormStatesEqual(formSnapshot, this.lastCardFormBaseline);
+    }
 
-      this.lastSelectedCardId = active.id;
-    });
+    const selectedCardChanged = this.lastSelectedCardId !== active.id;
+
+    if (selectedCardChanged || (!hasUnsavedChanges && baselineChanged)) {
+      this.cardForm.reset(baseline);
+      this.lastCardFormBaseline = baseline;
+    } else if (baselineChanged && this.areCardFormStatesEqual(formSnapshot, baseline)) {
+      this.lastCardFormBaseline = baseline;
+    } else if (!this.lastCardFormBaseline) {
+      this.lastCardFormBaseline = baseline;
+    }
+
+    if (selectedCardChanged) {
+      this.commentDraftsState.set({ card: '' });
+      this.editingCommentState.set(null);
+      this.newSubtaskForm.reset({
+        title: '',
+        assignee: '',
+        estimateHours: '',
+        dueDate: '',
+        status: 'todo',
+      });
+    }
+
+    this.lastSelectedCardId = active.id;
+  });
 
   public readonly saveCardDetails = (event: Event): void => {
     event.preventDefault();

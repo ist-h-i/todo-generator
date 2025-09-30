@@ -142,6 +142,22 @@ const ROLE_TREE_DEFINITION = [
         valuePrefix: 'フルスタック',
         options: [{ label: 'フルスタック開発' }, { label: '技術選定・アーキテクチャ' }],
       },
+      {
+        label: 'プログラミング言語',
+        valuePrefix: 'プログラミング言語',
+        options: [
+          { label: 'JavaScript / TypeScript' },
+          { label: 'Python' },
+          { label: 'Java' },
+          { label: 'Go' },
+          { label: 'C#' },
+          { label: 'C++' },
+          { label: 'Ruby' },
+          { label: 'PHP' },
+          { label: 'Swift' },
+          { label: 'Kotlin' },
+        ],
+      },
     ],
   },
   {

@@ -540,4 +540,64 @@ describe('WorkspaceStore', () => {
       expect(cached.grouping).toBe('label');
     });
   });
+
+  describe('refreshWorkspaceData', () => {
+    it('reloads workspace configuration and cards for the active user', async () => {
+      const user = createAuthenticatedUser({ id: 'user-200' });
+      auth.setUser(user);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      workspaceConfigApi.listStatuses.calls.reset();
+      workspaceConfigApi.listLabels.calls.reset();
+      workspaceConfigApi.listTemplates.calls.reset();
+      cardsApi.listCards.calls.reset();
+
+      await store.refreshWorkspaceData();
+
+      expect(workspaceConfigApi.listStatuses).toHaveBeenCalledTimes(1);
+      expect(workspaceConfigApi.listLabels).toHaveBeenCalledTimes(1);
+      expect(workspaceConfigApi.listTemplates).toHaveBeenCalledTimes(1);
+      expect(cardsApi.listCards).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears cards and skips remote reload when no user is active', async () => {
+      const internalStore = store as unknown as { cardsSignal: { set(value: Card[]): void } };
+      const placeholderCard: Card = {
+        id: 'card-1',
+        title: 'Placeholder',
+        summary: 'Ensure cards reset',
+        statusId: 'status-todo',
+        labelIds: [],
+        templateId: null,
+        priority: 'medium',
+        storyPoints: 3,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        startDate: undefined,
+        dueDate: undefined,
+        assignee: undefined,
+        confidence: undefined,
+        subtasks: [],
+        comments: [],
+        activities: [],
+        originSuggestionId: undefined,
+        initiativeId: undefined,
+      };
+      internalStore.cardsSignal.set([placeholderCard]);
+
+      workspaceConfigApi.listStatuses.calls.reset();
+      workspaceConfigApi.listLabels.calls.reset();
+      workspaceConfigApi.listTemplates.calls.reset();
+      cardsApi.listCards.calls.reset();
+
+      await store.refreshWorkspaceData();
+
+      expect(store.cards()).toEqual([]);
+      expect(workspaceConfigApi.listStatuses).not.toHaveBeenCalled();
+      expect(workspaceConfigApi.listLabels).not.toHaveBeenCalled();
+      expect(workspaceConfigApi.listTemplates).not.toHaveBeenCalled();
+      expect(cardsApi.listCards).not.toHaveBeenCalled();
+    });
+  });
 });
