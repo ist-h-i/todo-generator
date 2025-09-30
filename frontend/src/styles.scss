@@ -676,13 +676,13 @@ app-shell .shell-user__email {
 
 app-shell .shell-toast-stack {
   position: fixed;
-  top: clamp(76px, 10vh, 120px);
+  bottom: clamp(24px, 6vh, 72px);
   right: clamp(12px, 5vw, 48px);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.75rem;
-  z-index: 70;
+  z-index: 60;
 }
 
 app-shell .shell-toast {
@@ -703,21 +703,36 @@ app-shell .shell-toast {
   animation: shell-toast-in 220ms ease forwards;
 }
 
-app-shell .shell-toast--error {
-  border-color: color-mix(in srgb, var(--danger) 46%, transparent);
+app-shell .shell-global-error {
+  position: fixed;
+  top: clamp(16px, 6vh, 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.2rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
   background: color-mix(in srgb, var(--surface-overlay) 94%, transparent);
-  box-shadow: 0 20px 40px color-mix(in srgb, var(--danger) 26%, transparent);
-  color: color-mix(in srgb, var(--danger-strong) 88%, var(--text-primary));
+  box-shadow: 0 20px 42px color-mix(in srgb, var(--danger) 26%, transparent);
+  color: color-mix(in srgb, var(--danger-strong) 90%, var(--text-primary));
+  font-size: 0.85rem;
+  font-weight: 600;
+  backdrop-filter: blur(18px);
+  max-inline-size: min(94vw, 560px);
+  z-index: 80;
   pointer-events: auto;
+  animation: shell-banner-in 220ms ease forwards;
 }
 
-app-shell .shell-toast__message {
+app-shell .shell-global-error__message {
   flex: 1 1 auto;
   min-inline-size: 0;
   word-break: break-word;
 }
 
-app-shell .shell-toast__dismiss {
+app-shell .shell-global-error__dismiss {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -730,19 +745,31 @@ app-shell .shell-toast__dismiss {
   cursor: pointer;
 }
 
-app-shell .shell-toast__dismiss:hover {
+app-shell .shell-global-error__dismiss:hover {
   background: color-mix(in srgb, currentColor 12%, transparent);
 }
 
 @keyframes shell-toast-in {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(10px);
   }
 
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes shell-banner-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
   }
 }
 
