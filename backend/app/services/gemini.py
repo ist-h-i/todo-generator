@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from copy import deepcopy
 from typing import Any, ClassVar, List, Optional, Sequence
 
@@ -173,8 +174,6 @@ class GeminiClient:
 
     _LEGACY_MODEL_ALIASES: ClassVar[dict[str, str]] = {
         "gemini-1.5-flash": "models/gemini-1.5-flash",
-        "gemini-1.5-flash-latest": "models/gemini-1.5-flash",
-        "models/gemini-1.5-flash-latest": "models/gemini-1.5-flash",
     }
 
     def __init__(
@@ -195,7 +194,109 @@ class GeminiClient:
             )
 
         genai.configure(api_key=self.api_key)
+        self.model = self._ensure_supported_model(self.model)
         self._client = genai.GenerativeModel(self.model)
+
+    def _ensure_supported_model(self, model: str) -> str:
+        """Return a model that is supported by the configured Gemini account."""
+
+        list_models = getattr(genai, "list_models", None)
+        if not callable(list_models):
+            return model
+
+        try:
+            catalog = list(list_models())
+        except Exception:  # pragma: no cover - defensive fallback when discovery fails
+            logger.debug("Unable to list Gemini models; continuing with configured model.", exc_info=True)
+            return model
+
+        supported_names = self._supported_generate_content_models(catalog)
+        if not supported_names:
+            return model
+        if model in supported_names:
+            return model
+
+        fallback = self._find_preferred_variant(model, supported_names)
+        if fallback:
+            if fallback != model:
+                logger.info("Resolved Gemini model '%s' to available variant '%s'.", model, fallback)
+            return fallback
+
+        preview = ", ".join(sorted(supported_names)[:5])
+        if len(supported_names) > 5:
+            preview += ", …"
+        raise GeminiConfigurationError(
+            (
+                f"Gemini model '{model}' is not available for generateContent. "
+                "Update the admin settings to use one of the supported models, such as: "
+                f"{preview}."
+            )
+        )
+
+    @classmethod
+    def _supported_generate_content_models(cls, catalog: Sequence[Any]) -> list[str]:
+        """Extract model names that support the generateContent method."""
+
+        supported: list[str] = []
+        for item in catalog:
+            name = getattr(item, "name", None)
+            if not name or not isinstance(name, str):
+                continue
+
+            methods = getattr(item, "supported_generation_methods", ()) or ()
+            if isinstance(methods, str):
+                method_list = [methods]
+            elif isinstance(methods, Sequence):
+                method_list = list(methods)
+            else:
+                method_list = []
+
+            if "generateContent" not in method_list:
+                continue
+
+            supported.append(name)
+
+        return supported
+
+    @classmethod
+    def _find_preferred_variant(cls, requested: str, available: Sequence[str]) -> str | None:
+        """Return the closest matching model variant from the available catalog."""
+
+        if not available:
+            return None
+
+        family = cls._canonical_model_family(requested)
+        if not family:
+            return None
+
+        candidates = [name for name in available if cls._canonical_model_family(name) == family]
+        if not candidates:
+            return None
+
+        latest = [name for name in candidates if name.split("/")[-1].endswith("-latest")]
+        if latest:
+            return sorted(latest)[-1]
+
+        numbered: list[tuple[int, str]] = []
+        others: list[str] = []
+        for name in candidates:
+            suffix = name.split("/")[-1]
+            match = re.search(r"-(\d+)$", suffix)
+            if match:
+                numbered.append((int(match.group(1)), name))
+            else:
+                others.append(name)
+
+        if numbered:
+            return max(numbered)[1]
+        return sorted(others)[-1] if others else None
+
+    @staticmethod
+    def _canonical_model_family(name: str) -> str:
+        """Strip version suffixes so related model variants can be grouped."""
+
+        base = name.split("/")[-1]
+        return re.sub(r"-(?:latest|\d+)$", "", base)
 
     @classmethod
     def normalize_model_name(cls, model: str) -> str:
@@ -204,7 +305,14 @@ class GeminiClient:
         normalized = model.strip()
         if not normalized:
             return normalized
-        return cls._LEGACY_MODEL_ALIASES.get(normalized, normalized)
+        mapped = cls._LEGACY_MODEL_ALIASES.get(normalized)
+        if mapped:
+            return mapped
+        if normalized.startswith("models/"):
+            return normalized
+        if normalized.startswith("gemini-1.5-flash"):
+            return f"models/{normalized}"
+        return normalized
 
     def analyze(
         self,

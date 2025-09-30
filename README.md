@@ -114,7 +114,7 @@ The stack traces point back to `backend/app/services/gemini.py`, where the clien
 
 To recover:
 
-1. **Enumerate supported models** – Run `from google.generativeai import list_models; print(list_models())` in a Python shell to verify which models and methods your account can access.
+1. **Enumerate supported models** – Run `from google.generativeai import list_models; print(list_models())` in a Python shell to verify which models and methods your account can access. The backend now performs this discovery step automatically and will either map `models/gemini-1.5-flash` to an available variant (for example `models/gemini-1.5-flash-002`) or return `503 Service Unavailable` with the supported model names.
 2. **Switch to an available model** – Configure `GEMINI_MODEL` (or the admin credential form) with an identifier such as `gemini-pro`, `gemini-1.0-pro`, or `gemini-1.5-pro-latest` that still works with `v1beta`.
 3. **Upgrade the SDK for `v1` support** – Install the latest `google-generativeai` release so you can target the `v1` API and restore access to `gemini-1.5-flash`/`gemini-1.5-flash-latest`.
 
