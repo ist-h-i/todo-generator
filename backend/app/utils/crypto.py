@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 from dataclasses import dataclass
 from typing import Optional
 
 from ..config import DEFAULT_SECRET_ENCRYPTION_KEY
+
+
+class SecretDecryptionError(RuntimeError):
+    """Raised when a stored payload cannot be decrypted."""
 
 
 @dataclass(slots=True)
@@ -45,7 +50,10 @@ class SecretCipher:
         if not payload:
             return SecretDecryptionResult(plaintext="")
 
-        decoded = base64.urlsafe_b64decode(payload.encode("ascii"))
+        try:
+            decoded = base64.urlsafe_b64decode(payload.encode("ascii"))
+        except (ValueError, binascii.Error) as exc:  # pragma: no cover - defensive path
+            raise SecretDecryptionError("Stored secret payload is not valid base64 data.") from exc
         if not self._key_bytes:
             return SecretDecryptionResult(plaintext=decoded.decode("utf-8"))
 
@@ -56,7 +64,9 @@ class SecretCipher:
         except UnicodeDecodeError:
             plaintext = _attempt_legacy_recovery(decoded, key)
             if plaintext is None:
-                raise
+                raise SecretDecryptionError(
+                    "Unable to decrypt stored secret. Verify the secret encryption key matches the original value."
+                ) from None
 
             reencrypted_payload = self.encrypt(plaintext)
             if reencrypted_payload == payload:
@@ -88,4 +98,4 @@ def _attempt_legacy_recovery(decoded: bytes, current_key: bytes) -> str | None:
         return None
 
 
-__all__ = ["SecretCipher", "SecretDecryptionResult"]
+__all__ = ["SecretCipher", "SecretDecryptionError", "SecretDecryptionResult"]
