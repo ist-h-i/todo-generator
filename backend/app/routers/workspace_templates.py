@@ -151,7 +151,10 @@ def create_template(
         default_status_id=status_id,
         default_label_ids=label_ids,
         confidence_threshold=_clamp_confidence_threshold(payload.confidence_threshold),
-        field_visibility=_serialize_field_visibility(payload.field_visibility, None),
+        field_visibility=_serialize_field_visibility(
+            payload.field_visibility,
+            default_field_visibility(),
+        ),
     )
     return save_model(db, template)
 
