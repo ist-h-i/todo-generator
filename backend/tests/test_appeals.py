@@ -1,11 +1,39 @@
 from __future__ import annotations
 
+import json
+from types import SimpleNamespace
+from typing import Any
+
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services.gemini import GeminiError, get_optional_gemini_client
+from app.services.gemini import GeminiClient, GeminiError, get_optional_gemini_client
 
 from .test_cards import DEFAULT_PASSWORD as CARD_DEFAULT_PASSWORD
+
+
+def _contains_key(value: Any, target: str) -> bool:
+    if isinstance(value, dict):
+        return target in value or any(_contains_key(item, target) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_contains_key(item, target) for item in value)
+    return False
+
+
+def _extract_response_schema(config: Any) -> dict[str, Any]:
+    if isinstance(config, dict):
+        return config["response_schema"]
+    schema = getattr(config, "response_schema", None)
+    if isinstance(schema, dict):
+        return schema
+    to_dict = getattr(config, "to_dict", None)
+    if callable(to_dict):
+        data = to_dict()
+        if isinstance(data, dict) and "response_schema" in data:
+            value = data["response_schema"]
+            if isinstance(value, dict):
+                return value
+    raise AssertionError("Unable to extract response_schema from generation config")
 
 
 def register_and_login(client: TestClient, email: str, password: str = CARD_DEFAULT_PASSWORD) -> dict[str, str]:
@@ -154,24 +182,27 @@ def test_generate_appeal_uses_gemini_when_available(monkeypatch, client: TestCli
         summary="レビュー体制を刷新し重大バグを50%削減。",
     )
 
-    class StubGemini:
-        def __init__(self) -> None:
-            self.calls: list[tuple[str, dict[str, object]]] = []
+    recorded: dict[str, object] = {}
 
-        def generate_appeal(self, *, prompt: str, response_schema: dict[str, object]) -> dict[str, object]:
-            self.calls.append((prompt, response_schema))
-            return {
-                "formats": {
-                    "markdown": {"content": "## 実績\n成果を共有。", "tokens_used": 42},
-                    "bullet_list": {"content": "- 主要な取り組みを整理", "tokens_used": 18},
-                },
-                "token_usage": {"total_tokens": 60},
-            }
+    def fake_generate_content(prompt: str, *, generation_config: object) -> SimpleNamespace:
+        recorded["prompt"] = prompt
+        recorded["generation_config"] = generation_config
+        payload = {
+            "formats": {
+                "markdown": {"content": "## 実績\n成果を共有。", "tokens_used": 42},
+                "bullet_list": {"content": "- 主要な取り組みを整理", "tokens_used": 18},
+            },
+            "token_usage": {"total_tokens": 60},
+        }
+        return SimpleNamespace(text=json.dumps(payload))
 
-    stub = StubGemini()
+    gemini_client = object.__new__(GeminiClient)
+    gemini_client.model = "test-model"
+    gemini_client.api_key = "test-key"
+    gemini_client._client = SimpleNamespace(generate_content=fake_generate_content)  # type: ignore[attr-defined]
 
     def fake_gemini_dependency(db=None):  # type: ignore[unused-argument]
-        return stub
+        return gemini_client
 
     app.dependency_overrides[get_optional_gemini_client] = fake_gemini_dependency
 
@@ -186,11 +217,14 @@ def test_generate_appeal_uses_gemini_when_available(monkeypatch, client: TestCli
         app.dependency_overrides.pop(get_optional_gemini_client, None)
     assert response.status_code == 200, response.text
 
-    assert stub.calls, "Expected Gemini stub to be invoked"
-    prompt_text, schema = stub.calls[0]
+    assert recorded, "Expected Gemini client to be invoked"
+    prompt_text = recorded["prompt"]
     assert "Required connective phrases" in prompt_text
     assert "markdown" in prompt_text
-    assert schema["type"] == "object"
+    generation_config = recorded["generation_config"]
+    response_schema = _extract_response_schema(generation_config)
+    assert response_schema["type"] == "object"
+    assert not _contains_key(response_schema, "additionalProperties")
 
     body = response.json()
     markdown_content = body["formats"]["markdown"]["content"]

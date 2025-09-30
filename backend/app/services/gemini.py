@@ -120,6 +120,8 @@ class GeminiClient:
         " Respond strictly using the provided JSON schema."
     )
 
+    _UNSUPPORTED_SCHEMA_KEYS: ClassVar[set[str]] = {"additionalProperties"}
+
     def __init__(
         self,
         model: str | None = None,
@@ -181,7 +183,8 @@ class GeminiClient:
         if not prompt.strip():
             raise GeminiError("Prompt for appeal generation must not be empty.")
 
-        generation_config = self._build_generation_config(response_schema)
+        sanitized_schema = self._sanitize_schema(response_schema)
+        generation_config = self._build_generation_config(sanitized_schema)
         combined_prompt = f"{self._APPEAL_SYSTEM_PROMPT}\n\n{prompt}"
 
         try:
@@ -244,19 +247,21 @@ class GeminiClient:
         schema = deepcopy(self._BASE_RESPONSE_SCHEMA)
         proposals_schema = schema["properties"]["proposals"]
         proposals_schema["maxItems"] = max_cards
+        sanitized_schema = self._sanitize_schema(schema)
         return {
             "type": "json_schema",
             "json_schema": {
                 "name": "analysis_response",
                 "strict": True,
-                "schema": schema,
+                "schema": sanitized_schema,
             },
         }
 
     def _build_generation_config(self, schema: dict[str, Any]) -> Any:
+        sanitized_schema = self._sanitize_schema(schema)
         config: dict[str, Any] = {
             "response_mime_type": "application/json",
-            "response_schema": schema,
+            "response_schema": sanitized_schema,
         }
         generation_config_cls = getattr(getattr(genai, "types", None), "GenerationConfig", None)
         if generation_config_cls is not None:
@@ -265,6 +270,25 @@ class GeminiClient:
             except Exception:  # pragma: no cover - fall back to dict
                 logger.debug("Falling back to dict generation config", exc_info=True)
         return config
+
+    @classmethod
+    def _sanitize_schema(cls, schema: dict[str, Any]) -> dict[str, Any]:
+        """Return a deep-copied schema without unsupported Gemini keys."""
+
+        def _sanitize(value: Any) -> Any:
+            if isinstance(value, dict):
+                return {
+                    key: _sanitize(inner)
+                    for key, inner in value.items()
+                    if key not in cls._UNSUPPORTED_SCHEMA_KEYS
+                }
+            if isinstance(value, list):
+                return [_sanitize(item) for item in value]
+            if isinstance(value, tuple):
+                return tuple(_sanitize(item) for item in value)
+            return value
+
+        return _sanitize(deepcopy(schema))
 
     def _build_user_prompt(
         self,
