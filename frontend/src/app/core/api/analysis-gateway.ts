@@ -5,7 +5,14 @@ import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
 import { buildApiUrl } from '@core/api/api.config';
-import { AnalysisProposal, AnalysisRequest, AnalysisResult, WorkspaceSettings } from '@core/models';
+import {
+  AnalysisProposal,
+  AnalysisRequest,
+  AnalysisResult,
+  Label,
+  Status,
+  WorkspaceSettings,
+} from '@core/models';
 import { Logger } from '@core/logger/logger';
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { createId } from '@core/utils/create-id';
@@ -37,6 +44,228 @@ interface ApiAnalysisRequest {
 interface ApiAnalysisResponse {
   readonly model: string;
   readonly proposals: readonly ApiAnalysisCard[];
+}
+
+type TokenSets = {
+  readonly normalized: readonly string[];
+  readonly compact: readonly string[];
+};
+
+const STATUS_CATEGORY_ALIASES: Record<string, Status['category']> = {
+  todo: 'todo',
+  'to do': 'todo',
+  backlog: 'todo',
+  'in progress': 'in-progress',
+  'in-progress': 'in-progress',
+  inprogress: 'in-progress',
+  progress: 'in-progress',
+  doing: 'in-progress',
+  wip: 'in-progress',
+  done: 'done',
+  complete: 'done',
+  completed: 'done',
+};
+
+function normalizeToken(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const normalized = `${value}`.replace(/\s+/g, ' ').trim().toLowerCase();
+
+  return normalized.length > 0 ? normalized : null;
+}
+
+function compactNormalizedToken(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const compacted = value.replace(/[\s_-]+/g, '');
+  return compacted.length > 0 ? compacted : null;
+}
+
+function extractCandidateTokens(value: string): TokenSets {
+  const normalized: string[] = [];
+  const compact: string[] = [];
+  const seenNormalized = new Set<string>();
+  const seenCompact = new Set<string>();
+
+  const addCandidate = (candidate: string | null | undefined): void => {
+    const normalizedValue = normalizeToken(candidate);
+    if (!normalizedValue || seenNormalized.has(normalizedValue)) {
+      return;
+    }
+
+    normalized.push(normalizedValue);
+    seenNormalized.add(normalizedValue);
+
+    const compactValue = compactNormalizedToken(normalizedValue);
+    if (compactValue && !seenCompact.has(compactValue)) {
+      compact.push(compactValue);
+      seenCompact.add(compactValue);
+    }
+  };
+
+  addCandidate(value);
+
+  for (const match of value.matchAll(
+    /\b(?:id|status|status_id|label|label_id)\s*[:=]\s*([A-Za-z0-9_-]+)/gi,
+  )) {
+    addCandidate(match[1]);
+  }
+
+  for (const part of value.split(/[\s,;、/|()[\]{}]+/)) {
+    addCandidate(part);
+  }
+
+  return { normalized, compact };
+}
+
+export function resolveSuggestedStatusId(
+  rawStatus: string | null | undefined,
+  statuses: readonly Status[],
+  defaultStatusId: string,
+): string {
+  if (!rawStatus) {
+    return defaultStatusId;
+  }
+
+  const tokens = extractCandidateTokens(rawStatus);
+  if (tokens.normalized.length === 0 && tokens.compact.length === 0) {
+    return defaultStatusId;
+  }
+
+  const normalizeStatusId = (status: Status): string | null => normalizeToken(status.id);
+  const normalizeStatusName = (status: Status): string | null => normalizeToken(status.name);
+  const normalizeStatusCategory = (status: Status): string | null =>
+    normalizeToken(status.category);
+  const compactStatusName = (status: Status): string | null =>
+    compactNormalizedToken(normalizeStatusName(status));
+  const compactStatusCategory = (status: Status): string | null =>
+    compactNormalizedToken(normalizeStatusCategory(status));
+
+  for (const token of tokens.normalized) {
+    const match = statuses.find(
+      (status) => normalizeStatusId(status) === token || normalizeStatusName(status) === token,
+    );
+    if (match) {
+      return match.id;
+    }
+  }
+
+  for (const token of tokens.normalized) {
+    const match = statuses.find((status) => normalizeStatusCategory(status) === token);
+    if (match) {
+      return match.id;
+    }
+  }
+
+  for (const token of tokens.compact) {
+    const match = statuses.find((status) => compactStatusName(status) === token);
+    if (match) {
+      return match.id;
+    }
+  }
+
+  for (const token of tokens.compact) {
+    const match = statuses.find((status) => compactStatusCategory(status) === token);
+    if (match) {
+      return match.id;
+    }
+  }
+
+  for (const token of [...tokens.normalized, ...tokens.compact]) {
+    const aliasCategory = STATUS_CATEGORY_ALIASES[token];
+    if (!aliasCategory) {
+      continue;
+    }
+
+    const match = statuses.find((status) => {
+      const normalizedCategory = normalizeStatusCategory(status);
+      if (normalizedCategory === aliasCategory) {
+        return true;
+      }
+
+      const compactCategory = compactStatusCategory(status);
+      if (compactCategory === aliasCategory) {
+        return true;
+      }
+
+      const normalizedName = normalizeStatusName(status);
+      if (normalizedName === aliasCategory) {
+        return true;
+      }
+
+      const compactName = compactStatusName(status);
+      return compactName === aliasCategory;
+    });
+
+    if (match) {
+      return match.id;
+    }
+  }
+
+  return defaultStatusId;
+}
+
+export function resolveSuggestedLabelIds(
+  rawLabels: readonly string[] | undefined,
+  labels: readonly Label[],
+): readonly string[] {
+  if (!rawLabels || rawLabels.length === 0) {
+    return [];
+  }
+
+  const normalizedLookup = new Map<string, string>();
+  const compactLookup = new Map<string, string>();
+
+  for (const label of labels) {
+    const normalizedId = normalizeToken(label.id);
+    if (normalizedId && !normalizedLookup.has(normalizedId)) {
+      normalizedLookup.set(normalizedId, label.id);
+    }
+
+    const normalizedName = normalizeToken(label.name);
+    if (normalizedName && !normalizedLookup.has(normalizedName)) {
+      normalizedLookup.set(normalizedName, label.id);
+    }
+
+    const compactId = compactNormalizedToken(normalizedId);
+    if (compactId && !compactLookup.has(compactId)) {
+      compactLookup.set(compactId, label.id);
+    }
+
+    const compactName = compactNormalizedToken(normalizedName);
+    if (compactName && !compactLookup.has(compactName)) {
+      compactLookup.set(compactName, label.id);
+    }
+  }
+
+  const resolved: string[] = [];
+  const seen = new Set<string>();
+
+  for (const raw of rawLabels) {
+    const tokens = extractCandidateTokens(raw);
+
+    for (const token of tokens.normalized) {
+      const match = normalizedLookup.get(token) ?? compactLookup.get(token);
+      if (match && !seen.has(match)) {
+        resolved.push(match);
+        seen.add(match);
+      }
+    }
+
+    for (const token of tokens.compact) {
+      const match = compactLookup.get(token) ?? normalizedLookup.get(token);
+      if (match && !seen.has(match)) {
+        resolved.push(match);
+        seen.add(match);
+      }
+    }
+  }
+
+  return resolved;
 }
 
 /**
@@ -131,8 +360,12 @@ export class AnalysisGateway {
     settings: WorkspaceSettings,
     index: number,
   ): AnalysisProposal {
-    const statusId = this.resolveStatusId(proposal.status, settings);
-    const labelIds = this.resolveLabelIds(proposal.labels, settings);
+    const statusId = resolveSuggestedStatusId(
+      proposal.status,
+      settings.statuses,
+      settings.defaultStatusId,
+    );
+    const labelIds = resolveSuggestedLabelIds(proposal.labels, settings.labels);
     const subtasks = (proposal.subtasks ?? [])
       .map((subtask) => this.formatSubtask(subtask))
       .filter((task): task is string => task.length > 0);
@@ -147,51 +380,6 @@ export class AnalysisGateway {
       confidence: this.resolveConfidence(proposal.priority, index),
       templateId: null,
     } satisfies AnalysisProposal;
-  }
-
-  private resolveStatusId(status: string | null | undefined, settings: WorkspaceSettings): string {
-    if (!status) {
-      return settings.defaultStatusId;
-    }
-
-    const normalized = status.trim().toLowerCase();
-    if (!normalized) {
-      return settings.defaultStatusId;
-    }
-
-    const byId = settings.statuses.find((item) => item.id.toLowerCase() === normalized);
-    if (byId) {
-      return byId.id;
-    }
-
-    const byName = settings.statuses.find((item) => item.name.trim().toLowerCase() === normalized);
-    if (byName) {
-      return byName.id;
-    }
-
-    const byCategory = settings.statuses.find((item) => item.category === normalized);
-    return byCategory?.id ?? settings.defaultStatusId;
-  }
-
-  private resolveLabelIds(
-    labels: readonly string[] | undefined,
-    settings: WorkspaceSettings,
-  ): readonly string[] {
-    if (!labels || labels.length === 0) {
-      return [];
-    }
-
-    const lookup = new Map<string, string>();
-    for (const label of settings.labels) {
-      lookup.set(label.id.toLowerCase(), label.id);
-      lookup.set(label.name.trim().toLowerCase(), label.id);
-    }
-
-    const resolved = labels
-      .map((label) => lookup.get(label.trim().toLowerCase()))
-      .filter((id): id is string => Boolean(id));
-
-    return Array.from(new Set(resolved));
   }
 
   private formatSubtask(subtask: ApiAnalysisSubtask): string {
