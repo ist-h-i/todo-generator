@@ -691,6 +691,36 @@ app-shell .shell-toast {
   pointer-events: none;
 }
 
+app-shell .shell-toast--error {
+  border-color: color-mix(in srgb, var(--danger) 46%, transparent);
+  background: color-mix(in srgb, var(--danger) 16%, var(--surface-layer-1));
+  color: color-mix(in srgb, var(--danger-strong) 88%, var(--text-primary));
+  pointer-events: auto;
+}
+
+app-shell .shell-toast__message {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  word-break: break-word;
+}
+
+app-shell .shell-toast__dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+app-shell .shell-toast__dismiss:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
 @media (min-width: 40rem) {
   app-shell .shell-actions {
     flex-direction: row;

@@ -11,6 +11,7 @@ import {
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '@core/auth/auth.service';
+import { HttpErrorNotifierService } from '@core/api/http-error-notifier.service';
 import { ProfileDialogComponent } from '@core/profile/profile-dialog';
 import { UserProfile } from '@core/profile/profile.models';
 import { HelpDialogComponent } from './help-dialog';
@@ -54,6 +55,7 @@ export class Shell {
   private readonly router = inject(Router);
   private readonly document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly errorNotifier = inject(HttpErrorNotifierService);
   private readonly themeStorageKey = 'verbalize-yourself:theme-preference';
   private readonly legacyThemeStorageKey = 'todo-generator:theme-preference';
   private readonly helpDialogVisible = signal(false);
@@ -89,6 +91,7 @@ export class Shell {
   public readonly isHelpDialogOpen = computed(() => this.helpDialogVisible());
   public readonly isProfileDialogOpen = computed(() => this.profileDialogVisible());
   public readonly profileToastMessage = computed(() => this.profileToastStore());
+  public readonly globalErrorMessage = this.errorNotifier.message;
 
   private readonly syncTheme = effect(() => {
     const preference = this.theme();
@@ -178,6 +181,10 @@ export class Shell {
   public readonly logout = (): void => {
     this.auth.logout();
     void this.router.navigateByUrl('/login');
+  };
+
+  public readonly dismissGlobalError = (): void => {
+    this.errorNotifier.clear();
   };
 
   public constructor() {
