@@ -1,0 +1,84 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 1.2rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay) 96%, transparent);
+  box-shadow: 0 18px 36px color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  max-inline-size: min(92vw, 420px);
+  min-inline-size: 0;
+  backdrop-filter: blur(18px);
+  pointer-events: none;
+  animation: hover-message-slide-in 260ms ease forwards;
+}
+
+.hover-message__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
+.hover-message__icon svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.hover-message__text {
+  display: inline-flex;
+  align-items: center;
+  min-inline-size: 0;
+  word-break: break-word;
+}
+
+:host([data-severity='success']) {
+  border-color: color-mix(in srgb, var(--success) 42%, transparent);
+  background: color-mix(in srgb, var(--success-muted) 32%, var(--surface-overlay));
+  box-shadow: 0 20px 42px color-mix(in srgb, var(--success) 24%, transparent);
+  color: color-mix(in srgb, var(--success-strong) 90%, var(--text-primary));
+}
+
+:host([data-severity='info']) {
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent-muted) 26%, var(--surface-overlay));
+  box-shadow: 0 20px 42px color-mix(in srgb, var(--accent) 22%, transparent);
+  color: color-mix(in srgb, var(--accent-strong) 88%, var(--text-primary));
+}
+
+:host([data-severity='warning']) {
+  border-color: color-mix(in srgb, var(--warning) 46%, transparent);
+  background: color-mix(in srgb, var(--warning-muted) 32%, var(--surface-overlay));
+  box-shadow: 0 22px 48px color-mix(in srgb, var(--warning) 26%, transparent);
+  color: color-mix(in srgb, var(--warning-strong) 86%, var(--text-primary));
+}
+
+:host([data-severity='danger']) {
+  border-color: color-mix(in srgb, var(--danger) 52%, transparent);
+  background: color-mix(in srgb, var(--danger-muted) 36%, var(--surface-overlay));
+  box-shadow: 0 24px 52px color-mix(in srgb, var(--danger) 30%, transparent);
+  color: color-mix(in srgb, var(--danger-strong) 88%, var(--text-primary));
+}
+
+@media (min-width: 64rem) {
+  :host {
+    padding: 0.95rem 1.35rem;
+  }
+}
+
+@keyframes hover-message-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) translateZ(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
