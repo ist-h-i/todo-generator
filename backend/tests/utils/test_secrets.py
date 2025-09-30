@@ -1,7 +1,7 @@
 import pytest
 
 from app.config import DEFAULT_SECRET_ENCRYPTION_KEY
-from app.utils.crypto import SecretCipher
+from app.utils.crypto import SecretCipher, SecretDecryptionError
 from app.utils.secrets import SecretEncryptionKeyError, build_secret_hint, get_secret_cipher
 
 
@@ -87,3 +87,11 @@ def test_secret_cipher_reencrypts_legacy_payload() -> None:
     rotated = modern_cipher.decrypt(result.reencrypted_payload)
     assert rotated.plaintext == secret
     assert rotated.reencrypted_payload is None
+
+
+def test_secret_cipher_raises_when_payload_cannot_be_decrypted() -> None:
+    original = SecretCipher("first-key").encrypt("api-key")
+    cipher = SecretCipher("second-key")
+
+    with pytest.raises(SecretDecryptionError):
+        cipher.decrypt(original)

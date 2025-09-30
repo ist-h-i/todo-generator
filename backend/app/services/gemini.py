@@ -29,6 +29,7 @@ from ..schemas import (
     AnalysisSubtask,
     UserProfile,
 )
+from ..utils.crypto import SecretDecryptionError
 from ..utils.secrets import SecretEncryptionKeyError, get_secret_cipher
 
 logger = logging.getLogger(__name__)
@@ -749,6 +750,11 @@ def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[s
     try:
         decryption = cipher.decrypt(credential.encrypted_secret)
         secret = decryption.plaintext
+    except SecretDecryptionError as exc:
+        logger.exception("Failed to decrypt API credential for provider '%s'", provider)
+        raise GeminiConfigurationError(
+            "Gemini API key could not be decrypted. Update it from the admin settings."
+        ) from exc
     except Exception as exc:  # pragma: no cover - defensive path
         logger.exception("Failed to decrypt API credential for provider '%s'", provider)
         raise GeminiConfigurationError("Failed to decrypt Gemini API key.") from exc
