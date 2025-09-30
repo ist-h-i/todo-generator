@@ -318,7 +318,7 @@ export class ContinuousImprovementStore {
         layer.nodes.map(
           (node) =>
             `- 第${layer.depth}階層: ${node.statement} (確信度 ${Math.round(
-              node.confidence * 100,
+              node.confidence,
             )}%, 状態 ${node.state}${node.tone === 'direct' ? ' ※率直な指摘' : ''})`,
         ),
       );

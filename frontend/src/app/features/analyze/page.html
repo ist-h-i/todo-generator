@@ -233,7 +233,7 @@
               <div class="analyze-page__proposal-header">
                 <h4 class="analyze-page__proposal-title">{{ proposal.title }}</h4>
                 <span class="page-badge page-badge--accent">
-                  おすすめ度 {{ proposal.confidence * 100 | number: '1.0-0' }}%
+                  おすすめ度 {{ proposal.confidence | number: '1.0-0' }}%
                 </span>
               </div>
               <p class="analyze-page__proposal-summary">{{ proposal.summary }}</p>

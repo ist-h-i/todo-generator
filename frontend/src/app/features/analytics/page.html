@@ -196,7 +196,7 @@
               <li class="cause-card">
                 <p class="text-sm font-semibold text-on-surface">{{ node.statement }}</p>
                 <p class="text-xs text-slate-500">
-                  確信度 {{ node.confidence * 100 | number: '1.0-0' }}% · 状況 {{ node.state }}
+                  確信度 {{ node.confidence | number: '1.0-0' }}% · 状況 {{ node.state }}
                 </p>
                 <p class="text-xs text-slate-500">
                   推奨指標: {{ node.recommendedMetrics.join(', ') || '未設定' }}

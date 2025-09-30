@@ -368,7 +368,7 @@
               <dd>
                 {{
                   active.confidence !== undefined
-                    ? (active.confidence * 100 | number: '1.0-0') + '%'
+                    ? (active.confidence | number: '1.0-0') + '%'
                     : '未設定'
                 }}
               </dd>
