@@ -5,6 +5,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 
 import { appRoutes } from './app.routes';
 import { authInterceptor } from '@core/auth/auth.interceptor';
+import { errorInterceptor } from '@core/api/error.interceptor';
 
 /**
  * Configures the providers required to bootstrap the Angular 20 application.
@@ -18,6 +19,6 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled' }),
     ),
     provideAnimations(),
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor, errorInterceptor])),
   ],
 };
