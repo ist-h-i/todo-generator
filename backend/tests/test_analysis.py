@@ -92,6 +92,7 @@ def test_analysis_persists_session(client: TestClient) -> None:
     assert data["model"] == "gemini-pro-test"
     assert len(data["proposals"]) == 1
     assert data["proposals"][0]["title"] == "Add login coverage"
+    assert data["proposals"][0]["labels"]
 
     with TestingSessionLocal() as db:
         sessions = db.query(models.AnalysisSession).all()
@@ -102,6 +103,67 @@ def test_analysis_persists_session(client: TestClient) -> None:
         assert session.notes == "Login flow intermittently fails"
         assert session.response_model == "gemini-pro-test"
         assert session.proposals and session.proposals[0]["title"] == "Add login coverage"
+
+        stored_labels = session.proposals[0].get("labels") or []
+        returned_label_id = data["proposals"][0]["labels"][0]
+        assert stored_labels and stored_labels[0] == returned_label_id
+
+        labels = db.query(models.Label).filter(models.Label.owner_id == session.user_id).all()
+        assert labels
+        assert any(label.id == returned_label_id for label in labels)
+
+
+def test_analysis_registers_new_labels(client: TestClient) -> None:
+    headers = _register_and_login(client, "analysis-labels@example.com")
+
+    response_payload = schemas.AnalysisResponse(
+        model="gemini-pro-test",
+        proposals=[
+            schemas.AnalysisCard(
+                title="Refine onboarding flow",
+                summary="Improve the messaging for new users.",
+                status="todo",
+                labels=["Customer Advocacy"],
+                priority="medium",
+                due_in_days=None,
+                subtasks=[],
+            )
+        ],
+    )
+
+    class StubGemini:
+        def analyze(
+            self,
+            request: schemas.AnalysisRequest,
+            *,
+            user_profile=None,
+            workspace_options=None,
+        ) -> schemas.AnalysisResponse:
+            return response_payload
+
+    app.dependency_overrides[get_gemini_client] = lambda: StubGemini()
+    payload = {
+        "text": "Objective: Delight customers\n\nNotes:\nPolish the onboarding emails",
+        "max_cards": 2,
+        "notes": "Polish the onboarding emails",
+        "objective": "Delight customers",
+        "auto_objective": False,
+    }
+    try:
+        response = client.post("/analysis", json=payload, headers=headers)
+    finally:
+        app.dependency_overrides.pop(get_gemini_client, None)
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["proposals"][0]["labels"]
+
+    with TestingSessionLocal() as db:
+        user = db.query(models.User).filter(models.User.email == "analysis-labels@example.com").one()
+        labels = db.query(models.Label).filter(models.Label.owner_id == user.id).all()
+        assert len(labels) == 1
+        assert labels[0].name == "Customer Advocacy"
+        assert data["proposals"][0]["labels"][0] == labels[0].id
 
 
 def test_analysis_records_failure(client: TestClient) -> None:

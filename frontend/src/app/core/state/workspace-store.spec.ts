@@ -8,7 +8,14 @@ import { CardCreateRequest, CardResponse, CardsApiService } from '@core/api/card
 import { CommentsApiService } from '@core/api/comments-api.service';
 import { WorkspaceConfigApiService } from '@core/api/workspace-config-api.service';
 import { Logger } from '@core/logger/logger';
-import { AnalysisProposal, AuthenticatedUser, Card } from '@core/models';
+import {
+  AnalysisProposal,
+  AuthenticatedUser,
+  Card,
+  Label,
+  Status,
+  WorkspaceSettings,
+} from '@core/models';
 
 import { WorkspaceStore } from './workspace-store';
 
@@ -232,6 +239,61 @@ describe('WorkspaceStore', () => {
 
       await expectAsync(importPromise).toBeRejectedWith(error);
       expect(store.cards()).toEqual([]);
+    });
+  });
+
+  describe('reconcileCardsForSettings', () => {
+    it('preserves card labels while workspace labels are loading', () => {
+      const internals = store as unknown as {
+        cardsSignal: { set(value: readonly Card[]): void };
+        reconcileCardsForSettings(settings: WorkspaceSettings): void;
+      };
+
+      const baseStatus: Status = {
+        id: 'status-todo',
+        name: 'To Do',
+        category: 'todo',
+        order: 1,
+        color: '#2563eb',
+      };
+      const initialSettings: WorkspaceSettings = {
+        defaultStatusId: baseStatus.id,
+        defaultAssignee: '',
+        timezone: 'UTC',
+        statuses: [baseStatus],
+        labels: [],
+        templates: [],
+        storyPointScale: [1, 2, 3],
+      };
+      const card: Card = {
+        id: 'card-1',
+        title: 'Draft release notes',
+        summary: '',
+        statusId: baseStatus.id,
+        labelIds: ['label-ai'],
+        templateId: null,
+        priority: 'medium',
+        storyPoints: 3,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        subtasks: [],
+        comments: [],
+        activities: [],
+      };
+
+      internals.cardsSignal.set([card]);
+      internals.reconcileCardsForSettings(initialSettings);
+
+      expect(store.cards()[0]?.labelIds).toEqual(['label-ai']);
+
+      const loadedLabel: Label = { id: 'label-ai', name: 'AI', color: '#38bdf8' };
+      const loadedSettings: WorkspaceSettings = {
+        ...initialSettings,
+        labels: [loadedLabel],
+      };
+
+      internals.reconcileCardsForSettings(loadedSettings);
+
+      expect(store.cards()[0]?.labelIds).toEqual(['label-ai']);
     });
   });
 
