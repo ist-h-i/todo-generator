@@ -17,7 +17,25 @@ const extractDetail = (payload: unknown): string | null => {
   }
 
   const detail = (payload as { detail?: unknown }).detail;
-  return typeof detail === 'string' && detail.trim().length > 0 ? detail : null;
+  if (typeof detail !== 'string') {
+    return null;
+  }
+
+  const trimmed = detail.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const hasCancellationKeyword = (value: unknown): boolean => {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  return normalized.includes('abort') || normalized.includes('cancel');
 };
 
 const isCanceledRequest = (error: HttpErrorResponse): boolean => {
@@ -25,43 +43,51 @@ const isCanceledRequest = (error: HttpErrorResponse): boolean => {
     return false;
   }
 
+  if (hasCancellationKeyword(error.statusText)) {
+    return true;
+  }
+
   const cause = error.error;
 
   if (cause instanceof ProgressEvent) {
-    return cause.type === 'abort';
+    return hasCancellationKeyword(cause.type);
   }
 
   if (cause instanceof DOMException) {
-    return cause.name === 'AbortError';
-  }
-
-  if (cause && typeof cause === 'object') {
-    const { name, type } = cause as { name?: unknown; type?: unknown };
-
-    if (typeof name === 'string' && (name === 'AbortError' || name === 'CanceledError')) {
-      return true;
-    }
-
-    if (typeof type === 'string' && type.toLowerCase() === 'abort') {
-      return true;
-    }
+    return hasCancellationKeyword(cause.name) || hasCancellationKeyword(cause.message);
   }
 
   if (typeof cause === 'string') {
-    return cause === 'AbortError' || cause === 'CanceledError';
+    return hasCancellationKeyword(cause);
+  }
+
+  if (cause && typeof cause === 'object') {
+    const { name, type, code, message } = cause as {
+      name?: unknown;
+      type?: unknown;
+      code?: unknown;
+      message?: unknown;
+    };
+
+    return (
+      hasCancellationKeyword(name) ||
+      hasCancellationKeyword(type) ||
+      hasCancellationKeyword(code) ||
+      hasCancellationKeyword(message)
+    );
   }
 
   return false;
 };
 
 const buildErrorMessage = (error: HttpErrorResponse): string => {
-  if (error.status === 0) {
-    return NETWORK_ERROR_MESSAGE;
-  }
-
   const detail = extractDetail(error.error);
   if (detail) {
     return detail;
+  }
+
+  if (error.status === 0) {
+    return NETWORK_ERROR_MESSAGE;
   }
 
   if (error.status >= 500) {
