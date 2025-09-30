@@ -499,7 +499,7 @@ export class AnalyzePage {
       .filter((title) => title.length > 0);
 
     if (sanitized.length === 0) {
-      return [];
+      return original?.subtasks ?? [];
     }
 
     return sanitized;
