@@ -350,7 +350,7 @@ export class AnalyzePage {
       confidence: proposal.confidence,
       title: proposal.title,
       summary: proposal.summary,
-      statusId: proposal.suggestedStatusId,
+      statusId: this.resolveStatusId(proposal.suggestedStatusId),
       labelIds: [...proposal.suggestedLabelIds],
       subtasks: proposal.subtasks.map((task) => this.createEditableSubtask(task)),
     }));
@@ -372,7 +372,11 @@ export class AnalyzePage {
   };
 
   public readonly updateProposalStatus = (proposalId: string, statusId: string): void => {
-    this.updateEditableProposal(proposalId, (proposal) => ({ ...proposal, statusId }));
+    const resolvedStatusId = this.resolveStatusId(statusId);
+    this.updateEditableProposal(proposalId, (proposal) => ({
+      ...proposal,
+      statusId: resolvedStatusId,
+    }));
   };
 
   public readonly toggleProposalLabel = (proposalId: string, labelId: string): void => {
@@ -479,7 +483,40 @@ export class AnalyzePage {
       return trimmed;
     }
 
-    return original?.suggestedStatusId?.trim() ?? '';
+    return this.resolveStatusId(original?.suggestedStatusId);
+  }
+
+  private resolveStatusId(statusId: string | null | undefined): string {
+    const normalized = statusId?.trim() ?? '';
+    const settings = this.workspace.settings();
+    const statuses = settings.statuses;
+
+    if (normalized.length > 0) {
+      if (statuses.length === 0) {
+        return normalized;
+      }
+
+      if (statuses.some((status) => status.id === normalized)) {
+        return normalized;
+      }
+    }
+
+    const defaultStatusId = settings.defaultStatusId?.trim() ?? '';
+    if (defaultStatusId.length > 0) {
+      if (statuses.length === 0) {
+        return defaultStatusId;
+      }
+
+      if (statuses.some((status) => status.id === defaultStatusId)) {
+        return defaultStatusId;
+      }
+    }
+
+    if (statuses.length > 0) {
+      return statuses[0]?.id ?? defaultStatusId;
+    }
+
+    return normalized || defaultStatusId;
   }
 
   private normalizeLabels(proposal: EditableProposalDraft): readonly string[] {
