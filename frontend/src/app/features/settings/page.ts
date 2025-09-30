@@ -27,6 +27,13 @@ export class SettingsPage {
     }
     return map;
   });
+  public readonly statusesById = computed(() => {
+    const map = new Map<string, string>();
+    for (const status of this.settingsSignal().statuses) {
+      map.set(status.id, status.name);
+    }
+    return map;
+  });
   public readonly statusCount = computed(() => this.settingsSignal().statuses.length);
 
   public readonly labelForm = createSignalForm({ name: '', color: '#38bdf8' });

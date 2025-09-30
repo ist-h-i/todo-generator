@@ -367,9 +367,10 @@
             </p>
 
             <div class="settings-template__meta">
-              <span class="page-badge page-badge--accent"
-                >初期ステータス: {{ template.defaultStatusId }}</span
-              >
+              <span class="page-badge page-badge--accent">
+                初期ステータス:
+                {{ statusesById().get(template.defaultStatusId) ?? template.defaultStatusId }}
+              </span>
               <span class="page-badge"
                 >おすすめ度しきい値: {{ template.confidenceThreshold | number: '1.0-0' }}%</span
               >
