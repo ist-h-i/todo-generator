@@ -35,7 +35,7 @@ Verbalize Yourself is an AI-assisted operations workspace that turns free-form s
 - Node.js 20+ and npm.
 - SQLite (bundled) or a PostgreSQL instance.
 - A Gemini API key (Google AI Studio) stored through the admin settings UI.
-- Optionally set `SECRET_ENCRYPTION_KEY` for encrypting stored secrets.
+- Set `SECRET_ENCRYPTION_KEY` to a sufficiently long random value before storing secrets.
 
 ### Environment Variables
 Create a `.env` file in the repository root or export variables before launching the backend.
@@ -45,7 +45,7 @@ Create a `.env` file in the repository root or export variables before launching
 | `DATABASE_URL` | SQLAlchemy connection string. Use PostgreSQL for production workloads. | `sqlite:///./todo.db` |
 | `DEBUG` | Enables verbose logging and exception responses. | `False` |
 | `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `models/gemini-2.0-flash` |
-| `SECRET_ENCRYPTION_KEY` | AES key for encrypting stored secrets. | `verbalize-yourself` |
+| `SECRET_ENCRYPTION_KEY` | AES key for encrypting stored secrets. Provide a sufficiently long random value; if unset, the admin console returns HTTP 503. | (必須) |
 | `RECOMMENDATION_WEIGHT_LABEL` | Weight applied to label correlation when computing `ai_confidence`. | `0.6` |
 | `RECOMMENDATION_WEIGHT_PROFILE` | Weight applied to profile alignment when computing `ai_confidence`. | `0.4` |
 | `ALLOWED_ORIGINS` | Comma-separated list of CORS origins for the SPA. | `http://localhost:4200` |

@@ -111,7 +111,7 @@ Timestamp mixins enforce UTC-aware audit fields, and helper methods normalise ID
 3. Administrators review evaluations via `/admin/evaluations`, while users check their own history and quotas in the profile feature.
 
 ### Administrative operations
-- `/admin/api-credentials/{provider}` encrypts and stores secrets using the configured `SECRET_ENCRYPTION_KEY`.
+- `/admin/api-credentials/{provider}` encrypts and stores secrets using the configured `SECRET_ENCRYPTION_KEY`; set a sufficiently long random value or the admin console returns HTTP 503 when credentials are accessed.
 - `/admin/quotas/defaults` and `/admin/quotas/{user_id}` expose the quota override pipeline consumed by the admin console.
 - User management endpoints surface aggregated quota data, recent activity, and role settings to support governance flows.
 
