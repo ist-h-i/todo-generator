@@ -14,6 +14,42 @@ DEFAULT_CARD_DAILY_LIMIT = 25
 DEFAULT_EVALUATION_DAILY_LIMIT = 3
 
 
+def _coerce_limit(limit: int) -> int:
+    """Return the provided limit clamped to a non-negative integer."""
+
+    return max(int(limit), 0)
+
+
+def _normalize_override_value(limit: int | None) -> int | None:
+    """Normalize an override limit by coercing positive values and preserving None."""
+
+    if limit is None:
+        return None
+
+    return _coerce_limit(limit)
+
+
+def _resolve_limit(
+    db: Session,
+    user_id: str,
+    *,
+    override_field: str,
+    default_field: str,
+    default_fallback: int,
+) -> int:
+    """Resolve the effective limit for the given user and quota field."""
+
+    override = db.query(models.UserQuotaOverride).filter_by(user_id=user_id).one_or_none()
+    if override is not None:
+        override_value = getattr(override, override_field)
+        if override_value is not None:
+            return _coerce_limit(override_value)
+
+    defaults = _ensure_defaults(db)
+    default_value = getattr(defaults, default_field) or default_fallback
+    return _coerce_limit(default_value)
+
+
 def _ensure_defaults(db: Session) -> models.QuotaDefaults:
     defaults = (
         db.query(models.QuotaDefaults).order_by(models.QuotaDefaults.id.asc()).first()
@@ -31,21 +67,23 @@ def _ensure_defaults(db: Session) -> models.QuotaDefaults:
 
 
 def get_card_daily_limit(db: Session, user_id: str) -> int:
-    override = db.query(models.UserQuotaOverride).filter_by(user_id=user_id).one_or_none()
-    if override and override.card_daily_limit is not None:
-        return max(int(override.card_daily_limit), 0)
-
-    defaults = _ensure_defaults(db)
-    return max(int(defaults.card_daily_limit or DEFAULT_CARD_DAILY_LIMIT), 0)
+    return _resolve_limit(
+        db,
+        user_id,
+        override_field="card_daily_limit",
+        default_field="card_daily_limit",
+        default_fallback=DEFAULT_CARD_DAILY_LIMIT,
+    )
 
 
 def get_evaluation_daily_limit(db: Session, user_id: str) -> int:
-    override = db.query(models.UserQuotaOverride).filter_by(user_id=user_id).one_or_none()
-    if override and override.evaluation_daily_limit is not None:
-        return max(int(override.evaluation_daily_limit), 0)
-
-    defaults = _ensure_defaults(db)
-    return max(int(defaults.evaluation_daily_limit or DEFAULT_EVALUATION_DAILY_LIMIT), 0)
+    return _resolve_limit(
+        db,
+        user_id,
+        override_field="evaluation_daily_limit",
+        default_field="evaluation_daily_limit",
+        default_fallback=DEFAULT_EVALUATION_DAILY_LIMIT,
+    )
 
 
 def reserve_daily_quota(
@@ -117,8 +155,8 @@ def get_quota_defaults(db: Session) -> models.QuotaDefaults:
 
 def set_quota_defaults(db: Session, *, card_limit: int, evaluation_limit: int) -> models.QuotaDefaults:
     defaults = _ensure_defaults(db)
-    defaults.card_daily_limit = max(int(card_limit), 0)
-    defaults.evaluation_daily_limit = max(int(evaluation_limit), 0)
+    defaults.card_daily_limit = _coerce_limit(card_limit)
+    defaults.evaluation_daily_limit = _coerce_limit(evaluation_limit)
     db.add(defaults)
     return defaults
 
@@ -135,20 +173,15 @@ def upsert_user_quota(
     if override is None:
         override = models.UserQuotaOverride(
             user_id=user_id,
-            card_daily_limit=card_limit if card_limit is None else max(int(card_limit), 0),
-            evaluation_daily_limit=
-                evaluation_limit if evaluation_limit is None else max(int(evaluation_limit), 0),
+            card_daily_limit=_normalize_override_value(card_limit),
+            evaluation_daily_limit=_normalize_override_value(evaluation_limit),
             updated_by=updated_by,
         )
         db.add(override)
         return override
 
-    override.card_daily_limit = (
-        None if card_limit is None else max(int(card_limit), 0)
-    )
-    override.evaluation_daily_limit = (
-        None if evaluation_limit is None else max(int(evaluation_limit), 0)
-    )
+    override.card_daily_limit = _normalize_override_value(card_limit)
+    override.evaluation_daily_limit = _normalize_override_value(evaluation_limit)
     override.updated_by = updated_by
     db.add(override)
     return override
