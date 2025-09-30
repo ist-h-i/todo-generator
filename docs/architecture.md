@@ -42,6 +42,7 @@ HTTP concerns are centralised under `core/api`:
 - `workspace-config-api.service.ts` wraps `/statuses`, `/labels`, and `/workspace/templates` plus related request/response contracts.
 - `analysis-gateway.ts` posts analyzer submissions to `/analysis`, maps persisted responses into workspace proposals, and surfaces them to the UI.
 - `status-reports-gateway.ts`, `admin-api.service.ts`, and `competency-api.service.ts` cover the remaining feature areas.
+- `loading.interceptor.ts` and `error.interceptor.ts` wrap HTTP traffic so loading indicators and the global error banner stay in sync via `HttpErrorNotifierService`.
 
 ### UI and UX
 - Tailwind-inspired design tokens live in `frontend/src/styles/pages`, with per-feature SCSS providing layout and component styling.
