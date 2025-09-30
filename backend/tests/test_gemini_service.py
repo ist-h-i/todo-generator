@@ -387,6 +387,84 @@ def test_load_gemini_configuration_respects_disabled_credential(client: TestClie
 
 def test_normalize_model_name_maps_legacy_flash() -> None:
     assert GeminiClient.normalize_model_name("gemini-1.5-flash") == "models/gemini-1.5-flash"
-    assert GeminiClient.normalize_model_name("gemini-1.5-flash-latest") == "models/gemini-1.5-flash"
+    assert GeminiClient.normalize_model_name("gemini-1.5-flash-latest") == "models/gemini-1.5-flash-latest"
     assert GeminiClient.normalize_model_name("models/gemini-1.5-flash") == "models/gemini-1.5-flash"
-    assert GeminiClient.normalize_model_name("models/gemini-1.5-flash-latest") == "models/gemini-1.5-flash"
+    assert GeminiClient.normalize_model_name("models/gemini-1.5-flash-latest") == "models/gemini-1.5-flash-latest"
+
+
+def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeModel:
+        def __init__(self, name: str, methods: tuple[str, ...]) -> None:
+            self.name = name
+            self.supported_generation_methods = methods
+
+    configured: dict[str, object] = {}
+
+    def fake_configure(api_key: str | None = None, **_: object) -> None:
+        configured["api_key"] = api_key
+
+    def fake_list_models() -> list[FakeModel]:
+        return [
+            FakeModel("models/gemini-1.5-flash-001", ("generateContent",)),
+            FakeModel("models/gemini-1.5-flash-002", ("generateContent",)),
+        ]
+
+    class DummyGenerativeModel:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    monkeypatch.setattr(
+        "app.services.gemini.genai",
+        SimpleNamespace(
+            configure=fake_configure,
+            list_models=fake_list_models,
+            GenerativeModel=DummyGenerativeModel,
+            types=SimpleNamespace(GenerationConfig=None),
+        ),
+    )
+
+    client = GeminiClient(model="models/gemini-1.5-flash", api_key="sk-test")
+
+    assert configured["api_key"] == "sk-test"
+    assert client.model == "models/gemini-1.5-flash-002"
+    assert isinstance(client._client, DummyGenerativeModel)  # type: ignore[attr-defined]
+    assert client._client.name == "models/gemini-1.5-flash-002"  # type: ignore[attr-defined]
+
+
+def test_client_raises_when_requested_model_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeModel:
+        def __init__(self, name: str, methods: tuple[str, ...]) -> None:
+            self.name = name
+            self.supported_generation_methods = methods
+
+    monkeypatch.setattr(
+        "app.services.gemini.genai",
+        SimpleNamespace(
+            configure=lambda **_: None,
+            list_models=lambda: [FakeModel("models/gemini-pro", ("generateContent",))],
+            GenerativeModel=lambda name: SimpleNamespace(name=name),
+            types=SimpleNamespace(GenerationConfig=None),
+        ),
+    )
+
+    with pytest.raises(GeminiConfigurationError):
+        GeminiClient(model="models/does-not-exist", api_key="sk-missing")
+
+
+def test_client_keeps_model_when_catalog_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    def failing_list_models() -> list[object]:
+        raise RuntimeError("discovery failed")
+
+    monkeypatch.setattr(
+        "app.services.gemini.genai",
+        SimpleNamespace(
+            configure=lambda **_: None,
+            list_models=failing_list_models,
+            GenerativeModel=lambda name: SimpleNamespace(name=name),
+            types=SimpleNamespace(GenerationConfig=None),
+        ),
+    )
+
+    client = GeminiClient(model="models/gemini-1.5-flash", api_key="sk-fallback")
+
+    assert client.model == "models/gemini-1.5-flash"
