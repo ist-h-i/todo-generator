@@ -9,13 +9,16 @@ from sqlalchemy.orm import Session
 
 from .. import models
 
-DAILY_CARD_CREATION_LIMIT = 25
 
-
-def reserve_daily_card_quota(*, db: Session, owner_id: str, quota_day: date) -> None:
+def reserve_daily_card_quota(
+    *, db: Session, owner_id: str, quota_day: date, limit: int
+) -> None:
     """Reserve one slot from the user's daily card quota."""
 
     quota_cls = models.DailyCardQuota
+
+    if limit <= 0:
+        return
 
     def _try_increment() -> bool:
         result = db.execute(
@@ -23,7 +26,7 @@ def reserve_daily_card_quota(*, db: Session, owner_id: str, quota_day: date) -> 
             .where(
                 quota_cls.owner_id == owner_id,
                 quota_cls.quota_date == quota_day,
-                quota_cls.created_count < DAILY_CARD_CREATION_LIMIT,
+                quota_cls.created_count < limit,
             )
             .values(created_count=quota_cls.created_count + 1)
         )
@@ -74,7 +77,7 @@ def reserve_daily_card_quota(*, db: Session, owner_id: str, quota_day: date) -> 
         )
     ).scalar_one_or_none()
 
-    if existing_count is None or existing_count < DAILY_CARD_CREATION_LIMIT:
+    if existing_count is None or existing_count < limit:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to reserve daily card quota.",
@@ -82,5 +85,5 @@ def reserve_daily_card_quota(*, db: Session, owner_id: str, quota_day: date) -> 
 
     raise HTTPException(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        detail=f"Daily card creation limit of {DAILY_CARD_CREATION_LIMIT} reached.",
+        detail=f"Daily card creation limit of {limit} reached.",
     )
