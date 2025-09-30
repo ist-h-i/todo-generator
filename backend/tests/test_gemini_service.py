@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -24,6 +25,30 @@ def _make_client() -> GeminiClient:
     client = object.__new__(GeminiClient)
     client.model = "test-model"
     return client  # type: ignore[return-value]
+
+
+def _contains_key(value: Any, target: str) -> bool:
+    if isinstance(value, dict):
+        return target in value or any(_contains_key(item, target) for item in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(_contains_key(item, target) for item in value)
+    return False
+
+
+def _extract_response_schema(config: Any) -> dict[str, Any]:
+    if isinstance(config, dict):
+        return config["response_schema"]
+    schema = getattr(config, "response_schema", None)
+    if isinstance(schema, dict):
+        return schema
+    to_dict = getattr(config, "to_dict", None)
+    if callable(to_dict):
+        data = to_dict()
+        if isinstance(data, dict) and "response_schema" in data:
+            value = data["response_schema"]
+            if isinstance(value, dict):
+                return value
+    raise AssertionError("Unable to extract response_schema from generation config")
 
 
 def test_build_response_format_sets_strict_and_max_items() -> None:
@@ -103,6 +128,9 @@ def test_request_analysis_enriches_model_from_response() -> None:
     assert data == {"model": "gemini-test", "proposals": []}
     assert GeminiClient._SYSTEM_PROMPT in recorded["prompt"]
     assert "Analyse Notes" in recorded["prompt"]
+    config = recorded["generation_config"]
+    schema = _extract_response_schema(config)
+    assert not _contains_key(schema, "additionalProperties")
 
 
 def test_build_user_prompt_includes_profile_metadata() -> None:
