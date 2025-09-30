@@ -96,3 +96,60 @@ def test_secret_cipher_raises_when_payload_cannot_be_decrypted() -> None:
 
     with pytest.raises(SecretDecryptionError):
         cipher.decrypt(original)
+
+
+def test_secret_cipher_returns_empty_payload_result() -> None:
+    cipher = SecretCipher("any-key")
+
+    result = cipher.decrypt("")
+
+    assert result.plaintext == ""
+    assert result.reencrypted_payload is None
+
+
+def test_secret_cipher_roundtrips_base64_payload_without_key() -> None:
+    import base64
+
+    cipher = SecretCipher(None)
+    payload = base64.urlsafe_b64encode(b"stored-secret").decode("ascii")
+
+    result = cipher.decrypt(payload)
+
+    assert result.plaintext == "stored-secret"
+    assert result.reencrypted_payload is None
+
+
+def test_secret_cipher_recovers_plain_legacy_payload() -> None:
+    import base64
+
+    legacy_secret = "legacy secret"
+    payload = base64.urlsafe_b64encode(legacy_secret.encode("utf-8")).decode("ascii")
+
+    cipher = SecretCipher("modern-key")
+    result = cipher.decrypt(payload)
+
+    assert result.plaintext == legacy_secret
+    assert result.reencrypted_payload is not None
+    assert result.reencrypted_payload.startswith(SecretCipher._PREFIX)
+
+
+def test_secret_cipher_raises_when_legacy_payload_from_other_key_and_default_key() -> None:
+    import base64
+    import hashlib
+
+    original_secret = "migrated secret"
+    previous_key_digest = hashlib.sha256(b"previous-key").digest()
+    legacy_bytes = bytes(
+        byte ^ previous_key_digest[index % len(previous_key_digest)]
+        for index, byte in enumerate(original_secret.encode("utf-8"))
+    )
+
+    # Ensure the payload cannot be decoded directly to UTF-8 to exercise the recovery path.
+    with pytest.raises(UnicodeDecodeError):
+        legacy_bytes.decode("utf-8")
+
+    payload = base64.urlsafe_b64encode(legacy_bytes).decode("ascii")
+    cipher = SecretCipher(DEFAULT_SECRET_ENCRYPTION_KEY)
+
+    with pytest.raises(SecretDecryptionError):
+        cipher.decrypt(payload)
