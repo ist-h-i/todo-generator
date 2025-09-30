@@ -81,6 +81,11 @@ export class AnalyzePage {
 
   public readonly isAnalyzing = computed(() => {
     const status = this.analysisResource.status();
+    const error = this.analysisResource.error();
+
+    if (error !== null && error !== undefined) {
+      return false;
+    }
 
     return status === 'loading' || status === 'reloading';
   });
@@ -109,71 +114,70 @@ export class AnalyzePage {
 
   public readonly proposalPublishFeedback = computed(() => this.publishFeedback());
 
-  private readonly analyzerLifecycle = effect(
-    () => {
-      const request = this.requestSignal();
-      const status = this.analysisResource.status();
-      const error = this.analysisResource.error();
-      const result = this.analysisResource.value();
-      const proposals = this.eligibleProposals();
+  private readonly analyzerLifecycle = effect(() => {
+    const request = this.requestSignal();
+    const status = this.analysisResource.status();
+    const error = this.analysisResource.error();
+    const result = this.analysisResource.value();
+    const proposals = this.eligibleProposals();
 
-      const isNewRequest = request !== this.lastTrackedRequest;
-      if (isNewRequest) {
-        this.lastTrackedRequest = request;
-        this.requestVersion += 1;
-        this.lastResultFingerprint = null;
-        this.dismissToast();
-        this.disableResultsHighlight();
-      }
+    const isNewRequest = request !== this.lastTrackedRequest;
+    if (isNewRequest) {
+      this.lastTrackedRequest = request;
+      this.requestVersion += 1;
+      this.lastResultFingerprint = null;
+      this.dismissToast();
+      this.disableResultsHighlight();
+    }
 
-      if (!request) {
-        return;
-      }
+    if (!request) {
+      return;
+    }
 
-      if (status === 'loading' || status === 'reloading') {
-        this.showLoadingToast();
-        this.disableResultsHighlight();
-        this.clearPublishFeedback();
-        return;
-      }
+    if (status === 'loading' || status === 'reloading') {
+      this.showLoadingToast();
+      this.disableResultsHighlight();
+      this.clearPublishFeedback();
+      return;
+    }
 
-      if (error) {
-        this.emitAnalyzerToastOnce(
-          'error',
-          'タスク案の生成に失敗しました。内容を確認してからもう一度お試しください。',
-          'error',
-        );
-        this.disableResultsHighlight();
-        return;
-      }
+    if (error) {
+      this.emitAnalyzerToastOnce(
+        'error',
+        'タスク案の生成に失敗しました。内容を確認してからもう一度お試しください。',
+        'error',
+      );
+      this.disableResultsHighlight();
+      return;
+    }
 
-      if (!result) {
-        this.lastResultFingerprint = null;
-        this.dismissToast();
-        this.disableResultsHighlight();
-        return;
-      }
+    if (!result) {
+      this.lastResultFingerprint = null;
+      this.dismissToast();
+      this.disableResultsHighlight();
+      return;
+    }
 
-      if (proposals.length === 0) {
-        this.emitAnalyzerToastOnce(
-          'notice',
-          '条件に一致する提案が見つかりませんでした。設定を調整して再度お試しください。',
-          'empty',
-        );
-        this.disableResultsHighlight();
-        return;
-      }
+    if (proposals.length === 0) {
+      this.emitAnalyzerToastOnce(
+        'notice',
+        '条件に一致する提案が見つかりませんでした。設定を調整して再度お試しください。',
+        'empty',
+      );
+      this.disableResultsHighlight();
+      return;
+    }
 
-      const fingerprint = this.computeProposalsFingerprint(proposals);
-      if (
-        this.emitSuccessToast(
-          `AI が ${proposals.length} 件のおすすめタスク案を生成しました。`,
-          fingerprint,
-        )
-      ) {
-        this.triggerResultsHighlight();
-      }
-    });
+    const fingerprint = this.computeProposalsFingerprint(proposals);
+    if (
+      this.emitSuccessToast(
+        `AI が ${proposals.length} 件のおすすめタスク案を生成しました。`,
+        fingerprint,
+      )
+    ) {
+      this.triggerResultsHighlight();
+    }
+  });
 
   private readonly dispatchAnalyze = this.analyzeForm.submit((value) => {
     const payload = this.createRequestPayload(value);
