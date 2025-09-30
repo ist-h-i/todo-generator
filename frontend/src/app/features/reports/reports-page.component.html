@@ -223,7 +223,7 @@
                         type="button"
                         class="button button--secondary focus-ring"
                         (click)="publishProposal(index)"
-                        [disabled]="publishPending()"
+                        [disabled]="publishPending() || proposal.invalid"
                       >
                         この提案をカードに追加
                       </button>
