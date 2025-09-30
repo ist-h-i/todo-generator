@@ -181,13 +181,6 @@
                 >
                   キャンセル
                 </button>
-                <button
-                  type="button"
-                  class="button button--danger button--pill"
-                  (click)="removeTemplate(template.id)"
-                >
-                  削除
-                </button>
               } @else {
                 <button
                   type="button"
@@ -196,13 +189,19 @@
                 >
                   編集
                 </button>
-                <button
-                  type="button"
-                  class="button button--danger button--pill"
-                  (click)="removeTemplate(template.id)"
-                >
-                  削除
-                </button>
+              }
+              <button
+                type="button"
+                class="button button--danger button--pill"
+                [disabled]="template.isSystemDefault"
+                [attr.aria-disabled]="template.isSystemDefault"
+                title="標準テンプレートは削除できません"
+                (click)="removeTemplate(template.id)"
+              >
+                削除
+              </button>
+              @if (template.isSystemDefault) {
+                <span class="settings-template__note">標準テンプレートは削除できません</span>
               }
             </div>
           </div>

@@ -216,5 +216,10 @@ def delete_template(
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
     template = _get_owned_template(db, owner_id=current_user.id, template_id=template_id)
+    if template.is_system_default:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="System default template cannot be deleted.",
+        )
     delete_model(db, template)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

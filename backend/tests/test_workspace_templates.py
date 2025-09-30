@@ -73,6 +73,31 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
     assert all(entry["id"] != template_id for entry in remaining)
 
 
+def test_cannot_delete_system_default_template(client: TestClient) -> None:
+    headers = register_and_login(client, "workspace-template-default@example.com")
+
+    list_response = client.get("/workspace/templates", headers=headers)
+    assert list_response.status_code == 200, list_response.text
+    templates = list_response.json()
+    assert templates, "Expected default template to be provisioned"
+
+    default_template = next(
+        (template for template in templates if template.get("is_system_default")),
+        None,
+    )
+    assert default_template is not None, "System default template should exist"
+
+    delete_response = client.delete(
+        f"/workspace/templates/{default_template['id']}",
+        headers=headers,
+    )
+    assert delete_response.status_code == 400
+    assert "cannot be deleted" in delete_response.json()["detail"].lower()
+
+    post_delete_templates = client.get("/workspace/templates", headers=headers).json()
+    assert any(entry["id"] == default_template["id"] for entry in post_delete_templates)
+
+
 def test_partial_field_visibility_update_preserves_existing(client: TestClient) -> None:
     headers = register_and_login(client, "workspace-template-visibility@example.com")
     status_id = create_status(client, headers)
