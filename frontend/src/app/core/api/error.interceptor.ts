@@ -19,6 +19,40 @@ const extractDetail = (payload: unknown): string | null => {
   return typeof detail === 'string' && detail.trim().length > 0 ? detail : null;
 };
 
+const isCanceledRequest = (error: HttpErrorResponse): boolean => {
+  if (error.status !== 0) {
+    return false;
+  }
+
+  const cause = error.error;
+
+  if (cause instanceof ProgressEvent) {
+    return cause.type === 'abort';
+  }
+
+  if (cause instanceof DOMException) {
+    return cause.name === 'AbortError';
+  }
+
+  if (cause && typeof cause === 'object') {
+    const { name, type } = cause as { name?: unknown; type?: unknown };
+
+    if (typeof name === 'string' && (name === 'AbortError' || name === 'CanceledError')) {
+      return true;
+    }
+
+    if (typeof type === 'string' && type.toLowerCase() === 'abort') {
+      return true;
+    }
+  }
+
+  if (typeof cause === 'string') {
+    return cause === 'AbortError' || cause === 'CanceledError';
+  }
+
+  return false;
+};
+
 const buildErrorMessage = (error: HttpErrorResponse): string => {
   if (error.status === 0) {
     return NETWORK_ERROR_MESSAGE;
@@ -53,6 +87,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error: unknown) => {
       if (error instanceof HttpErrorResponse) {
+        if (isCanceledRequest(error)) {
+          return throwError(() => error);
+        }
         notifier.notify(buildErrorMessage(error));
       } else {
         notifier.notify(SERVER_ERROR_MESSAGE);
