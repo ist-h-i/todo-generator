@@ -120,7 +120,56 @@ class GeminiClient:
         " Respond strictly using the provided JSON schema."
     )
 
-    _UNSUPPORTED_SCHEMA_KEYS: ClassVar[set[str]] = {"additionalProperties", "minItems", "maxItems"}
+    _SCHEMA_KEY_ALIASES: ClassVar[dict[str, str]] = {
+        "maxItems": "max_items",
+        "minItems": "min_items",
+    }
+
+    _UNSUPPORTED_SCHEMA_KEYS: ClassVar[set[str]] = {
+        "additionalProperties",
+        "default",
+        "description",
+        "examples",
+        "patternProperties",
+        "propertyNames",
+        "minLength",
+        "maxLength",
+        "pattern",
+        "format",
+        "contentEncoding",
+        "contentMediaType",
+        "title",
+        "$defs",
+        "$id",
+        "$schema",
+        "$ref",
+        "definitions",
+        "deprecated",
+        "readOnly",
+        "writeOnly",
+        "unevaluatedItems",
+        "unevaluatedProperties",
+        "contains",
+        "const",
+        "enum",
+        "anyOf",
+        "oneOf",
+        "allOf",
+        "not",
+        "if",
+        "then",
+        "else",
+        "dependentRequired",
+        "dependentSchemas",
+        "minContains",
+        "maxContains",
+        "maxProperties",
+        "minProperties",
+        "exclusiveMaximum",
+        "exclusiveMinimum",
+        "multipleOf",
+        "uniqueItems",
+    }
 
     def __init__(
         self,
@@ -275,15 +324,23 @@ class GeminiClient:
     def _sanitize_schema(cls, schema: dict[str, Any]) -> dict[str, Any]:
         """Return a deep-copied schema without unsupported Gemini keys."""
 
-        def _sanitize(value: Any) -> Any:
+        def _sanitize(value: Any, parent_key: str | None = None) -> Any:
             if isinstance(value, dict):
-                return {
-                    key: _sanitize(inner) for key, inner in value.items() if key not in cls._UNSUPPORTED_SCHEMA_KEYS
-                }
+                sanitized: dict[str, Any] = {}
+                for key, inner in value.items():
+                    if parent_key == "properties":
+                        sanitized[key] = _sanitize(inner, None)
+                        continue
+
+                    mapped_key = cls._SCHEMA_KEY_ALIASES.get(key, key)
+                    if mapped_key in cls._UNSUPPORTED_SCHEMA_KEYS:
+                        continue
+                    sanitized[mapped_key] = _sanitize(inner, mapped_key)
+                return sanitized
             if isinstance(value, list):
-                return [_sanitize(item) for item in value]
+                return [_sanitize(item, parent_key) for item in value]
             if isinstance(value, tuple):
-                return tuple(_sanitize(item) for item in value)
+                return tuple(_sanitize(item, parent_key) for item in value)
             return value
 
         return _sanitize(deepcopy(schema))
