@@ -674,35 +674,6 @@ app-shell .shell-user__email {
   overflow-wrap: anywhere;
 }
 
-app-shell .shell-toast-stack {
-  position: fixed;
-  top: clamp(88px, 8vh, 128px);
-  right: clamp(12px, 5vw, 48px);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.75rem;
-  z-index: 60;
-}
-
-app-shell .shell-toast {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1.2rem;
-  border-radius: 9999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 46%, transparent);
-  background: color-mix(in srgb, var(--surface-overlay) 96%, transparent);
-  box-shadow: 0 18px 36px color-mix(in srgb, var(--accent) 22%, transparent);
-  color: var(--text-secondary);
-  font-size: 0.82rem;
-  font-weight: 600;
-  backdrop-filter: blur(16px);
-  max-inline-size: min(92vw, 420px);
-  pointer-events: none;
-  animation: shell-toast-in 220ms ease forwards;
-}
-
 app-shell .shell-global-loading {
   position: fixed;
   top: clamp(16px, 6vh, 60px);
@@ -776,18 +747,6 @@ app-shell .shell-global-error__dismiss {
 
 app-shell .shell-global-error__dismiss:hover {
   background: color-mix(in srgb, currentColor 12%, transparent);
-}
-
-@keyframes shell-toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @keyframes shell-banner-in {

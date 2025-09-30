@@ -58,26 +58,7 @@
         </button>
       </div>
     }
-    @let hoverMessages = hoverMessageList();
-    @if (hoverMessages.length > 0) {
-      <div class="shell-toast-stack" role="region" aria-live="polite" aria-label="グローバル通知">
-        @for (toast of hoverMessages; track toast.id) {
-          <div class="shell-toast" role="status">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 12.5 10 17l9-10" />
-            </svg>
-            <span>{{ toast.text }}</span>
-          </div>
-        }
-      </div>
-    }
+    <app-hover-message-stack [messages]="hoverMessageList()" />
     <div class="shell-header__content shell-container">
       <div class="shell-header__surface">
         <div class="shell-header__grid">

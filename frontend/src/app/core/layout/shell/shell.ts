@@ -16,11 +16,11 @@ import { HttpLoadingStore } from '@core/api/http-loading.store';
 import { ProfileDialogComponent } from '@core/profile/profile-dialog';
 import { UserProfile } from '@core/profile/profile.models';
 import { HelpDialogComponent } from './help-dialog';
-
-type HoverMessage = {
-  readonly id: number;
-  readonly text: string;
-};
+import {
+  HoverMessageSeverity,
+  HoverMessageStackComponent,
+  HoverMessageView,
+} from '../hover-messages/hover-message-stack.component';
 
 function extractRoleLabel(role: string): string {
   const separator = ' / ';
@@ -51,6 +51,7 @@ type ThemePreference = 'light' | 'dark' | 'system';
     RouterLinkActive,
     HelpDialogComponent,
     ProfileDialogComponent,
+    HoverMessageStackComponent,
   ],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
@@ -67,7 +68,7 @@ export class Shell {
   private readonly legacyThemeStorageKey = 'todo-generator:theme-preference';
   private readonly helpDialogVisible = signal(false);
   private readonly profileDialogVisible = signal(false);
-  private readonly hoverMessageStore = signal<readonly HoverMessage[]>([]);
+  private readonly hoverMessageStore = signal<readonly HoverMessageView[]>([]);
   private readonly hoverMessageTimers = new Map<number, number>();
   private hoverMessageSequence = 0;
 
@@ -343,13 +344,14 @@ export class Shell {
   }
 
   private showProfileToast(message: string): void {
-    this.enqueueHoverMessage(message);
+    this.enqueueHoverMessage(message, 'success');
   }
 
-  private enqueueHoverMessage(text: string): void {
-    const entry: HoverMessage = {
+  private enqueueHoverMessage(text: string, severity: HoverMessageSeverity = 'info'): void {
+    const entry: HoverMessageView = {
       id: ++this.hoverMessageSequence,
       text,
+      severity,
     };
 
     this.hoverMessageStore.update((messages) => [entry, ...messages]);
