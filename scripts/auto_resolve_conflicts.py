@@ -13,7 +13,7 @@ import google.generativeai as genai
 
 MAX_RETRIES = 3
 
-MODEL_NAME = os.getenv("GEMINI_MODEL", "models/gemini-1.5-flash")
+MODEL_NAME = os.getenv("GEMINI_MODEL", "models/gemini-2.0-flash")
 genai.configure()
 model = genai.GenerativeModel(MODEL_NAME)
 

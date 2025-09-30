@@ -44,7 +44,7 @@ Create a `.env` file in the repository root or export variables before launching
 | --- | --- | --- |
 | `DATABASE_URL` | SQLAlchemy connection string. Use PostgreSQL for production workloads. | `sqlite:///./todo.db` |
 | `DEBUG` | Enables verbose logging and exception responses. | `False` |
-| `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `models/gemini-1.5-flash` |
+| `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `models/gemini-2.0-flash` |
 | `SECRET_ENCRYPTION_KEY` | AES key for encrypting stored secrets. | `verbalize-yourself` |
 | `RECOMMENDATION_WEIGHT_LABEL` | Weight applied to label correlation when computing `ai_confidence`. | `0.6` |
 | `RECOMMENDATION_WEIGHT_PROFILE` | Weight applied to profile alignment when computing `ai_confidence`. | `0.4` |
@@ -108,15 +108,15 @@ Documentation-only updates may skip automated checks, but keep README and `docs/
 Long-running async workloads (for example, repeated backend test runs) can exhaust Windows socket buffers and raise `OSError: [WinError 10055]`. Close stray processes holding sockets (`Get-NetTCPConnection`), stagger concurrent test runs, or reboot to reclaim ephemeral ports. Consider increasing `MaxUserPort` and reducing `TcpTimedWaitDelay` if you control the environment.
 
 ### Gemini 404 errors after submitting `/analysis`
-When the backend raises `google.api_core.exceptions.NotFound: 404 models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent`, the Google Generative AI SDK is hitting the legacy `v1beta` API. That endpoint does not expose `gemini-1.5-flash` (or the newer `-latest` aliases), so FastAPI ultimately returns `502 Bad Gateway` to the Angular client.
+When the backend raises `google.api_core.exceptions.NotFound: 404 models/gemini-2.0-flash is not found for API version v1beta, or is not supported for generateContent`, the Google Generative AI SDK is hitting the legacy `v1beta` API. That endpoint does not expose `gemini-2.0-flash` (or other `2.0` Flash variants), so FastAPI ultimately returns `502 Bad Gateway` to the Angular client.
 
 The stack traces point back to `backend/app/services/gemini.py`, where the client invokes `generate_content()` via gRPC. You may also notice `ALTS creds ignored. Not running on GCP ...` in the logs—this warning is safe to ignore outside Google Cloud.
 
 To recover:
 
-1. **Enumerate supported models** – Run `from google.generativeai import list_models; print(list_models())` in a Python shell to verify which models and methods your account can access. The backend now performs this discovery step automatically and will either map `models/gemini-1.5-flash` to an available variant (for example `models/gemini-1.5-flash-002`) or return `503 Service Unavailable` with the supported model names.
-2. **Switch to an available model** – Configure `GEMINI_MODEL` (or the admin credential form) with an identifier such as `gemini-pro`, `gemini-1.0-pro`, or `gemini-1.5-pro-latest` that still works with `v1beta`.
-3. **Upgrade the SDK for `v1` support** – Install the latest `google-generativeai` release so you can target the `v1` API and restore access to `gemini-1.5-flash`/`gemini-1.5-flash-latest`.
+1. **Enumerate supported models** – Run `from google.generativeai import list_models; print(list_models())` in a Python shell to verify which models and methods your account can access. The backend now performs this discovery step automatically and will either map `models/gemini-2.0-flash` to an available variant (for example `models/gemini-2.0-flash-002`) or return `503 Service Unavailable` with the supported model names.
+2. **Switch to an available model** – Configure `GEMINI_MODEL` (or the admin credential form) with an identifier surfaced by the error, such as `models/gemini-2.0-flash`, `models/gemini-2.0-flash-lite`, or `gemini-1.5-pro-latest`, that your account can access.
+3. **Upgrade the SDK for `v1` support** – Install the latest `google-generativeai` release so you can target the `v1` API and restore access to the Flash families if you are pinned to older runtimes.
 
 Re-run the `list_models()` check after each change to confirm the API now exposes the desired model before retrying the `/analysis` workflow.
 
