@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+from fastapi import status
 from fastapi.testclient import TestClient
 
 from app import models, schemas
@@ -146,10 +147,12 @@ def test_retry_status_report_after_failure_succeeds(client: TestClient) -> None:
     app.dependency_overrides[get_gemini_client] = lambda: stub
     try:
         first_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
-        assert first_response.status_code == 200, first_response.text
-        first_detail = first_response.json()
-        assert first_detail["status"] == "failed"
-        assert first_detail["failure_reason"] == "Temporary analysis failure"
+        assert first_response.status_code == status.HTTP_502_BAD_GATEWAY, first_response.text
+        failure_payload = first_response.json()
+        assert failure_payload["detail"]["message"] == "Temporary analysis failure"
+        failed_report = failure_payload["detail"]["report"]
+        assert failed_report["status"] == "failed"
+        assert failed_report["failure_reason"] == "Temporary analysis failure"
 
         retry_response = client.post(f"/status-reports/{report_id}/retry", headers=headers)
         assert retry_response.status_code == 200, retry_response.text
