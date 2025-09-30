@@ -221,6 +221,42 @@ def test_create_card_registers_missing_labels(client: TestClient) -> None:
     assert any(label["id"] == new_label["id"] and label["name"] == "未登録ラベル" for label in labels)
 
 
+def test_duplicate_label_names_reuse_existing_record(client: TestClient) -> None:
+    email = "labels-duplicate@example.com"
+    headers = register_and_login(client, email)
+    status_id = create_status(client, headers)
+
+    create_response = client.post(
+        "/labels",
+        json={"name": "Urgent", "color": "#ff0000"},
+        headers=headers,
+    )
+    assert create_response.status_code == 201, create_response.text
+    label_id = create_response.json()["id"]
+
+    response = client.post(
+        "/cards",
+        json={
+            "title": "Handle duplicate labels",
+            "status_id": status_id,
+            "label_ids": ["urgent", "Urgent"],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    data = response.json()
+
+    assert data["label_ids"] == [label_id]
+    assert len(data["labels"]) == 1
+    assert data["labels"][0]["id"] == label_id
+
+    labels_response = client.get("/labels", headers=headers)
+    assert labels_response.status_code == 200
+    labels = labels_response.json()
+    assert len(labels) == 1
+    assert labels[0]["id"] == label_id
+
+
 def test_subtask_crud_flow(client: TestClient) -> None:
     email = "subtasks@example.com"
     headers = register_and_login(client, email)

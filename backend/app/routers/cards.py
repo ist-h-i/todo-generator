@@ -112,7 +112,10 @@ def _resolve_card_labels(
 
     missing = [value for value in unique_inputs if value not in resolved]
     if missing:
-        normalized_lookup = {value.strip().lower(): value for value in missing}
+        normalized_lookup: dict[str, list[str]] = {}
+        for value in missing:
+            key = value.strip().lower()
+            normalized_lookup.setdefault(key, []).append(value)
         existing_by_name = (
             db.query(models.Label)
             .filter(
@@ -123,20 +126,37 @@ def _resolve_card_labels(
         )
         for label in existing_by_name:
             key = (label.name or "").strip().lower()
-            original = normalized_lookup.get(key)
-            if original:
+            originals = normalized_lookup.pop(key, [])
+            for original in originals:
                 resolved[original] = label
 
     remaining = [value for value in unique_inputs if value not in resolved]
     if remaining:
-        existing_count = db.query(func.count(models.Label.id)).filter(models.Label.owner_id == owner.id).scalar() or 0
-        for offset, value in enumerate(remaining):
-            colour = _next_label_colour(existing_count + offset)
-            label = models.Label(name=value, color=colour, owner=owner)
-            db.add(label)
-            resolved[value] = label
+        normalized_remaining: dict[str, list[str]] = {}
+        for value in remaining:
+            key = value.strip().lower()
+            normalized_remaining.setdefault(key, []).append(value)
 
-    return [resolved[value] for value in unique_inputs]
+        existing_count = db.query(func.count(models.Label.id)).filter(models.Label.owner_id == owner.id).scalar() or 0
+        for offset, variants in enumerate(normalized_remaining.values()):
+            base_value = variants[0]
+            colour = _next_label_colour(existing_count + offset)
+            label = models.Label(name=base_value, color=colour, owner=owner)
+            db.add(label)
+            for variant in variants:
+                resolved[variant] = label
+
+    ordered_labels: list[models.Label] = []
+    seen_labels: set[int] = set()
+    for value in unique_inputs:
+        label = resolved[value]
+        marker = id(label)
+        if marker in seen_labels:
+            continue
+        seen_labels.add(marker)
+        ordered_labels.append(label)
+
+    return ordered_labels
 
 
 def _load_owned_labels(db: Session, *, label_ids: list[str], owner_id: str) -> list[models.Label]:
