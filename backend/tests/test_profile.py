@@ -125,3 +125,13 @@ def test_profile_roles_limit(client: TestClient, email: str) -> None:
         headers=headers,
     )
     assert response.status_code == 422
+
+
+def test_parse_roles_deduplicates_case_insensitively() -> None:
+    from app.services import profile
+
+    payload = json.dumps(["DevOps", "devops", " DEVOPS ", "QA", "qa"])
+
+    result = profile.parse_roles(payload)
+
+    assert result == ["DevOps", "QA"]
