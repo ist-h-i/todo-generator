@@ -515,7 +515,8 @@ export class ReportAssistantPageComponent {
 
   private parseTags(value: string): readonly string[] {
     return value
-      .split(/[,\s]+/)
+      .replace(/[\r\n、]/g, ',')
+      .split(',')
       .map((tag) => tag.trim())
       .filter((tag) => tag.length > 0);
   }
