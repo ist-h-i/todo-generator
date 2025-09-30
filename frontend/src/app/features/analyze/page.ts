@@ -12,10 +12,27 @@ import { CommonModule } from '@angular/common';
 import { AnalysisGateway } from '@core/api/analysis-gateway';
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { AnalysisProposal, AnalysisRequest } from '@core/models';
+import { createId } from '@core/utils/create-id';
 import { createSignalForm } from '@lib/forms/signal-forms';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
 
 type AnalyzerToastState = 'loading' | 'success' | 'notice' | 'error';
+
+interface EditableSubtaskDraft {
+  readonly id: string;
+  title: string;
+}
+
+interface EditableProposalDraft {
+  readonly id: string;
+  readonly templateId: string | null | undefined;
+  readonly confidence: number;
+  title: string;
+  summary: string;
+  statusId: string;
+  labelIds: string[];
+  subtasks: EditableSubtaskDraft[];
+}
 /**
  * Analyzer page allowing users to submit notes and review Gemini-style proposals.
  */
@@ -46,11 +63,18 @@ export class AnalyzePage {
     message: string;
   } | null>(null);
   private readonly highlightResults = signal(false);
-  private readonly statusNameMap = computed(
-    () => new Map(this.workspace.settings().statuses.map((status) => [status.id, status.name])),
+  private readonly editableProposalsSignal = signal<EditableProposalDraft[]>([]);
+  private readonly proposalLookup = computed(
+    () => new Map(this.eligibleProposals().map((proposal) => [proposal.id, proposal])),
   );
-  private readonly labelNameMap = computed(
-    () => new Map(this.workspace.settings().labels.map((label) => [label.id, label.name])),
+  public readonly editableProposals = computed(() => this.editableProposalsSignal());
+  public readonly hasEditableProposals = computed(() => this.editableProposalsSignal().length > 0);
+  public readonly workspaceStatuses = computed(() => this.workspace.settings().statuses);
+  public readonly workspaceLabels = computed(() => this.workspace.settings().labels);
+  public readonly canPublishAll = computed(
+    () =>
+      this.editableProposalsSignal().length > 0 &&
+      this.editableProposalsSignal().every((proposal) => this.isProposalPublishable(proposal)),
   );
 
   private toastTimer: number | null = null;
@@ -59,6 +83,7 @@ export class AnalyzePage {
   private lastTrackedRequest: AnalysisRequest | null | undefined = undefined;
   private requestVersion = 0;
   private lastResultFingerprint: string | null = null;
+  private lastEditableFingerprint: string | null = null;
 
   public readonly analysisResource = this.analysisGateway.createAnalysisResource(
     this.requestSignal,
@@ -120,25 +145,11 @@ export class AnalyzePage {
 
   public readonly proposalPublishFeedback = computed(() => this.publishFeedback());
 
-  public readonly formatSuggestedStatus = (statusId: string | null | undefined): string => {
-    if (!statusId) {
-      return '未設定';
-    }
+  public readonly isProposalPublishable = (proposal: EditableProposalDraft): boolean =>
+    proposal.title.trim().length > 0;
 
-    return this.statusNameMap().get(statusId) ?? '未設定';
-  };
-
-  public readonly formatSuggestedLabels = (labelIds: readonly string[]): string => {
-    if (!labelIds || labelIds.length === 0) {
-      return '未設定';
-    }
-
-    const names = labelIds
-      .map((labelId) => this.labelNameMap().get(labelId))
-      .filter((name): name is string => Boolean(name));
-
-    return names.length > 0 ? names.join('、') : '未設定';
-  };
+  public readonly isLabelSelected = (proposal: EditableProposalDraft, labelId: string): boolean =>
+    proposal.labelIds.includes(labelId);
 
   private readonly analyzerLifecycle = effect(() => {
     const request = this.requestSignal();
@@ -152,6 +163,8 @@ export class AnalyzePage {
       this.lastTrackedRequest = request;
       this.requestVersion += 1;
       this.lastResultFingerprint = null;
+      this.lastEditableFingerprint = null;
+      this.editableProposalsSignal.set([]);
       this.dismissToast();
       this.disableResultsHighlight();
     }
@@ -174,13 +187,17 @@ export class AnalyzePage {
         'error',
       );
       this.disableResultsHighlight();
+      this.editableProposalsSignal.set([]);
+      this.lastEditableFingerprint = null;
       return;
     }
 
     if (!result) {
       this.lastResultFingerprint = null;
+      this.lastEditableFingerprint = null;
       this.dismissToast();
       this.disableResultsHighlight();
+      this.editableProposalsSignal.set([]);
       return;
     }
 
@@ -191,10 +208,16 @@ export class AnalyzePage {
         'empty',
       );
       this.disableResultsHighlight();
+      this.editableProposalsSignal.set([]);
+      this.lastEditableFingerprint = null;
       return;
     }
 
     const fingerprint = this.computeProposalsFingerprint(proposals);
+    if (this.lastEditableFingerprint !== fingerprint) {
+      this.editableProposalsSignal.set(this.createEditableProposals(proposals));
+      this.lastEditableFingerprint = fingerprint;
+    }
     if (
       this.emitSuccessToast(
         `AI が ${proposals.length} 件のおすすめタスク案を生成しました。`,
@@ -238,16 +261,17 @@ export class AnalyzePage {
    * @param proposals - Proposals confirmed by the user.
    */
   public readonly publishProposals = async (
-    proposals: readonly AnalysisProposal[],
+    proposals: readonly EditableProposalDraft[],
   ): Promise<void> => {
     if (proposals.length === 0) {
       return;
     }
     try {
-      await this.workspace.importProposals(proposals);
+      const normalized = proposals.map((proposal) => this.normalizeProposal(proposal));
+      await this.workspace.importProposals(normalized);
       this.showPublishFeedback({
         status: 'success',
-        message: this.formatPublishSuccessMessage(proposals),
+        message: this.formatPublishSuccessMessage(normalized),
       });
       this.resetAnalyzeForm({ preserveFeedback: true });
     } catch (error) {
@@ -312,10 +336,174 @@ export class AnalyzePage {
     this.lastTrackedRequest = null;
     this.requestVersion = 0;
     this.lastResultFingerprint = null;
+    this.lastEditableFingerprint = null;
+    this.editableProposalsSignal.set([]);
     if (!options?.preserveFeedback) {
       this.clearPublishFeedback();
     }
   };
+
+  private createEditableProposals(proposals: readonly AnalysisProposal[]): EditableProposalDraft[] {
+    return proposals.map((proposal) => ({
+      id: proposal.id,
+      templateId: proposal.templateId,
+      confidence: proposal.confidence,
+      title: proposal.title,
+      summary: proposal.summary,
+      statusId: proposal.suggestedStatusId,
+      labelIds: [...proposal.suggestedLabelIds],
+      subtasks: proposal.subtasks.map((task) => this.createEditableSubtask(task)),
+    }));
+  }
+
+  private createEditableSubtask(title: string): EditableSubtaskDraft {
+    return {
+      id: createId(),
+      title,
+    };
+  }
+
+  public readonly updateProposalTitle = (proposalId: string, value: string): void => {
+    this.updateEditableProposal(proposalId, (proposal) => ({ ...proposal, title: value }));
+  };
+
+  public readonly updateProposalSummary = (proposalId: string, value: string): void => {
+    this.updateEditableProposal(proposalId, (proposal) => ({ ...proposal, summary: value }));
+  };
+
+  public readonly updateProposalStatus = (proposalId: string, statusId: string): void => {
+    this.updateEditableProposal(proposalId, (proposal) => ({ ...proposal, statusId }));
+  };
+
+  public readonly toggleProposalLabel = (proposalId: string, labelId: string): void => {
+    this.updateEditableProposal(proposalId, (proposal) => {
+      const exists = proposal.labelIds.includes(labelId);
+      const labelIds = exists
+        ? proposal.labelIds.filter((id) => id !== labelId)
+        : [...proposal.labelIds, labelId];
+
+      return { ...proposal, labelIds };
+    });
+  };
+
+  public readonly addSubtask = (proposalId: string): void => {
+    this.updateEditableProposal(proposalId, (proposal) => ({
+      ...proposal,
+      subtasks: [...proposal.subtasks, this.createEditableSubtask('')],
+    }));
+  };
+
+  public readonly updateSubtaskTitle = (
+    proposalId: string,
+    subtaskId: string,
+    value: string,
+  ): void => {
+    this.updateEditableProposal(proposalId, (proposal) => ({
+      ...proposal,
+      subtasks: proposal.subtasks.map((subtask) =>
+        subtask.id === subtaskId ? { ...subtask, title: value } : subtask,
+      ),
+    }));
+  };
+
+  public readonly removeSubtask = (proposalId: string, subtaskId: string): void => {
+    this.updateEditableProposal(proposalId, (proposal) => ({
+      ...proposal,
+      subtasks: proposal.subtasks.filter((subtask) => subtask.id !== subtaskId),
+    }));
+  };
+
+  private updateEditableProposal(
+    proposalId: string,
+    updater: (proposal: EditableProposalDraft) => EditableProposalDraft,
+  ): void {
+    this.editableProposalsSignal.update((proposals) =>
+      proposals.map((proposal) => (proposal.id === proposalId ? updater(proposal) : proposal)),
+    );
+  }
+
+  private normalizeProposal(proposal: EditableProposalDraft): AnalysisProposal {
+    const original = this.proposalLookup().get(proposal.id);
+    const normalizedTitle = this.normalizeTitle(proposal, original);
+    const normalizedSummary = this.normalizeSummary(proposal, original);
+    const normalizedStatusId = this.normalizeStatus(proposal, original);
+    const normalizedLabels = this.normalizeLabels(proposal);
+    const normalizedSubtasks = this.normalizeSubtasks(proposal, original);
+
+    return {
+      id: proposal.id,
+      title: normalizedTitle,
+      summary: normalizedSummary,
+      suggestedStatusId: normalizedStatusId,
+      suggestedLabelIds: normalizedLabels,
+      subtasks: normalizedSubtasks,
+      confidence: proposal.confidence,
+      templateId: proposal.templateId ?? undefined,
+    } satisfies AnalysisProposal;
+  }
+
+  private normalizeTitle(
+    proposal: EditableProposalDraft,
+    original: AnalysisProposal | undefined,
+  ): string {
+    const trimmed = proposal.title.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+
+    if (original) {
+      return original.title;
+    }
+
+    return '無題のカード';
+  }
+
+  private normalizeSummary(
+    proposal: EditableProposalDraft,
+    original: AnalysisProposal | undefined,
+  ): string {
+    const trimmed = proposal.summary.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+
+    return original?.summary ?? '';
+  }
+
+  private normalizeStatus(
+    proposal: EditableProposalDraft,
+    original: AnalysisProposal | undefined,
+  ): string {
+    const trimmed = proposal.statusId?.trim() ?? '';
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+
+    return original?.suggestedStatusId?.trim() ?? '';
+  }
+
+  private normalizeLabels(proposal: EditableProposalDraft): readonly string[] {
+    const sanitized = proposal.labelIds
+      .map((labelId) => labelId.trim())
+      .filter((labelId) => labelId.length > 0);
+
+    return Array.from(new Set(sanitized));
+  }
+
+  private normalizeSubtasks(
+    proposal: EditableProposalDraft,
+    original: AnalysisProposal | undefined,
+  ): readonly string[] {
+    const sanitized = proposal.subtasks
+      .map((subtask) => subtask.title.trim())
+      .filter((title) => title.length > 0);
+
+    if (sanitized.length === 0) {
+      return [];
+    }
+
+    return sanitized;
+  }
 
   private showLoadingToast(): void {
     this.setToast('loading', 'AI がカード案を生成中です…', { autoDismiss: false });

@@ -289,35 +289,97 @@
 }
 
 .analyze-page__proposal {
-  gap: clamp(0.9rem, 1.4vw, 1.4rem);
+  gap: clamp(1rem, 1.8vw, 1.6rem);
 }
 
-.analyze-page__proposal-header {
+.analyze-page__proposal-headline {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.35rem;
 }
 
 @media (min-width: 40rem) {
-  .analyze-page__proposal-header {
+  .analyze-page__proposal-headline {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
   }
 }
 
-.analyze-page__proposal-title {
-  margin: 0;
-  font-size: 1.1rem;
+.analyze-page__proposal-index {
+  font-size: 0.82rem;
   font-weight: 600;
-  color: var(--text-primary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
-.analyze-page__proposal-summary {
+.analyze-page__proposal-form {
+  display: grid;
+  gap: clamp(0.85rem, 1.2vw, 1.2rem);
+}
+
+.analyze-page__proposal-metadata {
+  display: grid;
+  gap: clamp(0.75rem, 1vw, 1rem);
+}
+
+@media (min-width: 48rem) {
+  .analyze-page__proposal-metadata {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    align-items: start;
+  }
+}
+
+.analyze-page__label-field {
+  gap: 0.5rem;
+}
+
+.analyze-page__label-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.analyze-page__label-button {
+  font-size: 0.85rem;
+  min-width: 4.75rem;
+}
+
+.analyze-page__subtasks-field {
+  gap: 0.75rem;
+}
+
+.analyze-page__subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.analyze-page__subtasks-empty {
   margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.65;
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.analyze-page__subtask-item {
+  display: grid;
+  gap: 0.55rem;
+}
+
+@media (min-width: 40rem) {
+  .analyze-page__subtask-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+.analyze-page__subtask-remove {
+  align-self: flex-start;
+}
+
+.analyze-page__subtask-add {
+  align-self: flex-start;
 }
 
 .analyze-page__state--loading {

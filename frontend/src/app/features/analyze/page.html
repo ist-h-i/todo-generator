@@ -219,44 +219,114 @@
     }
 
     @if (analysisResource.value()) {
-      @if (hasEligibleProposals()) {
+      @if (hasEditableProposals()) {
         <ul
           class="page-list analyze-page__proposal-list"
           [attr.data-animate]="shouldHighlightResults() ? 'incoming' : null"
         >
-          @for (proposal of eligibleProposals(); track proposal.id; let index = $index) {
+          @for (proposal of editableProposals(); track proposal.id; let index = $index) {
             <li
               class="page-list__item analyze-page__proposal"
               [class.analyze-page__proposal--incoming]="shouldHighlightResults()"
               [style.--proposal-index]="index"
             >
-              <div class="analyze-page__proposal-header">
-                <h4 class="analyze-page__proposal-title">{{ proposal.title }}</h4>
+              <div class="analyze-page__proposal-headline">
+                <span class="analyze-page__proposal-index">提案 {{ index + 1 }}</span>
                 <span class="page-badge page-badge--accent">
                   おすすめ度 {{ proposal.confidence | number: '1.0-0' }}%
                 </span>
               </div>
-              <p class="analyze-page__proposal-summary">{{ proposal.summary }}</p>
-              <div class="analyze-page__proposal-tags">
-                <span class="page-badge">
-                  推奨ステータス: {{ formatSuggestedStatus(proposal.suggestedStatusId) }}
-                </span>
-                <span class="page-badge">
-                  推奨ラベル: {{ formatSuggestedLabels(proposal.suggestedLabelIds) }}
-                </span>
-              </div>
-              <div class="analyze-page__proposal-subtasks">
-                <p class="analyze-page__proposal-subtasks-title">サブタスク案</p>
-                <ul class="analyze-page__proposal-subtasks-list">
-                  @for (task of proposal.subtasks; track task) {
-                    <li>{{ task }}</li>
-                  }
-                </ul>
+              <div class="analyze-page__proposal-form">
+                <label class="form-field form-field--full">
+                  <span class="form-field__label">タイトル</span>
+                  <input
+                    type="text"
+                    class="form-control"
+                    [value]="proposal.title"
+                    (input)="updateProposalTitle(proposal.id, $any($event.target).value)"
+                    placeholder="カードのタイトルを入力"
+                  />
+                </label>
+                <label class="form-field form-field--full">
+                  <span class="form-field__label">詳細</span>
+                  <textarea
+                    class="form-control form-control--textarea"
+                    [value]="proposal.summary"
+                    (input)="updateProposalSummary(proposal.id, $any($event.target).value)"
+                    placeholder="概要や背景を記入"
+                  ></textarea>
+                </label>
+                <div class="analyze-page__proposal-metadata">
+                  <label class="form-field">
+                    <span class="form-field__label">ステータス</span>
+                    <select
+                      class="form-control"
+                      [value]="proposal.statusId"
+                      (change)="updateProposalStatus(proposal.id, $any($event.target).value)"
+                    >
+                      <option value="">未設定</option>
+                      @for (status of workspaceStatuses(); track status.id) {
+                        <option [value]="status.id">{{ status.name }}</option>
+                      }
+                    </select>
+                  </label>
+                  <div class="form-field analyze-page__label-field">
+                    <span class="form-field__label">ラベル</span>
+                    <div class="analyze-page__label-options">
+                      @for (label of workspaceLabels(); track label.id) {
+                        <button
+                          type="button"
+                          class="button button--pill analyze-page__label-button"
+                          [class.button--ghost]="!isLabelSelected(proposal, label.id)"
+                          (click)="toggleProposalLabel(proposal.id, label.id)"
+                        >
+                          {{ label.name }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </div>
+                <div class="form-field analyze-page__subtasks-field">
+                  <span class="form-field__label">サブタスク</span>
+                  <div class="analyze-page__subtask-list">
+                    @if (proposal.subtasks.length === 0) {
+                      <p class="analyze-page__subtasks-empty">サブタスクは設定されていません。</p>
+                    }
+                    @for (task of proposal.subtasks; track task.id) {
+                      <div class="analyze-page__subtask-item">
+                        <input
+                          type="text"
+                          class="form-control"
+                          [value]="task.title"
+                          (input)="
+                            updateSubtaskTitle(proposal.id, task.id, $any($event.target).value)
+                          "
+                          placeholder="サブタスクの内容を入力"
+                        />
+                        <button
+                          type="button"
+                          class="button button--ghost button--pill analyze-page__subtask-remove"
+                          (click)="removeSubtask(proposal.id, task.id)"
+                        >
+                          削除
+                        </button>
+                      </div>
+                    }
+                    <button
+                      type="button"
+                      class="button button--ghost analyze-page__subtask-add"
+                      (click)="addSubtask(proposal.id)"
+                    >
+                      サブタスクを追加
+                    </button>
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
                 class="button button--secondary"
                 (click)="publishProposals([proposal])"
+                [disabled]="!isProposalPublishable(proposal)"
               >
                 この案をカードに追加
               </button>
@@ -267,7 +337,8 @@
           <button
             type="button"
             class="button button--primary"
-            (click)="publishProposals(eligibleProposals())"
+            (click)="publishProposals(editableProposals())"
+            [disabled]="!canPublishAll()"
           >
             すべての案をボードに追加
           </button>
