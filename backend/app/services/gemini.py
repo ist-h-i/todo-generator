@@ -174,6 +174,7 @@ class GeminiClient:
 
     _LEGACY_MODEL_ALIASES: ClassVar[dict[str, str]] = {
         "gemini-1.5-flash": "models/gemini-1.5-flash",
+        "gemini-2.0-flash": "models/gemini-2.0-flash",
     }
 
     def __init__(
@@ -311,6 +312,8 @@ class GeminiClient:
         if normalized.startswith("models/"):
             return normalized
         if normalized.startswith("gemini-1.5-flash"):
+            return f"models/{normalized}"
+        if normalized.startswith("gemini-2.0-flash"):
             return f"models/{normalized}"
         return normalized
 

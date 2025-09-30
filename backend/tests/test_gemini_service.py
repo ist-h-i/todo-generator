@@ -385,11 +385,14 @@ def test_load_gemini_configuration_respects_disabled_credential(client: TestClie
         db_gen.close()
 
 
-def test_normalize_model_name_maps_legacy_flash() -> None:
+def test_normalize_model_name_maps_flash_families() -> None:
     assert GeminiClient.normalize_model_name("gemini-1.5-flash") == "models/gemini-1.5-flash"
     assert GeminiClient.normalize_model_name("gemini-1.5-flash-latest") == "models/gemini-1.5-flash-latest"
     assert GeminiClient.normalize_model_name("models/gemini-1.5-flash") == "models/gemini-1.5-flash"
     assert GeminiClient.normalize_model_name("models/gemini-1.5-flash-latest") == "models/gemini-1.5-flash-latest"
+    assert GeminiClient.normalize_model_name("gemini-2.0-flash") == "models/gemini-2.0-flash"
+    assert GeminiClient.normalize_model_name("gemini-2.0-flash-lite") == "models/gemini-2.0-flash-lite"
+    assert GeminiClient.normalize_model_name("models/gemini-2.0-flash") == "models/gemini-2.0-flash"
 
 
 def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -405,8 +408,8 @@ def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch
 
     def fake_list_models() -> list[FakeModel]:
         return [
-            FakeModel("models/gemini-1.5-flash-001", ("generateContent",)),
-            FakeModel("models/gemini-1.5-flash-002", ("generateContent",)),
+            FakeModel("models/gemini-2.0-flash-001", ("generateContent",)),
+            FakeModel("models/gemini-2.0-flash-002", ("generateContent",)),
         ]
 
     class DummyGenerativeModel:
@@ -423,12 +426,12 @@ def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch
         ),
     )
 
-    client = GeminiClient(model="models/gemini-1.5-flash", api_key="sk-test")
+    client = GeminiClient(model="models/gemini-2.0-flash", api_key="sk-test")
 
     assert configured["api_key"] == "sk-test"
-    assert client.model == "models/gemini-1.5-flash-002"
+    assert client.model == "models/gemini-2.0-flash-002"
     assert isinstance(client._client, DummyGenerativeModel)  # type: ignore[attr-defined]
-    assert client._client.name == "models/gemini-1.5-flash-002"  # type: ignore[attr-defined]
+    assert client._client.name == "models/gemini-2.0-flash-002"  # type: ignore[attr-defined]
 
 
 def test_client_raises_when_requested_model_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -465,6 +468,6 @@ def test_client_keeps_model_when_catalog_unavailable(monkeypatch: pytest.MonkeyP
         ),
     )
 
-    client = GeminiClient(model="models/gemini-1.5-flash", api_key="sk-fallback")
+    client = GeminiClient(model="models/gemini-2.0-flash", api_key="sk-fallback")
 
-    assert client.model == "models/gemini-1.5-flash"
+    assert client.model == "models/gemini-2.0-flash"

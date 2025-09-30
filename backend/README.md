@@ -56,7 +56,7 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 
 - `DATABASE_URL`: SQLAlchemy connection string. Defaults to `sqlite:///./todo.db`.
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
-- `GEMINI_MODEL`: Logical name for the Gemini model (default: `models/gemini-1.5-flash`).
+- `GEMINI_MODEL`: Logical name for the Gemini model (default: `models/gemini-2.0-flash`).
 - `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).
 - `SECRET_ENCRYPTION_KEY`: Optional key used to encrypt stored API credentials (defaults to an internal fallback; configure in production).
 - `RECOMMENDATION_WEIGHT_LABEL`: Weight applied to label correlation when combining recommendation scores (default: `0.6`).
