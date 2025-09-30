@@ -52,6 +52,12 @@ def build_secret_hint(secret: str, *, mask_char: str = _DEFAULT_MASK_CHAR) -> st
         masked_length = max(length - (visible * 2), visible)
         return prefix + (mask_char * masked_length) + suffix
 
+    if length <= 8:
+        prefix_length = 1 if length > 1 else 0
+        prefix = secret[:prefix_length]
+        masked_length = max(length - prefix_length, visible)
+        return prefix + (mask_char * masked_length)
+
     prefix_length = min(visible, max(1, length // 2))
     suffix_length = max(length - prefix_length, 1)
     prefix = secret[:prefix_length]

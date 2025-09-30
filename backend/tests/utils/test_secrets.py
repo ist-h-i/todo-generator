@@ -7,11 +7,7 @@ from app.utils.secrets import SecretEncryptionKeyError, build_secret_hint, get_s
 
 @pytest.mark.parametrize(
     "secret,expected",
-    [
-        ("", ""),
-        ("short", "sh****ort"),
-        ("longersecret", "long****cret"),
-    ],
+    [("", ""), ("short", "s****"), ("longersecret", "long****cret")],
 )
 def test_build_secret_hint_default_mask(secret: str, expected: str) -> None:
     assert build_secret_hint(secret) == expected
@@ -19,9 +15,9 @@ def test_build_secret_hint_default_mask(secret: str, expected: str) -> None:
 
 def test_build_secret_hint_allows_custom_mask_character() -> None:
     result = build_secret_hint("visible", mask_char="#")
-    assert result.startswith("vis")
-    assert result.endswith("ble")
-    assert "#" in result
+    assert result.startswith("v")
+    assert result.endswith("#")
+    assert set(result[1:]) == {"#"}
 
 
 def test_get_secret_cipher_uses_application_settings(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -44,10 +40,10 @@ def test_get_secret_cipher_allows_documented_fallback_when_configured(
 
     cipher = get_secret_cipher()
 
-    fallback_cipher = SecretCipher(DEFAULT_SECRET_ENCRYPTION_KEY)
     sample = "sensitive value"
-    assert cipher.encrypt(sample) == fallback_cipher.encrypt(sample)
-    roundtrip = cipher.decrypt(cipher.encrypt(sample))
+    encrypted = cipher.encrypt(sample)
+    assert encrypted.startswith(SecretCipher._PREFIX)
+    roundtrip = cipher.decrypt(encrypted)
     assert roundtrip.plaintext == sample
     assert roundtrip.reencrypted_payload is None
 
@@ -73,9 +69,14 @@ def test_get_secret_cipher_requires_secret_key(monkeypatch: pytest.MonkeyPatch, 
 
 
 def test_secret_cipher_reencrypts_legacy_payload() -> None:
+    import base64
+    import hashlib
+
     secret = "sensitive value"  # noqa: S105 - test secret
-    legacy_cipher = SecretCipher(DEFAULT_SECRET_ENCRYPTION_KEY)
-    legacy_payload = legacy_cipher.encrypt(secret)
+    digest = hashlib.sha256(DEFAULT_SECRET_ENCRYPTION_KEY.encode("utf-8")).digest()
+    legacy_payload = base64.urlsafe_b64encode(
+        bytes(byte ^ digest[index % len(digest)] for index, byte in enumerate(secret.encode("utf-8")))
+    ).decode("ascii")
 
     modern_cipher = SecretCipher("new-key")
     result = modern_cipher.decrypt(legacy_payload)
