@@ -122,6 +122,23 @@ def test_sanitize_schema_removes_unsupported_keys() -> None:
     assert sanitized["items"] is not schema["items"]
 
 
+def test_sanitize_schema_preserves_property_definitions() -> None:
+    schema = {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string", "default": "n/a"},
+            "description": {"type": "string", "minLength": 3},
+        },
+        "required": ["title"],
+    }
+
+    sanitized = GeminiClient._sanitize_schema(schema)
+
+    assert set(sanitized["properties"].keys()) == {"title", "description"}
+    assert sanitized["properties"]["title"] == {"type": "string"}
+    assert sanitized["properties"]["description"] == {"type": "string"}
+
+
 def test_build_generation_config_removes_unsupported_keys() -> None:
     client = _make_client()
 
