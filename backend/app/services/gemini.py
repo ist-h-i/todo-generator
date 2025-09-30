@@ -107,7 +107,8 @@ class GeminiClient:
         " priority, due date guidance in days, and subtasks that describe"
         " concrete, verifiable actions. Each subtask must be a single step that"
         " starts with a strong verb, specifies the expected outcome, and avoids"
-        " vague phrases. Use the same language as the user whenever possible."
+        " vague phrases. Always respond in Japanese, translating user content"
+        " when necessary so every field is written in natural Japanese."
         " When available, tailor goals and subtasks to the engineer profile"
         " metadata provided in the request."
     )
