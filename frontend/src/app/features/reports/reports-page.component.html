@@ -203,7 +203,7 @@
           </div>
 
           <ng-container *ngIf="proposalControls.length > 0; else emptyProposals">
-            <ul class="page-list" aria-label="提案中のタスク">
+            <ul class="page-list page-list--stacked" aria-label="提案中のタスク">
               <li class="page-list__item" *ngFor="let proposal of proposalControls; index as index">
                 <div class="report-assistant-page__proposal-editor" [formGroup]="proposal">
                   <div class="report-assistant-page__proposal-header">
