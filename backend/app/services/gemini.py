@@ -172,9 +172,9 @@ class GeminiClient:
     }
 
     _LEGACY_MODEL_ALIASES: ClassVar[dict[str, str]] = {
-        "gemini-1.5-flash": "gemini-1.5-flash-latest",
-        "models/gemini-1.5-flash": "gemini-1.5-flash-latest",
-        "models/gemini-1.5-flash-latest": "gemini-1.5-flash-latest",
+        "gemini-1.5-flash": "models/gemini-1.5-flash",
+        "gemini-1.5-flash-latest": "models/gemini-1.5-flash",
+        "models/gemini-1.5-flash-latest": "models/gemini-1.5-flash",
     }
 
     def __init__(

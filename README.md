@@ -44,7 +44,7 @@ Create a `.env` file in the repository root or export variables before launching
 | --- | --- | --- |
 | `DATABASE_URL` | SQLAlchemy connection string. Use PostgreSQL for production workloads. | `sqlite:///./todo.db` |
 | `DEBUG` | Enables verbose logging and exception responses. | `False` |
-| `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `gemini-1.5-flash-latest` |
+| `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `models/gemini-1.5-flash` |
 | `SECRET_ENCRYPTION_KEY` | AES key for encrypting stored secrets. | `verbalize-yourself` |
 | `RECOMMENDATION_WEIGHT_LABEL` | Weight applied to label correlation when computing `ai_confidence`. | `0.6` |
 | `RECOMMENDATION_WEIGHT_PROFILE` | Weight applied to profile alignment when computing `ai_confidence`. | `0.4` |
@@ -106,4 +106,7 @@ Documentation-only updates may skip automated checks, but keep README and `docs/
 ## Troubleshooting
 ### WinError 10055 on Windows
 Long-running async workloads (for example, repeated backend test runs) can exhaust Windows socket buffers and raise `OSError: [WinError 10055]`. Close stray processes holding sockets (`Get-NetTCPConnection`), stagger concurrent test runs, or reboot to reclaim ephemeral ports. Consider increasing `MaxUserPort` and reducing `TcpTimedWaitDelay` if you control the environment.
+
+### Gemini 404 errors after submitting `/analysis`
+If the backend logs `models/gemini-1.5-flash-latest is not found for API version v1beta`, the local environment is using the `google-generativeai` 0.5 SDK, which still targets the `v1beta` API. That API does not expose the `gemini-1.5-flash-latest` alias, so requests fail with HTTP 404. Configure the model as `models/gemini-1.5-flash` (the default value exposed by the admin screen and `GEMINI_MODEL`) or upgrade the SDK to a release that talks to the `v1` endpoint before switching to the `-latest` alias.
 

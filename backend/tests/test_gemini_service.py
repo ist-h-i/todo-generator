@@ -386,5 +386,7 @@ def test_load_gemini_configuration_respects_disabled_credential(client: TestClie
 
 
 def test_normalize_model_name_maps_legacy_flash() -> None:
-    assert GeminiClient.normalize_model_name("gemini-1.5-flash") == "gemini-1.5-flash-latest"
-    assert GeminiClient.normalize_model_name("models/gemini-1.5-flash") == "gemini-1.5-flash-latest"
+    assert GeminiClient.normalize_model_name("gemini-1.5-flash") == "models/gemini-1.5-flash"
+    assert GeminiClient.normalize_model_name("gemini-1.5-flash-latest") == "models/gemini-1.5-flash"
+    assert GeminiClient.normalize_model_name("models/gemini-1.5-flash") == "models/gemini-1.5-flash"
+    assert GeminiClient.normalize_model_name("models/gemini-1.5-flash-latest") == "models/gemini-1.5-flash"

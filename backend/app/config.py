@@ -20,7 +20,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("DEBUG", "debug"),
     )
     gemini_model: str = Field(
-        default="gemini-1.5-flash-latest",
+        default="models/gemini-1.5-flash",
         validation_alias=AliasChoices(
             "GEMINI_MODEL",
             "gemini_model",
