@@ -5,7 +5,12 @@ from .. import models
 from ..auth import get_current_user
 from ..database import get_db
 from ..schemas import AnalysisRequest, AnalysisResponse
-from ..services.gemini import GeminiClient, GeminiError, get_gemini_client
+from ..services.gemini import (
+    GeminiClient,
+    GeminiError,
+    build_workspace_analysis_options,
+    get_gemini_client,
+)
 from ..services.profile import build_user_profile
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -21,6 +26,7 @@ def analyze(
     """Analyze free-form text and return structured card proposals."""
 
     profile = build_user_profile(current_user)
+    workspace_options = build_workspace_analysis_options(db, owner_id=current_user.id)
     raw_notes = payload.notes if payload.notes is not None else payload.text
     notes = raw_notes.strip() if raw_notes else None
     objective = payload.objective.strip() if payload.objective else None
@@ -35,7 +41,11 @@ def analyze(
     db.add(record)
     db.flush()
     try:
-        response = gemini.analyze(payload, user_profile=profile)
+        response = gemini.analyze(
+            payload,
+            user_profile=profile,
+            workspace_options=workspace_options,
+        )
     except GeminiError as exc:
         record.status = "failed"
         record.failure_reason = str(exc)

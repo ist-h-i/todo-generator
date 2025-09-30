@@ -8,7 +8,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
 from .. import models, schemas
-from .gemini import GeminiClient, GeminiError
+from .gemini import (
+    GeminiClient,
+    GeminiError,
+    build_workspace_analysis_options,
+)
 
 _MAX_GENERATED_CARDS = 5
 
@@ -180,8 +184,13 @@ class StatusReportService:
         proposals: list[schemas.AnalysisCard] = []
         error_message: str | None = None
 
+        workspace_options = build_workspace_analysis_options(self.db, owner_id=report.owner_id)
+
         try:
-            response = self.analyzer.analyze(schemas.AnalysisRequest(text=analysis_text, max_cards=max_cards))
+            response = self.analyzer.analyze(
+                schemas.AnalysisRequest(text=analysis_text, max_cards=max_cards),
+                workspace_options=workspace_options,
+            )
         except GeminiError as exc:
             error_message = str(exc)
         else:
