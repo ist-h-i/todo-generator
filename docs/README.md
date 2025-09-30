@@ -18,6 +18,10 @@ Use this index to locate the specs, playbooks, and references that keep Verbaliz
 - **Governance & competencies**: [Governance feature requirements](features/governance/requirements.md) and [Competency evaluations workflow](features/competency-evaluations/requirements.md).
 - **Analytics**: [Analytics insights requirements](features/analytics-insights/requirements.md) plus the [analysis intake detail design](features/analysis-intake/detail-design.md) for proposal handling internals.
 
+## Spec Updates & Implementation Notes
+- [HTTP error interceptor requirements](spec-updates/http-error-interceptor.md) – Shared error handling banner and notifier contract for API failures.
+- [Notification layer relocation](spec-updates/toast-layer-layout.md) – Placement rules for the global error banner, hover message stack, and analyzer toasts.
+
 ## Prompts & Automation
 - [`prompts/`](../prompts) – Prompt references for AI interactions used by backend services and content moderation flows.
 - [`scripts/`](../scripts) – Operational scripts, including the Codex automation pipeline and helper launchers for MCP servers.

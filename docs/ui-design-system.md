@@ -126,6 +126,9 @@ Use `--border-card` / `--border-card-strong` as the default borders and reserve 
 
 ### Feedback & Empty States
 - Use `app-alert` for success/warning/error messages with four parts: icon, title, description, and action.
+- Surface blocking API failures through the Shell's `.shell-global-error` banner anchored to the top centre. The HTTP error interceptor feeds this banner so every dismissible alert announces with `role="alert"` and stays readable on mobile widths.
+- Route optimistic success/info notifications (profile saves, workspace hints) through the hover message stack in the bottom-right corner. Keep messages concise so the stack never obscures critical UI elements.
+- Analytics intake toasts (`.analyze-page__toast`) appear along the bottom centre and reuse blurred pill styling for progress, success, and failure states without colliding with the global banner.
 - Empty and loading states use `.page-state` with monochrome line icons around 64px.
 
 ### Dialogs / Modals
