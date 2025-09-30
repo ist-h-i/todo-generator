@@ -50,9 +50,7 @@ class MockAdminApiService {
     .createSpy('getApiCredential')
     .and.callFake(() => of(this.credential));
 
-  public readonly deleteUser = jasmine
-    .createSpy('deleteUser')
-    .and.callFake(() => of(undefined));
+  public readonly deleteUser = jasmine.createSpy('deleteUser').and.callFake(() => of(undefined));
 }
 
 class MockAuthService {

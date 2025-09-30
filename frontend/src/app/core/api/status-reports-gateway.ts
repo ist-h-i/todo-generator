@@ -34,7 +34,10 @@ export class StatusReportsGateway {
     return this.http.post<StatusReportRead>(buildApiUrl('/status-reports'), payload);
   }
 
-  public updateReport(id: string, payload: StatusReportUpdateRequest): Observable<StatusReportRead> {
+  public updateReport(
+    id: string,
+    payload: StatusReportUpdateRequest,
+  ): Observable<StatusReportRead> {
     return this.http.put<StatusReportRead>(buildApiUrl(`/status-reports/${id}`), payload);
   }
 

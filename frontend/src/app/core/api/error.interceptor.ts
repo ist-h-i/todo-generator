@@ -8,7 +8,8 @@ import { HttpErrorNotifierService } from './http-error-notifier.service';
 
 const NETWORK_ERROR_MESSAGE = 'サーバーに接続できませんでした。時間をおいて再度お試しください。';
 const SERVER_ERROR_MESSAGE = 'サーバーでエラーが発生しました。時間をおいて再度お試しください。';
-const CLIENT_ERROR_MESSAGE = 'リクエストに失敗しました。入力内容を確認し、時間をおいて再度お試しください。';
+const CLIENT_ERROR_MESSAGE =
+  'リクエストに失敗しました。入力内容を確認し、時間をおいて再度お試しください。';
 
 const extractDetail = (payload: unknown): string | null => {
   if (!payload || typeof payload !== 'object') {

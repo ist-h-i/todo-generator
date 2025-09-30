@@ -11,7 +11,7 @@ declare const require: {
   context(
     path: string,
     deep?: boolean,
-    filter?: RegExp
+    filter?: RegExp,
   ): {
     keys(): string[];
     <T>(id: string): T;
@@ -26,8 +26,8 @@ type KarmaReporter = {
   error?: (message: string) => void;
 };
 
-const karmaReporter: KarmaReporter | undefined =
-  (globalThis as { __karma__?: KarmaReporter }).__karma__;
+const karmaReporter: KarmaReporter | undefined = (globalThis as { __karma__?: KarmaReporter })
+  .__karma__;
 
 function reportTestIssue(message: string, error?: unknown) {
   if (karmaReporter?.error) {
@@ -44,15 +44,11 @@ function reportTestIssue(message: string, error?: unknown) {
 // Initialize the Angular testing environment
 function initializeTestEnvironment() {
   try {
-    testBed.initTestEnvironment(
-      BrowserDynamicTestingModule,
-      platformBrowserDynamicTesting(),
-      {
-        teardown: { destroyAfterEach: true },
-        errorOnUnknownElements: true,
-        errorOnUnknownProperties: true
-      }
-    );
+    testBed.initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting(), {
+      teardown: { destroyAfterEach: true },
+      errorOnUnknownElements: true,
+      errorOnUnknownProperties: true,
+    });
     return true;
   } catch (error) {
     reportTestIssue('Error initializing test environment', error);
@@ -65,11 +61,11 @@ function loadTestFiles() {
   try {
     // Find all test files using Webpack's require.context
     const context = require.context(
-      './',           // Start from the src directory
-      true,           // Look in all subdirectories
-      /\.spec\.ts$/  // Find all .spec.ts files
+      './', // Start from the src directory
+      true, // Look in all subdirectories
+      /\.spec\.ts$/, // Find all .spec.ts files
     );
-    
+
     // Load each test file
     context.keys().map(context);
     return true;

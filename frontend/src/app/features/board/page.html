@@ -186,10 +186,7 @@
                                 <span>担当: {{ card.assignee }}</span>
                               }
                               @if (card.confidence) {
-                                <span
-                                  >AIおすすめ度:
-                                  {{ card.confidence | number: '1.0-0' }}%</span
-                                >
+                                <span>AIおすすめ度: {{ card.confidence | number: '1.0-0' }}%</span>
                               }
                             </div>
                           }
