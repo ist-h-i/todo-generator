@@ -8,6 +8,8 @@ import hashlib
 from dataclasses import dataclass
 from typing import Optional
 
+from cryptography.fernet import Fernet, InvalidToken
+
 from ..config import DEFAULT_SECRET_ENCRYPTION_KEY
 
 
@@ -24,40 +26,57 @@ class SecretDecryptionResult:
 
 
 class SecretCipher:
-    """Simple XOR-based cipher for at-rest secret obfuscation."""
+    """Encrypt and decrypt stored secrets using authenticated encryption."""
+
+    _PREFIX = "v2:"
 
     def __init__(self, key: str | None) -> None:
-        self._key_bytes: Optional[bytes]
+        self._legacy_key_bytes: Optional[bytes]
+        self._fernet: Optional[Fernet]
         if key:
             digest = hashlib.sha256(key.encode("utf-8")).digest()
-            self._key_bytes = digest
+            self._legacy_key_bytes = digest
+            derived = base64.urlsafe_b64encode(digest)
+            self._fernet = Fernet(derived)
         else:
-            self._key_bytes = None
+            self._legacy_key_bytes = None
+            self._fernet = None
 
     def encrypt(self, value: str) -> str:
         if not value:
             return ""
 
         raw = value.encode("utf-8")
-        if not self._key_bytes:
+        if not self._fernet:
             return base64.urlsafe_b64encode(raw).decode("ascii")
 
-        key = self._key_bytes
-        transformed = bytes(byte ^ key[index % len(key)] for index, byte in enumerate(raw))
-        return base64.urlsafe_b64encode(transformed).decode("ascii")
+        token = self._fernet.encrypt(raw)
+        return f"{self._PREFIX}{token.decode('ascii')}"
 
     def decrypt(self, payload: str) -> SecretDecryptionResult:
         if not payload:
             return SecretDecryptionResult(plaintext="")
 
+        if self._fernet and payload.startswith(self._PREFIX):
+            token = payload[len(self._PREFIX) :]
+            try:
+                plaintext_bytes = self._fernet.decrypt(token.encode("ascii"))
+            except InvalidToken as exc:
+                raise SecretDecryptionError(
+                    "Unable to decrypt stored secret. Verify the secret encryption key matches the original value."
+                ) from exc
+
+            return SecretDecryptionResult(plaintext=plaintext_bytes.decode("utf-8"))
+
         try:
             decoded = base64.urlsafe_b64decode(payload.encode("ascii"))
         except (ValueError, binascii.Error) as exc:  # pragma: no cover - defensive path
             raise SecretDecryptionError("Stored secret payload is not valid base64 data.") from exc
-        if not self._key_bytes:
+
+        if not self._legacy_key_bytes:
             return SecretDecryptionResult(plaintext=decoded.decode("utf-8"))
 
-        key = self._key_bytes
+        key = self._legacy_key_bytes
         restored = bytes(byte ^ key[index % len(key)] for index, byte in enumerate(decoded))
         try:
             plaintext = restored.decode("utf-8")
@@ -73,7 +92,10 @@ class SecretCipher:
                 reencrypted_payload = None
             return SecretDecryptionResult(plaintext=plaintext, reencrypted_payload=reencrypted_payload)
 
-        return SecretDecryptionResult(plaintext=plaintext)
+        reencrypted_payload = self.encrypt(plaintext)
+        if reencrypted_payload == payload:
+            reencrypted_payload = None
+        return SecretDecryptionResult(plaintext=plaintext, reencrypted_payload=reencrypted_payload)
 
 
 def _attempt_legacy_recovery(decoded: bytes, current_key: bytes) -> str | None:
