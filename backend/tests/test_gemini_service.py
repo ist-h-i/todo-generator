@@ -60,7 +60,17 @@ def test_build_response_format_sets_strict_and_max_items() -> None:
     json_schema = result["json_schema"]
     assert json_schema["name"] == "analysis_response"
     assert json_schema["strict"] is True
-    assert json_schema["schema"]["properties"]["proposals"]["maxItems"] == 4
+    proposals_schema = json_schema["schema"]["properties"]["proposals"]
+    assert "maxItems" not in proposals_schema
+
+
+def test_build_response_format_removes_unsupported_keys() -> None:
+    client = _make_client()
+
+    schema = GeminiClient._build_response_format(client, 2)["json_schema"]["schema"]
+
+    assert not _contains_key(schema, "maxItems")
+    assert not _contains_key(schema, "additionalProperties")
 
 
 def test_build_response_format_is_idempotent() -> None:
@@ -69,8 +79,59 @@ def test_build_response_format_is_idempotent() -> None:
     first = GeminiClient._build_response_format(client, 1)
     second = GeminiClient._build_response_format(client, 6)
 
-    assert first["json_schema"]["schema"]["properties"]["proposals"]["maxItems"] == 1
-    assert second["json_schema"]["schema"]["properties"]["proposals"]["maxItems"] == 6
+    first_schema = first["json_schema"]["schema"]["properties"]["proposals"]
+    second_schema = second["json_schema"]["schema"]["properties"]["proposals"]
+
+    assert "maxItems" not in first_schema
+    assert "maxItems" not in second_schema
+
+
+def test_sanitize_schema_removes_unsupported_keys() -> None:
+    schema = {
+        "type": "array",
+        "maxItems": 5,
+        "items": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "values": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "items": {"type": "string"},
+                }
+            },
+        },
+    }
+
+    sanitized = GeminiClient._sanitize_schema(schema)
+
+    assert "maxItems" in schema  # original schema should remain unchanged
+    assert "maxItems" not in sanitized
+    assert not _contains_key(sanitized, "minItems")
+    assert not _contains_key(sanitized, "additionalProperties")
+
+
+def test_build_generation_config_removes_unsupported_keys() -> None:
+    client = _make_client()
+
+    config = GeminiClient._build_generation_config(
+        client,
+        {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "items": {"type": "integer"},
+                }
+            },
+        },
+    )
+
+    schema = _extract_response_schema(config)
+
+    assert not _contains_key(schema, "maxItems")
 
 
 def test_extract_content_reads_text_values() -> None:

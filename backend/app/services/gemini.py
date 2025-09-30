@@ -120,7 +120,7 @@ class GeminiClient:
         " Respond strictly using the provided JSON schema."
     )
 
-    _UNSUPPORTED_SCHEMA_KEYS: ClassVar[set[str]] = {"additionalProperties", "minItems"}
+    _UNSUPPORTED_SCHEMA_KEYS: ClassVar[set[str]] = {"additionalProperties", "minItems", "maxItems"}
 
     def __init__(
         self,
@@ -278,9 +278,7 @@ class GeminiClient:
         def _sanitize(value: Any) -> Any:
             if isinstance(value, dict):
                 return {
-                    key: _sanitize(inner)
-                    for key, inner in value.items()
-                    if key not in cls._UNSUPPORTED_SCHEMA_KEYS
+                    key: _sanitize(inner) for key, inner in value.items() if key not in cls._UNSUPPORTED_SCHEMA_KEYS
                 }
             if isinstance(value, list):
                 return [_sanitize(item) for item in value]
