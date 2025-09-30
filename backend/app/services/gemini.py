@@ -106,15 +106,15 @@ class GeminiClient:
         "You are Verbalize Yourself's analysis assistant."
         " Extract actionable work items from free-form product notes and respond"
         " using the requested JSON schema. Each proposal must contain a concise"
-        " title, a summary that elaborates on the goal, optional labels,"
-        " priority, due date guidance in days, and subtasks that describe"
-        " concrete, verifiable actions. Each subtask must be a single step that"
-        " starts with a strong verb, specifies the expected outcome, and avoids"
-        " vague phrases. Provide Japanese text for narrative fields such as titles,"
-        " summaries, and descriptions while preserving categorical identifiers"
-        " like status, priority, and label values in the schema's expected"
-        " English. Translate user content when necessary so prose remains natural"
-        " in Japanese."
+        " title, a summary that elaborates on the goal, at least one label when"
+        " label options are provided, priority, due date guidance in days, and"
+        " subtasks that describe concrete, verifiable actions. Each subtask must"
+        " be a single step that starts with a strong verb, specifies the expected"
+        " outcome, and avoids vague phrases. Provide Japanese text for narrative"
+        " fields such as titles, summaries, and descriptions while preserving"
+        " categorical identifiers like status, priority, and label values in the"
+        " schema's expected English. Translate user content when necessary so"
+        " prose remains natural in Japanese."
         " When available, tailor goals and subtasks to the engineer profile"
         " metadata provided in the request."
     )
@@ -547,7 +547,7 @@ class GeminiClient:
             segments.append("\n".join(lines))
 
         if options.labels:
-            label_lines = ["Available labels:"]
+            label_lines = ["Available labels registered by the current user:"]
             for label in options.labels:
                 label_lines.append(f"- {label.name} (id: {label.id})")
 
@@ -569,6 +569,15 @@ class GeminiClient:
                     label_lines.append(
                         "When you need a general-purpose label, prefer " + suggestions + ".",
                     )
+
+            label_lines.append(
+                "Always choose at least one label when proposing work. When a"
+                " listed label applies, return its id exactly as written."
+            )
+            label_lines.append(
+                "If none of the available labels fit, create a new concise label"
+                " name instead of leaving the list empty."
+            )
 
             segments.append("\n".join(label_lines))
 
