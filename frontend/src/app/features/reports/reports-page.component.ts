@@ -1,5 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -42,6 +49,7 @@ export class ReportAssistantPageComponent {
   private readonly publishPendingState = signal(false);
   private readonly publishErrorState = signal<string | null>(null);
   private readonly publishSuccessState = signal<string | null>(null);
+  public readonly proposals = new FormArray<FormGroup>([]);
   private readonly statusNameIndex = computed(() => {
     const index = new Map<string, string>();
     for (const status of this.workspace.settings().statuses) {
@@ -70,6 +78,16 @@ export class ReportAssistantPageComponent {
   public readonly form = this.fb.group({
     tags: [''],
     sections: this.fb.array([this.createSectionGroup()]),
+  });
+
+  private readonly syncProposalsEffect = effect(() => {
+    const detail = this.detailState();
+    if (!detail) {
+      this.clearEditableProposals();
+      return;
+    }
+
+    this.replaceEditableProposals(detail.pending_proposals);
   });
 
   public readonly pending = computed(() => this.pendingState());
@@ -101,6 +119,10 @@ export class ReportAssistantPageComponent {
 
   public get sections(): FormArray<FormGroup> {
     return this.form.get('sections') as FormArray<FormGroup>;
+  }
+
+  public get proposalControls(): FormGroup[] {
+    return this.proposals.controls as FormGroup[];
   }
 
   public addSection(): void {
@@ -144,8 +166,58 @@ export class ReportAssistantPageComponent {
     }
   }
 
-  public async publishProposal(proposal: StatusReportProposal): Promise<void> {
+  public addProposal(): void {
+    this.proposals.push(this.createProposalGroup());
+    this.clearPublishFeedback();
+  }
+
+  public removeProposal(index: number): void {
+    if (index < 0 || index >= this.proposals.length) {
+      return;
+    }
+    this.proposals.removeAt(index);
+    this.clearPublishFeedback();
+  }
+
+  public proposalSubtasks(index: number): FormArray<FormGroup> {
+    return this.proposals.at(index)?.get('subtasks') as FormArray<FormGroup>;
+  }
+
+  public addSubtask(index: number): void {
+    const subtasks = this.proposalSubtasks(index);
+    subtasks.push(this.createSubtaskGroup());
+    this.clearPublishFeedback();
+  }
+
+  public removeSubtask(proposalIndex: number, subtaskIndex: number): void {
+    const subtasks = this.proposalSubtasks(proposalIndex);
+    if (!subtasks) {
+      return;
+    }
+
+    if (subtaskIndex < 0 || subtaskIndex >= subtasks.length) {
+      return;
+    }
+
+    subtasks.removeAt(subtaskIndex);
+    this.clearPublishFeedback();
+  }
+
+  public async publishProposal(index: number): Promise<void> {
     if (this.publishPending()) {
+      return;
+    }
+
+    const group = this.proposals.at(index);
+    if (!group) {
+      return;
+    }
+
+    group.markAllAsTouched();
+    const proposal = this.buildProposalPayload(group);
+    if (!proposal) {
+      this.publishErrorState.set('提案の必須項目を入力してください。');
+      this.publishSuccessState.set(null);
       return;
     }
 
@@ -397,6 +469,28 @@ export class ReportAssistantPageComponent {
     });
   }
 
+  private createProposalGroup(proposal?: StatusReportProposal): FormGroup {
+    return this.fb.group({
+      title: [proposal?.title ?? '', [Validators.required]],
+      summary: [proposal?.summary ?? '', [Validators.required]],
+      status: [proposal?.status ?? ''],
+      labels: [proposal ? proposal.labels.join(', ') : ''],
+      priority: [proposal?.priority ?? 'medium'],
+      dueInDays: [proposal?.due_in_days ?? null],
+      subtasks: new FormArray<FormGroup>(
+        (proposal?.subtasks ?? []).map((subtask) => this.createSubtaskGroup(subtask)),
+      ),
+    });
+  }
+
+  private createSubtaskGroup(subtask?: StatusReportProposalSubtask): FormGroup {
+    return this.fb.group({
+      title: [subtask?.title ?? ''],
+      description: [subtask?.description ?? ''],
+      status: [subtask?.status ?? 'todo'],
+    });
+  }
+
   private buildCreatePayload(): StatusReportCreateRequest | null {
     const value = this.form.value;
     const sections = this.sections.controls
@@ -464,5 +558,97 @@ export class ReportAssistantPageComponent {
       return detail;
     }
     return null;
+  }
+
+  private replaceEditableProposals(proposals: readonly StatusReportProposal[]): void {
+    this.proposals.clear();
+    for (const proposal of proposals) {
+      this.proposals.push(this.createProposalGroup(proposal));
+    }
+    this.clearPublishFeedback();
+  }
+
+  private clearEditableProposals(): void {
+    this.proposals.clear();
+    this.clearPublishFeedback();
+  }
+
+  private buildProposalPayload(group: FormGroup): StatusReportProposal | null {
+    const raw = group.value as {
+      title?: string | null;
+      summary?: string | null;
+      status?: string | null;
+      labels?: string | null;
+      priority?: string | null;
+      dueInDays?: number | string | null;
+      subtasks?: readonly {
+        title?: string | null;
+        description?: string | null;
+        status?: string | null;
+      }[];
+    };
+
+    const title = (raw.title ?? '').trim();
+    const summary = (raw.summary ?? '').trim();
+    if (!title || !summary) {
+      return null;
+    }
+
+    const status = (raw.status ?? '').trim();
+    const labels = this.parseTags(raw.labels ?? '');
+    const priority = (raw.priority ?? 'medium').trim() || 'medium';
+    const dueInDays = this.parseDueInDays(raw.dueInDays);
+    const subtasks = this.buildSubtaskPayloads(raw.subtasks ?? []);
+
+    return {
+      title,
+      summary,
+      status,
+      labels,
+      priority,
+      due_in_days: dueInDays,
+      subtasks,
+    } satisfies StatusReportProposal;
+  }
+
+  private parseDueInDays(value: number | string | null | undefined): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    const numeric = typeof value === 'number' ? value : Number.parseInt(value, 10);
+    if (!Number.isFinite(numeric)) {
+      return null;
+    }
+
+    return numeric;
+  }
+
+  private buildSubtaskPayloads(
+    subtasks: readonly {
+      title?: string | null;
+      description?: string | null;
+      status?: string | null;
+    }[],
+  ): readonly StatusReportProposalSubtask[] {
+    const mapped: StatusReportProposalSubtask[] = [];
+
+    for (const subtask of subtasks) {
+      const title = (subtask.title ?? '').trim();
+      const description = (subtask.description ?? '').trim();
+      const status = (subtask.status ?? '').trim();
+
+      if (!title && !description) {
+        continue;
+      }
+
+      mapped.push({
+        title: title || description,
+        description: description || null,
+        status: status || undefined,
+      });
+    }
+
+    return mapped;
   }
 }
