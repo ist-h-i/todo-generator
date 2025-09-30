@@ -12,6 +12,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 
 import { AuthService } from '@core/auth/auth.service';
 import { HttpErrorNotifierService } from '@core/api/http-error-notifier.service';
+import { HttpLoadingStore } from '@core/api/http-loading.store';
 import { ProfileDialogComponent } from '@core/profile/profile-dialog';
 import { UserProfile } from '@core/profile/profile.models';
 import { HelpDialogComponent } from './help-dialog';
@@ -61,6 +62,7 @@ export class Shell {
   private readonly document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
   private readonly errorNotifier = inject(HttpErrorNotifierService);
+  private readonly loadingStore = inject(HttpLoadingStore);
   private readonly themeStorageKey = 'verbalize-yourself:theme-preference';
   private readonly legacyThemeStorageKey = 'todo-generator:theme-preference';
   private readonly helpDialogVisible = signal(false);
@@ -97,7 +99,24 @@ export class Shell {
   public readonly isHelpDialogOpen = computed(() => this.helpDialogVisible());
   public readonly isProfileDialogOpen = computed(() => this.profileDialogVisible());
   public readonly hoverMessageList = computed(() => this.hoverMessageStore());
-  public readonly globalErrorMessage = this.errorNotifier.message;
+  private readonly errorMessage = this.errorNotifier.message;
+  private readonly loadingState = this.loadingStore.isLoading;
+  private readonly loadingMessageState = this.loadingStore.message;
+  public readonly globalErrorMessage = computed(() => this.errorMessage());
+  public readonly isGlobalLoading = computed(() => {
+    if (this.errorMessage()) {
+      return false;
+    }
+
+    return this.loadingState();
+  });
+  public readonly globalLoadingMessage = computed(() => {
+    if (!this.isGlobalLoading()) {
+      return null;
+    }
+
+    return this.loadingMessageState();
+  });
 
   private readonly syncTheme = effect(() => {
     const preference = this.theme();
