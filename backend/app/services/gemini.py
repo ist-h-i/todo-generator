@@ -106,15 +106,15 @@ class GeminiClient:
         "You are Verbalize Yourself's analysis assistant."
         " Extract actionable work items from free-form product notes and respond"
         " using the requested JSON schema. Each proposal must contain a concise"
-        " title, a summary that elaborates on the goal, optional labels,"
-        " priority, due date guidance in days, and subtasks that describe"
-        " concrete, verifiable actions. Each subtask must be a single step that"
-        " starts with a strong verb, specifies the expected outcome, and avoids"
-        " vague phrases. Provide Japanese text for narrative fields such as titles,"
-        " summaries, and descriptions while preserving categorical identifiers"
-        " like status, priority, and label values in the schema's expected"
-        " English. Translate user content when necessary so prose remains natural"
-        " in Japanese."
+        " title, a summary that elaborates on the goal, at least one label when"
+        " label options are provided, priority, due date guidance in days, and"
+        " subtasks that describe concrete, verifiable actions. Each subtask must"
+        " be a single step that starts with a strong verb, specifies the expected"
+        " outcome, and avoids vague phrases. Provide Japanese text for narrative"
+        " fields such as titles, summaries, and descriptions while preserving"
+        " categorical identifiers like status, priority, and label values in the"
+        " schema's expected English. Translate user content when necessary so"
+        " prose remains natural in Japanese."
         " When available, tailor goals and subtasks to the engineer profile"
         " metadata provided in the request."
     )
@@ -569,6 +569,13 @@ class GeminiClient:
                     label_lines.append(
                         "When you need a general-purpose label, prefer " + suggestions + ".",
                     )
+
+            label_lines.append(
+                "Always choose at least one label from this list when proposing"
+                " work. Return the label ids exactly as written and never invent"
+                " new labels. If no option is a perfect fit, default to the"
+                " general-purpose suggestion instead of leaving labels empty."
+            )
 
             segments.append("\n".join(label_lines))
 
