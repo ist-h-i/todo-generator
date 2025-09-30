@@ -9,14 +9,19 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import models
+from app.auth import hash_password
 from app.config import settings
 from app.database import get_db
 from app.schemas import UserProfile
 from app.services.gemini import (
+    AnalysisWorkspaceLabelOption,
+    AnalysisWorkspaceOptions,
+    AnalysisWorkspaceStatusOption,
     GeminiClient,
     GeminiConfigurationError,
     GeminiError,
     _load_gemini_configuration,
+    build_workspace_analysis_options,
 )
 from app.utils.secrets import get_secret_cipher
 
@@ -292,6 +297,78 @@ def test_build_user_prompt_includes_profile_metadata() -> None:
     assert '"experience_years": 6' in prompt
     assert "backend" in prompt
     assert "Investigate login failures" in prompt
+
+
+def test_build_user_prompt_lists_workspace_options() -> None:
+    client = _make_client()
+    options = AnalysisWorkspaceOptions(
+        statuses=(
+            AnalysisWorkspaceStatusOption(
+                id="status-todo",
+                name="To Do",
+                category="todo",
+            ),
+            AnalysisWorkspaceStatusOption(
+                id="status-doing",
+                name="Doing",
+                category="in-progress",
+            ),
+        ),
+        labels=(
+            AnalysisWorkspaceLabelOption(id="label-ai", name="AI"),
+            AnalysisWorkspaceLabelOption(id="label-bug", name="Bug"),
+        ),
+        default_status_id="status-todo",
+        preferred_label_ids=("label-ai",),
+    )
+
+    prompt = GeminiClient._build_user_prompt(
+        client,
+        "Review analytics backlog",
+        2,
+        None,
+        options,
+    )
+
+    assert "Available statuses" in prompt
+    assert "status-todo" in prompt
+    assert "Doing" in prompt
+    assert "default to status 'To Do'" in prompt
+    assert "Available labels" in prompt
+    assert "general-purpose label" in prompt
+    assert "AI" in prompt
+
+
+def test_build_workspace_analysis_options_prefers_defaults(client: TestClient) -> None:
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    try:
+        user = models.User(
+            email="workspace-options@example.com",
+            password_hash=hash_password("Workspace123!"),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        label = models.Label(name="AI", owner_id=user.id)
+        db.add(label)
+        db.commit()
+        db.refresh(label)
+
+        label_id = label.id
+        options = build_workspace_analysis_options(db, owner_id=user.id)
+    finally:
+        db_gen.close()
+
+    assert options.statuses
+    status_names = {status.name for status in options.statuses}
+    assert "To Do" in status_names
+    assert options.default_status_id is not None
+    label_names = {label.name for label in options.labels}
+    assert "AI" in label_names
+    assert label_id in set(options.preferred_label_ids)
 
 
 def test_load_gemini_configuration_uses_stored_model(client: TestClient) -> None:

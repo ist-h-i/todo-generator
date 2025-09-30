@@ -29,7 +29,13 @@ def register_and_login(client: TestClient, email: str, password: str = DEFAULT_P
 
 
 class StubGemini:
-    def analyze(self, request: schemas.AnalysisRequest) -> schemas.AnalysisResponse:
+    def analyze(
+        self,
+        request: schemas.AnalysisRequest,
+        *,
+        user_profile=None,
+        workspace_options=None,
+    ) -> schemas.AnalysisResponse:
         return schemas.AnalysisResponse(
             model="stub-model",
             proposals=[
@@ -53,7 +59,13 @@ class FailingThenSucceedingGemini:
     def __init__(self) -> None:
         self.call_count = 0
 
-    def analyze(self, request: schemas.AnalysisRequest) -> schemas.AnalysisResponse:
+    def analyze(
+        self,
+        request: schemas.AnalysisRequest,
+        *,
+        user_profile=None,
+        workspace_options=None,
+    ) -> schemas.AnalysisResponse:
         self.call_count += 1
         if self.call_count == 1:
             raise GeminiError("Temporary analysis failure")

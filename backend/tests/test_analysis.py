@@ -62,8 +62,16 @@ def test_analysis_persists_session(client: TestClient) -> None:
     )
 
     class StubGemini:
-        def analyze(self, request: schemas.AnalysisRequest, *, user_profile=None) -> schemas.AnalysisResponse:
+        def analyze(
+            self,
+            request: schemas.AnalysisRequest,
+            *,
+            user_profile=None,
+            workspace_options=None,
+        ) -> schemas.AnalysisResponse:
             assert request.text
+            assert workspace_options is not None
+            assert getattr(workspace_options, "statuses", ())
             return response_payload
 
     app.dependency_overrides[get_gemini_client] = lambda: StubGemini()
@@ -100,7 +108,13 @@ def test_analysis_records_failure(client: TestClient) -> None:
     headers = _register_and_login(client, "analysis-failure@example.com")
 
     class FailingGemini:
-        def analyze(self, request: schemas.AnalysisRequest, *, user_profile=None) -> schemas.AnalysisResponse:
+        def analyze(
+            self,
+            request: schemas.AnalysisRequest,
+            *,
+            user_profile=None,
+            workspace_options=None,
+        ) -> schemas.AnalysisResponse:
             raise GeminiError("Upstream failure")
 
     app.dependency_overrides[get_gemini_client] = lambda: FailingGemini()

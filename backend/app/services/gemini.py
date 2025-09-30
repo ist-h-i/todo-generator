@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from dataclasses import dataclass
 from copy import deepcopy
 from typing import Any, ClassVar, List, Optional, Sequence
 
@@ -30,6 +31,7 @@ from ..schemas import (
     UserProfile,
 )
 from ..utils.secrets import SecretEncryptionKeyError, get_secret_cipher
+from .status_defaults import ensure_default_statuses
 
 logger = logging.getLogger(__name__)
 
@@ -326,13 +328,19 @@ class GeminiClient:
         request: AnalysisRequest,
         *,
         user_profile: UserProfile | None = None,
+        workspace_options: AnalysisWorkspaceOptions | None = None,
     ) -> AnalysisResponse:
         text = request.text.strip()
         if not text:
             return AnalysisResponse(model=self.model, proposals=[])
 
         try:
-            payload = self._request_analysis(text, request.max_cards, user_profile)
+            payload = self._request_analysis(
+                text,
+                request.max_cards,
+                user_profile,
+                workspace_options,
+            )
         except GoogleAPIError as exc:
             logger.exception("Gemini request failed")
             raise GeminiError("Gemini request failed.") from exc
@@ -402,9 +410,15 @@ class GeminiClient:
         text: str,
         max_cards: int,
         user_profile: UserProfile | None = None,
+        workspace_options: AnalysisWorkspaceOptions | None = None,
     ) -> dict[str, Any]:
         response_format = self._build_response_format(max_cards)
-        user_prompt = self._build_user_prompt(text, max_cards, user_profile)
+        user_prompt = self._build_user_prompt(
+            text,
+            max_cards,
+            user_profile,
+            workspace_options,
+        )
         generation_config = self._build_generation_config(response_format["json_schema"]["schema"])
         combined_prompt = f"{self._SYSTEM_PROMPT}\n\n{user_prompt}"
 
@@ -481,6 +495,7 @@ class GeminiClient:
         text: str,
         max_cards: int,
         user_profile: UserProfile | None = None,
+        workspace_options: AnalysisWorkspaceOptions | None = None,
     ) -> str:
         guidance = (
             "Analyse the following notes and propose at most {max_cards} actionable cards. "
@@ -488,11 +503,78 @@ class GeminiClient:
             "contains explicit or strongly implied timing. When unsure, omit optional fields."
         )
         sections = [guidance.format(max_cards=max_cards)]
+        workspace_guidance = self._compose_workspace_guidance(workspace_options)
+        if workspace_guidance:
+            sections.append(workspace_guidance)
         profile_metadata = self._build_profile_metadata(user_profile)
         if profile_metadata:
             sections.append("Engineer profile:\n" + profile_metadata)
         sections.append("Notes:\n" + text)
         return "\n\n".join(sections)
+
+    def _compose_workspace_guidance(
+        self,
+        options: AnalysisWorkspaceOptions | None,
+    ) -> str | None:
+        if not options:
+            return None
+
+        segments: list[str] = []
+
+        if options.statuses:
+            lines: list[str] = [
+                "Available statuses (return the id or name that best matches the proposal):",
+            ]
+            for status in options.statuses:
+                parts = [f"- {status.name} (id: {status.id}"]
+                if status.category:
+                    parts.append(f", category: {status.category}")
+                parts.append(")")
+                lines.append("".join(parts))
+
+            if options.default_status_id:
+                default_status = next(
+                    (status for status in options.statuses if status.id == options.default_status_id),
+                    None,
+                )
+                if default_status:
+                    lines.append(
+                        "When uncertain, default to status "
+                        f"'{default_status.name}' (id: {default_status.id}).",
+                    )
+
+            segments.append("\n".join(lines))
+
+        if options.labels:
+            label_lines = ["Available labels:"]
+            for label in options.labels:
+                label_lines.append(f"- {label.name} (id: {label.id})")
+
+            preferred_lookup = set(options.preferred_label_ids)
+            preferred_labels = [
+                label for label in options.labels if label.id in preferred_lookup
+            ]
+            if preferred_labels:
+                if len(preferred_labels) == 1:
+                    label = preferred_labels[0]
+                    label_lines.append(
+                        "When you need a general-purpose label, prefer "
+                        f"'{label.name}' (id: {label.id}).",
+                    )
+                else:
+                    suggestions = ", ".join(
+                        f"'{label.name}' (id: {label.id})" for label in preferred_labels
+                    )
+                    label_lines.append(
+                        "When you need a general-purpose label, prefer " + suggestions + ".",
+                    )
+
+            segments.append("\n".join(label_lines))
+
+        if not segments:
+            return None
+
+        return "\n\n".join(segments)
 
     def _extract_usage(self, response: Any) -> dict[str, int]:
         usage = getattr(response, "usage", None) or getattr(response, "usage_metadata", None)
@@ -793,3 +875,88 @@ def get_optional_gemini_client(db: Session = Depends(get_db)) -> GeminiClient | 
         return get_gemini_client(db)
     except HTTPException:
         return None
+@dataclass(frozen=True)
+class AnalysisWorkspaceStatusOption:
+    """Serializable representation of a workspace status for prompt guidance."""
+
+    id: str
+    name: str
+    category: str | None = None
+
+
+@dataclass(frozen=True)
+class AnalysisWorkspaceLabelOption:
+    """Serializable representation of a workspace label for prompt guidance."""
+
+    id: str
+    name: str
+
+
+@dataclass(frozen=True)
+class AnalysisWorkspaceOptions:
+    """Workspace metadata provided to Gemini when generating proposals."""
+
+    statuses: tuple[AnalysisWorkspaceStatusOption, ...] = ()
+    labels: tuple[AnalysisWorkspaceLabelOption, ...] = ()
+    default_status_id: str | None = None
+    preferred_label_ids: tuple[str, ...] = ()
+
+
+def _status_sort_key(status: models.Status) -> tuple[int, str]:
+    order = status.order if status.order is not None else 0
+    name = status.name or ""
+    return (order, name.casefold())
+
+
+def _select_default_status(statuses: Sequence[models.Status]) -> models.Status | None:
+    for status in statuses:
+        category = (status.category or "").strip().casefold()
+        if category == "todo":
+            return status
+
+    for status in statuses:
+        name = (status.name or "").strip().casefold()
+        if name in {"todo", "to do"}:
+            return status
+
+    return statuses[0] if statuses else None
+
+
+def build_workspace_analysis_options(db: Session, *, owner_id: str) -> AnalysisWorkspaceOptions:
+    """Collect statuses and labels for analyzer prompts."""
+
+    statuses, _ = ensure_default_statuses(db, owner_id=owner_id)
+    ordered_statuses = sorted(statuses, key=_status_sort_key)
+    labels = (
+        db.query(models.Label)
+        .filter(models.Label.owner_id == owner_id)
+        .order_by(models.Label.name)
+        .all()
+    )
+
+    default_status = _select_default_status(ordered_statuses)
+    preferred_label_ids = tuple(
+        label.id
+        for label in labels
+        if (label.name or "").strip().casefold() == "ai"
+    )
+
+    return AnalysisWorkspaceOptions(
+        statuses=tuple(
+            AnalysisWorkspaceStatusOption(
+                id=status.id,
+                name=status.name,
+                category=status.category,
+            )
+            for status in ordered_statuses
+        ),
+        labels=tuple(
+            AnalysisWorkspaceLabelOption(
+                id=label.id,
+                name=label.name,
+            )
+            for label in labels
+        ),
+        default_status_id=default_status.id if default_status else None,
+        preferred_label_ids=preferred_label_ids,
+    )
