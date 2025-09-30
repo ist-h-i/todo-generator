@@ -547,7 +547,7 @@ class GeminiClient:
             segments.append("\n".join(lines))
 
         if options.labels:
-            label_lines = ["Available labels:"]
+            label_lines = ["Available labels registered by the current user:"]
             for label in options.labels:
                 label_lines.append(f"- {label.name} (id: {label.id})")
 
@@ -571,10 +571,12 @@ class GeminiClient:
                     )
 
             label_lines.append(
-                "Always choose at least one label from this list when proposing"
-                " work. Return the label ids exactly as written and never invent"
-                " new labels. If no option is a perfect fit, default to the"
-                " general-purpose suggestion instead of leaving labels empty."
+                "Always choose at least one label when proposing work. When a"
+                " listed label applies, return its id exactly as written."
+            )
+            label_lines.append(
+                "If none of the available labels fit, create a new concise label"
+                " name instead of leaving the list empty."
             )
 
             segments.append("\n".join(label_lines))
