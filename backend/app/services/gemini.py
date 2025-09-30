@@ -120,7 +120,7 @@ class GeminiClient:
         " Respond strictly using the provided JSON schema."
     )
 
-    _UNSUPPORTED_SCHEMA_KEYS: ClassVar[set[str]] = {"additionalProperties"}
+    _UNSUPPORTED_SCHEMA_KEYS: ClassVar[set[str]] = {"additionalProperties", "minItems"}
 
     def __init__(
         self,
