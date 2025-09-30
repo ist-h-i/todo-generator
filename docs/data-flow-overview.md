@@ -1,6 +1,6 @@
 # Feature Data Flow Reference
 
-This document explains how the main user-facing workflows traverse the Angular UI, front-end state management, FastAPI routers, and SQLAlchemy models until data is persisted in the database. Use it as a map when you need to trace a regression or extend existing behavior.
+This document explains how the main user-facing workflows traverse the Angular UI, front-end state management, FastAPI routers, and SQLAlchemy models until data is persisted in the database. Use it as a map when you need to trace a regression or extend existing behavior. For a step-by-step list of API calls per feature, refer to [`docs/features/api-flow-reference.md`](features/api-flow-reference.md).
 
 ## 1. Board and Task Operations
 
