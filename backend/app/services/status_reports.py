@@ -164,7 +164,6 @@ class StatusReportService:
             schemas.StatusReportStatus.DRAFT.value,
             schemas.StatusReportStatus.SUBMITTED.value,
             schemas.StatusReportStatus.FAILED.value,
-            schemas.StatusReportStatus.COMPLETED.value,
         }:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

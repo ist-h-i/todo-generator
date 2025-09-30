@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
 from fastapi import status
 from fastapi.testclient import TestClient
 
 from app import models, schemas
+from app.database import get_db
 from app.main import app
 from app.services.gemini import GeminiError, get_gemini_client
 from app.services.status_reports import StatusReportService
@@ -188,6 +190,42 @@ def test_retry_status_report_after_failure_succeeds(client: TestClient) -> None:
 
     get_response = client.get(f"/status-reports/{report_id}", headers=headers)
     assert get_response.status_code == 404
+
+
+def test_submit_status_report_rejects_completed_reports(client: TestClient) -> None:
+    headers = register_and_login(client, "completed@example.com")
+
+    create_response = client.post(
+        "/status-reports",
+        json=_status_report_payload(),
+        headers=headers,
+    )
+    report_id = create_response.json()["id"]
+
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    try:
+        report = db.get(models.StatusReport, report_id)
+        assert report is not None
+        report.status = schemas.StatusReportStatus.COMPLETED.value
+        db.add(report)
+        db.commit()
+    finally:
+        db_gen.close()
+
+    class UnexpectedAnalyzer:
+        def analyze(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+            pytest.fail("Analyzer should not be invoked for completed reports")
+
+    app.dependency_overrides[get_gemini_client] = lambda: UnexpectedAnalyzer()
+    try:
+        submit_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
+    finally:
+        app.dependency_overrides.pop(get_gemini_client, None)
+
+    assert submit_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert submit_response.json()["detail"] == "Report in status 'completed' cannot be submitted."
 
 
 def test_serialize_card_link_defaults_relationship_when_card_missing() -> None:
