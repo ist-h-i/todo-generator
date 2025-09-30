@@ -334,9 +334,10 @@ def test_build_user_prompt_lists_workspace_options() -> None:
     assert "status-todo" in prompt
     assert "Doing" in prompt
     assert "default to status 'To Do'" in prompt
-    assert "Available labels" in prompt
+    assert "Available labels registered by the current user" in prompt
     assert "general-purpose label" in prompt
     assert "AI" in prompt
+    assert "create a new concise label name" in prompt
 
 
 def test_build_workspace_analysis_options_prefers_defaults(client: TestClient) -> None:
