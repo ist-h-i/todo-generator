@@ -174,25 +174,10 @@
           *ngIf="active.pending_proposals.length > 0"
         >
           <header class="report-assistant-page__group-header">
-            <div>
-              <h3 class="page-section__title">提案中のタスク</h3>
-              <p class="page-section__subtitle">
-                追加したい提案にチェックを入れてカードとして起票できます。
-              </p>
-            </div>
-            <div class="report-assistant-page__group-actions">
-              <p class="report-assistant-page__selection" aria-live="polite">
-                選択中: {{ selectedProposalCount() }} 件
-              </p>
-              <button
-                type="button"
-                class="button button--primary focus-ring"
-                (click)="publishSelectedProposals()"
-                [disabled]="!canPublishSelected()"
-              >
-                選択した提案をカードに追加
-              </button>
-            </div>
+            <h3 class="page-section__title">提案中のタスク</h3>
+            <p class="page-section__subtitle">
+              必要な提案を個別にカードとして起票できます。
+            </p>
           </header>
 
           <div
@@ -218,16 +203,6 @@
               <div class="page-list__heading">
                 <p class="page-list__title">{{ proposal.title }}</p>
                 <div class="report-assistant-page__proposal-actions">
-                  <label class="report-assistant-page__proposal-select">
-                    <input
-                      type="checkbox"
-                      class="focus-ring"
-                      [checked]="isProposalSelected(index)"
-                      (change)="updateProposalSelection(index, $any($event.target).checked)"
-                      [disabled]="publishPending()"
-                    />
-                    <span>選択</span>
-                  </label>
                   <button
                     type="button"
                     class="button button--secondary focus-ring"

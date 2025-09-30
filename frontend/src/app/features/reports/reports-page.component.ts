@@ -35,7 +35,6 @@ export class ReportAssistantPageComponent {
   private readonly errorState = signal<string | null>(null);
   private readonly successState = signal<string | null>(null);
   private readonly detailState = signal<StatusReportDetail | null>(null);
-  private readonly proposalSelection = signal<readonly number[]>([]);
   private readonly publishPendingState = signal(false);
   private readonly publishErrorState = signal<string | null>(null);
   private readonly publishSuccessState = signal<string | null>(null);
@@ -49,13 +48,9 @@ export class ReportAssistantPageComponent {
   public readonly error = computed(() => this.errorState());
   public readonly successMessage = computed(() => this.successState());
   public readonly detail = computed(() => this.detailState());
-  public readonly selectedProposalCount = computed(() => this.proposalSelection().length);
   public readonly publishPending = computed(() => this.publishPendingState());
   public readonly publishError = computed(() => this.publishErrorState());
   public readonly publishSuccess = computed(() => this.publishSuccessState());
-  public readonly canPublishSelected = computed(
-    () => this.selectedProposalCount() > 0 && !this.publishPending(),
-  );
 
   public get sections(): FormArray<FormGroup> {
     return this.form.get('sections') as FormArray<FormGroup>;
@@ -93,7 +88,6 @@ export class ReportAssistantPageComponent {
       const detail = await firstValueFrom(this.gateway.submitReport(created.id));
       this.detailState.set(detail);
       this.successState.set('AI 解析が完了しました。提案されたタスクを確認してください。');
-      this.clearProposalSelection();
       this.clearPublishFeedback();
       this.resetForm();
     } catch (error) {
@@ -101,45 +95,6 @@ export class ReportAssistantPageComponent {
     } finally {
       this.pendingState.set(false);
     }
-  }
-
-  public isProposalSelected(index: number): boolean {
-    return this.proposalSelection().includes(index);
-  }
-
-  public updateProposalSelection(index: number, selected: boolean): void {
-    this.proposalSelection.update((current) => {
-      const next = new Set(current);
-      if (selected) {
-        next.add(index);
-      } else {
-        next.delete(index);
-      }
-      this.publishErrorState.set(null);
-      return Array.from(next).sort((a, b) => a - b);
-    });
-  }
-
-  public async publishSelectedProposals(): Promise<void> {
-    if (this.publishPending()) {
-      return;
-    }
-
-    const detail = this.detail();
-    if (!detail) {
-      return;
-    }
-
-    const proposals = this.proposalSelection()
-      .map((index) => detail.pending_proposals[index])
-      .filter((proposal): proposal is StatusReportProposal => Boolean(proposal));
-
-    if (proposals.length === 0) {
-      this.publishErrorState.set('カードに追加する提案を選択してください。');
-      return;
-    }
-
-    await this.publishProposals(proposals, { clearSelection: true });
   }
 
   public async publishProposal(proposal: StatusReportProposal): Promise<void> {
@@ -152,7 +107,6 @@ export class ReportAssistantPageComponent {
 
   private async publishProposals(
     proposals: readonly StatusReportProposal[],
-    options?: { clearSelection?: boolean },
   ): Promise<void> {
     if (proposals.length === 0) {
       return;
@@ -173,9 +127,6 @@ export class ReportAssistantPageComponent {
       }
 
       this.publishSuccessState.set(this.formatPublishSuccessMessage(proposals));
-      if (options?.clearSelection) {
-        this.clearProposalSelection();
-      }
     } catch (error) {
       console.error('Failed to publish status report proposals', error);
       for (const cardId of createdCardIds) {
@@ -393,10 +344,6 @@ export class ReportAssistantPageComponent {
 
     const [first] = proposals;
     return `${proposals.length}件のカードをボードに追加しました（最初の提案: 「${first?.title ?? ''}」）。`;
-  }
-
-  private clearProposalSelection(): void {
-    this.proposalSelection.set([]);
   }
 
   private clearPublishFeedback(): void {
