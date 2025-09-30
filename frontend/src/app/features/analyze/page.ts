@@ -491,16 +491,32 @@ export class AnalyzePage {
     const settings = this.workspace.settings();
     const statuses = settings.statuses;
 
-    if (normalized.length > 0 && statuses.some((status) => status.id === normalized)) {
-      return normalized;
+    if (normalized.length > 0) {
+      if (statuses.length === 0) {
+        return normalized;
+      }
+
+      if (statuses.some((status) => status.id === normalized)) {
+        return normalized;
+      }
     }
 
     const defaultStatusId = settings.defaultStatusId?.trim() ?? '';
-    if (defaultStatusId.length > 0 && statuses.some((status) => status.id === defaultStatusId)) {
-      return defaultStatusId;
+    if (defaultStatusId.length > 0) {
+      if (statuses.length === 0) {
+        return defaultStatusId;
+      }
+
+      if (statuses.some((status) => status.id === defaultStatusId)) {
+        return defaultStatusId;
+      }
     }
 
-    return statuses[0]?.id ?? defaultStatusId;
+    if (statuses.length > 0) {
+      return statuses[0]?.id ?? defaultStatusId;
+    }
+
+    return normalized || defaultStatusId;
   }
 
   private normalizeLabels(proposal: EditableProposalDraft): readonly string[] {
