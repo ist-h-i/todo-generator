@@ -2482,7 +2482,10 @@ export class WorkspaceStore {
     this.cardsSignal.update((cards) =>
       cards.map((card) => {
         const statusId = allowedStatusIds.has(card.statusId) ? card.statusId : fallbackStatusId;
-        const labelIds = card.labelIds.filter((labelId) => allowedLabelIds.has(labelId));
+        const labelIds =
+          allowedLabelIds.size === 0
+            ? card.labelIds
+            : card.labelIds.filter((labelId) => allowedLabelIds.has(labelId));
 
         if (statusId === card.statusId && labelIds.length === card.labelIds.length) {
           return card;
