@@ -444,6 +444,7 @@ def create_card(
         db=db,
         owner_id=current_user.id,
         quota_day=now.date(),
+        limit=card_limit,
     )
 
     _validate_related_entities(
