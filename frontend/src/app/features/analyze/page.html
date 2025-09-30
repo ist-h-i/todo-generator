@@ -238,9 +238,11 @@
               </div>
               <p class="analyze-page__proposal-summary">{{ proposal.summary }}</p>
               <div class="analyze-page__proposal-tags">
-                <span class="page-badge"> 推奨ステータス: {{ proposal.suggestedStatusId }} </span>
                 <span class="page-badge">
-                  推奨ラベル: {{ proposal.suggestedLabelIds.join(', ') }}
+                  推奨ステータス: {{ formatSuggestedStatus(proposal.suggestedStatusId) }}
+                </span>
+                <span class="page-badge">
+                  推奨ラベル: {{ formatSuggestedLabels(proposal.suggestedLabelIds) }}
                 </span>
               </div>
               <div class="analyze-page__proposal-subtasks">
