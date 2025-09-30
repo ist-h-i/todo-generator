@@ -48,3 +48,12 @@
 - If validation fails locally, `dispatchAnalyze` returns early and leaves the previous response untouched, preventing unnecessary API calls.【F:frontend/src/app/features/analyze/page.ts†L57-L64】【F:frontend/src/app/features/analyze/page.ts†L115-L133】
 - `publishProposals` guards against empty arrays before writing to the store, avoiding redundant imports when Gemini returns zero eligible proposals.【F:frontend/src/app/features/analyze/page.ts†L81-L87】
 - `resetAnalyzeForm` clears both the form state and the request signal, ensuring stale responses are not re-rendered after errors or cancellations.【F:frontend/src/app/features/analyze/page.ts†L135-L138】
+
+## 6. Task Proposal Label & Status Data Flow
+
+The analyser keeps label assignments intact by piping workspace metadata from the backend into the Gemini prompt and reusing the response when publishing cards.
+
+1. When the analyze form fires, `AnalysisGateway` trims the payload, posts it to `/analysis`, and prepares to map the response with the current workspace settings so downstream consumers can resolve status and label identifiers locally.【F:frontend/src/app/core/api/analysis-gateway.ts†L300-L355】
+2. The `/analysis` router loads the authenticated user, builds workspace options, and persists the submission before handing the request to the Gemini client. Those options query the owner’s statuses and labels (creating defaults if missing) so the AI receives the authoritative catalogue and preferred defaults.【F:backend/app/routers/analysis.py†L20-L60】【F:backend/app/services/gemini.py†L940-L977】
+3. `_compose_workspace_guidance` embeds the status and label lists into the system prompt, including explicit instructions to always pick at least one known label or author a new concise value when no match exists. This guidance is what ensures Gemini echoes label identifiers back in its structured response.【F:backend/app/services/gemini.py†L523-L588】
+4. On receipt, `AnalysisGateway` resolves the suggested status and label IDs against the cached workspace catalogue and hands them to `WorkspaceStore.createCardFromSuggestion`, which deduplicates label IDs and includes them in the create request so the stored card preserves the AI selections.【F:frontend/src/app/core/api/analysis-gateway.ts†L347-L383】【F:frontend/src/app/core/state/workspace-store.ts†L1707-L1772】
