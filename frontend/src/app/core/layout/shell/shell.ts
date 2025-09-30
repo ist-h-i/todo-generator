@@ -16,11 +16,8 @@ import { HttpLoadingStore } from '@core/api/http-loading.store';
 import { ProfileDialogComponent } from '@core/profile/profile-dialog';
 import { UserProfile } from '@core/profile/profile.models';
 import { HelpDialogComponent } from './help-dialog';
-import {
-  HoverMessageSeverity,
-  HoverMessageStackComponent,
-  HoverMessageView,
-} from '../hover-messages/hover-message-stack.component';
+import { HoverMessageStackComponent } from '../hover-messages/hover-message-stack.component';
+import { HoverMessageSeverity, HoverMessageView } from '../hover-messages/hover-message.types';
 
 function extractRoleLabel(role: string): string {
   const separator = ' / ';

@@ -1,16 +1,12 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
-export type HoverMessageSeverity = 'info' | 'success' | 'warning' | 'danger';
-
-export type HoverMessageView = {
-  readonly id: number;
-  readonly text: string;
-  readonly severity: HoverMessageSeverity;
-};
+import { HoverMessageComponent } from './hover-message.component';
+import { HoverMessageView } from './hover-message.types';
 
 @Component({
   selector: 'app-hover-message-stack',
   standalone: true,
+  imports: [HoverMessageComponent],
   templateUrl: './hover-message-stack.component.html',
   styleUrl: './hover-message-stack.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
