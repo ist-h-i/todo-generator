@@ -61,6 +61,7 @@ def test_build_response_format_sets_strict_and_max_items() -> None:
     assert json_schema["name"] == "analysis_response"
     assert json_schema["strict"] is True
     proposals_schema = json_schema["schema"]["properties"]["proposals"]
+    assert proposals_schema["max_items"] == 4
     assert "maxItems" not in proposals_schema
 
 
@@ -70,6 +71,7 @@ def test_build_response_format_removes_unsupported_keys() -> None:
     schema = GeminiClient._build_response_format(client, 2)["json_schema"]["schema"]
 
     assert not _contains_key(schema, "maxItems")
+    assert not _contains_key(schema, "default")
     assert not _contains_key(schema, "additionalProperties")
 
 
@@ -84,6 +86,8 @@ def test_build_response_format_is_idempotent() -> None:
 
     assert "maxItems" not in first_schema
     assert "maxItems" not in second_schema
+    assert first_schema["max_items"] == 1
+    assert second_schema["max_items"] == 6
 
 
 def test_sanitize_schema_removes_unsupported_keys() -> None:
@@ -98,7 +102,7 @@ def test_sanitize_schema_removes_unsupported_keys() -> None:
                     "type": "array",
                     "minItems": 1,
                     "maxItems": 3,
-                    "items": {"type": "string"},
+                    "items": {"type": "string", "minLength": 2, "default": ""},
                 }
             },
         },
@@ -108,8 +112,14 @@ def test_sanitize_schema_removes_unsupported_keys() -> None:
 
     assert "maxItems" in schema  # original schema should remain unchanged
     assert "maxItems" not in sanitized
+    assert sanitized["max_items"] == 5
+    values_schema = sanitized["items"]["properties"]["values"]
+    assert values_schema["max_items"] == 3
+    assert "minLength" not in values_schema["items"]
+    assert "default" not in values_schema
     assert not _contains_key(sanitized, "minItems")
     assert not _contains_key(sanitized, "additionalProperties")
+    assert sanitized["items"] is not schema["items"]
 
 
 def test_build_generation_config_removes_unsupported_keys() -> None:
@@ -123,7 +133,11 @@ def test_build_generation_config_removes_unsupported_keys() -> None:
                 "items": {
                     "type": "array",
                     "maxItems": 4,
-                    "items": {"type": "integer"},
+                    "items": {
+                        "type": "integer",
+                        "default": 1,
+                        "pattern": "[0-9]+",
+                    },
                 }
             },
         },
@@ -132,6 +146,9 @@ def test_build_generation_config_removes_unsupported_keys() -> None:
     schema = _extract_response_schema(config)
 
     assert not _contains_key(schema, "maxItems")
+    assert schema["properties"]["items"]["max_items"] == 4
+    assert not _contains_key(schema, "pattern")
+    assert not _contains_key(schema, "default")
 
 
 def test_extract_content_reads_text_values() -> None:
@@ -192,6 +209,44 @@ def test_request_analysis_enriches_model_from_response() -> None:
     config = recorded["generation_config"]
     schema = _extract_response_schema(config)
     assert not _contains_key(schema, "additionalProperties")
+    assert not _contains_key(schema, "default")
+    assert schema["properties"]["proposals"]["max_items"] == 2
+
+
+def test_generate_appeal_sanitizes_schema_before_request() -> None:
+    client = _make_client()
+
+    recorded: dict[str, object] = {}
+
+    def fake_generate(prompt: str, *, generation_config: object) -> SimpleNamespace:
+        recorded["prompt"] = prompt
+        recorded["generation_config"] = generation_config
+        return SimpleNamespace(text='{"appeal": ""}')
+
+    client._client = SimpleNamespace(generate_content=fake_generate)  # type: ignore[attr-defined]
+
+    payload = GeminiClient.generate_appeal(
+        client,
+        prompt="Tell the story",
+        response_schema={
+            "type": "object",
+            "properties": {
+                "appeal": {
+                    "type": "array",
+                    "maxItems": 3,
+                    "items": {"type": "string", "minLength": 1},
+                }
+            },
+            "default": {},
+        },
+    )
+
+    assert payload == {"appeal": ""}
+    assert GeminiClient._APPEAL_SYSTEM_PROMPT in recorded["prompt"]
+    schema = _extract_response_schema(recorded["generation_config"])
+    assert schema["properties"]["appeal"]["max_items"] == 3
+    assert not _contains_key(schema, "minLength")
+    assert not _contains_key(schema, "default")
 
 
 def test_build_user_prompt_includes_profile_metadata() -> None:
