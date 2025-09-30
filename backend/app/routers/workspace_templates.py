@@ -86,6 +86,10 @@ def _serialize_field_visibility(
     if payload is None:
         return state
 
+    provided_keys: set[str] | None = None
+    if isinstance(payload, Mapping):
+        provided_keys = {str(key) for key in payload.keys()}
+
     try:
         visibility = (
             payload
@@ -95,8 +99,11 @@ def _serialize_field_visibility(
     except ValidationError as exc:  # pragma: no cover - fastapi will translate this
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors()) from exc
 
-    for key, value in visibility.model_dump(exclude_unset=True).items():
-        state[key] = bool(value)
+    keys_to_apply = provided_keys if provided_keys is not None else visibility.model_fields_set
+    serialized = visibility.model_dump()
+    for key in keys_to_apply:
+        if key in serialized:
+            state[key] = bool(serialized[key])
     return state
 
 
