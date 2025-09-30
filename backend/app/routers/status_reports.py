@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -14,6 +15,19 @@ from ..services.status_reports import StatusReportService
 router = APIRouter(prefix="/status-reports", tags=["status-reports"])
 
 
+def _commit_or_raise(db: Session) -> None:
+    """Commit the current transaction or raise an HTTP 500 on failure."""
+
+    try:
+        db.commit()
+    except SQLAlchemyError as exc:  # pragma: no cover - defensive
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Database transaction failed.",
+        ) from exc
+
+
 @router.post("", response_model=schemas.StatusReportRead, status_code=status.HTTP_201_CREATED)
 def create_status_report(
     payload: schemas.StatusReportCreate,
@@ -22,7 +36,7 @@ def create_status_report(
 ) -> schemas.StatusReportRead:
     service = StatusReportService(db)
     report = service.create_report(owner=current_user, payload=payload)
-    db.commit()
+    _commit_or_raise(db)
     refreshed = service.get_report(report_id=report.id, owner_id=current_user.id)
     return service.to_read(refreshed)
 
@@ -67,7 +81,7 @@ def update_status_report(
             detail="Only draft or failed reports can be updated.",
         )
     service.update_report(report, payload)
-    db.commit()
+    _commit_or_raise(db)
     refreshed = service.get_report(report_id=report.id, owner_id=current_user.id)
     return service.to_read(refreshed)
 
@@ -84,7 +98,15 @@ def submit_status_report(
     if report.status == schemas.StatusReportStatus.PROCESSING.value:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Report is already processing.")
     result = service.submit_report(report)
-    db.commit()
+    _commit_or_raise(db)
+    if result.error:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "message": result.error,
+                "report": result.detail.model_dump(mode="json"),
+            },
+        )
     return result.detail
 
 
@@ -103,6 +125,13 @@ def retry_status_report(
             detail="Retry is only available for failed reports.",
         )
     result = service.submit_report(report)
-    db.commit()
+    _commit_or_raise(db)
+    if result.error:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={
+                "message": result.error,
+                "report": result.detail.model_dump(mode="json"),
+            },
+        )
     return result.detail
-
