@@ -108,5 +108,15 @@ Documentation-only updates may skip automated checks, but keep README and `docs/
 Long-running async workloads (for example, repeated backend test runs) can exhaust Windows socket buffers and raise `OSError: [WinError 10055]`. Close stray processes holding sockets (`Get-NetTCPConnection`), stagger concurrent test runs, or reboot to reclaim ephemeral ports. Consider increasing `MaxUserPort` and reducing `TcpTimedWaitDelay` if you control the environment.
 
 ### Gemini 404 errors after submitting `/analysis`
-If the backend logs `models/gemini-1.5-flash-latest is not found for API version v1beta`, the local environment is using the `google-generativeai` 0.5 SDK, which still targets the `v1beta` API. That API does not expose the `gemini-1.5-flash-latest` alias, so requests fail with HTTP 404. Configure the model as `models/gemini-1.5-flash` (the default value exposed by the admin screen and `GEMINI_MODEL`) or upgrade the SDK to a release that talks to the `v1` endpoint before switching to the `-latest` alias.
+When the backend raises `google.api_core.exceptions.NotFound: 404 models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent`, the Google Generative AI SDK is hitting the legacy `v1beta` API. That endpoint does not expose `gemini-1.5-flash` (or the newer `-latest` aliases), so FastAPI ultimately returns `502 Bad Gateway` to the Angular client.
+
+The stack traces point back to `backend/app/services/gemini.py`, where the client invokes `generate_content()` via gRPC. You may also notice `ALTS creds ignored. Not running on GCP ...` in the logs—this warning is safe to ignore outside Google Cloud.
+
+To recover:
+
+1. **Enumerate supported models** – Run `from google.generativeai import list_models; print(list_models())` in a Python shell to verify which models and methods your account can access.
+2. **Switch to an available model** – Configure `GEMINI_MODEL` (or the admin credential form) with an identifier such as `gemini-pro`, `gemini-1.0-pro`, or `gemini-1.5-pro-latest` that still works with `v1beta`.
+3. **Upgrade the SDK for `v1` support** – Install the latest `google-generativeai` release so you can target the `v1` API and restore access to `gemini-1.5-flash`/`gemini-1.5-flash-latest`.
+
+Re-run the `list_models()` check after each change to confirm the API now exposes the desired model before retrying the `/analysis` workflow.
 
