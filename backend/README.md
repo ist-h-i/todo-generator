@@ -58,7 +58,7 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
 - `GEMINI_MODEL`: Logical name for the Gemini model (default: `models/gemini-2.0-flash`).
 - `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).
-- `SECRET_ENCRYPTION_KEY`: Optional key used to encrypt stored API credentials (defaults to an internal fallback; configure in production).
+- `SECRET_ENCRYPTION_KEY`: AES key for encrypting stored API credentials. Configure a sufficiently long random value; leaving it unset causes the admin console to return HTTP 503 when managing credentials.
 - `RECOMMENDATION_WEIGHT_LABEL`: Weight applied to label correlation when combining recommendation scores (default: `0.6`).
 - `RECOMMENDATION_WEIGHT_PROFILE`: Weight applied to profile alignment when combining recommendation scores (default: `0.4`).
 - **AI API token**: Manage the Gemini API key from the admin settings screen. The backend reads the encrypted value from the database.

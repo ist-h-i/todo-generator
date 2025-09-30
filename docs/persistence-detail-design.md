@@ -46,7 +46,7 @@ This document explains how the workspace persists data across board management, 
 ## 4. Profile, governance, and quotas
 - **Profile**: `/profile` returns enriched `UserProfile` objects, combining base user fields with quota usage, evaluations, and admin hints. Prompts leverage this data to personalise AI interactions.
 - **Admin users**: `/admin/users` lets administrators view aggregated quota usage, toggle roles, and set per-user overrides. `utils.quotas` merges global defaults (`QuotaDefaults`) with overrides on demand.
-- **Admin settings**: `/admin/api-credentials/{provider}` encrypts secrets with AES-GCM (`utils.secrets`) using `SECRET_ENCRYPTION_KEY`. Quota defaults are configured through `/admin/quotas/defaults`; overrides live at `/admin/quotas/{user_id}`.
+- **Admin settings**: `/admin/api-credentials/{provider}` encrypts secrets with AES-GCM (`utils.secrets`) using `SECRET_ENCRYPTION_KEY`. Configure it to a sufficiently long random value—if the key is missing, the admin console returns HTTP 503 when accessing credentials. Quota defaults are configured through `/admin/quotas/defaults`; overrides live at `/admin/quotas/{user_id}`.
 - **Error categories**: `/error-categories` keeps taxonomy data aligned between analytics and the board.
 
 ## 5. Competency evaluations
