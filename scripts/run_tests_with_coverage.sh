@@ -20,7 +20,7 @@ cat <<'MSG'
 
 Coverage reports generated:
   - Backend: backend/coverage.xml
-  - Frontend: frontend/coverage/lcov.info
+  - Frontend: frontend/coverage/frontend/lcov.info
 
 Run sonar-scanner after executing this script to publish results to SonarQube.
 MSG

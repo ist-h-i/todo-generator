@@ -102,7 +102,7 @@ sonar-scanner
 ```
 
 The helper script runs `coverage run -m pytest` inside `backend/` and `npm run test:ci` in `frontend/`. It emits `backend/coverage.xml`
-and `frontend/coverage/lcov.info`, which are automatically picked up through `sonar-project.properties`.
+and `frontend/coverage/frontend/lcov.info`, which are automatically picked up through `sonar-project.properties`.
 
 ## Documentation and Scripts
 - Architecture and feature deep-dives live under `docs/` (start with `docs/architecture.md`).
