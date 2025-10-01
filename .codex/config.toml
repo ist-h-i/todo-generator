@@ -6,6 +6,34 @@ args = ["mcp-server-git", "--repository", "${workspaceFolder}"]
 command = "npx"
 args = ["@modelcontextprotocol/server-filesystem", "${workspaceFolder}"]
 
+[mcp_servers.memory]
+command = "npx"
+args = ["@modelcontextprotocol/server-memory"]
+
+[mcp_servers.sqlite]
+command = "uvx"
+args = ["mcp-server-sqlite", "--db-path", "${workspaceFolder}/db.sqlite"]
+
+[mcp_servers.fetch]
+command = "uvx"
+args = ["mcp-server-fetch"]
+
+[mcp_servers.puppeteer]
+command = "npx"
+args = ["@modelcontextprotocol/server-puppeteer"]
+
+[mcp_servers.sequential-thinking]
+command = "npx"
+args = ["@modelcontextprotocol/server-sequential-thinking"]
+
+[mcp_servers.time]
+command = "uvx"
+args = ["mcp-server-time"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@latest"]
+
 [pipelines.auto-dev]
 description = "Translator → Requirements Analyst → Detail Designer → Planner pipeline"
 steps = ["translator", "requirements_analyst", "detail_designer", "planner"]

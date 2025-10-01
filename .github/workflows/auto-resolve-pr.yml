@@ -1,3 +1,4 @@
+# .github/workflows/auto-resolve-pr.yml
 name: Auto Resolve Conflicts
 
 on:
@@ -21,8 +22,7 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
     steps:
       - name: Checkout PR branch
@@ -31,7 +31,7 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: Merge base branch into PR
+      - name: Merge base branch into PR (no commit yet)
         run: |
           git fetch origin ${{ github.base_ref }}
           git merge --no-commit --no-ff origin/${{ github.base_ref }} || true
@@ -54,26 +54,26 @@ jobs:
             requirements.txt
             backend/requirements.txt
 
-      - name: Set up Chrome (only if frontend exists)
-        if: ${{ hashFiles('frontend/package.json') != '' || hashFiles('package.json') != '' }}
+      - name: Set up Chrome only when Karma runs
+        if: ${{ hashFiles('frontend/karma.conf.*','karma.conf.*') != '' }}
         id: setup-chrome
         uses: browser-actions/setup-chrome@v1
 
       - name: Install MCP servers
         run: |
-          npm install -g @modelcontextprotocol/server-filesystem
+          npm i -g @modelcontextprotocol/server-filesystem
           python -m pip install --upgrade pip
-          pip install mcp-server-git
+          python -m pip install mcp-server-git || true
 
-      - name: Install Codex deps (Gemini)
+      - name: Install Codex deps (OpenAI)
         run: |
           python -m pip install --upgrade pip
-          pip install google-generativeai pytest
+          pip install "openai>=1.40.0" pytest pytest-cov
 
       - name: Run Codex auto-resolve
         run: |
-          if [ -z "${GEMINI_API_KEY:-${GOOGLE_API_KEY:-}}" ]; then
-            echo "GEMINI_API_KEY/GOOGLE_API_KEY not set. Skipping auto-resolve."
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "OPENAI_API_KEY not set. Skipping auto-resolve."
             exit 0
           fi
           python scripts/auto_resolve_conflicts.py
@@ -81,36 +81,46 @@ jobs:
       - name: Run Tests
         env:
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CI: true
         run: |
           set -e
           ran_tests=false
 
           if [ -f frontend/package.json ]; then
             ran_tests=true
-            pushd frontend > /dev/null
+            pushd frontend >/dev/null
             npm ci
-            if [ -f karma.conf.cjs ] || [ -f karma.conf.js ]; then
-              npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage || (echo "Retry once..." && npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage)
+            if [ -f karma.conf.cjs ] || [ -f karma.conf.js ] || [ -f karma.conf.mjs ]; then
+              if grep -q "ChromeHeadlessNoSandbox" karma.conf.* 2>/dev/null; then
+                npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage \
+                || (echo "Retry once..." && npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage)
+              else
+                npx ng test --watch=false --browsers=ChromeHeadless --code-coverage \
+                || (echo "Retry once..." && npx ng test --watch=false --browsers=ChromeHeadless --code-coverage)
+              fi
             else
               echo "No Karma config. Skipping frontend unit tests."
             fi
-            popd > /dev/null
+            popd >/dev/null
           elif [ -f package.json ] && grep -q "\"@angular/" package.json 2>/dev/null; then
             ran_tests=true
             npm ci
-            npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage || (echo "Retry once..." && npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage)
+            npx ng test --watch=false --browsers=ChromeHeadless --code-coverage \
+            || (echo "Retry once..." && npx ng test --watch=false --browsers=ChromeHeadless --code-coverage)
           fi
 
           if [ -f backend/requirements.txt ]; then
             ran_tests=true
             pip install -r backend/requirements.txt
-            pushd backend > /dev/null
-            pytest || (echo "Retry once..." && pytest)
-            popd > /dev/null
+            pushd backend >/dev/null
+            pytest -q --maxfail=1 --disable-warnings --cov=. --cov-report=xml:coverage.xml \
+            || (echo "Retry once..." && pytest -q --maxfail=1 --disable-warnings --cov=. --cov-report=xml:coverage.xml)
+            popd >/dev/null
           elif [ -f requirements.txt ]; then
             ran_tests=true
             pip install -r requirements.txt
-            pytest || (echo "Retry once..." && pytest)
+            pytest -q --maxfail=1 --disable-warnings --cov=. --cov-report=xml:coverage.xml \
+            || (echo "Retry once..." && pytest -q --maxfail=1 --disable-warnings --cov=. --cov-report=xml:coverage.xml)
           fi
 
           if [ "$ran_tests" = false ]; then
@@ -124,8 +134,8 @@ jobs:
           name: test-artifacts
           path: |
             frontend/coverage/**
-            coverage.xml
             backend/coverage.xml
+            coverage.xml
           retention-days: 7
           if-no-files-found: ignore
 
@@ -134,6 +144,10 @@ jobs:
         run: |
           git config --global user.name "merge-bot"
           git config --global user.email "merge-bot@example.com"
-          git add .
-          git commit -m "[skip ci] 🤖 auto-resolved merge conflicts (tests passed)" || echo "No changes to commit"
-          git push --force-with-lease origin HEAD:${{ github.head_ref }}
+          git add -A
+          if git rev-parse -q --verify MERGE_HEAD >/dev/null; then
+            git commit -m "🤖 auto-resolved merge (tests passed)"
+          else
+            git commit -m "[skip ci] 🤖 auto-resolved changes (tests passed)" || echo "No changes to commit"
+          fi
+          git push origin HEAD:${{ github.head_ref }}

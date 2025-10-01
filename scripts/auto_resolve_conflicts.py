@@ -1,245 +1,135 @@
 #!/usr/bin/env python3
-"""Automatically resolve Git merge conflicts with the help of Codex."""
+"""AI-assisted Git merge conflict resolver (OpenAI)."""
 
 from __future__ import annotations
-
 import os
+import re
 import subprocess
-import sys
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
-import google.generativeai as genai
+from openai import OpenAI
 
-MAX_RETRIES = 3
+# ---- Config -----------------------------------------------------------------
+MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+MAX_FILE_BYTES = int(os.getenv("MAX_FILE_BYTES", "300000"))  # skip huge files
+CONFLICT_RE = re.compile(r"<<<<<<<|=======|>>>>>>>")
 
-MODEL_NAME = os.getenv("GEMINI_MODEL", "models/gemini-2.0-flash")
-genai.configure()
-model = genai.GenerativeModel(MODEL_NAME)
+# Configure OpenAI from env (OPENAI_API_KEY; optionally OPENAI_BASE_URL)
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    raise SystemExit("Missing OPENAI_API_KEY")
+base_url = os.getenv("OPENAI_BASE_URL")  # Azure/OpenAI-compatible endpoints用に任意
+client = OpenAI(api_key=api_key, base_url=base_url) if base_url else OpenAI(api_key=api_key)
 
-
+# ---- Shell helpers -----------------------------------------------------------
 def run_cmd(cmd: Sequence[str], *, capture: bool = False, cwd: str | None = None) -> Tuple[str, str, int]:
-    """Run a shell command and optionally capture its output."""
-    print(f"$ {' '.join(cmd)}", flush=True)
-    result = subprocess.run(  # noqa: S603
-        list(cmd),
-        cwd=cwd,
-        check=False,
-        text=True,
-        capture_output=capture,
-    )
-
+    res = subprocess.run(list(cmd), cwd=cwd, check=False, text=True, capture_output=capture)  # noqa: S603
     if capture:
-        return result.stdout or "", result.stderr or "", result.returncode
+        return res.stdout or "", res.stderr or "", res.returncode
+    return "", "", res.returncode
 
-    return "", "", result.returncode
-
-
+# ---- Git helpers -------------------------------------------------------------
 def get_conflicted_files() -> List[str]:
-    """Return a list of files that currently have merge conflicts."""
-    stdout, _stderr, _code = run_cmd(["git", "diff", "--name-only", "--diff-filter=U"], capture=True)
-    files = [line.strip() for line in stdout.splitlines() if line.strip()]
-    return files
+    out, _, _ = run_cmd(["git", "diff", "--name-only", "--diff-filter=U"], capture=True)
+    return [p.strip() for p in out.splitlines() if p.strip()]
 
+def is_text_and_reasonable(path: Path) -> bool:
+    if not path.is_file():
+        return False
+    if path.stat().st_size > MAX_FILE_BYTES:
+        print(f"⏭️  Skip large file: {path} ({path.stat().st_size} bytes)")
+        return False
+    try:
+        _ = path.read_text(encoding="utf-8")
+        return True
+    except UnicodeDecodeError:
+        print(f"⏭️  Skip non-utf8 file: {path}")
+        return False
 
-def read_file_content(path: str) -> str:
-    return Path(path).read_text(encoding="utf-8")
+def read_file(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
+def write_file(path: Path, content: str) -> None:
+    path.write_text(content, encoding="utf-8")
 
-def write_file_content(path: str, content: str) -> None:
-    Path(path).write_text(content, encoding="utf-8")
-
-
-def _response_text(response) -> str:
-    text_value = getattr(response, "text", None)
-    if isinstance(text_value, str) and text_value.strip():
-        return text_value
-
-    fragments: List[str] = []
-    for candidate in getattr(response, "candidates", []) or []:
-        parts = getattr(candidate, "content", None) or getattr(candidate, "parts", None)
-        if not parts:
-            continue
-        for part in parts:
-            text = getattr(part, "text", None) or getattr(part, "value", None)
-            if isinstance(text, str):
-                fragments.append(text)
-
-    if not fragments and getattr(response, "output", None):
-        for item in getattr(response, "output", []) or []:
-            for part in getattr(item, "content", []) or []:
-                text = getattr(part, "text", None)
-                if isinstance(text, str):
-                    fragments.append(text)
-
-    return "".join(fragments).strip()
-
-
-def ask_codex_to_resolve(filename: str, content: str, *, error_log: str | None = None) -> str:
-    """Ask Codex to resolve conflicts or address test failures."""
-    if error_log:
-        prompt = f"""
-あなたはソフトウェアエンジニアです。
-以下のコードに問題があり、テストが失敗しました。
-エラーログを参考に修正したコードを返してください。
-
-### ファイル名
-{filename}
-
-### 現在のコード
-{content}
-
-### テストエラーログ
-{error_log}
-"""
-    else:
-        prompt = f"""
-あなたはソフトウェアエンジニアです。
-以下のソースコードには Git マージコンフリクトがあります。
-`<<<<<<<, =======, >>>>>>>` を検出し、解消後の正しいコードを返してください。
-余計なコメントやマーカーは残さないでください。
-
-### ファイル名
-{filename}
-
-### コード
-{content}
+# ---- LLM prompt --------------------------------------------------------------
+SYS_PROMPT = """You are a senior software engineer.
+Resolve Git merge conflicts inside the given file content.
+Remove all conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`).
+Preserve surrounding context and project conventions.
+Return ONLY the final file content. No explanations, no code fences.
 """
 
-    response = model.generate_content(
-        prompt,
-        generation_config={"temperature": 0.0, "response_mime_type": "text/plain"},
+def strip_fences(text: str) -> str:
+    m = re.search(r"```(?:\w+)?\n([\s\S]*?)\n```", text)
+    return m.group(1) if m else text
+
+def resolve_with_openai(filename: str, content: str) -> str:
+    prompt = (
+        SYS_PROMPT
+        + "\n### File name\n"
+        + filename
+        + "\n\n### File content with conflicts\n"
+        + content
     )
-
-    return _response_text(response)
-
-
-def merge_in_progress() -> bool:
-    """Return True if Git reports an in-progress merge."""
-    return Path(".git/MERGE_HEAD").exists()
-
-
-def resolve_conflicts() -> List[str]:
-    """Resolve all current merge conflicts using Codex."""
-    conflicted_files = get_conflicted_files()
-    if not conflicted_files:
-        print("✅ コンフリクトはありません。", flush=True)
-        return []
-
-    for file_path in conflicted_files:
-        print(f"🔧 Resolving conflict in {file_path}...", flush=True)
-        original = read_file_content(file_path)
-        resolved = ask_codex_to_resolve(file_path, original)
-        write_file_content(file_path, resolved)
-
-    run_cmd(["git", "add", *conflicted_files])
-    return conflicted_files
-
-
-def _run_python_tests() -> Tuple[bool, str, str]:
-    stdout_parts: List[str] = []
-    stderr_parts: List[str] = []
-    success = True
-
-    backend_requirements = Path("backend/requirements.txt")
-    root_requirements = Path("requirements.txt")
-
-    if backend_requirements.exists():
-        run_cmd(["pip", "install", "-r", str(backend_requirements)])
-        out, err, code = run_cmd(["pytest", "backend/tests"], capture=True)
-        stdout_parts.append(out)
-        stderr_parts.append(err)
-        success = success and code == 0
-    elif root_requirements.exists() or Path("pytest.ini").exists() or Path("conftest.py").exists():
-        if root_requirements.exists():
-            run_cmd(["pip", "install", "-r", str(root_requirements)])
-        out, err, code = run_cmd(["pytest"], capture=True)
-        stdout_parts.append(out)
-        stderr_parts.append(err)
-        success = success and code == 0
-
-    return (
-        success,
-        "\n".join(part for part in stdout_parts if part).strip(),
-        "\n".join(part for part in stderr_parts if part).strip(),
+    resp = client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[
+            {"role": "system", "content": SYS_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.0,
+        max_tokens=4096,
     )
+    txt = (resp.choices[0].message.content or "").strip()
+    return strip_fences(txt)
 
-
-def _run_node_tests() -> Tuple[bool, str, str]:
-    stdout_parts: List[str] = []
-    stderr_parts: List[str] = []
-    success = True
-
-    node_projects: List[Path] = []
-    if Path("package.json").exists():
-        node_projects.append(Path("."))
-    frontend_package = Path("frontend/package.json")
-    if frontend_package.exists():
-        node_projects.append(frontend_package.parent)
-
-    for project in node_projects:
-        package_lock = project / "package-lock.json"
-        install_cmd = ["npm", "ci"] if package_lock.exists() else ["npm", "install"]
-        run_cmd(install_cmd, cwd=str(project))
-        out, err, code = run_cmd(["npm", "test"], capture=True, cwd=str(project))
-        stdout_parts.append(out)
-        stderr_parts.append(err)
-        success = success and code == 0
-
-    return (
-        success,
-        "\n".join(part for part in stdout_parts if part).strip(),
-        "\n".join(part for part in stderr_parts if part).strip(),
-    )
-
-
-def run_tests() -> Tuple[bool, str, str]:
-    """Run available test suites and return aggregated results."""
-    print("🧪 Running tests...", flush=True)
-
-    py_success, py_out, py_err = _run_python_tests()
-    node_success, node_out, node_err = _run_node_tests()
-
-    outputs = [text for text in [py_out, node_out] if text]
-    errors = [text for text in [py_err, node_err] if text]
-
-    if not outputs and not errors:
-        print("⚠️ No test framework detected, skipping tests.")
-        return True, "", ""
-
-    return py_success and node_success, "\n".join(outputs).strip(), "\n".join(errors).strip()
-
-
+# ---- Main logic --------------------------------------------------------------
 def main() -> None:
-    conflicted_files = resolve_conflicts()
-    if not conflicted_files:
+    conflicted = [Path(p) for p in get_conflicted_files()]
+    if not conflicted:
+        print("✅ No conflicts.")
         return
 
-    for attempt in range(1, MAX_RETRIES + 1):
-        commit_message = f"🤖 auto-resolve attempt {attempt}"
-        if attempt == 1 and merge_in_progress():
-            run_cmd(["git", "commit", "-m", commit_message])
-        else:
-            run_cmd(["git", "commit", "--amend", "-m", commit_message])
-        success, out, err = run_tests()
+    resolved_any = False
+    unresolved: List[str] = []
 
-        if success:
-            print(f"✅ テスト成功！（{attempt}回目）", flush=True)  # noqa: RUF001
-            return
+    for path in conflicted:
+        if not is_text_and_reasonable(path):
+            unresolved.append(str(path))
+            continue
 
-        print(f"❌ テスト失敗（{attempt}回目） 修正を試みます...", flush=True)  # noqa: RUF001
-        error_log = "\n".join(part for part in [out, err] if part)
+        original = read_file(path)
+        if not CONFLICT_RE.search(original):
+            print(f"ℹ️  No markers found in {path}, staging as-is.")
+            run_cmd(["git", "add", str(path)])
+            resolved_any = True
+            continue
 
-        for file_path in conflicted_files:
-            current = read_file_content(file_path)
-            fixed = ask_codex_to_resolve(file_path, current, error_log=error_log)
-            write_file_content(file_path, fixed)
+        print(f"🔧 Resolving: {path}")
+        fixed = resolve_with_openai(str(path), original)
 
-        run_cmd(["git", "add", *conflicted_files])
+        if not fixed or CONFLICT_RE.search(fixed):
+            print(f"❗ Still contains conflict markers: {path}")
+            unresolved.append(str(path))
+            continue
 
-    print("🚨 最大リトライ回数に達しました。テスト失敗のままです。", flush=True)
-    sys.exit(1)
+        write_file(path, fixed)
+        run_cmd(["git", "add", str(path)])
+        resolved_any = True
+        print(f"✅ Resolved: {path}")
 
+    if unresolved:
+        print("🚨 Unresolved files remain:")
+        for f in unresolved:
+            print(f" - {f}")
+        raise SystemExit(1)
+
+    if not resolved_any:
+        print("⚠️ Nothing resolved.")
+    else:
+        print("🎉 All conflicts resolved and staged. Commit happens in the workflow step.")
 
 if __name__ == "__main__":
     main()

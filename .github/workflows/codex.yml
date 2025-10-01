@@ -1,3 +1,4 @@
+# .github/workflows/codex.yml
 name: Codex Auto Dev
 
 on:
@@ -12,73 +13,79 @@ on:
     types: [created]
 
 concurrency:
-  group: codex-auto-dev-${{ github.event_name }}-${{ github.run_id }}
+  group: codex-auto-dev-${{ github.event_name }}-${{ github.event.issue.number || github.ref || 'manual' }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
-  issues: read
-  pull-requests: read
+  contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   codex:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (
-        (github.event_name == 'issues' || github.event_name == 'issue_comment') &&
-        (
-          contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association) ||
-          (github.event_name == 'issue_comment' &&
-           contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
-        )
+        (github.event_name == 'issues') &&
+        contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)
+      ) ||
+      (
+        (github.event_name == 'issue_comment') &&
+        startsWith(github.event.comment.body, '/codex ') &&
+        contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
       )
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # Gemini を使用。google-generativeai は GOOGLE_API_KEY を既定で参照する。
-      GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Verify Gemini API key
+      - name: Verify OpenAI API key
         run: |
-          if [ -z "${GEMINI_API_KEY:-${GOOGLE_API_KEY:-}}" ]; then
-            echo "::error::GEMINI_API_KEY/GOOGLE_API_KEY is not available. Maintainers: run via 'Run workflow' so repository secrets are accessible."
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "::error::OPENAI_API_KEY is not available. Maintainers: set repository secret."
             exit 1
           fi
 
-      # 任意: codex が Node 製の場合に備えて Node を用意（CLI 非依存なら通過）
       - name: Setup Node (optional)
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      # 任意: codex が Python ラッパーから google-generativeai を呼ぶ場合に備えてインストール
       - name: Setup Python deps (optional)
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
-      - name: Install google-generativeai
+
+      - name: Install OpenAI SDK (optional)
         run: |
           python -m pip install --upgrade pip
-          pip install google-generativeai || true
+          pip install "openai>=1.40.0" || true
+
+      - name: Ensure codex CLI
+        run: |
+          if ! command -v codex >/dev/null 2>&1; then
+            echo "::error::'codex' CLI not found in PATH. Ensure it is available or add an installation step."
+            exit 1
+          fi
 
       - name: Compose TASK_INPUT and run pipeline
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-
           case "${{ github.event_name }}" in
             issues)
               RAW_TASK_INPUT="${{ github.event.issue.title }}: ${{ github.event.issue.body }}"
               ;;
             issue_comment)
-              RAW_TASK_INPUT="Comment on issue #${{ github.event.issue.number }}: ${{ github.event.comment.body }}"
+              RAW_TASK_INPUT="${{ github.event.comment.body }}"
               ;;
             *)
               RAW_TASK_INPUT="${{ github.event.inputs.task_input }}"
@@ -90,11 +97,6 @@ jobs:
 
           echo "TASK_INPUT: $(echo "$RAW_TASK_INPUT" | head -c 200)${RAW_TASK_INPUT:+...}"
           mkdir -p codex_output
-
-          if ! command -v codex >/dev/null 2>&1; then
-            echo "::error::'codex' CLI not found in PATH. Ensure it is available or add an installation step."
-            exit 1
-          fi
 
           printf '%s' "$RAW_TASK_INPUT" | ./scripts/run_codex_pipeline.sh
 
