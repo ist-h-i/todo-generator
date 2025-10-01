@@ -80,22 +80,50 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          case "${{ github.event_name }}" in
-            issues)
-              RAW_TASK_INPUT="${{ github.event.issue.title }}: ${{ github.event.issue.body }}"
-              ;;
-            issue_comment)
-              RAW_TASK_INPUT="${{ github.event.comment.body }}"
-              ;;
-            *)
-              RAW_TASK_INPUT="${{ github.event.inputs.task_input }}"
-              if [ -z "$RAW_TASK_INPUT" ]; then
-                RAW_TASK_INPUT="Manual trigger: Please implement the requested feature."
-              fi
-              ;;
-          esac
 
-          echo "TASK_INPUT: $(echo "$RAW_TASK_INPUT" | head -c 200)${RAW_TASK_INPUT:+...}"
+          RAW_TASK_INPUT="$(python <<'PY'
+import json
+import os
+import sys
+
+event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+event_path = os.environ.get("GITHUB_EVENT_PATH")
+
+if not event_path:
+    sys.exit("GITHUB_EVENT_PATH is not set")
+
+with open(event_path, encoding="utf-8") as payload:
+    event = json.load(payload)
+
+def coerce_text(value):
+    if value in (None, ""):
+        return ""
+    return str(value)
+
+if event_name == "issues":
+    issue = event.get("issue", {})
+    title = coerce_text(issue.get("title"))
+    body = coerce_text(issue.get("body"))
+    task_input = f"{title}: {body}" if body else title
+elif event_name == "issue_comment":
+    comment = event.get("comment", {})
+    task_input = coerce_text(comment.get("body"))
+else:
+    inputs = event.get("inputs") or {}
+    task_input = coerce_text(inputs.get("task_input"))
+    if not task_input:
+        task_input = "Manual trigger: Please implement the requested feature."
+
+print(task_input.strip())
+PY
+)"
+
+          if [ -z "$RAW_TASK_INPUT" ]; then
+            echo "::error::TASK_INPUT resolved to an empty string."
+            exit 1
+          fi
+
+          echo "TASK_INPUT: $(printf '%s' "$RAW_TASK_INPUT" | head -c 200)${RAW_TASK_INPUT:+...}"
           mkdir -p codex_output
 
           printf '%s' "$RAW_TASK_INPUT" | ./scripts/run_codex_pipeline.sh
