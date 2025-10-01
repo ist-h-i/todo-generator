@@ -42,14 +42,95 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Abort if secrets missing
-        if: ${{ env.SONAR_HOST_URL == '' || env.SONAR_TOKEN == '' || env.SONAR_ORGANIZATION == '' }}
+      - name: Determine SonarQube readiness
+        id: sonar_prereqs
         run: |
-          echo "SONAR_HOST_URL, SONAR_TOKEN, or SONAR_ORGANIZATION not set. Skipping SonarQube."
-          exit 0
+          python <<'PY'
+          import base64
+          import os
+          import sys
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+
+          host = os.environ.get("SONAR_HOST_URL", "").strip()
+          token = os.environ.get("SONAR_TOKEN", "").strip()
+          organization = os.environ.get("SONAR_ORGANIZATION", "").strip()
+          output_path = os.environ["GITHUB_OUTPUT"]
+
+          def write_output(name: str, value: str) -> None:
+              with open(output_path, "a", encoding="utf-8") as handle:
+                  if "\n" in value:
+                      handle.write(f"{name}<<EOF\n{value}\nEOF\n")
+                  else:
+                      handle.write(f"{name}={value}\n")
+
+          if not host or not token or not organization:
+              message = "Skipping SonarQube scan because SONAR_HOST_URL, SONAR_TOKEN, or SONAR_ORGANIZATION is not configured."
+              print(f"::notice::{message}")
+              write_output("should_run", "false")
+              write_output("project_key", "")
+              write_output("skip_message", message)
+              sys.exit(0)
+
+          project_key = os.environ.get("SONAR_PROJECT_KEY", "").strip()
+          if not project_key and os.path.exists("sonar-project.properties"):
+              with open("sonar-project.properties", encoding="utf-8") as props:
+                  for line in props:
+                      if line.startswith("sonar.projectKey="):
+                          project_key = line.split("=", 1)[1].strip()
+                          if project_key:
+                              break
+
+          if not project_key:
+              repository = os.environ.get("GITHUB_REPOSITORY", "").strip()
+              if repository:
+                  project_key = repository.replace("/", ":")
+
+          if not project_key:
+              message = "Skipping SonarQube scan because no sonar.projectKey could be determined."
+              print(f"::notice::{message}")
+              write_output("should_run", "false")
+              write_output("project_key", "")
+              write_output("skip_message", message)
+              sys.exit(0)
+
+          url = f"{host.rstrip('/')}/api/navigation/component?componentKey={urllib.parse.quote(project_key, safe='')}"
+          request = urllib.request.Request(url)
+          basic_auth = base64.b64encode(f"{token}:".encode("utf-8")).decode("ascii")
+          request.add_header("Authorization", f"Basic {basic_auth}")
+
+          try:
+              with urllib.request.urlopen(request, timeout=15) as response:  # noqa: S310
+                  response.read()
+          except urllib.error.HTTPError as exc:
+              message = (
+                  f"SonarQube project '{project_key}' is missing or inaccessible (HTTP {exc.code}). "
+                  "Skipping scan."
+              )
+              print(f"::warning::{message}")
+              write_output("should_run", "false")
+              write_output("project_key", project_key)
+              write_output("skip_message", message)
+              sys.exit(0)
+          except urllib.error.URLError as exc:
+              message = (
+                  f"Unable to reach SonarQube at {host.rstrip('/')}: {exc.reason}. Skipping scan."
+              )
+              print(f"::warning::{message}")
+              write_output("should_run", "false")
+              write_output("project_key", project_key)
+              write_output("skip_message", message)
+              sys.exit(0)
+
+          write_output("should_run", "true")
+          write_output("project_key", project_key)
+          write_output("skip_message", "")
+          print(f"::notice::SonarQube project '{project_key}' is available. Proceeding with scan.")
+          PY
 
       - name: Set up Node.js (with cache)
-        if: ${{ hashFiles('package-lock.json','npm-shrinkwrap.json','yarn.lock','frontend/package-lock.json','frontend/npm-shrinkwrap.json','frontend/yarn.lock') != '' }}
+        if: ${{ steps.sonar_prereqs.outputs.should_run == 'true' && hashFiles('package-lock.json','npm-shrinkwrap.json','yarn.lock','frontend/package-lock.json','frontend/npm-shrinkwrap.json','frontend/yarn.lock') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -59,23 +140,24 @@ jobs:
             frontend/package-lock.json
 
       - name: Set up Node.js (no cache)
-        if: ${{ hashFiles('package-lock.json','npm-shrinkwrap.json','yarn.lock','frontend/package-lock.json','frontend/npm-shrinkwrap.json','frontend/yarn.lock') == '' }}
+        if: ${{ steps.sonar_prereqs.outputs.should_run == 'true' && hashFiles('package-lock.json','npm-shrinkwrap.json','yarn.lock','frontend/package-lock.json','frontend/npm-shrinkwrap.json','frontend/yarn.lock') == '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install root dependencies
-        if: ${{ hashFiles('package.json') != '' }}
+        if: ${{ steps.sonar_prereqs.outputs.should_run == 'true' && hashFiles('package.json') != '' }}
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm i; fi
 
       - name: Install frontend dependencies
-        if: ${{ hashFiles('frontend/package.json') != '' }}
+        if: ${{ steps.sonar_prereqs.outputs.should_run == 'true' && hashFiles('frontend/package.json') != '' }}
         working-directory: frontend
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm i; fi
 
       - name: Set up Python
+        if: ${{ steps.sonar_prereqs.outputs.should_run == 'true' }}
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -85,7 +167,7 @@ jobs:
             backend/requirements.txt
 
       - name: Install backend dependencies
-        if: ${{ hashFiles('backend/requirements.txt') != '' || hashFiles('requirements.txt') != '' }}
+        if: ${{ steps.sonar_prereqs.outputs.should_run == 'true' && (hashFiles('backend/requirements.txt') != '' || hashFiles('requirements.txt') != '') }}
         run: |
           python -m pip install --upgrade pip
           if [ -f backend/requirements.txt ]; then
@@ -95,7 +177,7 @@ jobs:
           fi
 
       - name: SonarQube Scan
-        if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' && env.SONAR_ORGANIZATION != '' }}
+        if: ${{ steps.sonar_prereqs.outputs.should_run == 'true' }}
         uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
@@ -105,10 +187,15 @@ jobs:
             -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
 
       - name: SonarQube Quality Gate
-        if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' && env.SONAR_ORGANIZATION != '' }}
+        if: ${{ steps.sonar_prereqs.outputs.should_run == 'true' }}
         uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
         with:
           scanMetadataReportFile: .scannerwork/report-task.txt
         env:
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+
+      - name: Skip SonarQube scan
+        if: ${{ steps.sonar_prereqs.outputs.should_run != 'true' }}
+        run: |
+          echo "${{ steps.sonar_prereqs.outputs.skip_message }}"
