@@ -37,7 +37,7 @@ jobs:
           git merge --no-commit --no-ff origin/${{ github.base_ref }} || true
 
       - name: Set up Node.js (with cache)
-        if: ${{ hashFiles('package-lock.json','frontend/package-lock.json','npm-shrinkwrap.json') != '' }}
+        if: ${{ hashFiles('package-lock.json','npm-shrinkwrap.json','yarn.lock','frontend/package-lock.json','frontend/npm-shrinkwrap.json','frontend/yarn.lock') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -45,12 +45,24 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             frontend/package-lock.json
-      
+
       - name: Set up Node.js (no cache)
-        if: ${{ hashFiles('package-lock.json','frontend/package-lock.json','npm-shrinkwrap.json') == '' }}
+        if: ${{ hashFiles('package-lock.json','npm-shrinkwrap.json','yarn.lock','frontend/package-lock.json','frontend/npm-shrinkwrap.json','frontend/yarn.lock') == '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Install root deps
+        if: ${{ hashFiles('package.json') != '' }}
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm i; fi
+
+      - name: Install frontend deps
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+        run: |
+          pushd frontend >/dev/null
+          if [ -f package-lock.json ]; then npm ci; else npm i; fi
+          popd >/dev/null
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -96,7 +108,6 @@ jobs:
           if [ -f frontend/package.json ]; then
             ran_tests=true
             pushd frontend >/dev/null
-            npm ci
             if [ -f karma.conf.cjs ] || [ -f karma.conf.js ] || [ -f karma.conf.mjs ]; then
               if grep -q "ChromeHeadlessNoSandbox" karma.conf.* 2>/dev/null; then
                 npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox --code-coverage \
@@ -111,7 +122,6 @@ jobs:
             popd >/dev/null
           elif [ -f package.json ] && grep -q "\"@angular/" package.json 2>/dev/null; then
             ran_tests=true
-            npm ci
             npx ng test --watch=false --browsers=ChromeHeadless --code-coverage \
             || (echo "Retry once..." && npx ng test --watch=false --browsers=ChromeHeadless --code-coverage)
           fi
