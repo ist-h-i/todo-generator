@@ -162,7 +162,7 @@ describe('ReportAssistantPageComponent', () => {
 
     expect(payloads).toEqual([
       { title: 'レビュー', description: 'PR を確認', status: 'done' },
-      { title: '追加調査', description: null, status: undefined },
+      { title: '追加調査', description: '追加調査', status: undefined },
     ]);
   });
 
