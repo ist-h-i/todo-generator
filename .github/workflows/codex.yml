@@ -67,19 +67,12 @@ jobs:
           set -eux
 
           python -m pip install -U pip
-          python -m pip install --user "${CODEX_PY_PKG:-codex-cli}"
+          python -m pip install "${CODEX_PY_PKG:-codex-cli}"
 
-          codex_bin="$(python -m site --user-base)/bin"
-          if [ -d "${codex_bin}" ]; then
-            export PATH="${codex_bin}:$PATH"
-          fi
+          codex_bin="$(python -m site --prefix)/bin"
           echo "${codex_bin}" >> "$GITHUB_PATH"
 
-          if ! command -v codex >/dev/null 2>&1; then
-            echo "::error::codex CLI is unavailable after installation."
-            exit 1
-          fi
-
+          which codex || { echo "::error::codex not found"; exit 1; }
           codex --version
 
       - name: Resolve TASK_INPUT
