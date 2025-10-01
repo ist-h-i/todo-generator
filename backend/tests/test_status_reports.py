@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from unittest import TestCase
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,6 +13,8 @@ from app.main import app
 from app.services.gemini import GeminiError, get_gemini_client
 from app.services.status_reports import StatusReportService
 
+assertions = TestCase()
+
 DEFAULT_PASSWORD = "Register123!"  # noqa: S105 - test helper credential
 
 
@@ -20,12 +23,12 @@ def register_and_login(client: TestClient, email: str, password: str = DEFAULT_P
         "/auth/register",
         json={"email": email, "password": password},
     )
-    assert response.status_code == 201, response.text
+    assertions.assertTrue(response.status_code == 201, response.text)
     login_response = client.post(
         "/auth/login",
         json={"email": email, "password": password},
     )
-    assert login_response.status_code == 200, login_response.text
+    assertions.assertTrue(login_response.status_code == 200, login_response.text)
     token = login_response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
@@ -104,16 +107,16 @@ def test_create_and_list_status_reports(client: TestClient) -> None:
         json=_status_report_payload(),
         headers=headers,
     )
-    assert create_response.status_code == 201, create_response.text
+    assertions.assertTrue(create_response.status_code == 201, create_response.text)
     data = create_response.json()
-    assert data["status"] == "draft"
+    assertions.assertTrue(data["status"] == "draft")
     list_response = client.get("/status-reports", headers=headers)
-    assert list_response.status_code == 200
+    assertions.assertTrue(list_response.status_code == 200)
     items = list_response.json()
-    assert len(items) == 1
-    assert items[0]["status"] == "draft"
-    assert items[0]["card_count"] == 0
-    assert items[0]["proposal_count"] == 0
+    assertions.assertTrue(len(items) == 1)
+    assertions.assertTrue(items[0]["status"] == "draft")
+    assertions.assertTrue(items[0]["card_count"] == 0)
+    assertions.assertTrue(items[0]["proposal_count"] == 0)
 
 
 def test_submit_status_report_returns_proposals(client: TestClient) -> None:
@@ -132,19 +135,19 @@ def test_submit_status_report_returns_proposals(client: TestClient) -> None:
     finally:
         app.dependency_overrides.pop(get_gemini_client, None)
 
-    assert submit_response.status_code == 200, submit_response.text
+    assertions.assertTrue(submit_response.status_code == 200, submit_response.text)
     detail = submit_response.json()
-    assert detail["status"] == "completed"
-    assert detail["cards"] == []
-    assert len(detail["pending_proposals"]) == 1
-    assert detail["pending_proposals"][0]["title"].startswith("フォローアップタスク")
+    assertions.assertTrue(detail["status"] == "completed")
+    assertions.assertTrue(detail["cards"] == [])
+    assertions.assertTrue(len(detail["pending_proposals"]) == 1)
+    assertions.assertTrue(detail["pending_proposals"][0]["title"].startswith("フォローアップタスク"))
 
     list_response = client.get("/status-reports", headers=headers)
     list_response.raise_for_status()
-    assert list_response.json() == []
+    assertions.assertTrue(list_response.json() == [])
 
     get_response = client.get(f"/status-reports/{report_id}", headers=headers)
-    assert get_response.status_code == 404
+    assertions.assertTrue(get_response.status_code == 404)
 
 
 def test_retry_status_report_after_failure_succeeds(client: TestClient) -> None:
@@ -161,35 +164,35 @@ def test_retry_status_report_after_failure_succeeds(client: TestClient) -> None:
     app.dependency_overrides[get_gemini_client] = lambda: stub
     try:
         first_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
-        assert first_response.status_code == status.HTTP_502_BAD_GATEWAY, first_response.text
+        assertions.assertTrue(first_response.status_code == status.HTTP_502_BAD_GATEWAY, first_response.text)
         failure_payload = first_response.json()
-        assert failure_payload["detail"]["message"] == "Temporary analysis failure"
+        assertions.assertTrue(failure_payload["detail"]["message"] == "Temporary analysis failure")
         failed_report = failure_payload["detail"]["report"]
-        assert failed_report["status"] == "failed"
-        assert failed_report["failure_reason"] == "Temporary analysis failure"
+        assertions.assertTrue(failed_report["status"] == "failed")
+        assertions.assertTrue(failed_report["failure_reason"] == "Temporary analysis failure")
 
         retry_response = client.post(f"/status-reports/{report_id}/retry", headers=headers)
-        assert retry_response.status_code == 200, retry_response.text
+        assertions.assertTrue(retry_response.status_code == 200, retry_response.text)
         retry_detail = retry_response.json()
     finally:
         app.dependency_overrides.pop(get_gemini_client, None)
 
-    assert retry_detail["status"] == "completed"
-    assert retry_detail["cards"] == []
-    assert len(retry_detail["pending_proposals"]) == 1
-    assert retry_detail["pending_proposals"][0]["title"].startswith("フォローアップタスク")
-    assert stub.call_count == 2
+    assertions.assertTrue(retry_detail["status"] == "completed")
+    assertions.assertTrue(retry_detail["cards"] == [])
+    assertions.assertTrue(len(retry_detail["pending_proposals"]) == 1)
+    assertions.assertTrue(retry_detail["pending_proposals"][0]["title"].startswith("フォローアップタスク"))
+    assertions.assertTrue(stub.call_count == 2)
 
     event_types = {event["event_type"] for event in retry_detail["events"]}
-    assert "analysis_failed" in event_types
-    assert "analysis_completed" in event_types
+    assertions.assertTrue("analysis_failed" in event_types)
+    assertions.assertTrue("analysis_completed" in event_types)
 
     list_response = client.get("/status-reports", headers=headers)
     list_response.raise_for_status()
-    assert list_response.json() == []
+    assertions.assertTrue(list_response.json() == [])
 
     get_response = client.get(f"/status-reports/{report_id}", headers=headers)
-    assert get_response.status_code == 404
+    assertions.assertTrue(get_response.status_code == 404)
 
 
 def test_submit_status_report_rejects_completed_reports(client: TestClient) -> None:
@@ -207,7 +210,7 @@ def test_submit_status_report_rejects_completed_reports(client: TestClient) -> N
     db = next(db_gen)
     try:
         report = db.get(models.StatusReport, report_id)
-        assert report is not None
+        assertions.assertTrue(report is not None)
         report.status = schemas.StatusReportStatus.COMPLETED.value
         db.add(report)
         db.commit()
@@ -224,8 +227,8 @@ def test_submit_status_report_rejects_completed_reports(client: TestClient) -> N
     finally:
         app.dependency_overrides.pop(get_gemini_client, None)
 
-    assert submit_response.status_code == status.HTTP_400_BAD_REQUEST
-    assert submit_response.json()["detail"] == "Report in status 'completed' cannot be submitted."
+    assertions.assertTrue(submit_response.status_code == status.HTTP_400_BAD_REQUEST)
+    assertions.assertTrue(submit_response.json()["detail"] == "Report in status 'completed' cannot be submitted.")
 
 
 def test_serialize_card_link_defaults_relationship_when_card_missing() -> None:
@@ -234,9 +237,9 @@ def test_serialize_card_link_defaults_relationship_when_card_missing() -> None:
 
     summary = service._serialize_card_link(link)
 
-    assert summary.relationship == "primary"
-    assert summary.id == "card-1"
-    assert summary.title == "(deleted card)"
+    assertions.assertTrue(summary.relationship == "primary")
+    assertions.assertTrue(summary.id == "card-1")
+    assertions.assertTrue(summary.title == "(deleted card)")
 
 
 def test_serialize_card_link_defaults_relationship_for_existing_card() -> None:
@@ -247,6 +250,6 @@ def test_serialize_card_link_defaults_relationship_for_existing_card() -> None:
 
     summary = service._serialize_card_link(link)
 
-    assert summary.relationship == "primary"
-    assert summary.id == card.id
-    assert summary.assignees == ["alice"]
+    assertions.assertTrue(summary.relationship == "primary")
+    assertions.assertTrue(summary.id == card.id)
+    assertions.assertTrue(summary.assignees == ["alice"])

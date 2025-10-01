@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import logging
 from types import SimpleNamespace
+from unittest import TestCase
 
 import pytest
 
 from app.services.recommendation_scoring import RecommendationScoringService
+
+assertions = TestCase()
 
 
 def test_score_card_emits_debug_log(caplog: pytest.LogCaptureFixture) -> None:
@@ -25,12 +28,12 @@ def test_score_card_emits_debug_log(caplog: pytest.LogCaptureFixture) -> None:
         log for log in caplog.records if log.levelno == logging.DEBUG and log.msg == "Recommendation scoring completed"
     )
 
-    assert record.elapsed_ms >= 0
-    assert record.label_weight == pytest.approx(service._label_weight)
-    assert record.profile_weight == pytest.approx(service._profile_weight)
-    assert record.label_score == pytest.approx(result.label_correlation)
-    assert record.profile_score == pytest.approx(result.profile_alignment)
-    assert record.score == result.score
+    assertions.assertTrue(record.elapsed_ms >= 0)
+    assertions.assertTrue(record.label_weight == pytest.approx(service._label_weight))
+    assertions.assertTrue(record.profile_weight == pytest.approx(service._profile_weight))
+    assertions.assertTrue(record.label_score == pytest.approx(result.label_correlation))
+    assertions.assertTrue(record.profile_score == pytest.approx(result.profile_alignment))
+    assertions.assertTrue(record.score == result.score)
 
 
 def test_score_card_logs_debug_on_failure(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -51,7 +54,7 @@ def test_score_card_logs_debug_on_failure(caplog: pytest.LogCaptureFixture, monk
             profile=profile,
         )
 
-    assert result.failure_reason == "scoring_error"
+    assertions.assertTrue(result.failure_reason == "scoring_error")
 
     record = next(
         log
@@ -59,9 +62,9 @@ def test_score_card_logs_debug_on_failure(caplog: pytest.LogCaptureFixture, monk
         if log.levelno == logging.DEBUG and log.msg == "Recommendation scoring failed; returning fallback"
     )
 
-    assert record.elapsed_ms >= 0
-    assert record.label_weight == pytest.approx(service._label_weight)
-    assert record.profile_weight == pytest.approx(service._profile_weight)
-    assert record.label_score is None
-    assert record.profile_score is None
-    assert record.score == 0
+    assertions.assertTrue(record.elapsed_ms >= 0)
+    assertions.assertTrue(record.label_weight == pytest.approx(service._label_weight))
+    assertions.assertTrue(record.profile_weight == pytest.approx(service._profile_weight))
+    assertions.assertTrue(record.label_score is None)
+    assertions.assertTrue(record.profile_score is None)
+    assertions.assertTrue(record.score == 0)

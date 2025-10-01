@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from unittest import TestCase
+
 from fastapi.testclient import TestClient
 
 from .test_cards import create_status, register_and_login
+
+assertions = TestCase()
 
 
 def _update_nickname(client: TestClient, headers: dict[str, str], nickname: str) -> None:
@@ -11,7 +15,7 @@ def _update_nickname(client: TestClient, headers: dict[str, str], nickname: str)
         data={"nickname": nickname},
         headers=headers,
     )
-    assert response.status_code == 200, response.text
+    assertions.assertTrue(response.status_code == 200, response.text)
 
 
 def _create_card_with_subtask(
@@ -28,7 +32,7 @@ def _create_card_with_subtask(
         },
         headers=headers,
     )
-    assert response.status_code == 201, response.text
+    assertions.assertTrue(response.status_code == 201, response.text)
     payload = response.json()
     card_id = payload["id"]
     subtask_id = payload["subtasks"][0]["id"]
@@ -51,45 +55,45 @@ def test_subtask_comment_crud_flow(client: TestClient) -> None:
         },
         headers=headers,
     )
-    assert create_response.status_code == 201, create_response.text
+    assertions.assertTrue(create_response.status_code == 201, create_response.text)
     created = create_response.json()
-    assert created["card_id"] == card_id
-    assert created["subtask_id"] == subtask_id
-    assert created["content"] == "初回メモ"
-    assert created["author_id"]
-    assert created["author_nickname"] == "ボード担当者"
+    assertions.assertTrue(created["card_id"] == card_id)
+    assertions.assertTrue(created["subtask_id"] == subtask_id)
+    assertions.assertTrue(created["content"] == "初回メモ")
+    assertions.assertTrue(created["author_id"])
+    assertions.assertTrue(created["author_nickname"] == "ボード担当者")
 
     list_response = client.get(
         "/comments",
         params={"card_id": card_id, "subtask_id": subtask_id},
         headers=headers,
     )
-    assert list_response.status_code == 200, list_response.text
+    assertions.assertTrue(list_response.status_code == 200, list_response.text)
     listed = list_response.json()
-    assert len(listed) == 1
-    assert listed[0]["author_nickname"] == "ボード担当者"
+    assertions.assertTrue(len(listed) == 1)
+    assertions.assertTrue(listed[0]["author_nickname"] == "ボード担当者")
 
     update_response = client.put(
         f"/comments/{created['id']}",
         json={"content": "更新済みメモ", "subtask_id": subtask_id},
         headers=headers,
     )
-    assert update_response.status_code == 200, update_response.text
+    assertions.assertTrue(update_response.status_code == 200, update_response.text)
     updated = update_response.json()
-    assert updated["content"] == "更新済みメモ"
-    assert updated["author_nickname"] == "ボード担当者"
-    assert updated["updated_at"] != created["updated_at"]
+    assertions.assertTrue(updated["content"] == "更新済みメモ")
+    assertions.assertTrue(updated["author_nickname"] == "ボード担当者")
+    assertions.assertTrue(updated["updated_at"] != created["updated_at"])
 
     delete_response = client.delete(
         f"/comments/{created['id']}",
         headers=headers,
     )
-    assert delete_response.status_code == 204, delete_response.text
+    assertions.assertTrue(delete_response.status_code == 204, delete_response.text)
 
     empty_response = client.get(
         "/comments",
         params={"card_id": card_id, "subtask_id": subtask_id},
         headers=headers,
     )
-    assert empty_response.status_code == 200
-    assert empty_response.json() == []
+    assertions.assertTrue(empty_response.status_code == 200)
+    assertions.assertTrue(empty_response.json() == [])

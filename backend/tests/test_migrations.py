@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from unittest import TestCase
 from unittest.mock import patch
 
 from sqlalchemy import create_engine, inspect, text
 
 import app.migrations as migrations
 from app.migrations import run_startup_migrations
+
+assertions = TestCase()
 
 
 def _seed_legacy_users_table(engine) -> None:
@@ -68,13 +71,13 @@ def test_run_startup_migrations_adds_column_and_promotes_first_user() -> None:
 
     inspector = inspect(engine)
     columns = {column["name"] for column in inspector.get_columns("users")}
-    assert "is_admin" in columns
+    assertions.assertTrue("is_admin" in columns)
 
     with engine.connect() as connection:
         rows = connection.execute(text("SELECT email, is_admin FROM users ORDER BY created_at ASC")).all()
 
-    assert rows, "Expected at least one user row"
-    assert [bool(row.is_admin) for row in rows] == [True, False]
+    assertions.assertTrue(rows, "Expected at least one user row")
+    assertions.assertTrue([bool(row.is_admin) for row in rows] == [True, False])
 
 
 def test_run_startup_migrations_is_noop_when_column_exists() -> None:
@@ -136,7 +139,7 @@ def test_run_startup_migrations_is_noop_when_column_exists() -> None:
     with engine.connect() as connection:
         rows = connection.execute(text("SELECT email, is_admin FROM users ORDER BY created_at ASC")).all()
 
-    assert [bool(row.is_admin) for row in rows] == [True, False]
+    assertions.assertTrue([bool(row.is_admin) for row in rows] == [True, False])
 
 
 def test_run_startup_migrations_adds_error_category_column_to_cards() -> None:
@@ -170,8 +173,8 @@ def test_run_startup_migrations_adds_error_category_column_to_cards() -> None:
 
     inspector = inspect(engine)
     columns = {column["name"]: column for column in inspector.get_columns("cards")}
-    assert "error_category_id" in columns
-    assert columns["error_category_id"]["nullable"] is True
+    assertions.assertTrue("error_category_id" in columns)
+    assertions.assertTrue(columns["error_category_id"]["nullable"] is True)
 
 
 def test_run_startup_migrations_waits_for_error_categories_table() -> None:
@@ -197,7 +200,7 @@ def test_run_startup_migrations_waits_for_error_categories_table() -> None:
 
     inspector = inspect(engine)
     columns = {column["name"] for column in inspector.get_columns("cards")}
-    assert "error_category_id" not in columns
+    assertions.assertTrue("error_category_id" not in columns)
 
     with engine.begin() as connection:
         connection.execute(
@@ -215,8 +218,8 @@ def test_run_startup_migrations_waits_for_error_categories_table() -> None:
 
     inspector = inspect(engine)
     columns = {column["name"]: column for column in inspector.get_columns("cards")}
-    assert "error_category_id" in columns
-    assert columns["error_category_id"]["nullable"] is True
+    assertions.assertTrue("error_category_id" in columns)
+    assertions.assertTrue(columns["error_category_id"]["nullable"] is True)
 
 
 def test_run_startup_migrations_handles_duplicate_column_race() -> None:
@@ -289,7 +292,7 @@ def test_run_startup_migrations_handles_duplicate_column_race() -> None:
     with engine.connect() as connection:
         rows = connection.execute(text("SELECT email, is_admin FROM users ORDER BY created_at ASC")).all()
 
-    assert [bool(row.is_admin) for row in rows] == [True, False]
+    assertions.assertTrue([bool(row.is_admin) for row in rows] == [True, False])
 
 
 def test_run_startup_migrations_adds_api_credentials_model_column() -> None:
@@ -330,7 +333,7 @@ def test_run_startup_migrations_adds_api_credentials_model_column() -> None:
 
     inspector = inspect(engine)
     columns = {column["name"] for column in inspector.get_columns("api_credentials")}
-    assert "model" in columns
+    assertions.assertTrue("model" in columns)
 
     with engine.connect() as connection:
         row = connection.execute(
@@ -338,4 +341,4 @@ def test_run_startup_migrations_adds_api_credentials_model_column() -> None:
             {"provider": "gemini"},
         ).one()
 
-    assert row.model == migrations.settings.gemini_model
+    assertions.assertTrue(row.model == migrations.settings.gemini_model)
