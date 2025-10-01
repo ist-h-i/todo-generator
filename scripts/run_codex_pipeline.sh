@@ -119,7 +119,7 @@ PIPELINE_STEPS=(
   integrator
 )
 declare -A STAGE_INSTRUCTIONS=(
-  [translator]="Translate the overall task into the working language (Japanese) when needed, clarify intent, and supplement missing assumptions or constraints so later agents receive a complete brief."
+  [translator]="Translate the overall task into the working language (English) when needed, clarify intent, and supplement missing assumptions or constraints so later agents receive a complete brief."
   [planner]="Use the translator's clarified brief to orchestrate the workflow. Lay out concrete steps for each downstream agent, explicitly delegating responsibilities so they understand what to deliver back into the shared context."
   [requirements_analyst]="Document functional and non-functional requirements derived from the clarified task. Highlight open questions the planner assigned to later agents if they remain unresolved."
   [detail_designer]="Expand the requirements into implementation-ready designs or technical approaches while respecting any assignments from the planner."
