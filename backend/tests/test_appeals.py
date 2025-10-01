@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 from typing import Any
+from unittest import TestCase
 
 from fastapi.testclient import TestClient
 
@@ -10,6 +11,8 @@ from app.main import app
 from app.services.gemini import GeminiClient, GeminiError, get_optional_gemini_client
 
 from .test_cards import DEFAULT_PASSWORD as CARD_DEFAULT_PASSWORD
+
+assertions = TestCase()
 
 
 def _contains_key(value: Any, target: str) -> bool:
@@ -41,12 +44,12 @@ def register_and_login(client: TestClient, email: str, password: str = CARD_DEFA
         "/auth/register",
         json={"email": email, "password": password},
     )
-    assert response.status_code == 201, response.text
+    assertions.assertTrue(response.status_code == 201, response.text)
     login_response = client.post(
         "/auth/login",
         json={"email": email, "password": password},
     )
-    assert login_response.status_code == 200, login_response.text
+    assertions.assertTrue(login_response.status_code == 200, login_response.text)
     token = login_response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
@@ -57,7 +60,7 @@ def create_status(client: TestClient, headers: dict[str, str]) -> str:
         json={"name": "Todo", "category": "todo", "order": 1},
         headers=headers,
     )
-    assert response.status_code == 201, response.text
+    assertions.assertTrue(response.status_code == 201, response.text)
     return response.json()["id"]
 
 
@@ -67,7 +70,7 @@ def create_label(client: TestClient, headers: dict[str, str]) -> str:
         json={"name": "Growth", "color": "#0088ff", "description": "成果の共有"},
         headers=headers,
     )
-    assert response.status_code == 201, response.text
+    assertions.assertTrue(response.status_code == 201, response.text)
     return response.json()["id"]
 
 
@@ -89,7 +92,7 @@ def create_card_with_label(
         },
         headers=headers,
     )
-    assert response.status_code == 201, response.text
+    assertions.assertTrue(response.status_code == 201, response.text)
 
 
 def test_get_config_returns_labels_and_formats(client: TestClient) -> None:
@@ -106,13 +109,13 @@ def test_get_config_returns_labels_and_formats(client: TestClient) -> None:
     )
 
     response = client.get("/appeals/config", headers=headers)
-    assert response.status_code == 200, response.text
+    assertions.assertTrue(response.status_code == 200, response.text)
     payload = response.json()
-    assert {fmt["id"] for fmt in payload["formats"]} >= {"markdown", "bullet_list"}
+    assertions.assertTrue({fmt["id"] for fmt in payload["formats"]} >= {"markdown", "bullet_list"})
 
     label_entries = [entry for entry in payload["labels"] if entry["id"] == label_id]
-    assert label_entries, "Expected created label to appear in config"
-    assert label_entries[0]["achievements"], "Expected achievements derived from cards"
+    assertions.assertTrue(label_entries, "Expected created label to appear in config")
+    assertions.assertTrue(label_entries[0]["achievements"], "Expected achievements derived from cards")
 
 
 def test_generate_appeal_with_label_subject_returns_content(client: TestClient) -> None:
@@ -134,20 +137,20 @@ def test_generate_appeal_with_label_subject_returns_content(client: TestClient) 
         "formats": ["markdown", "bullet_list", "table"],
     }
     response = client.post("/appeals/generate", json=payload, headers=headers)
-    assert response.status_code == 200, response.text
+    assertions.assertTrue(response.status_code == 200, response.text)
     body = response.json()
-    assert body["subject_echo"] == "Growth"
-    assert body["warnings"], "Expected warning when 実績 is present without 課題"
+    assertions.assertTrue(body["subject_echo"] == "Growth")
+    assertions.assertTrue(body["warnings"], "Expected warning when 実績 is present without 課題")
 
     markdown_content = body["formats"]["markdown"]["content"]
-    assert "そのため" in markdown_content
-    assert "結果として" in markdown_content
+    assertions.assertTrue("そのため" in markdown_content)
+    assertions.assertTrue("結果として" in markdown_content)
 
     bullet_content = body["formats"]["bullet_list"]["content"]
-    assert "結果として" in bullet_content
+    assertions.assertTrue("結果として" in bullet_content)
 
     table_content = body["formats"]["table"]["content"]
-    assert "結果として" in table_content.splitlines()[-1]
+    assertions.assertTrue("結果として" in table_content.splitlines()[-1])
 
 
 def test_generate_appeal_sanitizes_custom_subject(client: TestClient) -> None:
@@ -160,13 +163,13 @@ def test_generate_appeal_sanitizes_custom_subject(client: TestClient) -> None:
         "achievements": [{"id": "manual", "title": "品質改善", "summary": "レビュー体制を強化"}],
     }
     response = client.post("/appeals/generate", json=payload, headers=headers)
-    assert response.status_code == 200, response.text
+    assertions.assertTrue(response.status_code == 200, response.text)
     body = response.json()
-    assert body["subject_echo"].startswith("&lt;script&gt;alert")
+    assertions.assertTrue(body["subject_echo"].startswith("&lt;script&gt;alert"))
     markdown_content = body["formats"]["markdown"]["content"]
-    assert "品質改善" in markdown_content
-    assert "そのため" in markdown_content
-    assert "結果として" in markdown_content
+    assertions.assertTrue("品質改善" in markdown_content)
+    assertions.assertTrue("そのため" in markdown_content)
+    assertions.assertTrue("結果として" in markdown_content)
 
 
 def test_generate_appeal_uses_gemini_when_available(monkeypatch, client: TestClient) -> None:
@@ -215,29 +218,29 @@ def test_generate_appeal_uses_gemini_when_available(monkeypatch, client: TestCli
         response = client.post("/appeals/generate", json=payload, headers=headers)
     finally:
         app.dependency_overrides.pop(get_optional_gemini_client, None)
-    assert response.status_code == 200, response.text
+    assertions.assertTrue(response.status_code == 200, response.text)
 
-    assert recorded, "Expected Gemini client to be invoked"
+    assertions.assertTrue(recorded, "Expected Gemini client to be invoked")
     prompt_text = recorded["prompt"]
-    assert "Required connective phrases" in prompt_text
-    assert "markdown" in prompt_text
+    assertions.assertTrue("Required connective phrases" in prompt_text)
+    assertions.assertTrue("markdown" in prompt_text)
     generation_config = recorded["generation_config"]
     response_schema = _extract_response_schema(generation_config)
-    assert response_schema["type"] == "object"
-    assert not _contains_key(response_schema, "additionalProperties")
+    assertions.assertTrue(response_schema["type"] == "object")
+    assertions.assertTrue(not _contains_key(response_schema, "additionalProperties"))
 
     body = response.json()
     markdown_content = body["formats"]["markdown"]["content"]
-    assert "そのため" in markdown_content
-    assert "結果として" in markdown_content
+    assertions.assertTrue("そのため" in markdown_content)
+    assertions.assertTrue("結果として" in markdown_content)
 
     bullet_content = body["formats"]["bullet_list"]["content"]
-    assert bullet_content.startswith("- そのため")
-    assert "結果として" in body["formats"]["table"]["content"]
+    assertions.assertTrue(bullet_content.startswith("- そのため"))
+    assertions.assertTrue("結果として" in body["formats"]["table"]["content"])
 
-    assert body["formats"]["markdown"]["tokens_used"] == 42
-    assert body["formats"]["bullet_list"]["tokens_used"] == 18
-    assert body["formats"]["table"]["tokens_used"] == 0
+    assertions.assertTrue(body["formats"]["markdown"]["tokens_used"] == 42)
+    assertions.assertTrue(body["formats"]["bullet_list"]["tokens_used"] == 18)
+    assertions.assertTrue(body["formats"]["table"]["tokens_used"] == 0)
 
 
 def test_generate_appeal_recovers_from_gemini_failure(monkeypatch, client: TestClient) -> None:
@@ -262,9 +265,9 @@ def test_generate_appeal_recovers_from_gemini_failure(monkeypatch, client: TestC
         response = client.post("/appeals/generate", json=payload, headers=headers)
     finally:
         app.dependency_overrides.pop(get_optional_gemini_client, None)
-    assert response.status_code == 200, response.text
+    assertions.assertTrue(response.status_code == 200, response.text)
     body = response.json()
-    assert body["formats"]["markdown"]["tokens_used"] == 0
-    assert body["formats"]["table"]["tokens_used"] == 0
-    assert "そのため" in body["formats"]["markdown"]["content"]
-    assert "結果として" in body["formats"]["table"]["content"]
+    assertions.assertTrue(body["formats"]["markdown"]["tokens_used"] == 0)
+    assertions.assertTrue(body["formats"]["table"]["tokens_used"] == 0)
+    assertions.assertTrue("そのため" in body["formats"]["markdown"]["content"])
+    assertions.assertTrue("結果として" in body["formats"]["table"]["content"])

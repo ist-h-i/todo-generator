@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import base64
 import json
+from unittest import TestCase
 
 from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
+
+assertions = TestCase()
 
 _DEFAULT_TEST_PASSWORD = "Password123!"  # noqa: S105 - fixed credential for test accounts
 
@@ -16,7 +19,7 @@ def _register_and_login(
         "/auth/register",
         json={"email": email, "password": password},
     )
-    assert response.status_code == 201
+    assertions.assertTrue(response.status_code == 201)
     payload = response.json()
     token = payload["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
@@ -27,15 +30,15 @@ def test_profile_defaults(client: TestClient, email: str) -> None:
     _, headers = _register_and_login(client, email)
 
     response = client.get("/profile/me", headers={"Authorization": "Bearer invalid"})
-    assert response.status_code == 401
+    assertions.assertTrue(response.status_code == 401)
 
     response = client.get("/profile/me", headers=headers)
-    assert response.status_code == 200
+    assertions.assertTrue(response.status_code == 200)
     data = response.json()
 
-    assert data["nickname"] is None
-    assert data["roles"] == []
-    assert data["avatar_url"] is None
+    assertions.assertTrue(data["nickname"] is None)
+    assertions.assertTrue(data["roles"] == [])
+    assertions.assertTrue(data["avatar_url"] is None)
 
 
 def test_profile_update_round_trip(client: TestClient, email: str) -> None:
@@ -54,20 +57,20 @@ def test_profile_update_round_trip(client: TestClient, email: str) -> None:
     files = {"avatar": ("avatar.png", avatar_bytes, "image/png")}
 
     response = client.put("/profile/me", data=payload, files=files, headers=headers)
-    assert response.status_code == 200
+    assertions.assertTrue(response.status_code == 200)
     data = response.json()
 
-    assert data["nickname"] == "田中 太郎"
-    assert data["experience_years"] == 7
-    assert data["roles"] == ["Java", "フロント"]
-    assert data["bio"].startswith("Javaとフロントエンド")
-    assert data["avatar_url"].startswith("data:image/webp;base64,")
+    assertions.assertTrue(data["nickname"] == "田中 太郎")
+    assertions.assertTrue(data["experience_years"] == 7)
+    assertions.assertTrue(data["roles"] == ["Java", "フロント"])
+    assertions.assertTrue(data["bio"].startswith("Javaとフロントエンド"))
+    assertions.assertTrue(data["avatar_url"].startswith("data:image/webp;base64,"))
 
     follow_up = client.get("/profile/me", headers=headers)
-    assert follow_up.status_code == 200
+    assertions.assertTrue(follow_up.status_code == 200)
     follow_data = follow_up.json()
-    assert follow_data["nickname"] == "田中 太郎"
-    assert follow_data["roles"] == ["Java", "フロント"]
+    assertions.assertTrue(follow_data["nickname"] == "田中 太郎")
+    assertions.assertTrue(follow_data["roles"] == ["Java", "フロント"])
 
     removal_response = client.put(
         "/profile/me",
@@ -78,8 +81,8 @@ def test_profile_update_round_trip(client: TestClient, email: str) -> None:
         },
         headers=headers,
     )
-    assert removal_response.status_code == 200
-    assert removal_response.json()["avatar_url"] is None
+    assertions.assertTrue(removal_response.status_code == 200)
+    assertions.assertTrue(removal_response.json()["avatar_url"] is None)
 
 
 def test_avatar_upload_missing_pillow(monkeypatch, client: TestClient, email: str) -> None:
@@ -107,8 +110,8 @@ def test_avatar_upload_missing_pillow(monkeypatch, client: TestClient, email: st
         headers=headers,
     )
 
-    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    assert response.json()["detail"] == profile._MISSING_PILLOW_MESSAGE
+    assertions.assertTrue(response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR)
+    assertions.assertTrue(response.json()["detail"] == profile._MISSING_PILLOW_MESSAGE)
 
 
 def test_profile_roles_limit(client: TestClient, email: str) -> None:
@@ -124,7 +127,7 @@ def test_profile_roles_limit(client: TestClient, email: str) -> None:
         },
         headers=headers,
     )
-    assert response.status_code == 422
+    assertions.assertTrue(response.status_code == 422)
 
 
 def test_parse_roles_deduplicates_case_insensitively() -> None:
@@ -134,4 +137,4 @@ def test_parse_roles_deduplicates_case_insensitively() -> None:
 
     result = profile.parse_roles(payload)
 
-    assert result == ["DevOps", "QA"]
+    assertions.assertTrue(result == ["DevOps", "QA"])

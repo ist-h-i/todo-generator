@@ -1,7 +1,11 @@
+from unittest import TestCase
+
 import pytest
 
 from app import models
 from app.utils.repository import apply_updates
+
+assertions = TestCase()
 
 
 class _Dummy:
@@ -14,7 +18,7 @@ def test_apply_updates_sets_existing_attribute_on_plain_object() -> None:
 
     apply_updates(dummy, {"name": "after"})
 
-    assert dummy.name == "after"
+    assertions.assertTrue(dummy.name == "after")
 
 
 def test_apply_updates_rejects_unknown_attribute_on_plain_object() -> None:
@@ -28,7 +32,7 @@ def test_apply_updates_rejects_unknown_attribute_on_sqlalchemy_model() -> None:
     status = models.Status(id="status-1", name="In Progress", owner_id="owner-1")
 
     apply_updates(status, {"name": "Done"})
-    assert status.name == "Done"
+    assertions.assertTrue(status.name == "Done")
 
     with pytest.raises(AttributeError):
         apply_updates(status, {"not_a_column": "value"})

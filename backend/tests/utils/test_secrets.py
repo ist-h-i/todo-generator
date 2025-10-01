@@ -1,8 +1,12 @@
+from unittest import TestCase
+
 import pytest
 
 from app.config import DEFAULT_SECRET_ENCRYPTION_KEY
 from app.utils.crypto import SecretCipher, SecretDecryptionError
 from app.utils.secrets import SecretEncryptionKeyError, build_secret_hint, get_secret_cipher
+
+assertions = TestCase()
 
 
 @pytest.mark.parametrize(
@@ -10,14 +14,14 @@ from app.utils.secrets import SecretEncryptionKeyError, build_secret_hint, get_s
     [("", ""), ("short", "s****"), ("longersecret", "long****cret")],
 )
 def test_build_secret_hint_default_mask(secret: str, expected: str) -> None:
-    assert build_secret_hint(secret) == expected
+    assertions.assertTrue(build_secret_hint(secret) == expected)
 
 
 def test_build_secret_hint_allows_custom_mask_character() -> None:
     result = build_secret_hint("visible", mask_char="#")
-    assert result.startswith("v")
-    assert result.endswith("#")
-    assert set(result[1:]) == {"#"}
+    assertions.assertTrue(result.startswith("v"))
+    assertions.assertTrue(result.endswith("#"))
+    assertions.assertTrue(set(result[1:]) == {"#"})
 
 
 def test_get_secret_cipher_uses_application_settings(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -25,12 +29,12 @@ def test_get_secret_cipher_uses_application_settings(monkeypatch: pytest.MonkeyP
 
     cipher = get_secret_cipher()
 
-    assert isinstance(cipher, SecretCipher)
+    assertions.assertTrue(isinstance(cipher, SecretCipher))
     encrypted = cipher.encrypt("sensitive value")
-    assert encrypted
+    assertions.assertTrue(encrypted)
     result = cipher.decrypt(encrypted)
-    assert result.plaintext == "sensitive value"
-    assert result.reencrypted_payload is None
+    assertions.assertTrue(result.plaintext == "sensitive value")
+    assertions.assertTrue(result.reencrypted_payload is None)
 
 
 def test_get_secret_cipher_allows_documented_fallback_when_configured(
@@ -42,10 +46,10 @@ def test_get_secret_cipher_allows_documented_fallback_when_configured(
 
     sample = "sensitive value"
     encrypted = cipher.encrypt(sample)
-    assert encrypted.startswith(SecretCipher._PREFIX)
+    assertions.assertTrue(encrypted.startswith(SecretCipher._PREFIX))
     roundtrip = cipher.decrypt(encrypted)
-    assert roundtrip.plaintext == sample
-    assert roundtrip.reencrypted_payload is None
+    assertions.assertTrue(roundtrip.plaintext == sample)
+    assertions.assertTrue(roundtrip.reencrypted_payload is None)
 
 
 def test_get_secret_cipher_raises_when_key_is_unconfigured(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -81,13 +85,13 @@ def test_secret_cipher_reencrypts_legacy_payload() -> None:
     modern_cipher = SecretCipher("new-key")
     result = modern_cipher.decrypt(legacy_payload)
 
-    assert result.plaintext == secret
-    assert result.reencrypted_payload is not None
-    assert result.reencrypted_payload != legacy_payload
+    assertions.assertTrue(result.plaintext == secret)
+    assertions.assertTrue(result.reencrypted_payload is not None)
+    assertions.assertTrue(result.reencrypted_payload != legacy_payload)
 
     rotated = modern_cipher.decrypt(result.reencrypted_payload)
-    assert rotated.plaintext == secret
-    assert rotated.reencrypted_payload is None
+    assertions.assertTrue(rotated.plaintext == secret)
+    assertions.assertTrue(rotated.reencrypted_payload is None)
 
 
 def test_secret_cipher_raises_when_payload_cannot_be_decrypted() -> None:
@@ -103,8 +107,8 @@ def test_secret_cipher_returns_empty_payload_result() -> None:
 
     result = cipher.decrypt("")
 
-    assert result.plaintext == ""
-    assert result.reencrypted_payload is None
+    assertions.assertTrue(result.plaintext == "")
+    assertions.assertTrue(result.reencrypted_payload is None)
 
 
 def test_secret_cipher_roundtrips_base64_payload_without_key() -> None:
@@ -115,29 +119,29 @@ def test_secret_cipher_roundtrips_base64_payload_without_key() -> None:
 
     result = cipher.decrypt(payload)
 
-    assert result.plaintext == "stored-secret"
-    assert result.reencrypted_payload is None
+    assertions.assertTrue(result.plaintext == "stored-secret")
+    assertions.assertTrue(result.reencrypted_payload is None)
 
 
 def test_secret_cipher_recovers_plain_legacy_payload() -> None:
     import base64
 
-    legacy_secret = "legacy secret"
+    legacy_secret = "legacy secret"  # noqa: S105
     payload = base64.urlsafe_b64encode(legacy_secret.encode("utf-8")).decode("ascii")
 
     cipher = SecretCipher("modern-key")
     result = cipher.decrypt(payload)
 
-    assert result.plaintext == legacy_secret
-    assert result.reencrypted_payload is not None
-    assert result.reencrypted_payload.startswith(SecretCipher._PREFIX)
+    assertions.assertTrue(result.plaintext == legacy_secret)
+    assertions.assertTrue(result.reencrypted_payload is not None)
+    assertions.assertTrue(result.reencrypted_payload.startswith(SecretCipher._PREFIX))
 
 
 def test_secret_cipher_raises_when_legacy_payload_from_other_key_and_default_key() -> None:
     import base64
     import hashlib
 
-    original_secret = "migrated secret"
+    original_secret = "migrated secret"  # noqa: S105
     previous_key_digest = hashlib.sha256(b"previous-key").digest()
     legacy_bytes = bytes(
         byte ^ previous_key_digest[index % len(previous_key_digest)]

@@ -1,6 +1,10 @@
 """Tests for application configuration settings."""
 
+from unittest import TestCase
+
 from backend.app.config import Settings
+
+assertions = TestCase()
 
 
 def test_allowed_origins_strip_trailing_slash(monkeypatch):
@@ -13,7 +17,10 @@ def test_allowed_origins_strip_trailing_slash(monkeypatch):
 
     settings = Settings()
 
-    assert settings.allowed_origins == [
-        "http://localhost:4200",
-        "https://app.example.com",
-    ]
+    assertions.assertTrue(
+        settings.allowed_origins
+        == [
+            "http://localhost:4200",
+            "https://app.example.com",
+        ]
+    )
