@@ -2,6 +2,9 @@
 set -euo pipefail
 
 TASK_INPUT="${TASK_INPUT:-${1:-}}"
+if [ -z "${TASK_INPUT}" ] && [ ! -t 0 ]; then
+  TASK_INPUT="$(cat)"
+fi
 TASK_INPUT="${TASK_INPUT#${TASK_INPUT%%[![:space:]]*}}"
 TASK_INPUT="${TASK_INPUT%${TASK_INPUT##*[![:space:]]}}"
 
