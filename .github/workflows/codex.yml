@@ -51,11 +51,21 @@ jobs:
             exit 1
           fi
 
-      - name: Setup Node (optional)
+      - name: Setup Node (optional, with cache)
+        if: ${{ hashFiles('package-lock.json','frontend/package-lock.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Setup Node (optional, no cache)
+        if: ${{ hashFiles('package-lock.json','frontend/package-lock.json') == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Setup Python deps (optional)
         uses: actions/setup-python@v5
