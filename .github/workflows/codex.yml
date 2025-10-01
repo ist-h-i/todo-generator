@@ -38,6 +38,8 @@ jobs:
     timeout-minutes: 30
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      CODEX_NPM_PKG: "@codex/cli"
+      CODEX_PY_PKG: "codex-cli"
 
     steps:
       - uses: actions/checkout@v4
@@ -51,31 +53,58 @@ jobs:
             exit 1
           fi
 
-      - name: Setup Node (optional, with cache)
-        if: ${{ hashFiles('frontend/package-lock.json') != '' }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: |
-            frontend/package-lock.json
-
-      - name: Setup Node (optional, no cache)
-        if: ${{ hashFiles('frontend/package-lock.json') == '' }}
+      - name: Setup Node (optional)
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Setup Python deps (optional)
+      - name: Setup Python (optional)
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
 
-      - name: Install OpenAI SDK (optional)
+      - name: Install Codex CLI (multi-strategy)
         run: |
-          python -m pip install --upgrade pip
-          pip install "openai>=1.40.0" || true
+          set -eux
+          found=false
+          npm_pkg=${CODEX_NPM_PKG:-@codex/cli}
+          py_pkg=${CODEX_PY_PKG:-}
+
+          if [ -f package.json ]; then
+            if command -v jq >/dev/null 2>&1; then :
+            else sudo apt-get update && sudo apt-get install -y jq
+            fi
+            if jq -e --arg pkg "${npm_pkg}" '.bin.codex // .dependencies[$pkg] // .devDependencies[$pkg]' package.json >/dev/null 2>&1; then
+              npm ci || npm i
+              echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+              found=true
+            fi
+          fi
+
+          if [ "$found" = false ]; then
+            npm i -g "${npm_pkg}" || true
+            if command -v codex >/dev/null 2>&1; then found=true; fi
+          fi
+
+          if [ "$found" = false ]; then
+            python -m pip install -U pip || true
+            if [ -n "${py_pkg}" ]; then
+              python -m pip install "${py_pkg}" || true
+            fi
+            if command -v codex >/dev/null 2>&1; then found=true; fi
+          fi
+
+          if [ "$found" = false ]; then
+            mkdir -p "$HOME/.local/bin"
+            cat > "$HOME/.local/bin/codex" <<'SH'
+#!/usr/bin/env bash
+exec npx -y ${CODEX_NPM_PKG:-@codex/cli} "$@"
+SH
+            chmod +x "$HOME/.local/bin/codex"
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          fi
+
+          codex --version || { echo "::error::codex CLI is still unavailable. Check package names."; exit 1; }
 
       - name: Resolve TASK_INPUT
         id: resolve_task_input
@@ -143,13 +172,6 @@ jobs:
               with open(github_env, "a", encoding="utf-8") as env_file:
                   env_file.write(f"TASK_INPUT<<{marker}\n{task_input}\n{marker}\n")
           PY
-
-      - name: Ensure codex CLI
-        run: |
-          if ! command -v codex >/dev/null 2>&1; then
-            echo "::error::'codex' CLI not found in PATH. Ensure it is available or add an installation step."
-            exit 1
-          fi
 
       - name: Run Codex pipeline
         env:
