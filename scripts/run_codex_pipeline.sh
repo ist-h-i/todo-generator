@@ -13,8 +13,14 @@ if [ -z "${TASK_INPUT}" ]; then
   exit 1
 fi
 
-if ! command -v codex >/dev/null 2>&1; then
-  echo "Codex CLI not found in PATH. Install @google/generative-ai." >&2
+if command -v codex >/dev/null 2>&1; then
+  CODEX_CLI=(codex)
+elif command -v python >/dev/null 2>&1 && python -c "import codex" >/dev/null 2>&1; then
+  CODEX_CLI=(python -m codex)
+elif command -v python >/dev/null 2>&1 && python -c "import codex_cli" >/dev/null 2>&1; then
+  CODEX_CLI=(python -m codex_cli)
+else
+  echo "Codex CLI not found in PATH or as a Python module. Install @google/generative-ai." >&2
   exit 1
 fi
 
@@ -24,7 +30,7 @@ if [ -z "${GEMINI_API_KEY:-}" ]; then
 fi
 
 mkdir -p codex_output
-codex login --api-key "${GEMINI_API_KEY}" >/dev/null 2>&1 || true
+"${CODEX_CLI[@]}" login --api-key "${GEMINI_API_KEY}" >/dev/null 2>&1 || true
 
 PIPELINE_STEPS=(
   translator
@@ -96,7 +102,7 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep it concise and scoped to this stage."
 
-  printf '%s' "${PROMPT}" | codex exec \
+  printf '%s' "${PROMPT}" | "${CODEX_CLI[@]}" exec \
     --full-auto \
     --cd "${GITHUB_WORKSPACE:-$(pwd)}" \
     --output-last-message "${OUTPUT_FILE}" \
