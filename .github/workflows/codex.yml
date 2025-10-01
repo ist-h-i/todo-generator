@@ -38,7 +38,6 @@ jobs:
     timeout-minutes: 30
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      CODEX_NPM_PKG: "@codex/cli"
       CODEX_PY_PKG: "codex-cli"
 
     steps:
@@ -63,45 +62,26 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Codex CLI (multi-strategy)
+      - name: Install Codex CLI
         run: |
           set -eux
-          found=false
-          npm_pkg=${CODEX_NPM_PKG:-@codex/cli}
-          py_pkg=${CODEX_PY_PKG:-}
 
-          if [ -f package.json ]; then
-            if command -v jq >/dev/null 2>&1; then :
-            else sudo apt-get update && sudo apt-get install -y jq
-            fi
-            if jq -e --arg pkg "${npm_pkg}" '.bin.codex // .dependencies[$pkg] // .devDependencies[$pkg]' package.json >/dev/null 2>&1; then
-              npm ci || npm i
-              echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
-              found=true
-            fi
+          rm -f "$HOME/.local/bin/codex"
+
+          python -m pip install -U pip
+          python -m pip install "${CODEX_PY_PKG:-codex-cli}"
+
+          codex_bin="$(python -m site --user-base)/bin"
+          if [ -d "${codex_bin}" ]; then
+            echo "${codex_bin}" >> "$GITHUB_PATH"
           fi
 
-          if [ "$found" = false ]; then
-            npm i -g "${npm_pkg}" || true
-            if command -v codex >/dev/null 2>&1; then found=true; fi
+          if ! command -v codex >/dev/null 2>&1; then
+            echo "::error::codex CLI is unavailable after installation."
+            exit 1
           fi
 
-          if [ "$found" = false ]; then
-            python -m pip install -U pip || true
-            if [ -n "${py_pkg}" ]; then
-              python -m pip install "${py_pkg}" || true
-            fi
-            if command -v codex >/dev/null 2>&1; then found=true; fi
-          fi
-
-          if [ "$found" = false ]; then
-            mkdir -p "$HOME/.local/bin"
-            printf '%s\n' '#!/usr/bin/env bash' 'exec npx -y ${CODEX_NPM_PKG:-@codex/cli} "$@"' > "$HOME/.local/bin/codex"
-            chmod +x "$HOME/.local/bin/codex"
-            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          fi
-
-          codex --version || { echo "::error::codex CLI is still unavailable. Check package names."; exit 1; }
+          codex --version
 
       - name: Resolve TASK_INPUT
         id: resolve_task_input
