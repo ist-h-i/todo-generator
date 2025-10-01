@@ -13,10 +13,10 @@ if [ -z "${TASK_INPUT}" ]; then
   exit 1
 fi
 
-if command -v codex-cli >/dev/null 2>&1; then
-  CODEX_CLI=(codex-cli)
-elif command -v codex >/dev/null 2>&1; then
+if command -v codex >/dev/null 2>&1; then
   CODEX_CLI=(codex)
+elif command -v codex-cli >/dev/null 2>&1; then
+  CODEX_CLI=(codex-cli)
 elif command -v python >/dev/null 2>&1 && python -c "import codex" >/dev/null 2>&1; then
   CODEX_CLI=(python -m codex)
 elif command -v python3 >/dev/null 2>&1 && python3 -c "import codex" >/dev/null 2>&1; then
@@ -25,8 +25,11 @@ elif command -v python >/dev/null 2>&1 && python -c "import codex_cli" >/dev/nul
   CODEX_CLI=(python -m codex_cli)
 elif command -v python3 >/dev/null 2>&1 && python3 -c "import codex_cli" >/dev/null 2>&1; then
   CODEX_CLI=(python3 -m codex_cli)
+elif command -v npx >/dev/null 2>&1; then
+  CODEX_NPM_PKG="${CODEX_NPM_PKG:-@openai/codex}"
+  CODEX_CLI=(npx -y "${CODEX_NPM_PKG}")
 else
-  echo "Error: codex CLI not found (checked codex-cli, codex, python -m codex, python3 -m codex, codex_cli)." >&2
+  echo "Error: codex CLI not found (checked codex, codex-cli, python -m codex, python3 -m codex, codex_cli, and npx)." >&2
   exit 1
 fi
 
