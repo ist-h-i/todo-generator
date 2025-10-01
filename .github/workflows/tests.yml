@@ -37,13 +37,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve Node cache paths
+        id: node-cache
+        run: |
+          paths=()
+          if [ -f package-lock.json ]; then
+            paths+=("package-lock.json")
+          fi
+          if [ -f frontend/package-lock.json ]; then
+            paths+=("frontend/package-lock.json")
+          fi
+          if [ ${#paths[@]} -gt 0 ]; then
+            printf "paths<<'EOF'\n%s\nEOF\n" "$(printf "%s\n" "${paths[@]}")" >> "${GITHUB_OUTPUT}"
+            echo "cache=npm" >> "${GITHUB_OUTPUT}"
+          else
+            echo "paths=" >> "${GITHUB_OUTPUT}"
+            echo "cache=" >> "${GITHUB_OUTPUT}"
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            frontend/package-lock.json
+          cache: ${{ steps.node-cache.outputs.cache }}
+          cache-dependency-path: ${{ steps.node-cache.outputs.paths }}
 
       - uses: actions/setup-python@v5
         with:
