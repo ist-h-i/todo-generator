@@ -97,7 +97,19 @@ mkdir -p codex_output
 # Ensure we are logged in using the provided API key. This is idempotent.
 codex login --api-key "${GEMINI_API_KEY}" >/dev/null 2>&1 || true
 
-PIPELINE_STEPS=(translator requirements_analyst detail_designer planner)
+PIPELINE_STEPS=(
+  translator
+  requirements_analyst
+  detail_designer
+  planner
+  coder
+  code_quality_reviewer
+  security_reviewer
+  uiux_reviewer
+  implementation_reviewer
+  docwriter
+  integrator
+)
 PREVIOUS_CONTEXT=""
 
 for STEP in "${PIPELINE_STEPS[@]}"; do
@@ -129,5 +141,10 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
     -- \
     -
 
-  PREVIOUS_CONTEXT=$(cat "${OUTPUT_FILE}")
+  STEP_OUTPUT=$(cat "${OUTPUT_FILE}")
+  if [ -n "${PREVIOUS_CONTEXT}" ]; then
+    PREVIOUS_CONTEXT="${PREVIOUS_CONTEXT}"$'\n\n---\n\n'"${STEP_OUTPUT}"
+  else
+    PREVIOUS_CONTEXT="${STEP_OUTPUT}"
+  fi
 done
