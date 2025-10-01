@@ -1,89 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Support both CLI arguments and stdin so callers can avoid passing legacy flags
-# like `--task` that are no longer recognised by the Codex CLI. If arguments are
-# omitted but stdin is piped, treat the piped content as the task description.
-if [ $# -eq 0 ]; then
-  if [ -t 0 ]; then
-    echo "Usage: $0 [--task] <task description>" >&2
-    exit 1
-  fi
-
-  STDIN_PAYLOAD="$(cat)"
-  # Normalise Windows-style carriage returns in case the workflow echoed a
-  # CRLF-terminated string.
-  STDIN_PAYLOAD="${STDIN_PAYLOAD//$'\r'/}"
-
-  # Defer validation of empty content until after we have applied the legacy
-  # flag sanitisation and whitespace trimming below.
-  NORMALISED_ARGS=("${STDIN_PAYLOAD}")
-else
-  # Historical callers may still pass the task description via a deprecated
-  # "--task" flag (for example `codex run auto-dev --task "..."`). The current
-  # Codex CLI no longer accepts that option, so we strip it here for
-  # compatibility and treat the remaining positional arguments as the actual
-  # task description.
-  NORMALISED_ARGS=()
-  while [ $# -gt 0 ]; do
-    case "${1-}" in
-      --task)
-        shift
-        if [ $# -gt 0 ]; then
-          NORMALISED_ARGS+=("${1}")
-          shift
-        fi
-        continue
-        ;;
-      --task=*)
-        NORMALISED_ARGS+=("${1#--task=}")
-        shift
-        continue
-        ;;
-      *)
-        NORMALISED_ARGS+=("${1}")
-        shift
-        ;;
-    esac
-  done
-fi
-
-if [ ${#NORMALISED_ARGS[@]} -eq 0 ]; then
-  echo "Usage: $0 [--task] <task description>" >&2
-  exit 1
-fi
-
-# Compose the task input from the (possibly multi-word) positional arguments
-# after normalising away the deprecated flag.
-TASK_INPUT="${NORMALISED_ARGS[0]-}"
-for ARG in "${NORMALISED_ARGS[@]:1}"; do
-  TASK_INPUT="${TASK_INPUT} ${ARG}"
-done
-
-# Guard against historical callers that inlined the deprecated flag into the
-# task description (for example, passing "--task build a feature" as a single
-# argument or "--task=build" as a single token). We normalise the value so
-# downstream prompts only contain the human-provided request.
-while [[ "${TASK_INPUT}" == --task\ * || "${TASK_INPUT}" == --task=* ]]; do
-  if [[ "${TASK_INPUT}" == --task\ * ]]; then
-    TASK_INPUT="${TASK_INPUT#--task }"
-  else
-    TASK_INPUT="${TASK_INPUT#--task=}"
-  fi
-done
-
-# Trim any leading/trailing whitespace that may have been introduced while
-# sanitising legacy inputs.
+TASK_INPUT="${TASK_INPUT:-${1:-}}"
 TASK_INPUT="${TASK_INPUT#${TASK_INPUT%%[![:space:]]*}}"
 TASK_INPUT="${TASK_INPUT%${TASK_INPUT##*[![:space:]]}}"
 
 if [ -z "${TASK_INPUT}" ]; then
-  echo "Usage: $0 [--task] <task description>" >&2
+  echo "Usage: TASK_INPUT='<task description>' $0" >&2
   exit 1
 fi
 
 if ! command -v codex >/dev/null 2>&1; then
-  echo "Codex CLI not found in PATH. Please install @google/generative-ai before running the pipeline." >&2
+  echo "Codex CLI not found in PATH. Install @google/generative-ai." >&2
   exit 1
 fi
 
@@ -93,11 +21,60 @@ if [ -z "${GEMINI_API_KEY:-}" ]; then
 fi
 
 mkdir -p codex_output
-
-# Ensure we are logged in using the provided API key. This is idempotent.
 codex login --api-key "${GEMINI_API_KEY}" >/dev/null 2>&1 || true
 
-PIPELINE_STEPS=(translator requirements_analyst detail_designer planner)
+PIPELINE_STEPS=(
+  translator
+  requirements_analyst
+  requirements_reviewer
+  planner
+  threat_modeler
+  dpo_reviewer
+  detail_designer
+  design_reviewer
+  qa_automation_planner
+  coder
+  code_quality_reviewer
+  security_reviewer
+  uiux_reviewer
+  implementation_reviewer
+  a11y_reviewer
+  i18n_reviewer
+  performance_reviewer
+  oss_sbom_auditor
+  ai_safety_reviewer
+  integrator
+  release_manager
+  docwriter
+  doc_editor
+)
+
+declare -A STAGE_INSTRUCTIONS=(
+  [translator]="Clarify the request in English. List assumptions and unknowns."
+  [requirements_analyst]="Structure FR/NFR and acceptance criteria. Expose risks and open items."
+  [requirements_reviewer]="Verify completeness and consistency. Send back if gaps remain."
+  [planner]="Define steps, owners, dependencies, gates, and clear done criteria."
+  [threat_modeler]="Identify key threats and propose mitigations on critical flows."
+  [dpo_reviewer]="Check data minimization, retention, consent, and legal compliance."
+  [detail_designer]="Design approach, interfaces, data, failure handling, and trade-offs."
+  [design_reviewer]="Assess design soundness and external impact. Provide concrete diffs."
+  [qa_automation_planner]="Define unit/contract/e2e test focus and thresholds."
+  [coder]="Output file paths with full replacement blocks and run commands."
+  [code_quality_reviewer]="Review correctness, readability, complexity; provide fix diffs."
+  [security_reviewer]="Evaluate input validation, secret handling, dependency risks; propose fixes."
+  [uiux_reviewer]="List UX improvements and interaction flow checks."
+  [implementation_reviewer]="Verify build/deploy/monitoring/rollback readiness."
+  [a11y_reviewer]="Validate WCAG, keyboard access, contrast, and ARIA."
+  [i18n_reviewer]="Verify variable strings, formats, and missing translations."
+  [performance_reviewer]="Set SLO targets, expected load, and regression thresholds."
+  [oss_sbom_auditor]="Audit SBOM and license compliance; flag prohibitions."
+  [ai_safety_reviewer]="Evaluate output safety and prompt-leak risks."
+  [integrator]="Confirm feedback is applied and consolidate remaining actions."
+  [release_manager]="Decide release readiness and rollback plan."
+  [docwriter]="Draft README/CHANGELOG/ADR updates."
+  [doc_editor]="Enforce terminology and formatting consistency."
+)
+
 PREVIOUS_CONTEXT=""
 
 for STEP in "${PIPELINE_STEPS[@]}"; do
@@ -105,21 +82,17 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
   HUMAN_STEP_NAME=$(echo "${STEP}" | tr '_' ' ')
 
   PROMPT="You are the ${HUMAN_STEP_NAME} stage in an auto-dev workflow.\n\n"
+  PROMPT+="Order: translator → requirements → requirements review → planner → threat modeling → DPO review → design → design review → QA planning → coding → parallel reviews → integration → CI/release → docs.\n\n"
+  PROMPT+="Working language: English.\n"
   PROMPT+="Overall task: ${TASK_INPUT}.\n\n"
   if [ -n "${PREVIOUS_CONTEXT}" ]; then
-    PROMPT+="Context from earlier stages (may be empty):\n${PREVIOUS_CONTEXT}\n\n"
+    PROMPT+="Context from earlier stages:\n${PREVIOUS_CONTEXT}\n\n"
   fi
-  PROMPT+="Provide your findings for this stage in Markdown. Keep the response concise and scoped to the responsibilities of this stage so that it can feed the following agent."
+  if [ -n "${STAGE_INSTRUCTIONS[${STEP}]-}" ]; then
+    PROMPT+="Stage focus: ${STAGE_INSTRUCTIONS[${STEP}]}\n\n"
+  fi
+  PROMPT+="Provide your findings for this stage in Markdown. Keep it concise and scoped to this stage."
 
-  # Run codex in headless mode, capturing the final response for this stage
-  #
-  # We stream the prompt through stdin with `-` so that any leading `-` tokens in
-  # the user-provided task (for example "--task foo") are never interpreted as
-  # CLI options by the codex binary. Passing `--` before the positional argument
-  # ensures argument parsing stops before the trailing `-` placeholder.
-  # `--full-auto` already implies the necessary sandbox/approval behaviour. Avoid
-  # passing `--dangerously-bypass-approvals-and-sandbox` alongside it because the
-  # Codex CLI rejects the combination.
   printf '%s' "${PROMPT}" | codex exec \
     --full-auto \
     --cd "${GITHUB_WORKSPACE:-$(pwd)}" \
@@ -129,5 +102,11 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
     -- \
     -
 
-  PREVIOUS_CONTEXT=$(cat "${OUTPUT_FILE}")
+  STEP_OUTPUT=$(cat "${OUTPUT_FILE}")
+  if [ -n "${PREVIOUS_CONTEXT}" ]; then
+    PREVIOUS_CONTEXT="${PREVIOUS_CONTEXT}"$'\n\n---\n\n'"${STEP_OUTPUT}"
+  else
+    PREVIOUS_CONTEXT="${STEP_OUTPUT}"
+  fi
+
 done
