@@ -3,8 +3,11 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 from typing import Iterable
+from unittest import TestCase
 
 import pytest
+
+assertions = TestCase()
 
 
 def _iter_python_files(root: Path) -> Iterable[Path]:
@@ -39,7 +42,7 @@ def test_backend_app_coverage_completeness() -> None:
         pytest.skip("Coverage measurement must be active during tests")
 
     cov = coverage_mod.Coverage.current()
-    assert cov is not None
+    assertions.assertTrue(cov is not None)
 
     covdata = cov.get_data()
     app_root = Path(__file__).resolve().parents[2] / "backend" / "app"

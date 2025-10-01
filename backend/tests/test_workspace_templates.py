@@ -1,8 +1,12 @@
+from unittest import TestCase
+
 from fastapi.testclient import TestClient
 
 from backend.app.routers.workspace_templates import DEFAULT_FIELD_VISIBILITY
 
 from .test_cards import create_label, create_status, register_and_login
+
+assertions = TestCase()
 
 
 def test_workspace_template_crud_flow(client: TestClient) -> None:
@@ -27,23 +31,26 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
         },
         headers=headers,
     )
-    assert create_response.status_code == 201, create_response.text
+    assertions.assertTrue(create_response.status_code == 201, create_response.text)
     template = create_response.json()
-    assert template["name"] == "Sprint Template"
-    assert template["confidence_threshold"] == 70
-    assert template["field_visibility"] == {
-        **DEFAULT_FIELD_VISIBILITY,
-        "show_story_points": True,
-        "show_due_date": True,
-        "show_assignee": False,
-        "show_confidence": True,
-    }
+    assertions.assertTrue(template["name"] == "Sprint Template")
+    assertions.assertTrue(template["confidence_threshold"] == 70)
+    assertions.assertTrue(
+        template["field_visibility"]
+        == {
+            **DEFAULT_FIELD_VISIBILITY,
+            "show_story_points": True,
+            "show_due_date": True,
+            "show_assignee": False,
+            "show_confidence": True,
+        }
+    )
     template_id = template["id"]
 
     list_response = client.get("/workspace/templates", headers=headers)
-    assert list_response.status_code == 200
+    assertions.assertTrue(list_response.status_code == 200)
     templates = list_response.json()
-    assert any(entry["id"] == template_id for entry in templates)
+    assertions.assertTrue(any(entry["id"] == template_id for entry in templates))
 
     update_response = client.patch(
         f"/workspace/templates/{template_id}",
@@ -60,42 +67,42 @@ def test_workspace_template_crud_flow(client: TestClient) -> None:
         },
         headers=headers,
     )
-    assert update_response.status_code == 200, update_response.text
+    assertions.assertTrue(update_response.status_code == 200, update_response.text)
     updated = update_response.json()
-    assert updated["name"] == "Updated Template"
-    assert updated["default_label_ids"] == []
-    assert updated["field_visibility"]["show_story_points"] is False
-    assert updated["confidence_threshold"] == 50
+    assertions.assertTrue(updated["name"] == "Updated Template")
+    assertions.assertTrue(updated["default_label_ids"] == [])
+    assertions.assertTrue(updated["field_visibility"]["show_story_points"] is False)
+    assertions.assertTrue(updated["confidence_threshold"] == 50)
 
     delete_response = client.delete(f"/workspace/templates/{template_id}", headers=headers)
-    assert delete_response.status_code == 204
+    assertions.assertTrue(delete_response.status_code == 204)
     remaining = client.get("/workspace/templates", headers=headers).json()
-    assert all(entry["id"] != template_id for entry in remaining)
+    assertions.assertTrue(all(entry["id"] != template_id for entry in remaining))
 
 
 def test_cannot_delete_system_default_template(client: TestClient) -> None:
     headers = register_and_login(client, "workspace-template-default@example.com")
 
     list_response = client.get("/workspace/templates", headers=headers)
-    assert list_response.status_code == 200, list_response.text
+    assertions.assertTrue(list_response.status_code == 200, list_response.text)
     templates = list_response.json()
-    assert templates, "Expected default template to be provisioned"
+    assertions.assertTrue(templates, "Expected default template to be provisioned")
 
     default_template = next(
         (template for template in templates if template.get("is_system_default")),
         None,
     )
-    assert default_template is not None, "System default template should exist"
+    assertions.assertTrue(default_template is not None, "System default template should exist")
 
     delete_response = client.delete(
         f"/workspace/templates/{default_template['id']}",
         headers=headers,
     )
-    assert delete_response.status_code == 400
-    assert "cannot be deleted" in delete_response.json()["detail"].lower()
+    assertions.assertTrue(delete_response.status_code == 400)
+    assertions.assertTrue("cannot be deleted" in delete_response.json()["detail"].lower())
 
     post_delete_templates = client.get("/workspace/templates", headers=headers).json()
-    assert any(entry["id"] == default_template["id"] for entry in post_delete_templates)
+    assertions.assertTrue(any(entry["id"] == default_template["id"] for entry in post_delete_templates))
 
 
 def test_partial_field_visibility_update_preserves_existing(client: TestClient) -> None:
@@ -116,7 +123,7 @@ def test_partial_field_visibility_update_preserves_existing(client: TestClient) 
         },
         headers=headers,
     )
-    assert create_response.status_code == 201, create_response.text
+    assertions.assertTrue(create_response.status_code == 201, create_response.text)
     template_id = create_response.json()["id"]
 
     update_response = client.patch(
@@ -128,7 +135,7 @@ def test_partial_field_visibility_update_preserves_existing(client: TestClient) 
         },
         headers=headers,
     )
-    assert update_response.status_code == 200, update_response.text
+    assertions.assertTrue(update_response.status_code == 200, update_response.text)
     updated_visibility = update_response.json()["field_visibility"]
     expected_visibility = dict(DEFAULT_FIELD_VISIBILITY)
     expected_visibility.update(
@@ -140,4 +147,4 @@ def test_partial_field_visibility_update_preserves_existing(client: TestClient) 
         }
     )
     expected_visibility["show_confidence"] = True
-    assert updated_visibility == expected_visibility
+    assertions.assertTrue(updated_visibility == expected_visibility)

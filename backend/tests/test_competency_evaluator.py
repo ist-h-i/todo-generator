@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from unittest import TestCase
 
 import pytest
 
@@ -6,6 +7,8 @@ from app import models
 from app.services.competency_evaluator import CompetencyEvaluator
 
 from .conftest import TestingSessionLocal
+
+assertions = TestCase()
 
 
 @pytest.fixture()
@@ -22,7 +25,7 @@ def test_recent_completions_are_emphasized(db_session):
     today = now.date()
     period_start = today - timedelta(days=120)
 
-    user = models.User(email="member@example.com", password_hash="hashed")
+    user = models.User(email="member@example.com", password_hash="hashed")  # noqa: S106
     competency = models.Competency(name="成長テスト", level="intermediate")
     db_session.add_all([user, competency])
     db_session.flush()
@@ -71,19 +74,19 @@ def test_recent_completions_are_emphasized(db_session):
     )
 
     metrics = evaluation.context["metrics"]
-    assert metrics["cards_completed"] == 2
-    assert metrics["subtasks_completed"] == 3
-    assert metrics["recent_cards_completed"] == 1
-    assert metrics["recent_subtasks_completed"] == 2
-    assert metrics["effective_completed"] == 8
-    assert metrics["recent_completed_total"] == 3
-    assert metrics["older_completed_total"] == 2
-    assert metrics["recent_completion_window_days"] == 30
+    assertions.assertTrue(metrics["cards_completed"] == 2)
+    assertions.assertTrue(metrics["subtasks_completed"] == 3)
+    assertions.assertTrue(metrics["recent_cards_completed"] == 1)
+    assertions.assertTrue(metrics["recent_subtasks_completed"] == 2)
+    assertions.assertTrue(metrics["effective_completed"] == 8)
+    assertions.assertTrue(metrics["recent_completed_total"] == 3)
+    assertions.assertTrue(metrics["older_completed_total"] == 2)
+    assertions.assertTrue(metrics["recent_completion_window_days"] == 30)
 
-    assert evaluation.score_value == 3
-    assert evaluation.score_label == "標準"
-    assert "直近30日" in evaluation.rationale
-    assert evaluation.items[0].rationale.count("直近30日") == 1
+    assertions.assertTrue(evaluation.score_value == 3)
+    assertions.assertTrue(evaluation.score_label == "標準")
+    assertions.assertTrue("直近30日" in evaluation.rationale)
+    assertions.assertTrue(evaluation.items[0].rationale.count("直近30日") == 1)
 
 
 def test_editing_completed_work_does_not_count_as_recent(db_session):
@@ -91,7 +94,7 @@ def test_editing_completed_work_does_not_count_as_recent(db_session):
     today = now.date()
     period_start = today - timedelta(days=200)
 
-    user = models.User(email="member@example.com", password_hash="hashed")
+    user = models.User(email="member@example.com", password_hash="hashed")  # noqa: S106
     competency = models.Competency(name="完了済みテスト", level="intermediate")
     db_session.add_all([user, competency])
     db_session.flush()
@@ -123,9 +126,9 @@ def test_editing_completed_work_does_not_count_as_recent(db_session):
     )
 
     metrics = evaluation.context["metrics"]
-    assert metrics["cards_completed"] == 1
-    assert metrics["subtasks_completed"] == 1
-    assert metrics["recent_cards_completed"] == 0
-    assert metrics["recent_subtasks_completed"] == 0
-    assert metrics["recent_completed_total"] == 0
-    assert metrics["older_completed_total"] == 2
+    assertions.assertTrue(metrics["cards_completed"] == 1)
+    assertions.assertTrue(metrics["subtasks_completed"] == 1)
+    assertions.assertTrue(metrics["recent_cards_completed"] == 0)
+    assertions.assertTrue(metrics["recent_subtasks_completed"] == 0)
+    assertions.assertTrue(metrics["recent_completed_total"] == 0)
+    assertions.assertTrue(metrics["older_completed_total"] == 2)

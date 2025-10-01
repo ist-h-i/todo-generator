@@ -370,9 +370,9 @@ export class ReportAssistantPageComponent {
     }
   }
 
-  private mapSubtasks(
+  private readonly mapSubtasks = (
     subtasks: readonly StatusReportProposalSubtask[] | undefined,
-  ): readonly Subtask[] | undefined {
+  ): readonly Subtask[] | undefined => {
     if (!subtasks || subtasks.length === 0) {
       return undefined;
     }
@@ -381,7 +381,10 @@ export class ReportAssistantPageComponent {
     for (const subtask of subtasks) {
       const title = (subtask.title ?? '').trim();
       const description = subtask.description?.trim();
-      const combined = this.composeSubtaskTitle(title, description);
+      const combined =
+        typeof this.composeSubtaskTitle === 'function'
+          ? this.composeSubtaskTitle(title, description)
+          : [title, description].filter((segment) => segment).join(' — ');
       if (!combined) {
         continue;
       }
@@ -398,9 +401,12 @@ export class ReportAssistantPageComponent {
     }
 
     return mapped;
-  }
+  };
 
-  private composeSubtaskTitle(title: string, description: string | undefined): string {
+  private readonly composeSubtaskTitle = (
+    title: string,
+    description: string | undefined,
+  ): string => {
     if (title && description) {
       return `${title} — ${description}`;
     }
@@ -410,7 +416,7 @@ export class ReportAssistantPageComponent {
     }
 
     return description ?? '';
-  }
+  };
 
   private resolveSubtaskStatus(statusName: string | null | undefined): Subtask['status'] {
     if (!statusName) {

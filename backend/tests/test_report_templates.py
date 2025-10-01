@@ -1,9 +1,15 @@
+from unittest import TestCase
+
 from fastapi.testclient import TestClient
 
+assertions = TestCase()
 
-def _register_user(client: TestClient, email: str, password: str = "SecurePass123!") -> dict:
+
+def _register_user(
+    client: TestClient, email: str, password: str = "SecurePass123!",  # noqa: S107
+) -> dict:
     response = client.post("/auth/register", json={"email": email, "password": password})
-    assert response.status_code == 201, response.text
+    assertions.assertTrue(response.status_code == 201, response.text)
     return response.json()
 
 
@@ -19,8 +25,8 @@ def test_report_templates_are_scoped_per_admin(client: TestClient) -> None:
         headers=admin_one_headers,
         json={"is_admin": True},
     )
-    assert promote_response.status_code == 200, promote_response.text
-    assert promote_response.json()["is_admin"] is True
+    assertions.assertTrue(promote_response.status_code == 200, promote_response.text)
+    assertions.assertTrue(promote_response.json()["is_admin"] is True)
 
     owner_template_response = client.post(
         "/reports/templates",
@@ -32,9 +38,9 @@ def test_report_templates_are_scoped_per_admin(client: TestClient) -> None:
             "branding": {"accent": "blue"},
         },
     )
-    assert owner_template_response.status_code == 201, owner_template_response.text
+    assertions.assertTrue(owner_template_response.status_code == 201, owner_template_response.text)
     owner_template = owner_template_response.json()
-    assert owner_template["owner_id"] == admin_one["user"]["id"]
+    assertions.assertTrue(owner_template["owner_id"] == admin_one["user"]["id"])
 
     other_template_response = client.post(
         "/reports/templates",
@@ -46,29 +52,29 @@ def test_report_templates_are_scoped_per_admin(client: TestClient) -> None:
             "branding": {},
         },
     )
-    assert other_template_response.status_code == 201, other_template_response.text
+    assertions.assertTrue(other_template_response.status_code == 201, other_template_response.text)
     other_template = other_template_response.json()
-    assert other_template["owner_id"] == admin_two["user"]["id"]
+    assertions.assertTrue(other_template["owner_id"] == admin_two["user"]["id"])
 
     owner_list_response = client.get("/reports/templates", headers=admin_one_headers)
-    assert owner_list_response.status_code == 200, owner_list_response.text
+    assertions.assertTrue(owner_list_response.status_code == 200, owner_list_response.text)
     owner_templates = owner_list_response.json()
-    assert [template["name"] for template in owner_templates] == ["Owner template"]
+    assertions.assertTrue([template["name"] for template in owner_templates] == ["Owner template"])
 
     other_list_response = client.get("/reports/templates", headers=admin_two_headers)
-    assert other_list_response.status_code == 200, other_list_response.text
+    assertions.assertTrue(other_list_response.status_code == 200, other_list_response.text)
     other_templates = other_list_response.json()
-    assert [template["name"] for template in other_templates] == ["Second template"]
+    assertions.assertTrue([template["name"] for template in other_templates] == ["Second template"])
 
     forbidden_get = client.get(
         f"/reports/templates/{other_template['id']}",
         headers=admin_one_headers,
     )
-    assert forbidden_get.status_code == 404
+    assertions.assertTrue(forbidden_get.status_code == 404)
 
     forbidden_update = client.patch(
         f"/reports/templates/{other_template['id']}",
         headers=admin_one_headers,
         json={"name": "Should not work"},
     )
-    assert forbidden_update.status_code == 404
+    assertions.assertTrue(forbidden_update.status_code == 404)

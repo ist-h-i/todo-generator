@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any
+from unittest import TestCase
 
 import pytest
 from fastapi.testclient import TestClient
@@ -24,6 +25,8 @@ from app.services.gemini import (
     build_workspace_analysis_options,
 )
 from app.utils.secrets import get_secret_cipher
+
+assertions = TestCase()
 
 
 def _make_client() -> GeminiClient:
@@ -61,13 +64,13 @@ def test_build_response_format_sets_strict_and_max_items() -> None:
 
     result = GeminiClient._build_response_format(client, 4)
 
-    assert result["type"] == "json_schema"
+    assertions.assertTrue(result["type"] == "json_schema")
     json_schema = result["json_schema"]
-    assert json_schema["name"] == "analysis_response"
-    assert json_schema["strict"] is True
+    assertions.assertTrue(json_schema["name"] == "analysis_response")
+    assertions.assertTrue(json_schema["strict"] is True)
     proposals_schema = json_schema["schema"]["properties"]["proposals"]
-    assert proposals_schema["max_items"] == 4
-    assert "maxItems" not in proposals_schema
+    assertions.assertTrue(proposals_schema["max_items"] == 4)
+    assertions.assertTrue("maxItems" not in proposals_schema)
 
 
 def test_build_response_format_removes_unsupported_keys() -> None:
@@ -75,9 +78,9 @@ def test_build_response_format_removes_unsupported_keys() -> None:
 
     schema = GeminiClient._build_response_format(client, 2)["json_schema"]["schema"]
 
-    assert not _contains_key(schema, "maxItems")
-    assert not _contains_key(schema, "default")
-    assert not _contains_key(schema, "additionalProperties")
+    assertions.assertTrue(not _contains_key(schema, "maxItems"))
+    assertions.assertTrue(not _contains_key(schema, "default"))
+    assertions.assertTrue(not _contains_key(schema, "additionalProperties"))
 
 
 def test_build_response_format_is_idempotent() -> None:
@@ -89,10 +92,10 @@ def test_build_response_format_is_idempotent() -> None:
     first_schema = first["json_schema"]["schema"]["properties"]["proposals"]
     second_schema = second["json_schema"]["schema"]["properties"]["proposals"]
 
-    assert "maxItems" not in first_schema
-    assert "maxItems" not in second_schema
-    assert first_schema["max_items"] == 1
-    assert second_schema["max_items"] == 6
+    assertions.assertTrue("maxItems" not in first_schema)
+    assertions.assertTrue("maxItems" not in second_schema)
+    assertions.assertTrue(first_schema["max_items"] == 1)
+    assertions.assertTrue(second_schema["max_items"] == 6)
 
 
 def test_sanitize_schema_removes_unsupported_keys() -> None:
@@ -115,16 +118,16 @@ def test_sanitize_schema_removes_unsupported_keys() -> None:
 
     sanitized = GeminiClient._sanitize_schema(schema)
 
-    assert "maxItems" in schema  # original schema should remain unchanged
-    assert "maxItems" not in sanitized
-    assert sanitized["max_items"] == 5
+    assertions.assertTrue("maxItems" in schema)
+    assertions.assertTrue("maxItems" not in sanitized)
+    assertions.assertTrue(sanitized["max_items"] == 5)
     values_schema = sanitized["items"]["properties"]["values"]
-    assert values_schema["max_items"] == 3
-    assert "minLength" not in values_schema["items"]
-    assert "default" not in values_schema
-    assert not _contains_key(sanitized, "minItems")
-    assert not _contains_key(sanitized, "additionalProperties")
-    assert sanitized["items"] is not schema["items"]
+    assertions.assertTrue(values_schema["max_items"] == 3)
+    assertions.assertTrue("minLength" not in values_schema["items"])
+    assertions.assertTrue("default" not in values_schema)
+    assertions.assertTrue(not _contains_key(sanitized, "minItems"))
+    assertions.assertTrue(not _contains_key(sanitized, "additionalProperties"))
+    assertions.assertTrue(sanitized["items"] is not schema["items"])
 
 
 def test_sanitize_schema_preserves_property_definitions() -> None:
@@ -139,9 +142,9 @@ def test_sanitize_schema_preserves_property_definitions() -> None:
 
     sanitized = GeminiClient._sanitize_schema(schema)
 
-    assert set(sanitized["properties"].keys()) == {"title", "description"}
-    assert sanitized["properties"]["title"] == {"type": "string"}
-    assert sanitized["properties"]["description"] == {"type": "string"}
+    assertions.assertTrue(set(sanitized["properties"].keys()) == {"title", "description"})
+    assertions.assertTrue(sanitized["properties"]["title"] == {"type": "string"})
+    assertions.assertTrue(sanitized["properties"]["description"] == {"type": "string"})
 
 
 def test_build_generation_config_removes_unsupported_keys() -> None:
@@ -167,10 +170,10 @@ def test_build_generation_config_removes_unsupported_keys() -> None:
 
     schema = _extract_response_schema(config)
 
-    assert not _contains_key(schema, "maxItems")
-    assert schema["properties"]["items"]["max_items"] == 4
-    assert not _contains_key(schema, "pattern")
-    assert not _contains_key(schema, "default")
+    assertions.assertTrue(not _contains_key(schema, "maxItems"))
+    assertions.assertTrue(schema["properties"]["items"]["max_items"] == 4)
+    assertions.assertTrue(not _contains_key(schema, "pattern"))
+    assertions.assertTrue(not _contains_key(schema, "default"))
 
 
 def test_extract_content_reads_text_values() -> None:
@@ -181,7 +184,7 @@ def test_extract_content_reads_text_values() -> None:
 
     content = GeminiClient._extract_content(client, response)
 
-    assert content == '{"ok": true}'
+    assertions.assertTrue(content == '{"ok": true}')
 
 
 def test_extract_content_requires_text() -> None:
@@ -198,7 +201,7 @@ def test_parse_json_payload_strips_code_fences() -> None:
 
     parsed = GeminiClient._parse_json_payload(client, payload)
 
-    assert parsed == {"proposals": []}
+    assertions.assertTrue(parsed == {"proposals": []})
 
 
 def test_parse_json_payload_raises_for_invalid_json() -> None:
@@ -225,14 +228,14 @@ def test_request_analysis_enriches_model_from_response() -> None:
 
     data = GeminiClient._request_analysis(client, "Analyse Notes", 2)
 
-    assert data == {"model": "gemini-test", "proposals": []}
-    assert GeminiClient._SYSTEM_PROMPT in recorded["prompt"]
-    assert "Analyse Notes" in recorded["prompt"]
+    assertions.assertTrue(data == {"model": "gemini-test", "proposals": []})
+    assertions.assertTrue(GeminiClient._SYSTEM_PROMPT in recorded["prompt"])
+    assertions.assertTrue("Analyse Notes" in recorded["prompt"])
     config = recorded["generation_config"]
     schema = _extract_response_schema(config)
-    assert not _contains_key(schema, "additionalProperties")
-    assert not _contains_key(schema, "default")
-    assert schema["properties"]["proposals"]["max_items"] == 2
+    assertions.assertTrue(not _contains_key(schema, "additionalProperties"))
+    assertions.assertTrue(not _contains_key(schema, "default"))
+    assertions.assertTrue(schema["properties"]["proposals"]["max_items"] == 2)
 
 
 def test_generate_appeal_sanitizes_schema_before_request() -> None:
@@ -263,12 +266,12 @@ def test_generate_appeal_sanitizes_schema_before_request() -> None:
         },
     )
 
-    assert payload == {"appeal": ""}
-    assert GeminiClient._APPEAL_SYSTEM_PROMPT in recorded["prompt"]
+    assertions.assertTrue(payload == {"appeal": ""})
+    assertions.assertTrue(GeminiClient._APPEAL_SYSTEM_PROMPT in recorded["prompt"])
     schema = _extract_response_schema(recorded["generation_config"])
-    assert schema["properties"]["appeal"]["max_items"] == 3
-    assert not _contains_key(schema, "minLength")
-    assert not _contains_key(schema, "default")
+    assertions.assertTrue(schema["properties"]["appeal"]["max_items"] == 3)
+    assertions.assertTrue(not _contains_key(schema, "minLength"))
+    assertions.assertTrue(not _contains_key(schema, "default"))
 
 
 def test_build_user_prompt_includes_profile_metadata() -> None:
@@ -293,10 +296,10 @@ def test_build_user_prompt_includes_profile_metadata() -> None:
         profile,
     )
 
-    assert "Engineer profile:" in prompt
-    assert '"experience_years": 6' in prompt
-    assert "backend" in prompt
-    assert "Investigate login failures" in prompt
+    assertions.assertTrue("Engineer profile:" in prompt)
+    assertions.assertTrue('"experience_years": 6' in prompt)
+    assertions.assertTrue("backend" in prompt)
+    assertions.assertTrue("Investigate login failures" in prompt)
 
 
 def test_build_user_prompt_lists_workspace_options() -> None:
@@ -330,14 +333,14 @@ def test_build_user_prompt_lists_workspace_options() -> None:
         options,
     )
 
-    assert "Available statuses" in prompt
-    assert "status-todo" in prompt
-    assert "Doing" in prompt
-    assert "default to status 'To Do'" in prompt
-    assert "Available labels registered by the current user" in prompt
-    assert "general-purpose label" in prompt
-    assert "AI" in prompt
-    assert "create a new concise label name" in prompt
+    assertions.assertTrue("Available statuses" in prompt)
+    assertions.assertTrue("status-todo" in prompt)
+    assertions.assertTrue("Doing" in prompt)
+    assertions.assertTrue("default to status 'To Do'" in prompt)
+    assertions.assertTrue("Available labels registered by the current user" in prompt)
+    assertions.assertTrue("general-purpose label" in prompt)
+    assertions.assertTrue("AI" in prompt)
+    assertions.assertTrue("create a new concise label name" in prompt)
 
 
 def test_build_workspace_analysis_options_prefers_defaults(client: TestClient) -> None:
@@ -363,13 +366,13 @@ def test_build_workspace_analysis_options_prefers_defaults(client: TestClient) -
     finally:
         db_gen.close()
 
-    assert options.statuses
+    assertions.assertTrue(options.statuses)
     status_names = {status.name for status in options.statuses}
-    assert "To Do" in status_names
-    assert options.default_status_id is not None
+    assertions.assertTrue("To Do" in status_names)
+    assertions.assertTrue(options.default_status_id is not None)
     label_names = {label.name for label in options.labels}
-    assert "AI" in label_names
-    assert label_id in set(options.preferred_label_ids)
+    assertions.assertTrue("AI" in label_names)
+    assertions.assertTrue(label_id in set(options.preferred_label_ids))
 
 
 def test_load_gemini_configuration_uses_stored_model(client: TestClient) -> None:
@@ -392,8 +395,8 @@ def test_load_gemini_configuration_uses_stored_model(client: TestClient) -> None
     finally:
         db_gen.close()
 
-    assert secret == "sk-live"  # noqa: S105 - test data
-    assert model == "gemini-1.5-pro"
+    assertions.assertTrue(secret == "sk-live")  # noqa: S105
+    assertions.assertTrue(model == "gemini-1.5-pro")
 
 
 def test_load_gemini_configuration_defaults_to_settings_model(client: TestClient) -> None:
@@ -415,8 +418,8 @@ def test_load_gemini_configuration_defaults_to_settings_model(client: TestClient
     finally:
         db_gen.close()
 
-    assert secret == "sk-default"  # noqa: S105 - test data
-    assert model == settings.gemini_model
+    assertions.assertTrue(secret == "sk-default")  # noqa: S105
+    assertions.assertTrue(model == settings.gemini_model)
 
 
 def test_load_gemini_configuration_falls_back_to_settings_api_key(client: TestClient) -> None:
@@ -432,8 +435,8 @@ def test_load_gemini_configuration_falls_back_to_settings_api_key(client: TestCl
         settings.gemini_api_key = original_key
         db_gen.close()
 
-    assert secret == "sk-env"  # noqa: S105 - test data
-    assert model == settings.gemini_model
+    assertions.assertTrue(secret == "sk-env")  # noqa: S105
+    assertions.assertTrue(model == settings.gemini_model)
 
 
 def test_load_gemini_configuration_respects_disabled_credential(client: TestClient) -> None:
@@ -464,13 +467,17 @@ def test_load_gemini_configuration_respects_disabled_credential(client: TestClie
 
 
 def test_normalize_model_name_maps_flash_families() -> None:
-    assert GeminiClient.normalize_model_name("gemini-1.5-flash") == "models/gemini-1.5-flash"
-    assert GeminiClient.normalize_model_name("gemini-1.5-flash-latest") == "models/gemini-1.5-flash-latest"
-    assert GeminiClient.normalize_model_name("models/gemini-1.5-flash") == "models/gemini-1.5-flash"
-    assert GeminiClient.normalize_model_name("models/gemini-1.5-flash-latest") == "models/gemini-1.5-flash-latest"
-    assert GeminiClient.normalize_model_name("gemini-2.0-flash") == "models/gemini-2.0-flash"
-    assert GeminiClient.normalize_model_name("gemini-2.0-flash-lite") == "models/gemini-2.0-flash-lite"
-    assert GeminiClient.normalize_model_name("models/gemini-2.0-flash") == "models/gemini-2.0-flash"
+    assertions.assertTrue(GeminiClient.normalize_model_name("gemini-1.5-flash") == "models/gemini-1.5-flash")
+    assertions.assertTrue(
+        GeminiClient.normalize_model_name("gemini-1.5-flash-latest") == "models/gemini-1.5-flash-latest"
+    )
+    assertions.assertTrue(GeminiClient.normalize_model_name("models/gemini-1.5-flash") == "models/gemini-1.5-flash")
+    assertions.assertTrue(
+        GeminiClient.normalize_model_name("models/gemini-1.5-flash-latest") == "models/gemini-1.5-flash-latest"
+    )
+    assertions.assertTrue(GeminiClient.normalize_model_name("gemini-2.0-flash") == "models/gemini-2.0-flash")
+    assertions.assertTrue(GeminiClient.normalize_model_name("gemini-2.0-flash-lite") == "models/gemini-2.0-flash-lite")
+    assertions.assertTrue(GeminiClient.normalize_model_name("models/gemini-2.0-flash") == "models/gemini-2.0-flash")
 
 
 def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -506,10 +513,10 @@ def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch
 
     client = GeminiClient(model="models/gemini-2.0-flash", api_key="sk-test")
 
-    assert configured["api_key"] == "sk-test"
-    assert client.model == "models/gemini-2.0-flash-002"
-    assert isinstance(client._client, DummyGenerativeModel)  # type: ignore[attr-defined]
-    assert client._client.name == "models/gemini-2.0-flash-002"  # type: ignore[attr-defined]
+    assertions.assertTrue(configured["api_key"] == "sk-test")
+    assertions.assertTrue(client.model == "models/gemini-2.0-flash-002")
+    assertions.assertTrue(isinstance(client._client, DummyGenerativeModel))
+    assertions.assertTrue(client._client.name == "models/gemini-2.0-flash-002")
 
 
 def test_client_raises_when_requested_model_missing(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -548,4 +555,4 @@ def test_client_keeps_model_when_catalog_unavailable(monkeypatch: pytest.MonkeyP
 
     client = GeminiClient(model="models/gemini-2.0-flash", api_key="sk-fallback")
 
-    assert client.model == "models/gemini-2.0-flash"
+    assertions.assertTrue(client.model == "models/gemini-2.0-flash")
