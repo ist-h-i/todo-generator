@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
 import { of } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { StatusReportsGateway } from '@core/api/status-reports-gateway';
 import { Card, StatusReportProposalSubtask, WorkspaceSettings } from '@core/models';
@@ -69,10 +71,19 @@ describe('ReportAssistantPageComponent', () => {
     workspace = new WorkspaceStoreStub();
 
     await TestBed.configureTestingModule({
-      imports: [ReportAssistantPageComponent],
+      imports: [ReportAssistantPageComponent, RouterTestingModule],
       providers: [
         { provide: StatusReportsGateway, useClass: StatusReportsGatewayStub },
         { provide: WorkspaceStore, useValue: workspace },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            params: of({}),
+            queryParams: of({}),
+            data: of({}),
+            snapshot: { params: {}, queryParams: {}, data: {} },
+          },
+        },
         FormBuilder,
       ],
     }).compileComponents();
