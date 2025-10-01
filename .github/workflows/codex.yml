@@ -64,16 +64,19 @@ jobs:
 
       - name: Install Codex CLI
         run: |
-          set -eux
+          set -euo pipefail
 
           python -m pip install -U pip
           python -m pip install "${CODEX_PY_PKG:-codex-cli}"
 
-          codex_bin=$(python -c "import sysconfig; print(sysconfig.get_path('scripts'))")
-          echo "${codex_bin}" >> "$GITHUB_PATH"
-
-          which codex || { echo "::error::codex not found"; exit 1; }
-          codex --version
+          if python -m codex --version >/dev/null 2>&1; then
+            python -m codex --version
+          elif python -m codex_cli --version >/dev/null 2>&1; then
+            python -m codex_cli --version
+          else
+            echo "::error::codex module entry point not found"
+            exit 1
+          fi
 
       - name: Resolve TASK_INPUT
         id: resolve_task_input
