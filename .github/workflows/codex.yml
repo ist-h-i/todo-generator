@@ -64,13 +64,10 @@ jobs:
 
       - name: Install Codex CLI
         run: |
-          set -euo pipefail
-
-          python -m pip install -U pip
-          python -m pip install "${CODEX_PY_PKG:-codex-cli}"
-
-          codex_bin=$(python -c "import sysconfig; print(sysconfig.get_path('scripts'))")
-          echo "${codex_bin}" >> "$GITHUB_PATH"
+          pip install ${CODEX_PY_PKG:-codex-cli}
+          echo "/opt/hostedtoolcache/Python/3.11.13/x64/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          hash -r
 
           if python -m codex --version >/dev/null 2>&1; then
             python -m codex --version
@@ -79,7 +76,7 @@ jobs:
           elif command -v codex >/dev/null 2>&1; then
             codex --version
           else
-            echo "::error::codex CLI entry point not found"
+            echo "::error::Codex CLI not found (neither module nor binary)"
             exit 1
           fi
 
