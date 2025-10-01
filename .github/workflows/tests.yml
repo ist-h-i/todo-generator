@@ -48,11 +48,17 @@ jobs:
             paths+=("frontend/package-lock.json")
           fi
           if [ ${#paths[@]} -gt 0 ]; then
-            printf "paths<<'EOF'\n%s\nEOF\n" "$(printf "%s\n" "${paths[@]}")" >> "${GITHUB_OUTPUT}"
-            echo "cache=npm" >> "${GITHUB_OUTPUT}"
+            {
+              echo "paths<<EOF"
+              printf '%s\n' "${paths[@]}"
+              echo "EOF"
+              echo "cache=npm"
+            } >> "${GITHUB_OUTPUT}"
           else
-            echo "paths=" >> "${GITHUB_OUTPUT}"
-            echo "cache=" >> "${GITHUB_OUTPUT}"
+            {
+              echo "paths="
+              echo "cache="
+            } >> "${GITHUB_OUTPUT}"
           fi
 
       - uses: actions/setup-node@v4
