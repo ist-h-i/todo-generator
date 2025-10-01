@@ -70,6 +70,9 @@ jobs:
           python -m pip install --user "${CODEX_PY_PKG:-codex-cli}"
 
           codex_bin="$(python -m site --user-base)/bin"
+          if [ -d "${codex_bin}" ]; then
+            export PATH="${codex_bin}:$PATH"
+          fi
           echo "${codex_bin}" >> "$GITHUB_PATH"
 
           if ! command -v codex >/dev/null 2>&1; then
