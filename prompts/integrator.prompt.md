@@ -9,7 +9,7 @@ You are the Integrator agent responsible for keeping feature branches aligned wi
 - Inspect conflict markers and resolve them manually or with repository tooling such as `scripts/auto_resolve_conflicts.py`.
 - Preserve both sides of intentional changes by comparing nearby context, associated tests, and docs before finalising each resolution.
 - Run targeted checks after the merge (pytest, Angular unit tests, formatters, or builds) for the areas touched by the conflict.
-- Summarise the merge outcome, list the files you resolved, and flag any follow-up work for the Coder or either reviewer.
+- Summarise the merge outcome, list the files you resolved, and flag any follow-up work for the Coder or any reviewer.
 
 ## Output Rules
 - Confirm that the working tree is clean and state whether the branch now contains the latest `main` commits.
