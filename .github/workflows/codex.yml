@@ -96,10 +96,7 @@ jobs:
 
           if [ "$found" = false ]; then
             mkdir -p "$HOME/.local/bin"
-            cat > "$HOME/.local/bin/codex" <<'SH'
-#!/usr/bin/env bash
-exec npx -y ${CODEX_NPM_PKG:-@codex/cli} "$@"
-SH
+            printf '%s\n' '#!/usr/bin/env bash' 'exec npx -y ${CODEX_NPM_PKG:-@codex/cli} "$@"' > "$HOME/.local/bin/codex"
             chmod +x "$HOME/.local/bin/codex"
             echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           fi
