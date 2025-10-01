@@ -3,29 +3,61 @@ name: SonarQube
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'package*.json'
+      - 'requirements*.txt'
+      - '.github/workflows/sonarqube.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'package*.json'
+      - 'requirements*.txt'
+      - '.github/workflows/sonarqube.yml'
+  schedule:
+    - cron: '0 18 * * *' # daily
+
+concurrency:
+  group: sonarqube-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   sonarqube:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      pull-requests: read
     env:
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Abort if secrets missing
+        if: ${{ env.SONAR_HOST_URL == '' || env.SONAR_TOKEN == '' }}
+        run: |
+          echo "SONAR_HOST_URL or SONAR_TOKEN not set. Skipping SonarQube."
+          exit 0
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
 
       - name: Install frontend dependencies
+        if: ${{ hashFiles('frontend/package.json') != '' }}
         working-directory: frontend
         run: npm ci
 
@@ -33,24 +65,31 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            backend/requirements.txt
 
       - name: Install backend dependencies
+        if: ${{ hashFiles('backend/requirements.txt') != '' || hashFiles('requirements.txt') != '' }}
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-
-      - name: Verify SonarQube secrets
-        if: env.SONAR_HOST_URL == '' || env.SONAR_TOKEN == ''
-        run: |
-          echo "SONAR_HOST_URL and/or SONAR_TOKEN are not configured."
-          echo "Skipping SonarQube analysis."
+          if [ -f backend/requirements.txt ]; then
+            pip install -r backend/requirements.txt
+          elif [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
 
       - name: SonarQube Scan
-        if: env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@v2
+        env:
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
 
       - name: SonarQube Quality Gate
-        if: env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
         with:
           scanMetadataReportFile: .scannerwork/report-task.txt
+        env:
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}

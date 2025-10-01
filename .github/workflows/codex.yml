@@ -1,48 +1,78 @@
 name: Codex Auto Dev
 
 on:
-  workflow_dispatch:   # 手動実行
+  workflow_dispatch:
     inputs:
       task_input:
         description: Codex パイプラインへ渡すタスク内容（省略時はデフォルト文言）
         required: false
-  issues:              # Issue起票（新規作成時）
+  issues:
     types: [opened]
-  issue_comment:       # Issueコメントでトリガー
+  issue_comment:
     types: [created]
+
+concurrency:
+  group: codex-auto-dev-${{ github.event_name }}-${{ github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
 
 jobs:
   codex:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      ((github.event_name == 'issues' || github.event_name == 'issue_comment') &&
-       (contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association) ||
-        (github.event_name == 'issue_comment' &&
-         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))))
+      (
+        (github.event_name == 'issues' || github.event_name == 'issue_comment') &&
+        (
+          contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association) ||
+          (github.event_name == 'issue_comment' &&
+           contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+        )
+      )
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Gemini を使用。google-generativeai は GOOGLE_API_KEY を既定で参照する。
+      GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check OPENAI_API_KEY availability
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Verify Gemini API key
         run: |
-          if [ -z "${OPENAI_API_KEY:-}" ]; then
-            echo "::error::OPENAI_API_KEY is not available for this workflow run. Maintainers: please re-run via \"Run workflow\" in the Actions tab so repository secrets are accessible."
+          if [ -z "${GEMINI_API_KEY:-${GOOGLE_API_KEY:-}}" ]; then
+            echo "::error::GEMINI_API_KEY/GOOGLE_API_KEY is not available. Maintainers: run via 'Run workflow' so repository secrets are accessible."
             exit 1
           fi
 
-      - name: Install Codex CLI
-        run: npm install -g @openai/codex
+      # 任意: codex が Node 製の場合に備えて Node を用意（CLI 非依存なら通過）
+      - name: Setup Node (optional)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
-      - name: Run Codex translator → requirements analyst → detail designer → planner pipeline
+      # 任意: codex が Python ラッパーから google-generativeai を呼ぶ場合に備えてインストール
+      - name: Setup Python deps (optional)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install google-generativeai
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-generativeai || true
+
+      - name: Compose TASK_INPUT and run pipeline
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -euo pipefail
 
-          # イベント種別で入力を切り替え。Codex パイプラインには生のテキストのみを渡す。
           case "${{ github.event_name }}" in
             issues)
               RAW_TASK_INPUT="${{ github.event.issue.title }}: ${{ github.event.issue.body }}"
@@ -58,22 +88,20 @@ jobs:
               ;;
           esac
 
-          echo "TASK_INPUT: $RAW_TASK_INPUT"
+          echo "TASK_INPUT: $(echo "$RAW_TASK_INPUT" | head -c 200)${RAW_TASK_INPUT:+...}"
           mkdir -p codex_output
+
           if ! command -v codex >/dev/null 2>&1; then
-            echo "Codex CLI not installed correctly" >&2
+            echo "::error::'codex' CLI not found in PATH. Ensure it is available or add an installation step."
             exit 1
           fi
 
-          # Pipe the dynamically composed task description into the Codex helper
-          # script. Using stdin avoids the deprecated "--task" flag that the
-          # legacy CLI accepted and keeps us compatible with the latest
-          # releases.
           printf '%s' "$RAW_TASK_INPUT" | ./scripts/run_codex_pipeline.sh
 
       - name: Upload Codex outputs
-        uses: actions/upload-artifact@v4
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: codex-agent-outputs
           path: codex_output
+          retention-days: 7
