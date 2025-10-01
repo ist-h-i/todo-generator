@@ -90,6 +90,20 @@ Run the relevant checks before sending changes for review:
 
 Documentation-only updates may skip automated checks, but keep README and `docs/` aligned with the latest behavior.
 
+## SonarQube Analysis & Coverage
+Generate coverage reports before invoking `sonar-scanner` so SonarQube can display backend and frontend unit test coverage.
+
+```bash
+pip install -r backend/requirements-dev.txt  # ensures the coverage package is available
+npm install --prefix frontend
+
+./scripts/run_tests_with_coverage.sh
+sonar-scanner
+```
+
+The helper script runs `coverage run -m pytest` inside `backend/` and `npm run test:ci` in `frontend/`. It emits `backend/coverage.xml`
+and `frontend/coverage/frontend/lcov.info`, which are automatically picked up through `sonar-project.properties`.
+
 ## Documentation and Scripts
 - Architecture and feature deep-dives live under `docs/` (start with `docs/architecture.md`).
 - `docs/development-rules.md` captures workflow expectations, test strategy, and PR guidelines.

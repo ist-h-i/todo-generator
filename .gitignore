@@ -4,3 +4,9 @@ __pycache__/
 .pytest_cache/
 .env
 backend/.env
+.coverage
+coverage.xml
+backend/.coverage
+backend/coverage.xml
+backend/htmlcov/
+frontend/coverage/

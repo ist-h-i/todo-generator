@@ -75,6 +75,70 @@
 - **ビルド検証**: Angular は `npm run build` を通して型チェックと AOT ビルドが成功することを確認します。
 - **セルフレビュー**: 変更差分をセルフレビューし、仕様に沿っているか、不要なデバッグコードが残っていないかを確認します。重要な設計判断はドキュメントへ追記して共有します。
 
+### 6.1 設計・実装ワークフロー
+
+```mermaid
+flowchart TD
+  A[Start<br/>TASK_INPUT] --> T[translator]
+  T --> R[requirements_analyst]
+  R --> RR[requirements_reviewer]
+  RR --|No|--> R
+  RR --|Yes|--> P[planner]
+
+  P --> TM[threat_modeler]
+  TM --> DPO[dpo_reviewer]
+  DPO --|No|--> R
+  DPO --|Yes|--> DS[detail_designer]
+  DS --> DR[design_reviewer]
+  DR --|No|--> DS
+  DR --|Yes|--> QAPlan[qa_automation_planner]
+  QAPlan --> C[coder]
+
+  C --> LINT[Static / Lint / Unit]
+  C --> SBOM[Dep Audit / SBOM]
+  LINT --> G1{Local checks pass?}
+  SBOM --> G1
+  G1 --|No|--> C
+
+  %% 並列レビュー
+  G1 --|Yes|--> Q[code_quality_reviewer]
+  G1 --|Yes|--> S[security_reviewer]
+  G1 --|Yes|--> U[uiux_reviewer]
+  G1 --|Yes|--> I[implementation_reviewer]
+  G1 --|Yes|--> A11y[a11y_reviewer]
+  G1 --|Yes|--> I18n[i18n_reviewer]
+  G1 --|Yes|--> Perf[performance_reviewer]
+  G1 --|Yes|--> OSS[oss_sbom_auditor]
+  G1 --|Yes|--> AIS[ai_safety_reviewer]
+
+  %% 集約ゲート
+  Q --> G2{All reviews agree?}
+  S --> G2
+  U --> G2
+  I --> G2
+  A11y --> G2
+  I18n --> G2
+  Perf --> G2
+  OSS --> G2
+  AIS --> G2
+  G2 --|No|--> C
+  G2 --|Yes|--> N[integrator]
+
+  N --> CI[CI: build + test + scan]
+  CI --|fail|--> P
+  CI --|pass|--> RM[release_manager]
+  RM --|No|--> P
+  RM --|Yes|--> PR[Create PR]
+  PR --> W[docwriter]
+  W --> DE[doc_editor]
+  DE --> E[End]
+```
+
+- **役割とゲートの明確化**: 要件の翻訳から実装レビューまでを専任ロールで分離し、要件レビュー・設計レビュー・実装レビューで差戻しループを定義します。DPO / セキュリティ / AI セーフティなどの専門レビュアーをパラレルに配置することで、早期に規制・安全要件を反映できます。
+- **ローカル品質検証の徹底**: コーディング後に静的解析・ユニットテスト・依存性監査を完了させてからレビューに進むことで、レビューアーは本質的な設計・仕様妥当性に集中できます。ゲート `G1` を通過した成果物のみがマルチレビューに進みます。
+- **統合とリリース準備**: 全レビュアー承認後はインテグレータがブランチを集約し、CI でビルド・テスト・スキャンを再検証します。CI/リリース段階で失敗した場合はプランナーへ戻し、リリースマネージャーが承認した段階で PR 作成・ドキュメント更新へ進みます。
+- **ドキュメント更新の必須化**: PR 作成後にドキュメント担当者が設計変更点を記述し、文書編集者が整合性をチェックした後に完了とします。これにより設計知識が最新状態で共有されます。
+
 ## 7. 運用とセキュリティ
 
 - **シークレット管理**: `utils.secrets` を利用し AES-GCM で暗号化。キーは環境変数 `SECRET_ENCRYPTION_KEY` によって差し替え、十分に長いランダム値を設定します。未設定の場合は管理画面が資格情報 API で HTTP 503 を返します。
