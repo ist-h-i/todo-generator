@@ -72,67 +72,67 @@ jobs:
         id: resolve_task_input
         run: |
           python <<'PY'
-import json
-import os
-import sys
-import uuid
+            import json
+            import os
+            import sys
+            import uuid
 
-event_name = os.environ.get("GITHUB_EVENT_NAME", "")
-event_path = os.environ.get("GITHUB_EVENT_PATH")
+            event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+            event_path = os.environ.get("GITHUB_EVENT_PATH")
 
-if not event_path:
-    print("::error::GITHUB_EVENT_PATH is not set.", file=sys.stderr)
-    sys.exit(1)
+            if not event_path:
+                print("::error::GITHUB_EVENT_PATH is not set.", file=sys.stderr)
+                sys.exit(1)
 
-with open(event_path, encoding="utf-8") as payload:
-    event = json.load(payload)
+            with open(event_path, encoding="utf-8") as payload:
+                event = json.load(payload)
 
-def coerce(value: object) -> str:
-    if value is None:
-        return ""
-    return str(value)
+            def coerce(value: object) -> str:
+                if value is None:
+                    return ""
+                return str(value)
 
-task_input = ""
+            task_input = ""
 
-if event_name == "issues":
-    issue = event.get("issue") or {}
-    title = coerce(issue.get("title")).strip()
-    body = coerce(issue.get("body")).strip()
-    parts = [part for part in (title, body) if part]
-    task_input = "\n\n".join(parts)
-elif event_name == "issue_comment":
-    comment = event.get("comment") or {}
-    body = coerce(comment.get("body"))
-    trimmed = body.lstrip()
-    if trimmed.lower().startswith("/codex"):
-        remainder = trimmed[len("/codex"):].lstrip()
-    else:
-        remainder = body
-    task_input = remainder.strip()
-else:
-    inputs = event.get("inputs") or {}
-    task_input = coerce(inputs.get("task_input")).strip()
-    if not task_input:
-        task_input = "Manual trigger: Please implement the requested feature."
+            if event_name == "issues":
+                issue = event.get("issue") or {}
+                title = coerce(issue.get("title")).strip()
+                body = coerce(issue.get("body")).strip()
+                parts = [part for part in (title, body) if part]
+                task_input = "\n\n".join(parts)
+            elif event_name == "issue_comment":
+                comment = event.get("comment") or {}
+                body = coerce(comment.get("body"))
+                trimmed = body.lstrip()
+                if trimmed.lower().startswith("/codex"):
+                    remainder = trimmed[len("/codex"):].lstrip()
+                else:
+                    remainder = body
+                task_input = remainder.strip()
+            else:
+                inputs = event.get("inputs") or {}
+                task_input = coerce(inputs.get("task_input")).strip()
+                if not task_input:
+                    task_input = "Manual trigger: Please implement the requested feature."
 
-if not task_input:
-    print("::error::Resolved TASK_INPUT is empty.", file=sys.stderr)
-    sys.exit(1)
+            if not task_input:
+                print("::error::Resolved TASK_INPUT is empty.", file=sys.stderr)
+                sys.exit(1)
 
-preview = task_input.replace("\r", " ").replace("\n", " ")
-print(f"TASK_INPUT preview: {preview[:200]}{'...' if len(preview) > 200 else ''}")
+            preview = task_input.replace("\r", " ").replace("\n", " ")
+            print(f"TASK_INPUT preview: {preview[:200]}{'...' if len(preview) > 200 else ''}")
 
-marker = f"EOF_{uuid.uuid4().hex}"
+            marker = f"EOF_{uuid.uuid4().hex}"
 
-github_output = os.environ.get("GITHUB_OUTPUT")
-if github_output:
-    with open(github_output, "a", encoding="utf-8") as output_file:
-        output_file.write(f"task_input<<{marker}\n{task_input}\n{marker}\n")
+            github_output = os.environ.get("GITHUB_OUTPUT")
+            if github_output:
+                with open(github_output, "a", encoding="utf-8") as output_file:
+                    output_file.write(f"task_input<<{marker}\n{task_input}\n{marker}\n")
 
-github_env = os.environ.get("GITHUB_ENV")
-if github_env:
-    with open(github_env, "a", encoding="utf-8") as env_file:
-        env_file.write(f"TASK_INPUT<<{marker}\n{task_input}\n{marker}\n")
+            github_env = os.environ.get("GITHUB_ENV")
+            if github_env:
+                with open(github_env, "a", encoding="utf-8") as env_file:
+                    env_file.write(f"TASK_INPUT<<{marker}\n{task_input}\n{marker}\n")
 PY
 
       - name: Ensure codex CLI
