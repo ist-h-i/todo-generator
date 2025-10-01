@@ -83,6 +83,16 @@ jobs:
             exit 1
           fi
 
+      - name: Debug Codex install
+        run: |
+          python -m pip show codex-cli
+          python - <<'PY'
+          import pkgutil
+
+          mods = [m.name for m in pkgutil.iter_modules()]
+          print("Installed modules containing 'codex':", [m for m in mods if "codex" in m])
+          PY
+
       - name: Resolve TASK_INPUT
         id: resolve_task_input
         run: |
