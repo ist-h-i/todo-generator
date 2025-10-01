@@ -69,7 +69,7 @@ jobs:
           python -m pip install -U pip
           python -m pip install "${CODEX_PY_PKG:-codex-cli}"
 
-          codex_bin="$(python -m site --prefix)/bin"
+          codex_bin=$(python -c "import sysconfig; print(sysconfig.get_path('scripts'))")
           echo "${codex_bin}" >> "$GITHUB_PATH"
 
           which codex || { echo "::error::codex not found"; exit 1; }
