@@ -30,13 +30,13 @@ else
   exit 1
 fi
 
-if [ -z "${GEMINI_API_KEY:-}" ]; then
-  echo "GEMINI_API_KEY is not configured." >&2
+if [ -z "${OPENAI_API_KEY:-}" ]; then
+  echo "OPENAI_API_KEY is not configured." >&2
   exit 1
 fi
 
 mkdir -p codex_output
-"${CODEX_CLI[@]}" login --api-key "${GEMINI_API_KEY}" >/dev/null 2>&1 || true
+"${CODEX_CLI[@]}" login --api-key "${OPENAI_API_KEY}" >/dev/null 2>&1 || true
 
 PIPELINE_STEPS=(
   translator

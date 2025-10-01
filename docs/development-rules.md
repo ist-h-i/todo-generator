@@ -32,7 +32,7 @@ Follow these rules to keep delivery predictable and maintain quality.
    - Resolve conflicts and rerun the relevant tests or builds afterwards.
 
 ### Codex workflow limitations
-- GitHub workflows triggered by external contributors cannot access repository secrets such as `GEMINI_API_KEY`.
+- GitHub workflows triggered by external contributors cannot access repository secrets such as `OPENAI_API_KEY`.
 - When Codex automation fails because secrets are unavailable, a maintainer with write access must re-run the workflow manually via **Run workflow**.
 
 ---
