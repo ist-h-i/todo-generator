@@ -17,10 +17,14 @@ if command -v codex >/dev/null 2>&1; then
   CODEX_CLI=(codex)
 elif command -v python >/dev/null 2>&1 && python -c "import codex" >/dev/null 2>&1; then
   CODEX_CLI=(python -m codex)
+elif command -v python3 >/dev/null 2>&1 && python3 -c "import codex" >/dev/null 2>&1; then
+  CODEX_CLI=(python3 -m codex)
 elif command -v python >/dev/null 2>&1 && python -c "import codex_cli" >/dev/null 2>&1; then
   CODEX_CLI=(python -m codex_cli)
+elif command -v python3 >/dev/null 2>&1 && python3 -c "import codex_cli" >/dev/null 2>&1; then
+  CODEX_CLI=(python3 -m codex_cli)
 else
-  echo "Codex CLI not found in PATH or as a Python module. Install @google/generative-ai." >&2
+  echo "Error: codex CLI not found (checked codex, python -m codex, python3 -m codex, codex_cli)." >&2
   exit 1
 fi
 
