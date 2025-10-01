@@ -108,7 +108,7 @@ and `frontend/coverage/frontend/lcov.info`, which are automatically picked up th
 - Architecture and feature deep-dives live under `docs/` (start with `docs/architecture.md`).
 - `docs/development-rules.md` captures workflow expectations, test strategy, and PR guidelines.
 - Prompt reference files for AI orchestration are stored under `prompts/`.
-- `scripts/run_codex_pipeline.sh` runs the Codex automation pipeline; `start-mcp-servers.*` launches Model Context Protocol helper servers.
+- `scripts/run_codex_pipeline.sh` runs the Codex automation pipeline; ensure the [`codex-cli`](https://pypi.org/project/codex-cli/) executable (or Python module) is on your `PATH` before invoking it. `start-mcp-servers.*` launches Model Context Protocol helper servers.
 
 ### Documentation quick links
 - [Documentation index](docs/README.md) – curated map of the most frequently referenced specs and playbooks.

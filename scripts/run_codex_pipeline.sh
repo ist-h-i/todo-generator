@@ -13,7 +13,9 @@ if [ -z "${TASK_INPUT}" ]; then
   exit 1
 fi
 
-if command -v codex >/dev/null 2>&1; then
+if command -v codex-cli >/dev/null 2>&1; then
+  CODEX_CLI=(codex-cli)
+elif command -v codex >/dev/null 2>&1; then
   CODEX_CLI=(codex)
 elif command -v python >/dev/null 2>&1 && python -c "import codex" >/dev/null 2>&1; then
   CODEX_CLI=(python -m codex)
@@ -24,7 +26,7 @@ elif command -v python >/dev/null 2>&1 && python -c "import codex_cli" >/dev/nul
 elif command -v python3 >/dev/null 2>&1 && python3 -c "import codex_cli" >/dev/null 2>&1; then
   CODEX_CLI=(python3 -m codex_cli)
 else
-  echo "Error: codex CLI not found (checked codex, python -m codex, python3 -m codex, codex_cli)." >&2
+  echo "Error: codex CLI not found (checked codex-cli, codex, python -m codex, python3 -m codex, codex_cli)." >&2
   exit 1
 fi
 
