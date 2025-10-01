@@ -97,6 +97,14 @@ mkdir -p codex_output
 # Ensure we are logged in using the provided API key. This is idempotent.
 codex login --api-key "${GEMINI_API_KEY}" >/dev/null 2>&1 || true
 
+# Pipeline progression:
+# 1. The translator receives the human request, translates it into the working
+#    language, and fills any missing context the rest of the agents will need.
+# 2. The planner consumes the translator's output and assigns concrete
+#    directions for each downstream specialist so they can execute in turn.
+# 3. Subsequent agents use the accumulated context to perform their specialty
+#    and hand the enriched plan to the next stage until the integrator wraps up
+#    the workflow.
 PIPELINE_STEPS=(
   translator
   requirements_analyst
@@ -110,6 +118,19 @@ PIPELINE_STEPS=(
   docwriter
   integrator
 )
+declare -A STAGE_INSTRUCTIONS=(
+  [translator]="Translate the overall task into the working language (Japanese) when needed, clarify intent, and supplement missing assumptions or constraints so later agents receive a complete brief."
+  [planner]="Use the translator's clarified brief to orchestrate the workflow. Lay out concrete steps for each downstream agent, explicitly delegating responsibilities so they understand what to deliver back into the shared context."
+  [requirements_analyst]="Document functional and non-functional requirements derived from the clarified task. Highlight open questions the planner assigned to later agents if they remain unresolved."
+  [detail_designer]="Expand the requirements into implementation-ready designs or technical approaches while respecting any assignments from the planner."
+  [coder]="Implement the planned solution details, focusing on code or configuration excerpts the planner expects."
+  [code_quality_reviewer]="Review the implementation for correctness, maintainability, and adherence to standards the planner outlined."
+  [security_reviewer]="Assess security implications of the proposed changes and call out mitigations or follow-ups."
+  [uiux_reviewer]="Evaluate user experience considerations tied to the plan, ensuring accessibility and usability are addressed."
+  [implementation_reviewer]="Validate that deployment, integration, and operational concerns are covered before hand-off."
+  [docwriter]="Summarise the work products and update documentation or release notes as directed by earlier stages."
+  [integrator]="Consolidate the full context into a final summary, confirming all planner assignments were satisfied and noting any outstanding actions."
+)
 PREVIOUS_CONTEXT=""
 
 for STEP in "${PIPELINE_STEPS[@]}"; do
@@ -117,9 +138,13 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
   HUMAN_STEP_NAME=$(echo "${STEP}" | tr '_' ' ')
 
   PROMPT="You are the ${HUMAN_STEP_NAME} stage in an auto-dev workflow.\n\n"
+  PROMPT+="The translator first translates and enriches the request, then the planner assigns concrete work to each subsequent agent so the project flows smoothly.\n\n"
   PROMPT+="Overall task: ${TASK_INPUT}.\n\n"
   if [ -n "${PREVIOUS_CONTEXT}" ]; then
     PROMPT+="Context from earlier stages (may be empty):\n${PREVIOUS_CONTEXT}\n\n"
+  fi
+  if [ -n "${STAGE_INSTRUCTIONS[${STEP}]-}" ]; then
+    PROMPT+="Stage focus: ${STAGE_INSTRUCTIONS[${STEP}]}\n\n"
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep the response concise and scoped to the responsibilities of this stage so that it can feed the following agent."
 
