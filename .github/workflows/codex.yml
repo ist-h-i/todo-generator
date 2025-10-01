@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 30
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      CODEX_PY_PKG: "codex-cli"
+      CODEX_NPM_PKG: "@openai/codex"
 
     steps:
       - uses: actions/checkout@v4
@@ -64,31 +64,14 @@ jobs:
 
       - name: Install Codex CLI
         run: |
-          pip install ${CODEX_PY_PKG:-codex-cli}
-          echo "/opt/hostedtoolcache/Python/3.11.13/x64/bin" >> "$GITHUB_PATH"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          hash -r
+          npm i -g ${CODEX_NPM_PKG:-@openai/codex}@0.39.0
+          codex --version
 
-          if python -m codex --version >/dev/null 2>&1; then
-            python -m codex --version
-          elif python -m codex_cli --version >/dev/null 2>&1; then
-            python -m codex_cli --version
-          elif command -v codex >/dev/null 2>&1; then
-            codex --version
-          else
-            echo "::error::Codex CLI not found (neither module nor binary)"
-            exit 1
-          fi
-
-      - name: Debug Codex install
+      - name: Check PATH and codex
         run: |
-          python -m pip show codex-cli
-          python - <<'PY'
-          import pkgutil
-
-          mods = [m.name for m in pkgutil.iter_modules()]
-          print("Installed modules containing 'codex':", [m for m in mods if "codex" in m])
-          PY
+          which codex || true
+          codex --version || true
+          npx -y ${CODEX_NPM_PKG:-@openai/codex}@0.39.0 --version || true
 
       - name: Resolve TASK_INPUT
         id: resolve_task_input
