@@ -133,7 +133,7 @@ jobs:
           if github_env:
               with open(github_env, "a", encoding="utf-8") as env_file:
                   env_file.write(f"TASK_INPUT<<{marker}\n{task_input}\n{marker}\n")
-PY
+          PY
 
       - name: Ensure codex CLI
         run: |
