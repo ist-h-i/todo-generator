@@ -36,7 +36,8 @@ jobs:
           git fetch origin ${{ github.base_ref }}
           git merge --no-commit --no-ff origin/${{ github.base_ref }} || true
 
-      - name: Set up Node.js
+      - name: Set up Node.js (with cache)
+        if: ${{ hashFiles('package-lock.json','frontend/package-lock.json','npm-shrinkwrap.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -44,6 +45,12 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             frontend/package-lock.json
+      
+      - name: Set up Node.js (no cache)
+        if: ${{ hashFiles('package-lock.json','frontend/package-lock.json','npm-shrinkwrap.json') == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Set up Python
         uses: actions/setup-python@v5

@@ -47,7 +47,8 @@ jobs:
           echo "SONAR_HOST_URL or SONAR_TOKEN not set. Skipping SonarQube."
           exit 0
 
-      - name: Set up Node.js
+      - name: Set up Node.js (with cache)
+        if: ${{ hashFiles('package-lock.json','frontend/package-lock.json','npm-shrinkwrap.json') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -55,6 +56,12 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             frontend/package-lock.json
+      
+      - name: Set up Node.js (no cache)
+        if: ${{ hashFiles('package-lock.json','frontend/package-lock.json','npm-shrinkwrap.json') == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Install frontend dependencies
         if: ${{ hashFiles('frontend/package.json') != '' }}
