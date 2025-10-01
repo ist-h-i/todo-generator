@@ -34,6 +34,7 @@ jobs:
     env:
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
 
     steps:
       - name: Checkout
@@ -42,9 +43,9 @@ jobs:
           fetch-depth: 0
 
       - name: Abort if secrets missing
-        if: ${{ env.SONAR_HOST_URL == '' || env.SONAR_TOKEN == '' }}
+        if: ${{ env.SONAR_HOST_URL == '' || env.SONAR_TOKEN == '' || env.SONAR_ORGANIZATION == '' }}
         run: |
-          echo "SONAR_HOST_URL or SONAR_TOKEN not set. Skipping SonarQube."
+          echo "SONAR_HOST_URL, SONAR_TOKEN, or SONAR_ORGANIZATION not set. Skipping SonarQube."
           exit 0
 
       - name: Set up Node.js (with cache)
@@ -88,12 +89,17 @@ jobs:
           fi
 
       - name: SonarQube Scan
+        if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' && env.SONAR_ORGANIZATION != '' }}
         uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+        with:
+          args: >-
+            -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
 
       - name: SonarQube Quality Gate
+        if: ${{ env.SONAR_HOST_URL != '' && env.SONAR_TOKEN != '' && env.SONAR_ORGANIZATION != '' }}
         uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
         with:
           scanMetadataReportFile: .scannerwork/report-task.txt
