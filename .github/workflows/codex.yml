@@ -127,7 +127,7 @@ jobs:
           codex --version
 
       - name: Restore ChatGPT auth (no API key)
-        if: env.RUN_CODE == 'true'
+        if: env.RUN_CODEX == 'true'
         env:
           CODEX_AUTH_JSON_B64: ${{ secrets.CODEX_AUTH_JSON_B64 }}
         run: |
