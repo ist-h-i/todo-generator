@@ -21,8 +21,6 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
     steps:
       - name: Checkout PR branch
@@ -36,6 +34,7 @@ jobs:
           git fetch origin ${{ github.base_ref }}
           git merge --no-commit --no-ff origin/${{ github.base_ref }} || true
 
+      # --- Node/Python/Chrome 等は現状どおり（省略可：下に続く） ---
       - name: Set up Node.js (with cache)
         if: ${{ hashFiles('frontend/package-lock.json','frontend/npm-shrinkwrap.json','frontend/yarn.lock') != '' }}
         uses: actions/setup-node@v4
@@ -77,25 +76,51 @@ jobs:
         id: setup-chrome
         uses: browser-actions/setup-chrome@v1
 
-      - name: Install MCP servers
+      # --- ここから Codex（ChatGPT認証）で自動解消 ---
+      - name: Install Codex CLI
         run: |
-          npm i -g @modelcontextprotocol/server-filesystem
-          python -m pip install --upgrade pip
-          python -m pip install mcp-server-git || true
+          npm i -g @openai/codex@0.39.0
+          codex --version
 
-      - name: Install Codex deps (OpenAI)
+      - name: Restore ChatGPT auth (no API key)
+        env:
+          CODEX_AUTH_JSON_B64: ${{ secrets.CODEX_AUTH_JSON_B64 }}
         run: |
-          python -m pip install --upgrade pip
-          pip install "openai>=1.40.0" pytest pytest-cov
+          set -euo pipefail
+          test -n "${CODEX_AUTH_JSON_B64:-}" || { echo "::error::Missing secret CODEX_AUTH_JSON_B64"; exit 1; }
+          mkdir -p "$HOME/.codex"
+          echo "$CODEX_AUTH_JSON_B64" | base64 -d > "$HOME/.codex/auth.json"
+          chmod 600 "$HOME/.codex/auth.json"
+          printf 'preferred_auth_method = "chatgpt"\n' > "$HOME/.codex/config.toml"
 
-      - name: Run Codex auto-resolve
+      - name: Auto-resolve conflicts via Codex
         run: |
-          if [ -z "${OPENAI_API_KEY:-}" ]; then
-            echo "OPENAI_API_KEY not set. Skipping auto-resolve."
+          set -euo pipefail
+          # 衝突が無ければ早期終了
+          if ! git diff --name-only --diff-filter=U | grep . >/dev/null; then
+            echo "No conflicts."
             exit 0
           fi
-          python scripts/auto_resolve_conflicts.py
+          # 指示をCodexに渡してワークツリーを書き換え＆ステージ
+          codex exec --quiet --sandbox workspace-write <<'TXT'
+          Resolve all Git merge conflicts currently present in the repository.
+          Rules:
+          - Edit files in-place. Remove all conflict markers (<<<<<<<, =======, >>>>>>>).
+          - Preserve surrounding context and project conventions.
+          - Run any minimal steps needed to ensure syntax/types build.
+          - After editing, stage updated files: `git add <files>`.
+          - Do NOT commit.
+          Return a short summary of touched files.
+          TXT
 
+                - name: Verify conflicts are resolved
+                  run: |
+                    if git diff --name-only --diff-filter=U | grep .; then
+                      echo "::error::Unresolved conflicts remain."
+                      exit 1
+                    fi
+
+      # --- Tests（元のまま） ---
       - name: Run Tests
         env:
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
@@ -103,7 +128,6 @@ jobs:
         run: |
           set -e
           ran_tests=false
-
           if [ -f frontend/package.json ]; then
             ran_tests=true
             pushd frontend >/dev/null

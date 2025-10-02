@@ -32,8 +32,9 @@ Follow these rules to keep delivery predictable and maintain quality.
    - Resolve conflicts and rerun the relevant tests or builds afterwards.
 
 ### Codex workflow limitations
-- GitHub workflows triggered by external contributors cannot access repository secrets such as `OPENAI_API_KEY`.
-- When Codex automation fails because secrets are unavailable, a maintainer with write access must re-run the workflow manually via **Run workflow**.
+- Runs triggered by external contributors cannot access repository secrets (e.g., `CODEX_AUTH_JSON_B64`).
+- If secrets are unavailable, Codex cannot run. A maintainer with write access should re-run via **Run workflow**, or an authorized user can trigger by commenting `/codex ...` on the issue.
+- This workflow uses ChatGPT authentication. `OPENAI_API_KEY` is not required.
 
 ---
 

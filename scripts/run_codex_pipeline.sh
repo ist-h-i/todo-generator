@@ -1,45 +1,71 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ---------- Task input ----------
 TASK_INPUT="${TASK_INPUT:-${1:-}}"
 if [ -z "${TASK_INPUT}" ] && [ ! -t 0 ]; then
   TASK_INPUT="$(cat)"
 fi
+# trim
 TASK_INPUT="${TASK_INPUT#${TASK_INPUT%%[![:space:]]*}}"
 TASK_INPUT="${TASK_INPUT%${TASK_INPUT##*[![:space:]]}}"
-
 if [ -z "${TASK_INPUT}" ]; then
   echo "Usage: TASK_INPUT='<task description>' $0" >&2
   exit 1
 fi
 
+# ---------- Codex CLI detection ----------
 if command -v codex >/dev/null 2>&1; then
   CODEX_CLI=(codex)
 elif command -v codex-cli >/dev/null 2>&1; then
   CODEX_CLI=(codex-cli)
-elif command -v python >/dev/null 2>&1 && python -c "import codex" >/dev/null 2>&1; then
-  CODEX_CLI=(python -m codex)
-elif command -v python3 >/dev/null 2>&1 && python3 -c "import codex" >/dev/null 2>&1; then
-  CODEX_CLI=(python3 -m codex)
-elif command -v python >/dev/null 2>&1 && python -c "import codex_cli" >/dev/null 2>&1; then
-  CODEX_CLI=(python -m codex_cli)
-elif command -v python3 >/dev/null 2>&1 && python3 -c "import codex_cli" >/dev/null 2>&1; then
-  CODEX_CLI=(python3 -m codex_cli)
 elif command -v npx >/dev/null 2>&1; then
   CODEX_NPM_PKG="${CODEX_NPM_PKG:-@openai/codex}"
   CODEX_CLI=(npx -y "${CODEX_NPM_PKG}")
+elif command -v python3 >/dev/null 2>&1 && python3 -c "import codex" >/dev/null 2>&1; then
+  CODEX_CLI=(python3 -m codex)
 else
-  echo "Error: codex CLI not found (checked codex, codex-cli, python -m codex, python3 -m codex, codex_cli, and npx)." >&2
+  echo "Error: codex CLI not found (checked codex, codex-cli, npx @openai/codex, python3 -m codex)." >&2
   exit 1
 fi
 
-if [ -z "${OPENAI_API_KEY:-}" ]; then
-  echo "OPENAI_API_KEY is not configured." >&2
+# ---------- ChatGPT auth (no API key) ----------
+AUTH_DIR="${HOME}/.codex"
+AUTH_FILE="${AUTH_DIR}/auth.json"
+mkdir -p "${AUTH_DIR}"
+
+# If provided, materialize auth from secret
+if [ -n "${CODEX_AUTH_JSON_B64:-}" ]; then
+  if ! printf '%s' "$CODEX_AUTH_JSON_B64" | base64 -d > "${AUTH_FILE}" 2>/dev/null; then
+    if ! printf '%s' "$CODEX_AUTH_JSON_B64" | base64 --decode > "${AUTH_FILE}" 2>/dev/null; then
+      if command -v python3 >/dev/null 2>&1; then
+        python3 - "$CODEX_AUTH_JSON_B64" "${AUTH_FILE}" <<'PY'
+import base64,sys,pathlib
+b64=sys.argv[1]; out=sys.argv[2]
+p=pathlib.Path(out); p.parent.mkdir(parents=True, exist_ok=True)
+p.write_bytes(base64.b64decode(b64))
+PY
+      else
+        echo "Error: failed to decode CODEX_AUTH_JSON_B64" >&2
+        exit 1
+      fi
+    fi
+  fi
+  chmod 600 "${AUTH_FILE}"
+fi
+
+# Ensure ChatGPT auth exists
+if [ ! -f "${AUTH_FILE}" ]; then
+  echo "Error: ChatGPT authentication not found (~/.codex/auth.json)." >&2
+  echo "Run 'codex login' locally and set CODEX_AUTH_JSON_B64 in CI." >&2
   exit 1
 fi
 
+# Prefer ChatGPT auth
+echo 'preferred_auth_method = "chatgpt"' > "${AUTH_DIR}/config.toml"
+
+# ---------- Pipeline ----------
 mkdir -p codex_output
-"${CODEX_CLI[@]}" login --api-key "${OPENAI_API_KEY}" >/dev/null 2>&1 || true
 
 PIPELINE_STEPS=(
   translator
@@ -126,5 +152,4 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
   else
     PREVIOUS_CONTEXT="${STEP_OUTPUT}"
   fi
-
 done
