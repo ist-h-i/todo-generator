@@ -7,8 +7,8 @@ on:
       task_input:
         description: Codex パイプラインへ渡すタスク内容（省略時はデフォルト文言）
         required: false
-  issues:
-    types: [opened, edited]
+  issue_comment:
+    types: [created, edited]
 
 concurrency:
   group: codex-auto-dev-${{ github.event_name }}-${{ github.event.issue.number || github.ref || 'manual' }}
@@ -23,8 +23,8 @@ jobs:
   codex:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issues' &&
-       contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
+      (github.event_name == 'issue_comment' &&
+       contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -43,7 +43,8 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, os, sys, uuid
+          import json, os, re, sys, uuid
+
           name = os.environ.get("GITHUB_EVENT_NAME","")
           path = os.environ.get("GITHUB_EVENT_PATH")
           if not path:
@@ -66,20 +67,46 @@ jobs:
           if name == "workflow_dispatch":
               inputs = event.get("inputs") or {}
               task = coerce(inputs.get("task_input")).strip() or "Manual trigger: Please implement the requested feature."
-              out("run_codex","true"); out("task_input", task)
-          elif name == "issues":
+              out("run_codex","true")
+              out("task_input", task)
+
+          elif name == "issue_comment":
               issue = event.get("issue") or {}
+              comment = event.get("comment") or {}
               title = coerce(issue.get("title")).strip()
-              body  = coerce(issue.get("body")).strip()
-              task = "\n\n".join([p for p in (title, body) if p]).strip()
-              if not task:
-                  print("::error::Resolved TASK_INPUT is empty for issues."); sys.exit(1)
-              out("run_codex","true"); out("task_input", task); out("issue_number", coerce(issue.get("number")))
+              issue_body = coerce(issue.get("body")).strip()
+              body = coerce(comment.get("body")).replace("\r","")
+
+              lines = body.split("\n")
+              i = 0
+              while i < len(lines) and lines[i].strip() == "":
+                  i += 1
+              if i == len(lines):
+                  out("run_codex","false"); sys.exit(0)
+
+              first = lines[i].lstrip()
+              if not first.startswith("@CODEX_AGENTS"):
+                  out("run_codex","false"); sys.exit(0)
+
+              head = first[len("@CODEX_AGENTS"):].lstrip(" \t:-")
+              command = ("\n".join([head] + lines[i+1:])).strip()
+
+              # JSONで安全にエスケープ（空白や改行を含んでもOK）
+              payload = json.dumps({
+                  "イシューのタイトル": title,
+                  "イシューの本文": issue_body,
+                  "コメントの内容・指示文": command
+              }, ensure_ascii=False)
+
+              out("run_codex","true")
+              out("task_input", payload)
+              out("issue_number", coerce(issue.get("number")))
           else:
               print("::error::Unsupported event."); sys.exit(1)
 
-          preview = task.replace("\n"," ").replace("\r"," ")
-          print(f"TASK_INPUT preview: {preview[:200]}{'...' if len(preview)>200 else ''}")
+          prev = (locals().get("payload") or locals().get("task") or "").replace("\n"," ").replace("\r"," ")
+          if prev:
+              print(f"TASK_INPUT preview: {prev[:200]}{'...' if len(prev)>200 else ''}")
           PY
 
       - name: Install Codex CLI
@@ -107,9 +134,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          TASK_INPUT="${{ steps.detect.outputs.task_input }}"
+          TASK_INPUT='${{ steps.detect.outputs.task_input }}'
           test -n "${TASK_INPUT:-}" || { echo "::error::TASK_INPUT is not available."; exit 1; }
-          echo "TASK_INPUT: $(printf '%s' "${TASK_INPUT}" | tr '\n' ' ' | head -c 200)${TASK_INPUT:+...}"
+          echo "TASK_INPUT: $(printf '%s' "${TASK_INPUT}" | head -c 200)${TASK_INPUT:+...}"
           mkdir -p codex_output
           printf '%s' "${TASK_INPUT}" | ./scripts/run_codex_pipeline.sh
 
@@ -142,20 +169,15 @@ jobs:
           base: ${{ github.event.repository.default_branch }}
           commit-message: "chore(codex): apply generated changes"
           title: >-
-            Codex: ${{
-              github.event_name == 'issues' && format('issue #{0}', steps.detect.outputs.issue_number) ||
-              'manual run'
-            }}
+            Codex: issue #${{ steps.detect.outputs.issue_number || 'manual' }}
           body: |
-            Task input:
+            Task input (JSON):
 
-            ```
             ${{ steps.detect.outputs.task_input }}
-            ```
           delete-branch: true
 
       - name: Comment work report to issue
-        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.diff.outputs.changed == 'true' && github.event_name == 'issues' }}
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.diff.outputs.changed == 'true' && github.event_name == 'issue_comment' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -168,8 +190,8 @@ jobs:
               `- Created PR: #${prNumber} (${prUrl})`,
               "- Artifacts: attached as workflow artifact `codex-agent-outputs`",
               "",
-              "Task input:",
-              "```",
+              "Task input (JSON):",
+              "```json",
               `${{ steps.detect.outputs.task_input }}`,
               "```"
             ].join("\n");
