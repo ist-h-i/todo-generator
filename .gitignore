@@ -10,3 +10,5 @@ backend/.coverage
 backend/coverage.xml
 backend/htmlcov/
 frontend/coverage/
+backend/.env
+auth.json.b64
