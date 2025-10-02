@@ -159,7 +159,7 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
     CLARIFYING_SECTION=$(printf '%s\n' "${STEP_OUTPUT}" |
       awk '
         BEGIN { in_section=0 }
-        /^##[[:space:]]*[Cc]larifying questions/ { in_section=1; next }
+        tolower($0) ~ /^##[[:space:]]*clarifying questions/ { in_section=1; next }
         /^##[[:space:]]+/ { if (in_section) exit; }
         { if (in_section) print }
       ')
