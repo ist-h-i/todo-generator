@@ -9,8 +9,6 @@ on:
         required: false
   issues:
     types: [opened, edited]
-  issue_comment:
-    types: [created, edited]
 
 concurrency:
   group: codex-auto-dev-${{ github.event_name }}-${{ github.event.issue.number || github.ref || 'manual' }}
@@ -26,9 +24,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issues' &&
-       contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association)) ||
-      (github.event_name == 'issue_comment' &&
-       contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+       contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -39,36 +35,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Detect trigger and build TASK_INPUT.
-      # - workflow_dispatch: use inputs.task_input or default
-      # - issues: title + body
-      # - issue_comment: only run when first non-empty line starts with /codex
       - name: Detect trigger and compose TASK_INPUT
         id: detect
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
-          ISSUE_TITLE: ${{ github.event.issue.title || '' }}
-          ISSUE_BODY: ${{ github.event.issue.body || '' }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, os, re, sys, uuid
-
+          import json, os, sys, uuid
           name = os.environ.get("GITHUB_EVENT_NAME","")
           path = os.environ.get("GITHUB_EVENT_PATH")
           if not path:
-              print("::error::GITHUB_EVENT_PATH is not set.")
-              sys.exit(1)
+              print("::error::GITHUB_EVENT_PATH is not set."); sys.exit(1)
           with open(path, encoding="utf-8") as f:
               event = json.load(f)
 
-          def set_env(k, v):
-              with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as g:
-                  if "\n" in v:
-                      marker = f"EOF_{uuid.uuid4().hex}"
-                      g.write(f"{k}<<{marker}\n{v}\n{marker}\n")
-                  else:
+          def out(k, v):
+              go = os.environ["GITHUB_OUTPUT"]
+              if "\n" in v:
+                  m = f"EOF_{uuid.uuid4().hex}"
+                  with open(go, "a", encoding="utf-8") as g:
+                      g.write(f"{k}<<{m}\n{v}\n{m}\n")
+              else:
+                  with open(go, "a", encoding="utf-8") as g:
                       g.write(f"{k}={v}\n")
 
           def coerce(x): return "" if x is None else str(x)
@@ -76,58 +66,30 @@ jobs:
           if name == "workflow_dispatch":
               inputs = event.get("inputs") or {}
               task = coerce(inputs.get("task_input")).strip() or "Manual trigger: Please implement the requested feature."
-              set_env("RUN_CODEX", "true")
-              set_env("TASK_INPUT", task)
-
+              out("run_codex","true"); out("task_input", task)
           elif name == "issues":
               issue = event.get("issue") or {}
               title = coerce(issue.get("title")).strip()
               body  = coerce(issue.get("body")).strip()
-              task = "\n\n".join([p for p in (title, body) if p])
+              task = "\n\n".join([p for p in (title, body) if p]).strip()
               if not task:
-                  print("::error::Resolved TASK_INPUT is empty for issues.")
-                  sys.exit(1)
-              set_env("RUN_CODEX", "true")
-              set_env("TASK_INPUT", task)
-
-          elif name == "issue_comment":
-              comment = event.get("comment") or {}
-              body = coerce(comment.get("body")).replace("\r","")
-              lines = body.split("\n")
-              i = 0
-              while i < len(lines) and lines[i].strip() == "":
-                  i += 1
-              if i == len(lines):
-                  set_env("RUN_CODEX", "false"); sys.exit(0)
-              first = lines[i].lstrip()
-              if not re.match(r'(?i)^/codex(\s|$)', first):
-                  set_env("RUN_CODEX", "false"); sys.exit(0)
-              head = re.sub(r'(?i)^/codex\s*', '', first)
-              payload = ("\n".join([head] + lines[i+1:])).strip()
-              if not payload:
-                  title = os.environ.get("ISSUE_TITLE","").strip()
-                  body  = os.environ.get("ISSUE_BODY","").strip()
-                  payload = (title + (("\n\n"+body) if body else "")).strip()
-              set_env("RUN_CODEX", "true")
-              set_env("TASK_INPUT", payload)
-
+                  print("::error::Resolved TASK_INPUT is empty for issues."); sys.exit(1)
+              out("run_codex","true"); out("task_input", task); out("issue_number", coerce(issue.get("number")))
           else:
-              print("::error::Unsupported event.")
-              sys.exit(1)
+              print("::error::Unsupported event."); sys.exit(1)
 
-          # Preview (single line)
-          preview = os.environ.get("TASK_INPUT","").replace("\n"," ").replace("\r"," ")
+          preview = task.replace("\n"," ").replace("\r"," ")
           print(f"TASK_INPUT preview: {preview[:200]}{'...' if len(preview)>200 else ''}")
           PY
 
       - name: Install Codex CLI
-        if: env.RUN_CODEX == 'true'
+        if: ${{ steps.detect.outputs.run_codex == 'true' }}
         run: |
           npm i -g ${CODEX_NPM_PKG:-@openai/codex}@0.39.0
           codex --version
 
       - name: Restore ChatGPT auth (no API key)
-        if: env.RUN_CODEX == 'true'
+        if: ${{ steps.detect.outputs.run_codex == 'true' }}
         env:
           CODEX_AUTH_JSON_B64: ${{ secrets.CODEX_AUTH_JSON_B64 }}
         run: |
@@ -140,20 +102,86 @@ jobs:
           codex --version
 
       - name: Run Codex pipeline
-        if: env.RUN_CODEX == 'true'
+        if: ${{ steps.detect.outputs.run_codex == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          TASK_INPUT="${{ steps.detect.outputs.task_input }}"
           test -n "${TASK_INPUT:-}" || { echo "::error::TASK_INPUT is not available."; exit 1; }
           echo "TASK_INPUT: $(printf '%s' "${TASK_INPUT}" | tr '\n' ' ' | head -c 200)${TASK_INPUT:+...}"
           mkdir -p codex_output
           printf '%s' "${TASK_INPUT}" | ./scripts/run_codex_pipeline.sh
 
       - name: Upload Codex outputs
-        if: always() && env.RUN_CODEX == 'true'
+        if: ${{ always() && steps.detect.outputs.run_codex == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: codex-agent-outputs
           path: codex_output
           retention-days: 7
+
+      - name: Check repository diff
+        if: ${{ steps.detect.outputs.run_codex == 'true' }}
+        id: diff
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Pull Request
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.diff.outputs.changed == 'true' }}
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: codex/${{ github.run_id }}
+          base: ${{ github.event.repository.default_branch }}
+          commit-message: "chore(codex): apply generated changes"
+          title: >-
+            Codex: ${{
+              github.event_name == 'issues' && format('issue #{0}', steps.detect.outputs.issue_number) ||
+              'manual run'
+            }}
+          body: |
+            Task input:
+
+            ```
+            ${{ steps.detect.outputs.task_input }}
+            ```
+          delete-branch: true
+
+      - name: Comment work report to issue
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.diff.outputs.changed == 'true' && github.event_name == 'issues' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = Number("${{ steps.detect.outputs.issue_number }}");
+            const prUrl = "${{ steps.cpr.outputs.pull-request-url }}";
+            const prNumber = Number("${{ steps.cpr.outputs.pull-request-number }}");
+            const body = [
+              "Automated work completed by Codex.",
+              "",
+              `- Created PR: #${prNumber} (${prUrl})`,
+              "- Artifacts: attached as workflow artifact `codex-agent-outputs`",
+              "",
+              "Task input:",
+              "```",
+              `${{ steps.detect.outputs.task_input }}`,
+              "```"
+            ].join("\n");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body
+            });
+
+      - name: Enforce completion condition
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.diff.outputs.changed != 'true' }}
+        run: |
+          echo "::error::No changes detected. PR was not created, so completion conditions are not met."
+          exit 1
