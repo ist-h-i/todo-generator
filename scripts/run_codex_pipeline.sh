@@ -94,7 +94,7 @@ PIPELINE_STEPS=(
 )
 
 declare -A STAGE_INSTRUCTIONS=(
-  [translator]="Clarify the request in English. List assumptions and unknowns."
+  [translator]="Clarify the request in English. List assumptions and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points. Write 'None' if no follow-up is needed."
   [requirements_analyst]="Structure FR/NFR and acceptance criteria. Expose risks and open items."
   [requirements_reviewer]="Verify completeness and consistency. Send back if gaps remain."
   [planner]="Define steps, owners, dependencies, gates, and clear done criteria."
@@ -120,6 +120,8 @@ declare -A STAGE_INSTRUCTIONS=(
 )
 
 PREVIOUS_CONTEXT=""
+NEEDS_INFO=0
+CLARIFYING_SECTION=""
 
 for STEP in "${PIPELINE_STEPS[@]}"; do
   OUTPUT_FILE="codex_output/${STEP}.md"
@@ -152,4 +154,35 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
   else
     PREVIOUS_CONTEXT="${STEP_OUTPUT}"
   fi
+
+  if [ "${STEP}" = "translator" ]; then
+    CLARIFYING_SECTION=$(printf '%s\n' "${STEP_OUTPUT}" |
+      awk '
+        BEGIN { in_section=0 }
+        /^##[[:space:]]*[Cc]larifying questions/ { in_section=1; next }
+        /^##[[:space:]]+/ { if (in_section) exit; }
+        { if (in_section) print }
+      ')
+
+    CLARIFYING_CLEAN=$(printf '%s\n' "${CLARIFYING_SECTION}" |
+      sed '/^[[:space:]]*[-*]\{0,1\}[[:space:]]*\(none\|n\/a\)\.?[[:space:]]*$/Id')
+
+    if printf '%s\n' "${CLARIFYING_CLEAN}" | grep -q '[^[:space:]]'; then
+      NEEDS_INFO=1
+      mkdir -p codex_output
+      {
+        printf '## Clarifying questions\n'
+        printf '%s\n' "${CLARIFYING_SECTION}" | sed 's/[[:space:]]*$//'
+      } > codex_output/clarifying_questions.md
+      cat <<'JSON' > codex_output/status.json
+{"status":"needs_clarification"}
+JSON
+      printf '%s\n' "Translator stage requested clarifications. Stopping pipeline early." >&2
+      break
+    fi
+  fi
 done
+
+if [ "${NEEDS_INFO}" -eq 1 ]; then
+  exit 0
+fi
