@@ -173,7 +173,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: codex/${{ github.run_id }}
+          branch: ${{ github.event_name == 'issue_comment' && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
           base: ${{ github.event.repository.default_branch }}
           commit-message: "chore(codex): apply generated changes"
           title: "${{ github.event_name == 'issue_comment' && format('Codex: issue #{0}', steps.detect.outputs.issue_number) || 'Codex: manual run' }}"
@@ -194,7 +194,7 @@ jobs:
             const body = [
               "Automated work completed by Codex.",
               "",
-              `- Created PR: #${prNumber} (${prUrl})`,
+              `- Created/updated PR: #${prNumber} (${prUrl})`,
               "- Artifacts: attached as workflow artifact `codex-agent-outputs`",
               "",
               "Task input (JSON):",
