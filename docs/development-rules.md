@@ -35,6 +35,7 @@ Follow these rules to keep delivery predictable and maintain quality.
 - Runs triggered by external contributors cannot access repository secrets (e.g., `CODEX_AUTH_JSON_B64`).
 - If secrets are unavailable, Codex cannot run. A maintainer with write access should re-run via **Run workflow**, or an authorized user can trigger by commenting `/codex ...` on the issue.
 - This workflow uses ChatGPT authentication. `OPENAI_API_KEY` is not required.
+- When you work in **Agent Mode**, create a feature branch from the latest `main`, commit each meaningful output, and push regularly so that every automated run has a clean history to diff against.
 
 ---
 
