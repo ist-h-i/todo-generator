@@ -156,11 +156,11 @@ jobs:
           status=""
           if [ -f codex_output/status.json ]; then
             status=$(python3 - <<'PY'
-import json, pathlib
-path = pathlib.Path("codex_output/status.json")
-data = json.loads(path.read_text(encoding="utf-8"))
-print(data.get("status", ""))
-PY
+          import json, pathlib
+          path = pathlib.Path("codex_output/status.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          print(data.get("status", ""))
+          PY
             )
           fi
           if [ "${status}" = "needs_clarification" ]; then
