@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       task_input:
-        description: Codex パイプラインへ渡すタスク内容（省略時はデフォルト文言）
+        description: Task text passed to the Codex pipeline (defaults if omitted)
         required: false
   issue_comment:
     types: [created, edited]
@@ -90,12 +90,20 @@ jobs:
 
               head = first[len("@CODEX_AGENTS"):].lstrip(" \t:-")
               command = ("\n".join([head] + lines[i+1:])).strip()
+              if not command:
+                  out("run_codex","false"); sys.exit(0)
 
-              # JSONで安全にエスケープ（空白や改行を含んでもOK）
+              policy = (
+                  "You MUST follow these constraints:\n"
+                  "1. Avoid creating unnecessary tasks and keep impact on the existing project to a minimum.\n"
+                  "2. Complete all required fixes to deliver a finished, self-contained outcome."
+              )
+              augmented_command = f"{command}\n\n{policy}"
+
               payload = json.dumps({
-                  "イシューのタイトル": title,
-                  "イシューの本文": issue_body,
-                  "コメントの内容・指示文": command
+                  "Issue Title": title,
+                  "Issue Body": issue_body,
+                  "Instruction": augmented_command
               }, ensure_ascii=False)
 
               out("run_codex","true")
@@ -168,8 +176,7 @@ jobs:
           branch: codex/${{ github.run_id }}
           base: ${{ github.event.repository.default_branch }}
           commit-message: "chore(codex): apply generated changes"
-          title: >-
-            Codex: issue #${{ steps.detect.outputs.issue_number || 'manual' }}
+          title: "${{ github.event_name == 'issues' && format('Codex: issue #{0}', steps.detect.outputs.issue_number) || 'Codex: manual run' }}"
           body: |
             Task input (JSON):
 
@@ -182,8 +189,8 @@ jobs:
         with:
           script: |
             const issue_number = Number("${{ steps.detect.outputs.issue_number }}");
-            const prUrl = "${{ steps.cpr.outputs.pull-request-url }}";
-            const prNumber = Number("${{ steps.cpr.outputs.pull-request-number }}");
+            const prUrl = "${{ steps.cpr.outputs['pull-request-url'] }}";
+            const prNumber = Number("${{ steps.cpr.outputs['pull-request-number'] }}");
             const body = [
               "Automated work completed by Codex.",
               "",
