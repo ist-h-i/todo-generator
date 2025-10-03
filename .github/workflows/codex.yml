@@ -141,6 +141,7 @@ jobs:
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_CODEX: ${{ steps.detect.outputs.run_codex }}
         run: |
           set -euo pipefail
           mkdir -p codex_output
