@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ---------- Guard by env.RUN_CODEX ----------
+if [ "${RUN_CODEX:-}" != "true" ]; then
+  echo "::notice::RUN_CODEX!=true; skipping Codex pipeline"
+  exit 0
+fi
+
 # ---------- Task input ----------
 TASK_INPUT="${TASK_INPUT:-${1:-}}"
 if [ -z "${TASK_INPUT}" ] && [ ! -t 0 ]; then
@@ -10,7 +16,7 @@ fi
 TASK_INPUT="${TASK_INPUT#${TASK_INPUT%%[![:space:]]*}}"
 TASK_INPUT="${TASK_INPUT%${TASK_INPUT##*[![:space:]]}}"
 if [ -z "${TASK_INPUT}" ]; then
-  echo "Usage: TASK_INPUT='<task description>' $0" >&2
+  echo "Usage: RUN_CODEX=true TASK_INPUT='<task description or JSON>' $0" >&2
   exit 1
 fi
 
@@ -175,7 +181,7 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
       cat <<'JSON' > codex_output/status.json
 {"status":"needs_clarification"}
 JSON
-      printf '%s\n' "Translator stage requested clarifications. Stopping pipeline early." >&2
+      echo "::notice::Translator stage requested clarifications. Stopping pipeline early."
       exit 0
     fi
   fi
