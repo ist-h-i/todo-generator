@@ -77,7 +77,6 @@ jobs:
               issue_body = coerce(issue.get("body")).strip()
               body = coerce(comment.get("body")).replace("\r","")
 
-              # Require @CODEX_AGENTS at the first non-empty line
               lines = body.split("\n")
               i = 0
               while i < len(lines) and lines[i].strip() == "":
@@ -91,7 +90,6 @@ jobs:
 
               head = first[len("@CODEX_AGENTS"):].lstrip(" \t:-")
               command = ("\n".join([head] + lines[i+1:])).strip()
-
               # Allow empty command: pass literal "" so quoting is safe
               if not command:
                   command = '""'
@@ -155,45 +153,28 @@ jobs:
         id: clarifications
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import json, pathlib, re, sys, textwrap
-          needs = False
-          questions = ""
-
-          # 1) status.json contract (preferred)
-          p = pathlib.Path("codex_output/status.json")
-          if p.exists():
-              try:
-                  data = json.loads(p.read_text(encoding="utf-8"))
-                  if data.get("status") == "needs_clarification":
-                      needs = True
-                      qf = pathlib.Path("codex_output/clarifying_questions.md")
-                      if qf.exists():
-                          questions = qf.read_text(encoding="utf-8").strip()
-              except Exception:
-                  pass
-
-          # 2) Heuristic on translator.md (fallback)
-          if not needs:
-              t = pathlib.Path("codex_output/translator.md")
-              if t.exists():
-                  txt = t.read_text(encoding="utf-8")
-                  if re.search(r'(?i)\b(questions?|needs? clarification|clarifications?)\b', txt):
-                      needs = True
-                      m = re.search(r'(?is)^(?:#+\s*)?(?:Open\s+)?Questions?:\s*\n(.*?)(?:\n#+\s|\Z)', txt, re.M)
-                      if m:
-                          questions = m.group(1).strip()
-                      else:
-                          # Fallback: provide the whole translator output (truncated)
-                          questions = textwrap.shorten(txt.strip().replace("\r",""), width=4000, placeholder="…")
-
-          # Emit outputs
-          print(f"needs_clarification={'true' if needs else 'false'}")
-          if needs:
-              print("questions<<EOF")
-              print(questions or "- (No specific questions were extracted. Please restate details.)")
-              print("EOF")
+          status=""
+          if [ -f codex_output/status.json ]; then
+            status=$(python3 - <<'PY'
+          import json, pathlib
+          path = pathlib.Path("codex_output/status.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          print(data.get("status", ""))
           PY
+            )
+          fi
+          if [ "${status}" = "needs_clarification" ]; then
+            echo "needs_clarification=true" >> "$GITHUB_OUTPUT"
+            if [ -f codex_output/clarifying_questions.md ]; then
+              {
+                echo "questions<<EOF"
+                cat codex_output/clarifying_questions.md
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "needs_clarification=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload Codex outputs
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -214,6 +195,27 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # ---- NEW: Summarize changes for explanation ----
+      - name: Summarize changes
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.diff.outputs.changed == 'true' }}
+        id: summary
+        run: |
+          set -euo pipefail
+          files="$(git --no-pager diff --name-only)"
+          stat="$(git --no-pager diff --stat)"
+          count="$(printf "%s\n" "$files" | sed '/^$/d' | wc -l | tr -d ' ')"
+          {
+            echo "change_summary<<'EOF'"
+            echo "Changed files ($count):"
+            echo
+            printf '%s\n' "$files" | sed 's/^/- /'
+            echo
+            echo "Diffstat:"
+            echo
+            printf '%s\n' "$stat"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Request additional details on issue
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' && github.event_name == 'issue_comment' }}
         uses: actions/github-script@v7
@@ -231,7 +233,7 @@ jobs:
               '',
               questions || '- (No questions captured, please restate your request with additional details.)',
               '',
-              '_Reply starting with `@CODEX_AGENTS` once you have responded so the workflow can continue._'
+              '_Reply with `@CODEX_AGENTS` once you have responded so the workflow can continue._'
             ].join('\n');
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -243,7 +245,7 @@ jobs:
       - name: Surface clarification need
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' && github.event_name != 'issue_comment' }}
         run: |
-          echo "Codex requested clarifying information. Please review codex_output/clarifying_questions.md or translator.md."
+          echo "Codex requested clarifying information. Please review codex_output/clarifying_questions.md."
 
       - name: Create Pull Request
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && steps.diff.outputs.changed == 'true' }}
@@ -259,16 +261,25 @@ jobs:
             Task input (JSON):
 
             ${{ steps.detect.outputs.task_input }}
+
+            Changes summary:
+
+            ```text
+            ${{ steps.summary.outputs.change_summary }}
+            ```
           delete-branch: true
 
       - name: Comment work report to issue
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && steps.diff.outputs.changed == 'true' && github.event_name == 'issue_comment' }}
         uses: actions/github-script@v7
+        env:
+          CHANGE_SUMMARY: ${{ steps.summary.outputs.change_summary }}
         with:
           script: |
             const issue_number = Number("${{ steps.detect.outputs.issue_number }}");
             const prUrl = "${{ steps.cpr.outputs['pull-request-url'] }}";
             const prNumber = Number("${{ steps.cpr.outputs['pull-request-number'] }}");
+            const summary = (process.env.CHANGE_SUMMARY || '').trim();
             const body = [
               "Automated work completed by Codex.",
               "",
@@ -278,6 +289,11 @@ jobs:
               "Task input (JSON):",
               "```json",
               `${{ steps.detect.outputs.task_input }}`,
+              "```",
+              "",
+              "Changes summary:",
+              "```text",
+              summary,
               "```"
             ].join("\n");
             await github.rest.issues.createComment({
