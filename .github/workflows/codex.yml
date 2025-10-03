@@ -177,6 +177,38 @@ jobs:
             echo "needs_clarification=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Debug gates
+        if: ${{ steps.detect.outputs.run_codex == 'true' }}
+        run: |
+          echo "run_codex=${{ steps.detect.outputs.run_codex }}"
+          echo "needs_clarification=${{ steps.clarifications.outputs.needs_clarification || 'n/a' }}"
+
+      - name: Comment clarifying questions to issue
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' && github.event_name == 'issue_comment' }}
+        uses: actions/github-script@v7
+        env:
+          QUESTIONS: ${{ steps.clarifications.outputs.questions }}
+        with:
+          script: |
+            const issue_number = Number("${{ steps.detect.outputs.issue_number }}");
+            const questions = process.env.QUESTIONS || '(no questions found)';
+            const body = [
+              "Codex requires clarifications before continuing.",
+              "",
+              "### Questions",
+              questions
+            ].join("\n");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              body
+            });
+
+      - name: Stop after clarification
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' }}
+        run: echo "::notice::Waiting for user clarifications." && exit 0
+
       - name: Upload Codex outputs
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
         uses: actions/upload-artifact@v4
