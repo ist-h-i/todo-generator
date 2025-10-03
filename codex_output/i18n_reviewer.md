@@ -1,50 +1,40 @@
-**i18n Findings**
+**Scope**
+- Focus: i18n coverage of Board subtask cards and related UI strings.
+- Result: Layout change is done; below are i18n findings and quick fixes.
 
-- No translation framework detected; all UI copy is hardcoded. No usage of `| translate`, `$localize`, `i18n` attributes, Transloco, or TranslateModule.
-- Mixed-language copy (Japanese + English) in the same views:
-  - `frontend/src/app/features/auth/login/page.html:3` — `Workspace Access` (English)
-  - `frontend/src/app/features/auth/login/page.html:4` — Japanese title
-  - `frontend/src/app/features/auth/login/page.html:45` — `you@example.com` (English placeholder)
-  - `frontend/src/app/core/layout/shell/shell.html:68` — `Verbalize Yourself` (English brand)
-  - `frontend/src/app/core/layout/shell/shell.html:69` — `AIガイドのリフレクションワークスペース` (Japanese tagline)
-- Locale metadata is set to Japanese in the shell document:
-  - `frontend/src/index.html:1` — `<html lang="ja">`
+**Mixed/Hardcoded Strings**
+- Mixed languages in the same view:
+  - English “Subtasks” vs. Japanese headings/descriptions: frontend/src/app/features/board/page.html:221
+  - Status label “NonIssue” amid Japanese titles: frontend/src/app/features/board/page.ts:115
+- Unmarked literals in template (add `i18n`):
+  - Eyebrow/title/description/hint: frontend/src/app/features/board/page.html:221, frontend/src/app/features/board/page.html:222, frontend/src/app/features/board/page.html:223, frontend/src/app/features/board/page.html:225
+  - Empty state: frontend/src/app/features/board/page.html:245
+  - Parent/labels/due/assignee/effort labels: frontend/src/app/features/board/page.html:271, frontend/src/app/features/board/page.html:286, frontend/src/app/features/board/page.html:292, frontend/src/app/features/board/page.html:295
+  - Counter suffix “件”: frontend/src/app/features/board/page.html:241
+- Unmarked literals in code (use `$localize` or extract):
+  - Quick filter labels/descriptions: frontend/src/app/features/board/page.ts:34–60
+  - Priority labels: frontend/src/app/features/board/page.ts:66–71
+  - Subtask status titles (including “NonIssue”): frontend/src/app/features/board/page.ts:111–116
 
-**Formats**
+**Variable Strings & Formats**
+- Status names shown with `{{ column.title }}` depend on `SUBTASK_STATUS_META` titles; ensure localized source: frontend/src/app/features/board/page.html:265, frontend/src/app/features/board/page.ts:111–116.
+- Date format `date: 'yyyy/MM/dd'` is acceptable for ja-JP but is fixed; consider localized token (e.g., `shortDate`) if multi-locale: frontend/src/app/features/board/page.html:286.
+- Hours unit “h” should be translatable (e.g., `'h'` vs. `時間`): frontend/src/app/features/board/page.html:295.
+- List separator for quick filter summary uses ASCII “, ”; for JA prefer “、” or use `Intl.ListFormat`: frontend/src/app/features/board/page.ts:210–217.
 
-- Dates:
-  - Fixed numeric formats widely used (locale-agnostic): e.g., `yyyy/MM/dd`, `yyyy/MM/dd HH:mm`.
-    - Examples: `frontend/src/app/features/board/page.html:397`, `frontend/src/app/features/profile/evaluations/page.html:295`.
-  - Some tokens rely on Angular locale (`'short'`, `'medium'`) but no `LOCALE_ID`/`registerLocaleData`/`provideLocale` found:
-    - `frontend/src/app/features/reports/reports-page.component.html:378` — `date: 'short'`
-    - `frontend/src/app/features/admin/page.html:99` — `date: 'medium'`
-  - Risk: Without Japanese locale registration, `'short'/'medium'` render en-US style.
-- Numbers/percent:
-  - Percent rendered via `number` pipe + `%` text (locale-neutral but positions vary by locale):
-    - `frontend/src/app/features/analytics/page.html:298` — `{{ overview.recurrenceRate * 100 | number: '1.0-0' }}%`
-    - Consider `PercentPipe` for locale-aware percent formatting if/when locale is enforced.
+**Accessibility Strings**
+- Consider explicit label for status for SRs (e.g., “ステータス: {{ column.title }}”) and mark for i18n: frontend/src/app/features/board/page.html:262–266.
 
-**Missing Translations**
+**Locale Setup**
+- App `lang` is `ja` (good): frontend/src/index.html:1.
+- `@angular/localize` and extract target present; static strings in templates lack `i18n` markers (add `i18n`/`i18n-attr` and optional `@@ids`): frontend/angular.json:76–77.
 
-- Numerous hardcoded strings (labels, headings, placeholders, aria-labels) across templates lack externalized keys:
-  - Examples: `frontend/src/app/features/auth/login/page.html` (all form labels/buttons), `frontend/src/app/core/layout/shell/shell.html` (brand, tagline, nav labels), `frontend/src/app/features/settings/page.html` (settings copy).
+**Recommendations**
+- Add `i18n` attributes to the static template strings listed above, with descriptions and stable IDs.
+- Replace TS literals with `$localize` (quick filters, priorities, subtask status titles) or load from a translation source.
+- Localize list joining (use `Intl.ListFormat('ja')`) instead of `join(', ')`: frontend/src/app/features/board/page.ts:210–217.
+- Parameterize units and counters (“件”, “h”) via translation entries; keep user-entered values unchanged.
+- Ensure status titles come from localized data (avoid mixing English “NonIssue” in a Japanese locale).
 
-**Risks**
-
-- Inconsistent language (JP/EN mix) degrades UX and complicates future localization.
-- Date tokens `'short'/'medium'` will not match Japanese conventions unless locale is explicitly configured.
-- Manual percent sign may not align with locale-specific spacing/placement.
-
-**Recommendations (Low-Impact)**
-
-- Decide primary UI language; unify current hardcoded copy accordingly (JP or EN).
-- If Japanese is intended:
-  - Register/Provide Japanese locale globally (Angular 20: `provideLocale('ja-JP')`) or `registerLocaleData(ja)`, then prefer locale tokens (`'short'`, `'medium'`) or consistent explicit formats.
-  - Replace `number + '%'` with `PercentPipe` where feasible for locale-aware rendering.
-- For future localization:
-  - Introduce a translation mechanism (Angular i18n or a runtime library) and start externalizing user-facing strings.
-  - Normalize placeholders and aria-labels (e.g., translate `you@example.com`, `Workspace Access`).
-
-**Note on Current Task**
-
-- The planned “no any” ESLint/doc changes do not alter strings or i18n behavior; no blocking i18n issues introduced by this change.
+**Non-Goals**
+- Do not translate user content: `subtask.title`, `subtask.parentTitle`, `labelName(...)` remain as-is.

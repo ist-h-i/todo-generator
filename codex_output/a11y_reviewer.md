@@ -1,38 +1,30 @@
 **Summary**
-- No direct UI change; elevating a TypeScript lint rule has no functional a11y impact.
-- Overall a11y posture remains dependent on existing templates and components. Keep current good practices for focus, semantics, and error messaging.
+- The subtask card now stacks Status above Content with vertical DOM order, which improves a11y and reading flow.
+- Verified at frontend/src/app/features/board/page.html:261.
 
-**Keyboard Access**
-- Prefer native interactive elements (`button`, `a[href]`) over click handlers on `div/span`.
-- Handle DOM events in component code with typed `Event`/targets; avoid `$any(...)` casts in templates to keep keyboard behavior consistent.
-- Manage focus on route changes and after form submission errors; move focus to the first invalid control.
-- Maintain visible focus indicators; do not remove outlines.
+**What Passes**
+- Visual/DOM order alignment: Status `span` precedes Title `h4` inside `flex flex-col` container (frontend/src/app/features/board/page.html:261–270).
+- No CSS-only reordering; `justify-between` removed and `gap-2` retained, keeping tab/read order predictable.
+- Page language declared `lang="ja"` (frontend/src/index.html:2).
 
-**ARIA**
-- Use native semantics first; add ARIA only when necessary. Avoid redundant roles on native elements.
-- Associate labels and errors: use `for`/`id` and `aria-describedby` for error/help text.
-- Announce async state changes with live regions (e.g., `role="status"` or `aria-live="polite"`); avoid `aria-hidden="true"` on focusable or interactive content.
-- Ensure `id`s used for ARIA relationships are unique and present.
+**Potential Issues**
+- Keyboard alternative for DnD: Subtask status appears changeable by drag only in the subtask board. A non-pointer method exists via the card detail drawer select (frontend/src/app/features/board/page.html:548–574), but there’s no direct control from each subtask card or an obvious link to open the parent card. This may hinder keyboard-only users (WCAG 2.1.1).
+- Announcements on drop: No clear live announcement when a subtask is moved between columns (WCAG 4.1.3, 3.2.2).
+- List semantics: Subtask cards render as `article`s in a `div` list (frontend/src/app/features/board/page.html:247–300). Lack of `role="list"`/`role="listitem"` or `ul/li` could reduce SR navigation clarity (WCAG 1.3.1).
+- Contrast in dark mode: The status text uses `text-slate-500` at 11px (frontend/src/app/features/board/page.html:262–266). On dark surfaces this static Tailwind color may be insufficient; app-wide tokens handle theming better (WCAG 1.4.3).
 
-**Contrast**
-- Verify color tokens meet WCAG 2.1 AA:
-  - Text: 4.5:1 (3:1 for ≥18pt or ≥14pt bold).
-  - Non-text UI components and focus indicators: 3:1 against adjacent colors.
-- Check contrast for disabled states for clarity (advisable, even if not strictly required).
+**Recommendations**
+- Keyboard fallback
+  - Add a small, accessible “Change status” control on each subtask card (e.g., a `select` or button opening a menu) or a link to open the parent card’s editor focused on the status field.
+  - Ensure it’s reachable via Tab and labeled (e.g., aria-label “ステータスを変更: {{ subtask.title }}”).
+- Live feedback
+  - Announce moves via an `aria-live="polite"` region (e.g., “『{{ subtask.title }}』を『{{ column.title }}』に移動しました”) triggered in `handleSubtaskDrop` (frontend/src/app/features/board/page.ts:307–320).
+- Semantics
+  - Mark the subtask list container as `role="list"` and each `article` as `role="listitem"`, or convert to `ul/li` for SR-friendly grouping (frontend/src/app/features/board/page.html:243, 248).
+  - Add `aria-label` on the status text or wrap with contextual labeling if needed: “ステータス: {{ column.title }}” to reduce ambiguity.
+- Contrast/theming
+  - Replace `text-slate-500` with a design token class that adapts to themes, e.g., `text-muted` (frontend/src/styles.scss:218), for status/metadata text (frontend/src/app/features/board/page.html:262, 271, 278, 285, 290).
 
-**Forms & Validation**
-- Provide clear, inline error messages tied to inputs via `aria-describedby`.
-- Announce form-level errors in a live region and set focus to the first error.
-- Ensure helper/placeholder text is not used as a label substitute.
-
-**Dynamic Content**
-- For loading/success/error states, expose status changes through live regions and ensure the DOM order reflects reading order.
-- Avoid content shifts that move focus unexpectedly; trap focus only in true modal dialogs.
-
-**Recommendations (Low-Impact)**
-- Reduce template `$any(...)` by typing event handlers in TS to preserve predictable keyboard/AT behavior.
-- Optionally add `@angular-eslint/template` accessibility rules (warn) in a follow-up, plus `template/no-any` as warn to curb new `$any`.
-- Add a short a11y checklist line to PRs: keyboard operability, focus management, labels/ARIA ties, and contrast verified.
-
-**Verdict**
-- Approved from an a11y standpoint. No blockers introduced by the lint rule change; consider the optional follow-ups to further harden keyboard and template accessibility.
+**Validation Notes**
+- Layout change meets the requirement and improves reading order a11y.
+- Addressing the keyboard alternative and live announcements will close the remaining WCAG gaps without broad refactors.

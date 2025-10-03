@@ -1,18 +1,16 @@
 **Integration Findings**
 
-- ESLint enforces no `any`: `@typescript-eslint/no-explicit-any` is set to `error` in `frontend/.eslintrc.cjs`.
-- Lint gate blocks warnings: `npm run lint` uses `--max-warnings=0` in `frontend/package.json`.
-- Documentation present: “Frontend Type Safety: No any” section exists in `docs/development-rules.md`, including DTO guidance and examples; canonical DTO path is `frontend/src/app/shared/models`.
-- Baseline clean: no occurrences of `: any`, `<any>`, or `as any` in `frontend/src/**`.
-- Angular template casts: no `$any(...)` usages found in `frontend/src/**`.
-- Scope applies uniformly (including specs); no overrides detected for `*.spec.ts`.
-- CI impact: With rule at error and zero warnings allowed, future `any` usage will fail lint clearly.
-- No code or config changes required; repository already satisfies the acceptance criteria.
+- Outcome: Requirement already implemented; no code changes needed.
+- Evidence:
+  - Vertical stack container present: `frontend/src/app/features/board/page.html:261`
+    - Classes: `flex flex-col items-start justify-start gap-2`
+  - DOM order matches visual order:
+    - Status text first: `frontend/src/app/features/board/page.html:262`
+    - Title below: `frontend/src/app/features/board/page.html:267`
+- Scope/Impact: Change is confined to subtask cards on the Board view; other card layouts unaffected.
+- Acceptance: Stacks Status above Content with compact spacing; `justify-between` removed; works universally (no breakpoint overrides observed).
 
-**Status**
+**Next Steps**
 
-- Ready to ship. Lint/docs align with the decided policy; baseline should pass in CI.
-
-**Optional Follow‑Ups (non-blocking)**
-
-- Consider evaluating `@angular-eslint/template/no-any` (warn) to curb future `$any` usage in templates if desired.
+- Run frontend checks: `cd frontend && npm test -- --watch=false && npm run lint && npm run format:check && npm run build`.
+- Attach a before/after screenshot in the PR for visual confirmation.

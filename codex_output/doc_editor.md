@@ -1,42 +1,61 @@
-**Doc Consistency Findings**
+**Scope**
 
-- Terminology
-  - Use “Disallow `any`” (not “no any” or “ban any”).
-  - Capitalize consistently: TypeScript, Angular, ESLint, Prettier, DTO, CI.
-  - Use “type guard”, “adapter”, and “spec files” (`*.spec.ts`) consistently.
+- Edit wording for consistency, terminology, and formatting across README note, CHANGELOG entry, and ADR draft.
+- Keep language English, concise, and aligned with repo conventions.
 
-- Code/Rule Formatting
-  - Wrap rule names, code, and paths in backticks: `@typescript-eslint/no-explicit-any`, `HttpClient<T>`, `frontend/src/app/shared/models`.
-  - Rule severity: use `'error'` everywhere; avoid mixing with “warn” in narrative unless explicitly contrasting.
-  - Inline disable comments should use ASCII hyphens, not em dashes, and avoid curly quotes:
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any - 3rd-party callback; see T-1234
+**Preferred Terms**
 
-- Scope Phrasing
-  - State clearly: applies to all TypeScript in `frontend/src/app/**`, including spec files.
-  - Angular template `$any(...)` is out of scope for this change; avoid asserting specific file occurrences to prevent drift.
+- Board view (not “Board screen”)
+- Subtask card (not “subtask tile/card UI”)
+- Status (the subtask’s status shown via the column name)
+- Content (the subtask title/description block)
+- Vertical stack; stack Status above Content
+- Tailwind utility classes (e.g., `flex`, `flex-col`, `gap-2`)
 
-- Paths and Locations
-  - Use a single canonical dir for shared types/DTOs: `frontend/src/app/shared/models`.
-  - Refer to files and extensions consistently: “spec files (`*.spec.ts`)”, not “specs/tests”.
+**Formatting Rules**
 
-- Examples Style
-  - Use TypeScript code fences (` ```ts `).
-  - Prefer concise examples with single quotes and semicolons, matching Prettier config.
-  - Keep examples generic and non-PII (e.g., `user@example.com` OK).
+- Wrap class names and file paths in backticks.
+- Capitalize component/view names (“Board view”, “Status”, “Content”).
+- Use imperative voice: “Stack”, “Update”, “Verify”.
+- Keep bullet points parallel and single‑line where possible.
+- Use “all breakpoints” rather than “universally” or “across devices”.
 
-- Headings and Lists
-  - Use Title Case for section headers (e.g., “Frontend Type Safety: Disallow `any`”).
-  - Keep bullets parallel and imperative; avoid repeating the same point across sections.
+**Terminology Alignment**
 
-- Remove/Resolve Inconsistencies
-  - Conflicting statements about `$any(...)` usage: replace with a neutral, scoped statement (“out of scope; consider follow-up template linting”).
-  - Duplicate CI signal notes: consolidate to one clear statement that CI runs `npm run lint` with `--max-warnings=0` and the rule is `error`.
+- Refer to the status text as “Status” even when bound to `{{ column.title }}` (clarify once: “Status (column title)”).
+- Use “stack Status above Content” consistently (avoid mixing “status on top”/“status first”).
 
-- Language and Hyphenation
-  - Prefer “third-party” (hyphenated), “follow-up” (hyphenated), “fallback” (single word).
-  - Use American English consistently (e.g., “behavior”, “sanitize”).
+**Copyedits (Ready‑to‑Use)**
 
-- Privacy Notes (concise, consistent)
-  - Keep bullets short: minimize DTO fields, no PII in logs/URLs/client storage, consent for telemetry.
+- README (Frontend UI → Board view → Subtasks)
+  - Goal: Stack Status above Content in subtask cards.
+  - Layout: The container uses `flex flex-col items-start justify-start gap-2`.
+  - Order: Status (column title) precedes Content (subtask title) in the DOM.
+  - File: `frontend/src/app/features/board/page.html:261`
+  - Rationale: Improves readability and aligns visual and tab/reading order.
+  - Verify: Confirm the container excludes `justify-between` and includes `flex-col` with `gap-2`.
 
-Applying the above will keep the ESLint/docs guidance crisp, consistent, and aligned with repo conventions.
+- CHANGELOG
+  - Changed: Board subtask cards now stack Status above Content using a vertical layout.
+    - Replaced `flex items-start justify-between gap-2` with `flex flex-col items-start justify-start gap-2`.
+    - DOM order updated to Status (column title) before Content (subtask title).
+    - Scope: Board view only. No behavioral changes.
+
+- ADR
+  - Title: Stack Status Above Content in Board Subtask Cards
+  - Context: Subtask cards used a horizontal row (`flex items-start justify-between gap-2`).
+  - Decision: Use `flex flex-col items-start justify-start gap-2` and place Status (column title) before Content (subtask title) in the DOM. Scope limited to Board subtask cards.
+  - Consequences: Improved readability and accessibility; no behavior changes.
+  - Rollback: Restore previous class string and child order.
+
+**Acceptance Criteria Wording (Consistent)**
+
+- The container uses `flex flex-col items-start justify-start gap-2` at all breakpoints.
+- Status (column title) appears above Content (subtask title) and precedes it in the DOM.
+- `justify-between` is not used; spacing is provided by `gap-2`.
+- No visual/behavioral regressions outside subtask cards on the Board view.
+
+**Notes**
+
+- If mentioning `justify-start`, state it explicitly once; it’s redundant with `flex-col` but acceptable for clarity.
+- When referencing Japanese examples, mark them as examples and keep surrounding documentation in English.

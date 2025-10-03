@@ -1,62 +1,37 @@
-**Findings**
+**Summary**
+- Change is UI-only (stack Status above Content) and already implemented in `frontend/src/app/features/board/page.html:247` using `flex flex-col items-start justify-start gap-2`. No risky bindings introduced.
 
-- Type safety enforcement
-  - `@typescript-eslint/no-explicit-any` is set to error and applies to all TS files. Config: frontend/.eslintrc.cjs:23.
-  - Lint gate fails on warnings: frontend/package.json:7.
-  - No explicit `any` in TS sources; only Angular template `$any(...)` casts appear in multiple templates (e.g., frontend/src/app/features/settings/page.html:52).
-- Input validation at unsafe boundaries
-  - LocalStorage reads use `JSON.parse` followed by strong runtime sanitization before use:
-    - Preferences: frontend/src/app/core/state/workspace-store.ts:2663, frontend/src/app/core/state/workspace-store.ts:2915.
-    - Settings: frontend/src/app/core/state/workspace-store.ts:2700, frontend/src/app/core/state/workspace-store.ts:2991.
-  - Sanitizers enforce shape/whitelists (IDs, enums, arrays) and defaulting. Good defensive coding.
-- Secret/token handling (frontend)
-  - Access token is stored in `localStorage` with migration and error handling; clear on logout:
-    - Read/write: frontend/src/app/core/auth/auth.service.ts:91, frontend/src/app/core/auth/auth.service.ts:176, frontend/src/app/core/auth/auth.service.ts:206.
-  - Storing bearer tokens in `localStorage` is susceptible to XSS exfiltration.
-- Dependency posture
-  - Angular 20 + ESLint 9 + @typescript-eslint 8; versions are pinned and a lockfile is present (frontend/package-lock.json).
-  - `patch-package` and `overrides` are used to constrain transitive deps (frontend/package.json:66, 94).
-  - No evidence of insecure DOM APIs or bypass sanitizers; no `DomSanitizer` or `innerHTML` use detected.
+**UI/DOM & XSS**
+- Interpolations use Angular binding (`{{ ... }}`) and no `[innerHTML]` found across frontend; mitigates XSS.
+- Dynamic styles are bound to status/accent colors: `[style.color]`, `[style.background]` at `frontend/src/app/features/board/page.html:222`, `frontend/src/app/features/board/page.html:288`. Angular sanitizes style values, but upstream color input should still be constrained.
 
-**Risks**
+**Input Validation**
+- Frontend trims and requires non-empty inputs for titles; however backend allows creating/updating subtasks without a server-side non-empty title constraint (`backend/app/schemas.py:300` `SubtaskCreate`, `SubtaskUpdate`). Recommend adding validators to enforce non-empty `title` server-side.
 
-- XSS-exfiltration of tokens: `localStorage` token can be read by injected scripts.
-- Template `$any(...)` casts hide typing mistakes and can encourage unsafe event handling patterns.
-- Cast chains and “unsafe” TypeScript flows aren’t currently linted (e.g., `no-unsafe-*`), leaving room for bypasses via assertions.
-- Lack of CSP/Trusted Types in `index.html` increases the blast radius of any XSS.
+**Backend AuthZ**
+- Subtask updates are properly scoped: card ownership is enforced and subtask must belong to the card (`backend/app/routers/cards.py:704`, `backend/app/routers/cards.py:721`). This prevents cross-tenant escalation via UI DnD/status changes.
 
-**Recommendations**
+**Secrets & Config**
+- Config uses a weak documented default `DEFAULT_SECRET_ENCRYPTION_KEY` (`backend/app/config.py:6`). Ensure a strong `SECRET_ENCRYPTION_KEY` is set in non-dev. CORS parsing blocks `*` with credentials; keep `allowed_origins` aligned with deployed SPA.
 
-- Token storage
-  - Prefer migrating auth to secure, `HttpOnly`, `SameSite=strict`, `Secure` cookies set by the backend. If migration is out of scope, keep the token confined:
-    - Never log tokens; avoid interpolating into the DOM; continue centralizing all reads/writes in AuthService (already done).
-    - Consider short TTL and rotation to reduce exposure window.
-- Template safety
-  - Reduce `$any(...)` usage by typing handlers and extracting values in component code:
-    - Replace `(input)="statusForm.controls.name.setValue($any($event.target).value)"` with `(input)="onStatusNameInput($event)"` and in TS: `onStatusNameInput(e: Event) { const t = e.target as HTMLInputElement; this.statusForm.controls.name.setValue(t.value); }`.
-  - Optional follow-up: enable `@angular-eslint/template/no-any` (warn) to catch future uses without breaking CI immediately.
-- Harden linting (low-impact, follow-up)
-  - Consider enabling as `warn`: `@typescript-eslint/no-unsafe-assignment`, `no-unsafe-member-access`, `no-unsafe-argument` to discourage assertion-based bypasses. Keep “error” for `no-explicit-any`.
-- Boundary validation
-  - Current sanitizers are strong; keep the pattern and add unit tests for critical guards if behavior expands (e.g., new fields).
-- Client storage hygiene
-  - Preferences/settings already sanitize; ensure no PII beyond what UI needs is persisted. Avoid storing emails or identifiers not required for UX.
-- Browser security headers (served by hosting)
-  - Add or document server-side headers: a strict CSP (default-src 'self'; connect-src allowlisted APIs; object-src 'none'; base-uri 'self'; frame-ancestors 'none'), `Referrer-Policy: same-origin`, `Permissions-Policy` to limit sensors, and consider `TrustedTypes` for Angular (CSP `require-trusted-types-for 'script'` + policy).
-  - If serving purely as static files, consider a `<meta http-equiv="Content-Security-Policy" ...>` fallback with a nonces-less minimal policy.
+**Dependency Risks**
+- Frontend deps are current (Angular 20, Tailwind 3.4, Puppeteer pinned; overrides for `glob`/`rimraf` reduce known CVEs). Backend pins recent FastAPI/SQLAlchemy/httpx/Pillow/cryptography. Still recommend periodic SCA in CI.
 
-**Quick Checks Performed**
+**Privacy/Exposure**
+- Stacking may reveal slightly more content vertically; current template shows short fields (status, title, parent and labels). No new fields exposed; keep any existing truncation policies consistent if added elsewhere.
 
-- ESLint config confirms `no-explicit-any` error: frontend/.eslintrc.cjs:23.
-- Lint gate config with zero warnings: frontend/package.json:7.
-- TS sources contain no `any`; templates use `$any(...)`: frontend/src/app/features/settings/page.html:52.
-- JSON.parse inputs are sanitized: frontend/src/app/core/state/workspace-store.ts:2663, frontend/src/app/core/state/workspace-store.ts:2915, frontend/src/app/core/state/workspace-store.ts:2991.
-- Token persisted in localStorage: frontend/src/app/core/auth/auth.service.ts:176.
+**Proposed Fixes (Minimal, High-Value)**
+- Backend validation:
+  - Enforce non-empty subtask titles:
+    - Add `@field_validator('title')` to `SubtaskCreate` and `SubtaskUpdate` to reject blank/whitespace-only strings (`backend/app/schemas.py`).
+- Color input hardening:
+  - Constrain `Status.color` to safe formats (e.g., hex/rgb(a)) via `field_validator` in `StatusCreate/StatusUpdate` (`backend/app/schemas.py`). This reduces CSS injection surface even though Angular sanitizes.
+- Secret hygiene:
+  - On startup, warn or fail in non-debug if `SECRET_ENCRYPTION_KEY` equals the default (`backend/app/config.py`), to prevent weak default in production.
+- CI hardening:
+  - Add `pip-audit` and `npm audit --omit=dev` gates; keep existing lint/format/test jobs.
 
-**Minimal, Safe Next Steps**
-
-- Keep current ESLint “error” setting; no code changes required to pass.
-- Create a small follow-up ticket to:
-  - Introduce `@angular-eslint/template/no-any` as warn.
-  - Evaluate cookie-based auth to remove `localStorage` token.
-  - Document CSP/headers in deployment config.
+**Quick Validation Notes**
+- No `[innerHTML]` present in frontend (scan OK).
+- DOM order aligns with visual order in subtask card container (`frontend/src/app/features/board/page.html:270..279`): status `span` precedes title `h4`.
+- Backend activity logging records IDs/metadata, not full content; avoids leakage of user text.
