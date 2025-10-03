@@ -120,7 +120,6 @@ declare -A STAGE_INSTRUCTIONS=(
 )
 
 PREVIOUS_CONTEXT=""
-NEEDS_INFO=0
 CLARIFYING_SECTION=""
 
 for STEP in "${PIPELINE_STEPS[@]}"; do
@@ -168,7 +167,6 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
       sed '/^[[:space:]]*[-*]\{0,1\}[[:space:]]*\(none\|n\/a\)\.?[[:space:]]*$/Id')
 
     if printf '%s\n' "${CLARIFYING_CLEAN}" | grep -q '[^[:space:]]'; then
-      NEEDS_INFO=1
       mkdir -p codex_output
       {
         printf '## Clarifying questions\n'
@@ -178,11 +176,7 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
 {"status":"needs_clarification"}
 JSON
       printf '%s\n' "Translator stage requested clarifications. Stopping pipeline early." >&2
-      break
+      exit 0
     fi
   fi
 done
-
-if [ "${NEEDS_INFO}" -eq 1 ]; then
-  exit 0
-fi
