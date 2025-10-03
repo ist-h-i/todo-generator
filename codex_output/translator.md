@@ -1,27 +1,29 @@
-**Summary**
-- Enforce a frontend coding style: do not use `any`. Define and use custom interfaces/types to maintain TypeScript type safety.
+**Restated Request (English)**
 
-**Intent (Clarified)**
-- Prohibit `any` in the Angular/TypeScript frontend.
-- Model data with explicit interfaces/types instead of loosening types.
-- Improve safety and readability without broad, disruptive refactors.
-
-**Scope (Assumed)**
-- Applies to `frontend/src/app/**` (features and shared/core/lib).
-- Affects new and modified code; legacy code treatment to be clarified.
-- Enforced via ESLint rule(s) and brief docs note.
+Update the Board screen’s subtask card layout so that, within the container currently using class "flex items-start justify-between gap-2", the subtask’s Status appears above the Content (stacked vertically), instead of side-by-side.
 
 **Assumptions**
-- Frontend uses TypeScript with ESLint + Prettier as per repo guidelines.
-- Rule to use: `@typescript-eslint/no-explicit-any` (with minimal, explicit exceptions if needed).
-- Prefer `unknown`, generics, or discriminated unions over `any` when dynamic typing is unavoidable.
-- Data from APIs should be typed (interfaces/DTOs); if OpenAPI/SDK exists, prefer generated types.
 
-**Unknowns / Questions**
-- Policy scope: all code now vs. only new/changed code? Is a gradual migration acceptable?
-- Existing usage: How many current `any` occurrences? Should we fix them now or set rule to warn first?
-- Exceptions: Are narrow, documented exceptions allowed (e.g., third‑party typings, legacy facades, tests)?
-- CI impact: Should ESLint fail CI on violations immediately or start as a warning?
-- Documentation: Where to add/update guidance (e.g., `docs/development-rules.md` vs. a new frontend style doc)?
-- API typing: Do we have generated API types or should we define interfaces manually?
-- Timeline/prioritization: Is this a quick lint+doc change or part of a broader refactor?
+- “Status” is the subtask status indicator/badge/select; “Content” is the title/description.
+- Change applies to subtask cards only on the Board view.
+- Tailwind utility classes are used; the shift likely involves switching to a vertical stack (e.g., flex-col) or reordering.
+- No visual changes beyond stacking order and standard spacing.
+
+**Unknowns**
+
+- Exact component/file(s) implementing the subtask card on the Board view.
+- Whether the change should apply to all breakpoints or only specific screen sizes.
+- Whether to keep or remove `justify-between` in vertical layout, and exact spacing/alignment expectations.
+- Whether other elements (e.g., assignee, actions) exist inside the same container and how they should arrange.
+- Any design references or constraints (typography, gap size, margins).
+
+**Clarifying questions**
+
+- Which component(s)/file(s) should this target in the Board view?
+- Should the vertical stack apply across all screen sizes or only certain breakpoints?
+- Do we keep current spacing/typography, or adjust gap (e.g., keep `gap-2`)?
+- Should `justify-between` remain (creating vertical space) or use compact stacking (`justify-start`)?
+- Are there other elements in the same container that require a specific order?
+- Any mockups or screenshots to confirm the desired result?
+- Any tests or visual regression checks that might be affected?
+

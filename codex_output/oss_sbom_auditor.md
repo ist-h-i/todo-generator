@@ -1,39 +1,62 @@
-**Dependency Inventory**
+**Scope**
+- SBOM and license audit for current repo; no code changes.
+- Focus on manifests, license files, and obvious license risks.
 
-- Frontend (npm):
-  - Runtime: Angular 20 (@angular/*), RxJS 7.8, tslib 2.8, zone.js 0.15
-  - Dev: Angular CLI/build, TypeScript 5.9, ESLint 9 + @typescript-eslint 8, Karma/Jasmine, Puppeteer, TailwindCSS/PostCSS, esbuild, patch-package
-- Backend (Python):
-  - Runtime: fastapi, uvicorn[standard], SQLAlchemy, pydantic, pydantic-settings, email-validator, alembic, python-multipart, httpx, google-generativeai, Pillow, Jinja2, cryptography
-  - Dev/QA: pytest, black, ruff, coverage
+**Project License State**
+- No root license file found: add `LICENSE` to clarify project licensing.
+- Frontend `frontend/package.json:1` has `"private": true` but no `"license"` field; still add a license file at repo root for clarity across backend and frontend.
 
-**License Review**
+**Manifests Located**
+- Backend Python
+  - `backend/requirements.txt:1`
+  - `backend/requirements-dev.txt:1`
+  - `requirements.txt:1` (root, overlaps with backend)
+  - No Python project metadata (`pyproject` with `[project]`) and no lock with hashes; SBOM will be best-effort from requirements pins.
+- Frontend Node/Angular
+  - `frontend/package.json:1`
+  - `frontend/package-lock.json:1`
+  - `frontend/angular.json:1`
 
-- Frontend transitive licenses (from package-lock) are predominantly permissive: MIT, Apache-2.0, ISC, BSD-2/3. No GPL/AGPL detected in the lockfile sample.
-- Likely permissive licenses for Python stack:
-  - fastapi (MIT), uvicorn (BSD-3), SQLAlchemy (MIT), pydantic/pydantic-settings (MIT), email-validator (MIT), alembic (MIT), python-multipart (Apache-2.0), httpx (BSD-3), google-generativeai (Apache-2.0), Pillow (HPND-derived, permissive), Jinja2 (BSD-3), cryptography (Apache-2.0/BSD).
-- Project-level licensing:
-  - No root LICENSE file found; frontend/package.json lacks a “license” field. Distribution terms for the project are currently undefined.
-- Frontend build licensing:
-  - Angular production builds typically extract third-party licenses by default; development config disables extraction (expected). Verify production license extraction in CI artifacts.
+**Runtime Dependencies (Summary)**
+- Backend (from pinned/pegged requirements)
+  - `fastapi`, `uvicorn[standard]`, `SQLAlchemy`, `pydantic`, `pydantic-settings`, `email-validator`, `alembic`, `python-multipart`, `httpx`, `google-generativeai`, `Pillow`, `Jinja2`, `cryptography`
+- Frontend (production)
+  - `@angular/* 20.x`, `rxjs 7.8.x`, `tslib 2.8.x`, `zone.js 0.15.x`
+- Frontend (dev)
+  - Angular build/CLI, `eslint` + plugins, `prettier`, `karma`/`jasmine`, `puppeteer`, `tailwindcss`, `esbuild`, `postcss`, `autoprefixer`, `typescript`, `patch-package`
 
-**Security/Policy Observations**
+**Observed Licenses**
+- NPM: `frontend/package-lock.json:7` includes per‑package `"license"` fields (sample entries MIT observed). No matches for GPL/AGPL/LGPL/SSPL in the lock:
+  - Searched `frontend/package-lock.json` for copyleft strings: none found.
+- Python: Requirements do not include license metadata. License resolution requires package index or local metadata inspection not available in this environment.
 
-- google-generativeai: permissive license, but API usage subject to Google service terms; ensure ToS compliance and data handling policies are documented.
-- patch-package modifies Karma; ensure patches are reviewed, pinned, and do not alter upstream license notices.
-- Puppeteer downloads Chromium during postinstall (dev-only); ensure deterministic, pinned versions, and acceptable use in CI.
-- No automated license/SBOM generation configured; no automated license policy gate detected.
-- No evidence of strong copyleft or commercial-only licenses in manifests; further transitive verification recommended via SBOM tooling.
+**Patches/Vendored Changes**
+- `frontend/patches/karma+6.4.4.patch:1` modifies Karma internals via `patch-package`. Karma is a dev dependency; ensure its upstream license notice remains intact in any redistributed form. Low risk if not shipping Karma code.
 
-**Actions**
+**Potential Compliance Risks**
+- Missing project license file → ambiguous licensing for consumers (must fix before release).
+- Python license coverage unknown offline → requires verification (FastAPI/SQLAlchemy/Pydantic/etc. are typically permissive, but do not assume).
+- No Python lock with hashes → reproducibility and SBOM determinism reduced; consider locking strategy for accurate SBOM (e.g., `pip-tools`/`uv`/`poetry`).
 
-- Add a project LICENSE at repo root and declare `license` in frontend/package.json to define distribution terms.
-- Generate and store SBOMs:
-  - Frontend: CycloneDX (e.g., @cyclonedx/cyclonedx-npm) or `license-checker` in CI; archive SPDX/CycloneDX.
-  - Backend: `pip-audit -f cyclonedx` or `cyclonedx-py` for Python; archive alongside build artifacts.
-- Add a CI license compliance gate:
-  - Fail on GPL/AGPL/SSPL or unknown licenses per org policy; produce a Third-Party Notices artifact for releases.
-- Verify Angular production license extraction and include third-party notices in release bundles.
-- Document third-party service terms for google-generativeai; confirm data/PII handling aligns with internal policy.
+**Prohibitions/Red Flags**
+- Copyleft strong licenses (GPL/AGPL/LGPL/SSPL): none detected in NPM lock via string search.
+- Non-OSS or usage-restricted libs: cannot confirm for Python without network; verify `google-generativeai` terms in release context.
 
-No prohibitive licenses identified in the current manifests/lockfile sample. The primary compliance gap is the absence of a project LICENSE and automated SBOM/license reporting in CI.
+**SBOM Generation Recommendations**
+- NPM: Generate CycloneDX JSON from lock for full license inventory:
+  - `cd frontend && npx @cyclonedx/cyclonedx-npm --output-file bom.json`
+- Python: Generate CycloneDX from installed environment or requirements:
+  - Use `cyclonedx-bom` or `pip-licenses` + `cyclonedx-python-lib` in CI for accurate license capture.
+- Consolidate artifacts and publish with release assets; keep a THIRD_PARTY_NOTICES file if required by licenses detected.
+
+**Actions to Resolve**
+- Add a repository `LICENSE` file reflecting intended project license.
+- Run automated license scanning in CI:
+  - NPM: CycloneDX + `license-checker`/`npm-package-licenses`.
+  - Python: `pip-licenses --format=json` (or CycloneDX Python).
+- Review Python dependencies’ licenses (especially `cryptography`, `Pillow`, `google-generativeai`) and document any attribution or notice requirements.
+- Maintain SBOMs per release; fail CI on prohibited licenses according to your policy.
+
+**Current Conclusion**
+- No obvious copyleft issues in frontend dependencies.
+- Project license missing; Python license coverage unverified. Add license file and run license scanners to complete SBOM and compliance gates.

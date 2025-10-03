@@ -1,44 +1,51 @@
+**Scope**
+
+- Board view only; subtask card container currently using `flex items-start justify-between gap-2`.
+- Minimal change via Tailwind utilities; no refactors or behavior changes.
+
+**Assumptions/Defaults**
+
+- Apply vertical stacking at all breakpoints.
+- Replace classes with `flex flex-col items-start justify-start gap-2`.
+- DOM order: Status element before Content element.
+- Change scoped to subtask card template to avoid reuse impact.
+
 **Plan**
 
-- Confirm defaults: specs error, DTOs path, templates out of scope
-- Update ESLint: `no-explicit-any` → error
-- Add docs guidance to `docs/development-rules.md`
-- Verify codebase has no `any`; fix/suppress if found
-- Run lint locally and ensure CI passes
-- Open PR with summary and rationale
+- Locate Board subtask card template.
+- Update container layout classes.
+- Reorder DOM: Status above Content.
+- Verify responsive wrapping and spacing.
+- Run `npm test`, lint, format checks.
+- Open PR; capture before/after screenshots.
 
 **Owners**
 
-- Frontend Lead: decisions, ESLint change, verification
-- Docs Owner: guidance update
-- CI Maintainer: confirm pipeline reflects lint failure on rule
+- Implementation: Frontend engineer (Angular).
+- Review: UI/Design for spacing/alignment.
+- QA: Frontend QA for visual and interaction checks.
 
 **Dependencies**
 
-- Existing ESLint + Prettier setup in `frontend`
-- CI step running `npm run lint` with `--max-warnings=0`
-- `docs/development-rules.md` present (create section if missing)
+- Tailwind available and configured in frontend.
+- Access to Board view component/template where subtasks render.
+- No shared usage of the same container markup outside subtasks.
 
-**Gates / Decisions**
+**Risks & Mitigations**
 
-- Specs severity: enforce as error (default). Rationale: consistent rule, CI already zero-warnings.
-- DTOs location: `frontend/src/app/shared/models` (default) for shared interfaces/DTOs.
-- Angular templates `$any(...)`: out of scope for this change; optionally track a follow-up for template linting.
+- Shared container class used elsewhere → Scope change to the subtask component/template only.
+- `justify-between` removal affects other elements → Confirm only Status and Content are inside target container; adjust with `gap-2` if needed.
+
+**Gates**
+
+- Designer/PM confirms stacked layout (Status above Content).
+- Visual smoke test across mobile/tablet/desktop.
+- CI green: unit tests, lint, format, build.
 
 **Done Criteria**
 
-- ESLint config sets `@typescript-eslint/no-explicit-any` to error for `frontend/src/app/**` (specs included).
-- `npm run lint` passes on current codebase without new warnings/errors.
-- `docs/development-rules.md` updated with:
-  - Why not `any`
-  - Alternatives (`unknown`, generics, discriminated unions) with brief examples
-  - DTOs location guidance
-  - Exception policy: narrowly scoped, inline disable with short rationale
-  - Unsafe boundary pattern: `unknown` + type guards (e.g., `JSON.parse`)
-- No TypeScript `any` in `frontend/src/app/**`; any unavoidable cases carry justified inline disables.
-- CI fails on future violations per lint setup; PR includes summary and links to docs section.
-
-**Risks/Mitigations**
-
-- Hidden `any` usage appears: fix or add temporary, justified inline suppression with a cleanup task.
-- Third‑party typings leak `any`: add typed adapter at boundary to avoid propagation.
+- Subtask cards on Board show Status stacked above Content.
+- Container uses `flex flex-col items-start justify-start gap-2`; `justify-between` removed.
+- DOM order matches visual order (Status first).
+- No regressions to other cards/views; text wraps without overflow.
+- All frontend checks pass and screenshots attached in PR.

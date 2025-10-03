@@ -1,28 +1,27 @@
-**AI Safety Review**
+**Safety Summary**
+- Scope is a UI-only layout tweak: stack Status above Content for subtask cards on the Board. No new data, APIs, or storage paths.
+- Primary risks are XSS via rendering, authZ reliance on UI, and accidental leakage through logs/PRs. Overall risk is low with proper guardrails.
 
-- Change scope is lint config + docs; no runtime data flows added.
-- Primary safety impact is positive: discourages `any` and promotes typed boundaries.
-
-**Prompt/Secret Leak Risks**
-
-- Docs/examples could inadvertently include sensitive values (tokens, URLs, PII) if not curated.
-- Inline ESLint disable comments may contain internal ticket IDs or context; acceptable in source, but avoid linking to private systems in public repos.
-- PR descriptions might paste internal prompts or agent analysis; keep to high-level rationale only.
-- Negative test instructions (temporary `: any` files) must not be committed.
-
-**Output Safety Risks**
-
-- CI lint errors echo code snippets; ensure repo contains no secrets to avoid exposure in logs.
-- Template `$any(...)` casts remain and can mask unsafe flows; out of scope here but worth tracking.
+**Key Risks**
+- XSS/content injection: Rendering user-entered titles/descriptions or status names unsafely (e.g., `[innerHTML]`) could execute scripts.
+- AuthZ bypass: If UI exposes status updates without server-side checks, users could attempt unauthorized changes.
+- Accessibility drift: Visual-only reordering without DOM order changes can confuse AT and tests.
+- Selector fragility: Tests or CSS relying on sibling order/class strings may break and cause unintended UI states.
+- UI DoS/layout: Long content may push status off-screen or create overlap in dense lists.
+- Prompt-leak/process: PRs, comments, or code should not include internal instructions or model/system prompts.
 
 **Mitigations**
+- Rendering safety: Use Angular interpolation `{{ ... }}` for text. Do not introduce `[innerHTML]`. If styles are data-driven, constrain to safe formats and rely on Angular sanitization.
+- Authorization: Confirm backend enforces ownership/role checks on status updates; do not rely on UI gating alone (aligns with repo Security tips).
+- DOM order: Place Status before Content in the DOM and switch to `flex flex-col items-start gap-2`; avoid CSS-only reordering for a11y/tab order.
+- Scope control: Apply class/DOM changes only within the subtask card template to avoid global regressions where the same class string might exist.
+- Layout stability: Preserve existing truncation/wrapping (`break-words`, any line clamps). Keep compact spacing; remove `justify-between` to avoid vertical stretching.
+- Logging/telemetry: Avoid logging raw content in debug; use IDs/status codes only. Ensure screenshots/tests use synthetic data.
+- Tests/selectors: Prefer stable selectors (`data-testid`) rather than depending on element order or specific Tailwind class combinations.
 
-- Keep docs examples generic and non-PII; use fake names/emails and neutral endpoints.
-- Require suppression comments to be minimal and generic; avoid internal links in public repos.
-- Add a PR checklist note: “No secrets in code, logs, docs, or examples; no internal prompts included.”
-- For follow-up, consider `@angular-eslint/template/no-any` (warn) to reduce template casts.
-- Ensure negative test files for lint are local-only and excluded from commits.
+**Prompt-Leak and Process Hygiene**
+- Do not include internal prompts, chain-of-thought, or operational instructions in code comments, commit messages, or PR text.
+- PR screenshots should use synthetic tasks; exclude real user data and secrets.
 
 **Verdict**
-
-- Low risk of prompt or secret leakage from this change as proposed. Approved with the above hygiene notes.
+- Safe to proceed with the minimal Tailwind class update and DOM reorder, provided the above mitigations are observed. No additional privacy or security approvals needed for this UI-only change.

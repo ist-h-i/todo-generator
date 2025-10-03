@@ -1,39 +1,42 @@
-**Verdict**
-- Feasible and consistent with the repo. Minimal impact expected: current frontend TypeScript code has no `any` usage, and ESLint is already in place.
+**Review Summary**
+- The requirement is clear: stack “Status” above “Content” within the subtask card container currently using `flex items-start justify-between gap-2`.
+- Scope is constrained to Board view subtask cards; minimal change approach via Tailwind utilities is appropriate.
+- A few specifics remain ambiguous (target component, responsive behavior, exact spacing/alignment), but can be resolved with explicit defaults.
 
 **Consistency Check**
-- ESLint exists and runs on `src/**/*.{ts,tsx}` with zero warnings allowed (`--max-warnings=0`) in `frontend/package.json:7`.
-- Current config sets `@typescript-eslint/no-explicit-any` to warn, which effectively fails CI anyway due to `--max-warnings=0` (should be set to error for clarity): `frontend/.eslintrc.cjs:30`.
-- No TypeScript `any` occurrences found in `frontend/src/**`. Angular templates use `$any(...)` casts across several files (e.g., `frontend/src/app/features/settings/page.html:52`), which are out of scope for TypeScript ESLint.
+- No contradictions with the goal of minimal-impact changes.
+- FRs, NFRs, and ACs are aligned; however, retaining `gap-2` while removing `justify-between` should explicitly confirm using `flex-col` + `gap-2` + `items-start` + `justify-start`.
 
-**Gaps / Decisions Needed**
-- Scope for specs: enforce as error in `*.spec.ts`, or downgrade to warn? Current lint includes specs.
-- Template `$any(...)`: treat as out of scope or add a template rule (e.g., `@angular-eslint/template/no-any`) in a follow-up?
-- Where to place shared types/DTOs: confirm a canonical location (e.g., `frontend/src/app/shared/models`).
-- Exceptions policy: define narrow, justified cases (3rd‑party interop, migrations) and require inline disable with a short rationale and ticket link.
-- Boundaries guidance: clarify patterns for `unknown` + type guards at unsafe boundaries (e.g., `JSON.parse`, external data).
+**Gaps / Ambiguities**
+- Target location: exact component/template file(s) for Board subtask cards are unspecified.
+- Responsiveness: unclear if vertical stack applies universally or only below certain breakpoints.
+- Spacing/alignment: whether to keep `gap-2` and swap `justify-between` for `justify-start` is implied but not stated.
+- Reuse risk: whether the class string is shared by non-subtask elements in Board is unknown.
 
-**Feasibility in Repo**
-- Adoption risk is low: no `: any` or `as any` found in TS sources.
-- Changing the rule to error aligns with CI, and should pass immediately.
+**Proposed Defaults to Close Gaps**
+- Target: Only the subtask card container in the Board view component/template.
+- Breakpoints: Apply vertical stack at all breakpoints (no responsive overrides).
+- Classes: Replace `flex items-start justify-between gap-2` with `flex flex-col items-start justify-start gap-2`.
+- Order: Ensure DOM order is Status first, then Content to align with visual order and a11y.
+- Scope guard: If the class string is reused elsewhere, scope the change to the subtask card selector/component only.
 
-**Suggested Refinements (Requirements-Level)**
-- ESLint enforcement: set `@typescript-eslint/no-explicit-any` to error for `frontend/src/app/**`. If desired, override specs to warn:
-  - Error: `frontend/.eslintrc.cjs` base rules
-  - Optional override: files `**/*.spec.ts` → warn (document decision)
-- Documentation: add a brief section to `docs/development-rules.md` covering:
-  - Rationale for not using `any`
-  - Alternatives: `unknown`, generics, discriminated unions
-  - Typed DTOs location and examples
-  - Exception policy and inline disable format (with ticket)
-  - Unsafe boundary patterns (e.g., `unknown` + type guards)
-- Templates: explicitly note that Angular `$any(...)` is not covered by this change. Optionally propose a follow-up to add template linting if the team wants parity.
+**Edge Cases**
+- Long titles/descriptions should wrap without overflow; check multi-line status controls don’t collapse spacing.
+- A11y: Tab/reading order must match visual order (Status precedes Content).
+- RTL layouts (if supported) should be unaffected by vertical stacking.
 
-**Acceptance Traceability**
-- ESLint rule enabled as error (source) and decision on specs documented.
-- `npm run lint` passes on current codebase (no TS `any` found).
-- Docs updated in `docs/development-rules.md` with guidance and exceptions policy.
-- New/modified code avoids `any`; unsafe boundaries use `unknown` + guards.
-- CI fails on violations per the lint setup.
+**Testability / Acceptance Checks**
+- On the Board view, each subtask card shows Status above Content with compact vertical spacing matching `gap-2`.
+- Confirm container classes reflect `flex flex-col items-start justify-start gap-2`.
+- Verify no unintended changes to non-subtask cards or other views.
+- Check mobile/tablet/desktop for stable wrapping and no clipping.
+- Interactions (status select/badge, content text) continue to function unchanged.
 
-If you confirm the decisions on specs severity, DTOs location, and template `$any`, the requirements are complete and ready for planning.
+**Reworded Acceptance Criteria (Actionable)**
+- Update only the Board subtask card container to `flex flex-col items-start justify-start gap-2`.
+- Status element appears before Content in the DOM and visually above it.
+- Spacing between Status and Content approximates `gap-2`; no `justify-between` used.
+- No visual or behavioral regressions outside the targeted container.
+- Works at all breakpoints without overflow.
+
+If you confirm these defaults (all-breakpoints, `flex-col`, remove `justify-between`, scope to subtask card), the requirements are complete and ready for planning.
