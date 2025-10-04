@@ -138,6 +138,8 @@ export class BoardPage {
     void this.workspace.refreshWorkspaceData();
   }
 
+  public readonly subtaskStatusOptions = SUBTASK_STATUS_META;
+
   public readonly groupingSignal = this.workspace.grouping;
   public readonly groupingLabelSignal = computed(() =>
     this.groupingSignal() === 'status' ? 'ステータス別' : 'ラベル別',
@@ -718,6 +720,20 @@ export class BoardPage {
 
   public readonly priorityLabel = (priority: Card['priority']): string =>
     PRIORITY_LABEL_LOOKUP[priority] ?? priority;
+
+  public readonly dateInputValue = (value: string | undefined): string => {
+    if (!value) {
+      return '';
+    }
+
+    const normalized = value.trim().replace(/\//g, '-');
+    const match = normalized.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) {
+      return match[1];
+    }
+
+    return normalized.length > 10 ? normalized.slice(0, 10) : normalized;
+  };
 
   public readonly labelName = (labelId: string): string => {
     const label = this.labelsByIdSignal().get(labelId);
