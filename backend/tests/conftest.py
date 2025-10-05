@@ -1,6 +1,7 @@
 import importlib
 import importlib.util
 import itertools
+import os
 import sys
 import warnings
 from pathlib import Path
@@ -16,6 +17,8 @@ from sqlalchemy.orm import sessionmaker
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
+
+os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
 
 from app.config import DEFAULT_SECRET_ENCRYPTION_KEY
 from app.database import Base, get_db
