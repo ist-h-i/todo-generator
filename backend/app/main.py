@@ -42,7 +42,7 @@ from .routers import (
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Resolve favicon path robustly for local and serverless bundles
+
 def _find_favicon() -> Optional[Path]:
     candidates = [
         Path(__file__).resolve().parent / "favicon.svg",
@@ -54,6 +54,7 @@ def _find_favicon() -> Optional[Path]:
             return p
     return None
 
+
 FAVICON_PATH = _find_favicon()
 
 
@@ -63,7 +64,7 @@ def run_migrations() -> None:
         run_startup_migrations(get_engine())
         logger.info("Startup migrations completed.")
         logger.info("Ensuring database schema is up to date...")
-        from . import models
+        from . import models  # noqa: F401
         Base.metadata.create_all(bind=get_engine(), checkfirst=True)
         logger.info("Database schema ensured.")
     except Exception:
@@ -72,8 +73,16 @@ def run_migrations() -> None:
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(app: FastAPI):
     run_migrations()
+    # ルート一覧をログ（405 調査用）
+    try:
+        for r in app.routes:
+            methods = getattr(r, "methods", None)
+            if methods:
+                logger.info("route: %-28s methods=%s", r.path, sorted(m for m in methods if m != "HEAD"))
+    except Exception:
+        logger.exception("Route logging failed")
     yield
 
 
@@ -99,10 +108,7 @@ def _apply_cors(response: Response, request: Request) -> Response:
     if "*" in settings.allowed_origins:
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Vary"] = "Origin"
-        if origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-        else:
-            response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Origin"] = origin or "*"
     elif origin and origin.rstrip("/") in settings.allowed_origins:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -128,7 +134,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return _apply_cors(resp, request)
 
 
-# CORS preflight for any path
 @app.options("/{rest_of_path:path}", include_in_schema=False)
 async def cors_preflight(request: Request, rest_of_path: str = ""):
     resp = Response(status_code=204)
@@ -146,11 +151,15 @@ async def cors_preflight(request: Request, rest_of_path: str = ""):
     return _apply_cors(resp, request)
 
 
+@app.get("/", include_in_schema=False)
+def root() -> Response:
+    return RedirectResponse(url="/health")
+
+
 @app.get("/favicon.svg", include_in_schema=False)
 async def favicon_svg():
     if FAVICON_PATH:
         return FileResponse(FAVICON_PATH, media_type="image/svg+xml")
-    # Fallback inline SVG
     return Response(
         '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" rx="8" fill="#111"/><text x="50%" y="55%" text-anchor="middle" fill="#fff" font-size="28" font-family="Inter, Arial" dy=".1em">VY</text></svg>',
         media_type="image/svg+xml",
