@@ -1,10 +1,14 @@
 from __future__ import annotations
-from fastapi import FastAPI
+
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
-from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
 from .config import settings
 from .database import Base, engine
 from .migrations import run_startup_migrations
@@ -33,9 +37,6 @@ from .routers import (
     workspace_templates,
 )
 
-import logging
-
-
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -46,6 +47,7 @@ def run_migrations() -> None:
         run_startup_migrations(engine)
         logger.info("Startup migrations completed.")
         logger.info("Ensuring database schema is up to date...")
+        from . import models  # ensure models are imported
         Base.metadata.create_all(bind=engine, checkfirst=True)
         logger.info("Database schema ensured.")
     except Exception:
@@ -53,12 +55,18 @@ def run_migrations() -> None:
         raise
 
 
-run_migrations()
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Vercel: execute on cold start only
+    run_migrations()
+    yield
+
 
 app = FastAPI(
     title="Verbalize Yourself Backend",
     description="API for transforming unstructured input into actionable task boards.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -69,33 +77,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """Ensure CORS headers exist even on HTTP errors."""
-    response = JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-    )
+
+def _apply_cors(response: JSONResponse, request: Request) -> JSONResponse:
     origin = request.headers.get("origin")
-    if origin and origin.rstrip("/") in settings.allowed_origins:
+    # Allow wildcard or exact match (trailing slash tolerant)
+    if "*" in settings.allowed_origins:
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+        else:
+            response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    elif origin and origin.rstrip("/") in settings.allowed_origins:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
     return response
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    resp = JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return _apply_cors(resp, request)
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Ensure validation errors also get CORS headers."""
-    response = JSONResponse(
-        status_code=422,
-        content={"detail": exc.errors()},
-    )
-    origin = request.headers.get("origin")
-    if origin and origin.rstrip("/") in settings.allowed_origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
-    
+    resp = JSONResponse(status_code=422, content={"detail": exc.errors()})
+    return _apply_cors(resp, request)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error", exc_info=exc)
+    resp = JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+    return _apply_cors(resp, request)
+
+
 # include routers
 app.include_router(analysis.router)
 app.include_router(analytics.router)
