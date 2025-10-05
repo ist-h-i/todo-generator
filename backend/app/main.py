@@ -1,5 +1,9 @@
 from __future__ import annotations
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi.requests import Request
+from fastapi.exceptions import RequestValidationError
+from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .routers import (
@@ -41,6 +45,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Ensure CORS headers exist even on HTTP errors."""
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+    origin = request.headers.get("origin")
+    if origin and origin.rstrip("/") in settings.allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Ensure validation errors also get CORS headers."""
+    response = JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
+    origin = request.headers.get("origin")
+    if origin and origin.rstrip("/") in settings.allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+    
 # include routers
 app.include_router(analysis.router)
 app.include_router(analytics.router)
