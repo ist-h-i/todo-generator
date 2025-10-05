@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .database import Base, engine
+from .database import Base, get_engine
 from .migrations import run_startup_migrations
 from .routers import (
     activity,
@@ -44,11 +44,11 @@ logging.basicConfig(level=logging.INFO)
 def run_migrations() -> None:
     try:
         logger.info("Running startup migrations...")
-        run_startup_migrations(engine)
+        run_startup_migrations(get_engine())
         logger.info("Startup migrations completed.")
         logger.info("Ensuring database schema is up to date...")
         from . import models  # ensure models are imported
-        Base.metadata.create_all(bind=engine, checkfirst=True)
+        Base.metadata.create_all(bind=get_engine(), checkfirst=True)
         logger.info("Database schema ensured.")
     except Exception:
         logger.exception("Database initialization failed")
@@ -57,8 +57,7 @@ def run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Vercel: execute on cold start only
-    run_migrations()
+    run_migrations()  # cold start only
     yield
 
 
@@ -80,7 +79,6 @@ app.add_middleware(
 
 def _apply_cors(response: JSONResponse, request: Request) -> JSONResponse:
     origin = request.headers.get("origin")
-    # Allow wildcard or exact match (trailing slash tolerant)
     if "*" in settings.allowed_origins:
         if origin:
             response.headers["Access-Control-Allow-Origin"] = origin
