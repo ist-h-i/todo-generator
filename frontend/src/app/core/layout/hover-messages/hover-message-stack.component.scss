@@ -1,9 +1,9 @@
 :host {
   position: fixed;
   inset-inline-end: clamp(12px, 5vw, 48px);
-  inset-block-end: clamp(16px, 12vh, 144px);
+  inset-block-start: clamp(16px, 12vh, 144px);
   display: none;
-  flex-direction: column-reverse;
+  flex-direction: column;
   align-items: flex-end;
   gap: 0.85rem;
   z-index: 60;
@@ -21,6 +21,6 @@
 @media (min-width: 64rem) {
   :host {
     inset-inline-end: clamp(24px, 6vw, 72px);
-    inset-block-end: clamp(24px, 10vh, 160px);
+    inset-block-start: clamp(24px, 8vh, 160px);
   }
 }

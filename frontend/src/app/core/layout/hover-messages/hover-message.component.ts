@@ -10,8 +10,10 @@ import { HoverMessageView } from './hover-message.types';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'hover-message',
-    role: 'status',
+    '[attr.role]': 'message?.severity === "error" ? "alert" : "status"',
+    '[attr.aria-live]': 'message?.severity === "error" ? "assertive" : "polite"',
     '[attr.data-severity]': 'message?.severity ?? null',
+    '[attr.data-dismissing]': 'message?.dismissing ? "true" : null',
   },
 })
 export class HoverMessageComponent {

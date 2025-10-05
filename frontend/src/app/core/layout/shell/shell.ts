@@ -19,6 +19,16 @@ import { HelpDialogComponent } from './help-dialog';
 import { HoverMessageStackComponent } from '../hover-messages/hover-message-stack.component';
 import { HoverMessageSeverity, HoverMessageView } from '../hover-messages/hover-message.types';
 
+const HOVER_MESSAGE_EXIT_DURATION_MS = 220;
+
+const HOVER_MESSAGE_DURATIONS: Record<HoverMessageSeverity, number | null> = {
+  error: null,
+  warning: 10_000,
+  notification: 5_000,
+  system: 3_000,
+  loading: null,
+};
+
 function extractRoleLabel(role: string): string {
   const separator = ' / ';
   const lastSeparatorIndex = role.lastIndexOf(separator);
@@ -66,7 +76,7 @@ export class Shell {
   private readonly helpDialogVisible = signal(false);
   private readonly profileDialogVisible = signal(false);
   private readonly hoverMessageStore = signal<readonly HoverMessageView[]>([]);
-  private readonly hoverMessageTimers = new Map<number, number>();
+  private readonly hoverMessageTimers = new Map<number, { autoClose: number | null; removal: number | null }>();
   private hoverMessageSequence = 0;
 
   private readonly themeLabels: Record<ThemePreference, string> = {
@@ -341,30 +351,89 @@ export class Shell {
   }
 
   private showProfileToast(message: string): void {
-    this.enqueueHoverMessage(message, 'success');
+    this.enqueueHoverMessage(message, 'notification');
   }
 
-  private enqueueHoverMessage(text: string, severity: HoverMessageSeverity = 'info'): void {
+  private enqueueHoverMessage(text: string, severity: HoverMessageSeverity = 'system'): number {
     const entry: HoverMessageView = {
       id: ++this.hoverMessageSequence,
       text,
       severity,
+      dismissing: false,
     };
 
     this.hoverMessageStore.update((messages) => [entry, ...messages]);
 
     if (typeof window === 'undefined') {
+      return entry.id;
+    }
+
+    const timers = { autoClose: null as number | null, removal: null as number | null };
+
+    const duration = HOVER_MESSAGE_DURATIONS[severity] ?? null;
+
+    if (duration !== null) {
+      timers.autoClose = window.setTimeout(() => {
+        this.dismissHoverMessage(entry.id);
+      }, duration);
+    }
+
+    this.hoverMessageTimers.set(entry.id, timers);
+
+    return entry.id;
+  }
+
+  private dismissHoverMessage(id: number): void {
+    if (typeof window === 'undefined') {
+      this.finalizeHoverMessageRemoval(id);
       return;
     }
 
-    const timer = window.setTimeout(() => {
-      this.hoverMessageTimers.delete(entry.id);
-      this.hoverMessageStore.update((messages) =>
-        messages.filter((message) => message.id !== entry.id),
-      );
-    }, 4000);
+    const timers = this.hoverMessageTimers.get(id);
 
-    this.hoverMessageTimers.set(entry.id, timer);
+    if (!timers || timers.removal !== null) {
+      return;
+    }
+
+    if (timers.autoClose !== null) {
+      window.clearTimeout(timers.autoClose);
+      timers.autoClose = null;
+    }
+
+    this.hoverMessageStore.update((messages) =>
+      messages.map((message) =>
+        message.id === id ? { ...message, dismissing: true } : message,
+      ),
+    );
+
+    timers.removal = window.setTimeout(() => {
+      this.finalizeHoverMessageRemoval(id);
+    }, HOVER_MESSAGE_EXIT_DURATION_MS);
+  }
+
+  private finalizeHoverMessageRemoval(id: number): void {
+    this.hoverMessageStore.update((messages) =>
+      messages.filter((message) => message.id !== id),
+    );
+
+    if (typeof window === 'undefined') {
+      this.hoverMessageTimers.delete(id);
+      return;
+    }
+
+    const timers = this.hoverMessageTimers.get(id);
+
+    if (timers) {
+      if (timers.autoClose !== null) {
+        window.clearTimeout(timers.autoClose);
+      }
+
+      if (timers.removal !== null) {
+        window.clearTimeout(timers.removal);
+      }
+    }
+
+    this.hoverMessageTimers.delete(id);
   }
 
   private clearHoverMessageTimers(): void {
@@ -372,8 +441,14 @@ export class Shell {
       return;
     }
 
-    for (const timer of this.hoverMessageTimers.values()) {
-      window.clearTimeout(timer);
+    for (const timers of this.hoverMessageTimers.values()) {
+      if (timers.autoClose !== null) {
+        window.clearTimeout(timers.autoClose);
+      }
+
+      if (timers.removal !== null) {
+        window.clearTimeout(timers.removal);
+      }
     }
 
     this.hoverMessageTimers.clear();

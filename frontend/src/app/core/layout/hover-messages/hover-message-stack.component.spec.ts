@@ -29,8 +29,8 @@ describe('HoverMessageStackComponent', () => {
 
   it('renders each message and exposes accessibility metadata', () => {
     const messages: HoverMessageView[] = [
-      { id: 1, text: 'テスト1', severity: 'info' },
-      { id: 2, text: 'テスト2', severity: 'warning' },
+      { id: 1, text: 'テスト1', severity: 'system', dismissing: false },
+      { id: 2, text: 'テスト2', severity: 'warning', dismissing: false },
     ];
     component.messages = messages;
 
@@ -44,11 +44,16 @@ describe('HoverMessageStackComponent', () => {
     expect(renderedMessages.length).toBe(messages.length);
     expect(
       Array.from(renderedMessages).map((element) => element.getAttribute('data-severity')),
-    ).toEqual(['info', 'warning']);
+    ).toEqual(['system', 'warning']);
   });
 
   it('tracks messages by their identifier', () => {
-    const message: HoverMessageView = { id: 42, text: 'identifier', severity: 'success' };
+    const message: HoverMessageView = {
+      id: 42,
+      text: 'identifier',
+      severity: 'notification',
+      dismissing: false,
+    };
     expect(component.trackById(0, message)).toBe(42);
   });
 });
