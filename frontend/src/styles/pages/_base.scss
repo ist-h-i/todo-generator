@@ -52,11 +52,12 @@
   border: 1px solid var(--border-subtle);
   padding: 0.85rem 1.1rem;
   font-size: 0.95rem;
-  background: color-mix(in srgb, var(--surface-card) 80%, transparent);
+  background-color: color-mix(in srgb, var(--surface-card) 80%, transparent);
   color: var(--text-primary);
   transition:
     border-color 150ms ease,
-    background-color 150ms ease;
+    background-color 150ms ease,
+    box-shadow 180ms ease;
 }
 
 .form-control::placeholder {
@@ -79,6 +80,137 @@
   border-color: color-mix(in srgb, var(--danger) 55%, transparent);
   outline: 2px solid color-mix(in srgb, var(--danger) 24%, transparent);
   outline-offset: 2px;
+}
+
+.app-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.85rem calc(1.1rem + 1.85rem) 0.85rem 1.1rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border-subtle);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: var(--text-primary);
+  background-color: color-mix(in srgb, var(--surface-card) 88%, transparent);
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent 50%,
+      color-mix(in srgb, var(--text-secondary) 72%, transparent) 50%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--text-secondary) 72%, transparent) 50%,
+      transparent 50%
+    );
+  background-position:
+    calc(100% - 1.35rem) calc(50% - 0.25rem),
+    calc(100% - 0.85rem) calc(50% - 0.25rem);
+  background-size: 0.65rem 0.65rem;
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--surface-inverse) 6%, transparent),
+    0 10px 22px -18px color-mix(in srgb, var(--surface-inverse) 35%, transparent);
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 220ms ease;
+}
+
+.app-select:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--surface-card) 96%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border-subtle));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent),
+    0 16px 32px -22px color-mix(in srgb, var(--surface-inverse) 45%, transparent);
+}
+
+.app-select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  outline-offset: 2px;
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-subtle));
+  background-color: color-mix(in srgb, var(--surface-card) 98%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.app-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  border-color: color-mix(in srgb, var(--border-subtle) 60%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface-inverse) 4%, transparent);
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent 50%,
+      color-mix(in srgb, var(--text-muted) 45%, transparent) 50%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--text-muted) 45%, transparent) 50%,
+      transparent 50%
+    );
+}
+
+.app-select option {
+  color: var(--text-primary);
+  background-color: var(--surface-card);
+}
+
+.app-select[multiple],
+.app-select[size]:not([size='1']) {
+  padding-inline-end: 1.1rem;
+  background-image: none;
+  min-height: 7.5rem;
+  cursor: default;
+}
+
+.dark .app-select {
+  background-color: color-mix(in srgb, var(--surface-layer-2) 92%, transparent);
+  border-color: color-mix(in srgb, var(--border-overlay) 78%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--surface-inverse) 20%, transparent),
+    0 14px 28px -22px color-mix(in srgb, var(--surface-inverse) 50%, transparent);
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent 50%,
+      color-mix(in srgb, var(--text-inverse-tertiary) 70%, transparent) 50%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--text-inverse-tertiary) 70%, transparent) 50%,
+      transparent 50%
+    );
+}
+
+.dark .app-select:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--surface-layer-3) 96%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border-overlay));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 24%, transparent),
+    0 18px 36px -24px color-mix(in srgb, var(--surface-inverse) 60%, transparent);
+}
+
+.dark .app-select:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.dark .app-select option {
+  background-color: color-mix(in srgb, var(--surface-layer-3) 94%, transparent);
+}
+
+.app-select::-ms-expand {
+  display: none;
 }
 
 .form-actions {

@@ -656,7 +656,7 @@
   width: 100%;
   border-radius: 1.25rem;
   border: 1px solid var(--border-subtle);
-  background: var(--surface);
+  background-color: var(--surface);
   padding: var(--space-sm) var(--space-md);
   font-size: 0.875rem;
   transition:
@@ -664,9 +664,9 @@
     background-color 150ms ease;
 }
 
-.subtask-editor__input:focus,
-.comment-form__input:focus,
-.comment-form__textarea:focus {
+.subtask-editor__input:focus-visible,
+.comment-form__input:focus-visible,
+.comment-form__textarea:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
   outline-offset: 2px;
   border-color: var(--accent);
