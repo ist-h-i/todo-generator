@@ -39,6 +39,7 @@ class MockCardsApiService {
 }
 
 class MockCommentsApiService {
+  public readonly listComments = jasmine.createSpy('listComments');
   public readonly createComment = jasmine.createSpy('createComment');
   public readonly updateComment = jasmine.createSpy('updateComment');
   public readonly deleteComment = jasmine.createSpy('deleteComment');
@@ -103,6 +104,22 @@ const createBoardLayoutResponse = (
   ...overrides,
 });
 
+const createCardModel = (overrides: Partial<Card> = {}): Card => ({
+  id: 'card-1',
+  title: 'Implement authentication',
+  summary: '',
+  statusId: 'status-todo',
+  labelIds: [],
+  templateId: null,
+  priority: 'medium',
+  storyPoints: 3,
+  createdAt: '2024-01-01T00:00:00.000Z',
+  subtasks: [],
+  comments: [],
+  activities: [],
+  ...overrides,
+});
+
 describe('WorkspaceStore', () => {
   let store: WorkspaceStore;
   let cardsApi: MockCardsApiService;
@@ -110,6 +127,7 @@ describe('WorkspaceStore', () => {
   let auth: MockAuthService;
   let logger: MockLogger;
   let workspaceConfigApi: MockWorkspaceConfigApiService;
+  let commentsApi: MockCommentsApiService;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -136,9 +154,11 @@ describe('WorkspaceStore', () => {
     ) as unknown as MockWorkspaceConfigApiService;
     auth = TestBed.inject(AuthService) as unknown as MockAuthService;
     logger = TestBed.inject(Logger) as unknown as MockLogger;
+    commentsApi = TestBed.inject(CommentsApiService) as unknown as MockCommentsApiService;
 
     boardLayoutsApi.getBoardLayout.and.returnValue(of(createBoardLayoutResponse()));
     boardLayoutsApi.updateBoardLayout.and.returnValue(of(createBoardLayoutResponse()));
+    commentsApi.listComments.and.returnValue(of([]));
   });
 
   describe('importProposals', () => {
@@ -538,6 +558,65 @@ describe('WorkspaceStore', () => {
         localStorage.getItem('verbalize-yourself/workspace-preferences/anonymous') ?? '{}',
       );
       expect(cached.grouping).toBe('label');
+    });
+  });
+
+  describe('comments', () => {
+    it('loads comments when selecting a card for the first time', async () => {
+      const internals = store as unknown as {
+        cardsSignal: { set(value: readonly Card[]): void };
+      };
+
+      internals.cardsSignal.set([createCardModel()]);
+
+      commentsApi.listComments.and.returnValue(
+        of([
+          {
+            id: 'comment-1',
+            card_id: 'card-1',
+            content: 'Initial note',
+            author_id: 'user-99',
+            author_nickname: 'Reviewer',
+            created_at: '2024-01-01T00:00:00.000Z',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            subtask_id: null,
+          } as never,
+        ]),
+      );
+
+      store.selectCard('card-1');
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(commentsApi.listComments).toHaveBeenCalledWith({ cardId: 'card-1' });
+      expect(store.cards()[0]?.comments).toEqual([
+        {
+          id: 'comment-1',
+          authorId: 'user-99',
+          authorNickname: 'Reviewer',
+          message: 'Initial note',
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+          subtaskId: undefined,
+        },
+      ]);
+    });
+
+    it('avoids refetching comments for already loaded cards', async () => {
+      const internals = store as unknown as {
+        cardsSignal: { set(value: readonly Card[]): void };
+      };
+
+      internals.cardsSignal.set([createCardModel()]);
+
+      store.selectCard('card-1');
+      await Promise.resolve();
+      await Promise.resolve();
+
+      store.selectCard('card-1');
+
+      expect(commentsApi.listComments).toHaveBeenCalledTimes(1);
     });
   });
 

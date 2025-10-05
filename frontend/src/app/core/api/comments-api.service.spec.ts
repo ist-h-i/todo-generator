@@ -25,6 +25,18 @@ describe('CommentsApiService', () => {
   });
 
   it('performs CRUD requests for comments', () => {
+    service.listComments({ cardId: 'card-1' }).subscribe();
+    const listRequest = httpMock.expectOne(`${baseUrl}comments?card_id=card-1`);
+    expect(listRequest.request.method).toBe('GET');
+    listRequest.flush([]);
+
+    service.listComments({ cardId: 'card-1', subtaskId: 'subtask-1' }).subscribe();
+    const scopedListRequest = httpMock.expectOne(
+      `${baseUrl}comments?card_id=card-1&subtask_id=subtask-1`,
+    );
+    expect(scopedListRequest.request.method).toBe('GET');
+    scopedListRequest.flush([]);
+
     const createPayload = { card_id: 'card-1', content: 'First comment' } as never;
     const updatePayload = { content: 'Updated comment' } as never;
 

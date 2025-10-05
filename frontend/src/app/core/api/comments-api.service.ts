@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -26,9 +26,23 @@ export interface CommentUpdateRequest {
   readonly subtask_id?: string | null;
 }
 
+export interface CommentListParams {
+  readonly cardId: string;
+  readonly subtaskId?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class CommentsApiService {
   private readonly http = inject(HttpClient);
+
+  public listComments(params: CommentListParams): Observable<CommentResponse[]> {
+    let httpParams = new HttpParams().set('card_id', params.cardId);
+    if (params.subtaskId) {
+      httpParams = httpParams.set('subtask_id', params.subtaskId);
+    }
+
+    return this.http.get<CommentResponse[]>(buildApiUrl('/comments'), { params: httpParams });
+  }
 
   public createComment(payload: CommentCreateRequest): Observable<CommentResponse> {
     return this.http.post<CommentResponse>(buildApiUrl('/comments'), payload);
