@@ -17,18 +17,28 @@ describe('HoverMessageComponent', () => {
   });
 
   it('renders the provided message text and severity attribute', () => {
-    const message: HoverMessageView = { id: 1, text: 'テストメッセージ', severity: 'danger' };
+    const message: HoverMessageView = {
+      id: 1,
+      text: 'テストメッセージ',
+      severity: 'error',
+      dismissing: false,
+    };
     component.message = message;
 
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
-    expect(host.getAttribute('data-severity')).toBe('danger');
+    expect(host.getAttribute('data-severity')).toBe('error');
     expect(host.textContent).toContain('テストメッセージ');
   });
 
   it('exposes an icon container for assistive technologies', () => {
-    const message: HoverMessageView = { id: 2, text: '完了しました', severity: 'success' };
+    const message: HoverMessageView = {
+      id: 2,
+      text: '完了しました',
+      severity: 'notification',
+      dismissing: false,
+    };
     component.message = message;
 
     fixture.detectChanges();
