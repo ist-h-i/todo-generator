@@ -3,8 +3,10 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,6 +39,8 @@ from .routers import (
     workspace_templates,
 )
 
+FAVICON_PATH = Path(__file__).resolve().parent.parent / "favicon.svg"
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -67,6 +71,7 @@ app = FastAPI(
     description="API for transforming unstructured input into actionable task boards.",
     version="0.1.0",
     lifespan=lifespan,
+    swagger_favicon_url="/favicon.svg",
 )
 
 app.add_middleware(
@@ -110,6 +115,16 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error", exc_info=exc)
     resp = JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
     return _apply_cors(resp, request)
+
+
+@app.get("/favicon.svg", include_in_schema=False)
+async def favicon_svg() -> FileResponse:
+    return FileResponse(FAVICON_PATH, media_type="image/svg+xml")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon_ico() -> RedirectResponse:
+    return RedirectResponse(url="/favicon.svg")
 
 
 # include routers

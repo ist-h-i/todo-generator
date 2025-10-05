@@ -59,3 +59,8 @@ def get_db() -> Iterator[Session]:
         yield db
     finally:
         db.close()
+
+
+# Backwards-compatible handles expected by the rest of the application
+engine = get_engine()
+SessionLocal = _get_session_factory()
