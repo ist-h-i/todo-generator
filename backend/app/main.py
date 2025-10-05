@@ -1,11 +1,7 @@
 from __future__ import annotations
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from .config import settings
-from .database import Base, engine
-from .migrations import run_startup_migrations
 from .routers import (
     activity,
     admin_settings,
@@ -31,9 +27,6 @@ from .routers import (
     workspace_templates,
 )
 
-run_startup_migrations(engine)
-Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title="Verbalize Yourself Backend",
     description="API for transforming unstructured input into actionable task boards.",
@@ -48,6 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# include routers
 app.include_router(analysis.router)
 app.include_router(analytics.router)
 app.include_router(appeals.router)
