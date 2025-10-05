@@ -6,6 +6,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
+from .database import Base, engine
+from .migrations import run_startup_migrations
 from .routers import (
     activity,
     admin_settings,
@@ -31,18 +33,25 @@ from .routers import (
     workspace_templates,
 )
 
-import subprocess
 import logging
 
+
+logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-def run_migrations():
+
+def run_migrations() -> None:
     try:
-        logging.info("Running Alembic migrations...")
-        subprocess.run(["alembic", "upgrade", "head"], check=True)
-        logging.info("Migrations applied successfully.")
-    except Exception as e:
-        logging.error(f"Migration failed: {e}")
+        logger.info("Running startup migrations...")
+        run_startup_migrations(engine)
+        logger.info("Startup migrations completed.")
+        logger.info("Ensuring database schema is up to date...")
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        logger.info("Database schema ensured.")
+    except Exception:
+        logger.exception("Database initialization failed")
+        raise
+
 
 run_migrations()
 
