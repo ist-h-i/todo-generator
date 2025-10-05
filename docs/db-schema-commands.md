@@ -20,30 +20,19 @@ python scripts/bootstrap_database.py --database-url postgresql://username:passwo
 
 > **補足**: 外部キーの `ON DELETE` 動作はアプリケーションの期待値を保つため必ず有効化してください。SQLite を使用する場合は `PRAGMA foreign_keys = ON;` を忘れずに設定します。
 
-## card_labels
-```sql
-CREATE TABLE card_labels (
-    card_id TEXT NOT NULL,
-    label_id TEXT NOT NULL,
-    PRIMARY KEY (card_id, label_id),
-    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
-    FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
-);
-```
-
 ## users
 ```sql
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    is_active BOOLEAN DEFAULT 1,
-    is_admin BOOLEAN NOT NULL DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
     nickname VARCHAR(64),
     experience_years INTEGER,
     roles JSON DEFAULT '[]',
     bio TEXT,
-    avatar_image BLOB,
+    avatar_image BYTEA,
     avatar_mime_type VARCHAR(64),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -61,6 +50,87 @@ CREATE TABLE session_tokens (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+## statuses
+```sql
+CREATE TABLE statuses (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT,
+    "order" INTEGER,
+    color TEXT,
+    wip_limit INTEGER,
+    owner_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (owner_id, name)
+);
+```
+
+## error_categories
+```sql
+CREATE TABLE error_categories (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    severity_level TEXT,
+    owner_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (owner_id, name)
+);
+```
+
+## daily_card_quotas
+```sql
+CREATE TABLE daily_card_quotas (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    owner_id TEXT NOT NULL,
+    quota_date DATE NOT NULL,
+    created_count INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (owner_id, quota_date)
+);
+```
+
+## workspace_templates
+```sql
+CREATE TABLE workspace_templates (
+    id TEXT PRIMARY KEY,
+    owner_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    default_status_id TEXT,
+    default_label_ids JSON DEFAULT '[]',
+    confidence_threshold REAL DEFAULT 60.0,
+    field_visibility JSON DEFAULT '{"show_story_points": true, "show_due_date": false, "show_assignee": true, "show_confidence": true}',
+    is_system_default BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (default_status_id) REFERENCES statuses(id) ON DELETE SET NULL
+);
+```
+
+## improvement_initiatives
+```sql
+CREATE TABLE improvement_initiatives (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    owner TEXT,
+    start_date TIMESTAMP WITH TIME ZONE,
+    target_metrics JSON DEFAULT '{}',
+    status TEXT,
+    health TEXT,
+    owner_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
 ```
 
@@ -98,62 +168,6 @@ CREATE TABLE cards (
 );
 ```
 
-## daily_card_quotas
-```sql
-CREATE TABLE daily_card_quotas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    owner_id TEXT NOT NULL,
-    quota_date DATE NOT NULL,
-    created_count INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE (owner_id, quota_date)
-);
-```
-
-## workspace_templates
-```sql
-CREATE TABLE workspace_templates (
-    id TEXT PRIMARY KEY,
-    owner_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    description TEXT DEFAULT '',
-    default_status_id TEXT,
-    default_label_ids JSON DEFAULT '[]',
-    confidence_threshold REAL DEFAULT 60.0,
-    field_visibility JSON DEFAULT '{"show_story_points": true, "show_due_date": false, "show_assignee": true, "show_confidence": true}',
-    is_system_default BOOLEAN NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (default_status_id) REFERENCES statuses(id) ON DELETE SET NULL
-);
-```
-
-## subtasks
-```sql
-CREATE TABLE subtasks (
-    id TEXT PRIMARY KEY,
-    card_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT,
-    status TEXT,
-    priority TEXT,
-    assignee TEXT,
-    start_date TIMESTAMP WITH TIME ZONE,
-    due_date TIMESTAMP WITH TIME ZONE,
-    estimate_hours REAL,
-    story_points INTEGER,
-    checklist JSON DEFAULT '[]',
-    ai_similarity_vector_id TEXT,
-    root_cause_node_id TEXT,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
-    FOREIGN KEY (root_cause_node_id) REFERENCES root_cause_nodes(id) ON DELETE SET NULL
-);
-```
-
 ## labels
 ```sql
 CREATE TABLE labels (
@@ -161,7 +175,7 @@ CREATE TABLE labels (
     name TEXT NOT NULL,
     color TEXT,
     description TEXT,
-    is_system BOOLEAN DEFAULT 0,
+    is_system BOOLEAN DEFAULT TRUE,
     owner_id TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -170,111 +184,14 @@ CREATE TABLE labels (
 );
 ```
 
-## statuses
+## card_labels
 ```sql
-CREATE TABLE statuses (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    category TEXT,
-    "order" INTEGER,
-    color TEXT,
-    wip_limit INTEGER,
-    owner_id TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE (owner_id, name)
-);
-```
-
-## user_preferences
-```sql
-CREATE TABLE user_preferences (
-    user_id TEXT PRIMARY KEY,
-    board_grouping TEXT,
-    board_layout JSON DEFAULT '{}',
-    visible_fields JSON DEFAULT '[]',
-    notification_settings JSON DEFAULT '{}',
-    preferred_language TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-## comments
-```sql
-CREATE TABLE comments (
-    id TEXT PRIMARY KEY,
+CREATE TABLE card_labels (
     card_id TEXT NOT NULL,
-    subtask_id TEXT,
-    author_id TEXT,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    label_id TEXT NOT NULL,
+    PRIMARY KEY (card_id, label_id),
     FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
-    FOREIGN KEY (subtask_id) REFERENCES subtasks(id) ON DELETE CASCADE
-);
-```
-
-## activity_logs
-```sql
-CREATE TABLE activity_logs (
-    id TEXT PRIMARY KEY,
-    card_id TEXT,
-    actor_id TEXT,
-    action TEXT NOT NULL,
-    details JSON DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
-    UNIQUE (id)
-);
-```
-
-## error_categories
-```sql
-CREATE TABLE error_categories (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    severity_level TEXT,
-    owner_id TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE (owner_id, name)
-);
-```
-
-## improvement_initiatives
-```sql
-CREATE TABLE improvement_initiatives (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    owner TEXT,
-    start_date TIMESTAMP WITH TIME ZONE,
-    target_metrics JSON DEFAULT '{}',
-    status TEXT,
-    health TEXT,
-    owner_id TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
-);
-```
-
-## initiative_progress_logs
-```sql
-CREATE TABLE initiative_progress_logs (
-    id TEXT PRIMARY KEY,
-    initiative_id TEXT NOT NULL,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    status TEXT,
-    notes TEXT,
-    observed_metrics JSON DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (initiative_id) REFERENCES improvement_initiatives(id) ON DELETE CASCADE
+    FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
 );
 ```
 
@@ -331,6 +248,89 @@ CREATE TABLE root_cause_nodes (
 );
 ```
 
+## subtasks
+```sql
+CREATE TABLE subtasks (
+    id TEXT PRIMARY KEY,
+    card_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    status TEXT,
+    priority TEXT,
+    assignee TEXT,
+    start_date TIMESTAMP WITH TIME ZONE,
+    due_date TIMESTAMP WITH TIME ZONE,
+    estimate_hours REAL,
+    story_points INTEGER,
+    checklist JSON DEFAULT '[]',
+    ai_similarity_vector_id TEXT,
+    root_cause_node_id TEXT,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+    FOREIGN KEY (root_cause_node_id) REFERENCES root_cause_nodes(id) ON DELETE SET NULL
+);
+```
+
+## user_preferences
+```sql
+CREATE TABLE user_preferences (
+    user_id TEXT PRIMARY KEY,
+    board_grouping TEXT,
+    board_layout JSON DEFAULT '{}',
+    visible_fields JSON DEFAULT '[]',
+    notification_settings JSON DEFAULT '{}',
+    preferred_language TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## comments
+```sql
+CREATE TABLE comments (
+    id TEXT PRIMARY KEY,
+    card_id TEXT NOT NULL,
+    subtask_id TEXT,
+    author_id TEXT,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+    FOREIGN KEY (subtask_id) REFERENCES subtasks(id) ON DELETE CASCADE
+);
+```
+
+## activity_logs
+```sql
+CREATE TABLE activity_logs (
+    id TEXT PRIMARY KEY,
+    card_id TEXT,
+    actor_id TEXT,
+    action TEXT NOT NULL,
+    details JSON DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+    UNIQUE (id)
+);
+```
+
+## initiative_progress_logs
+```sql
+CREATE TABLE initiative_progress_logs (
+    id TEXT PRIMARY KEY,
+    initiative_id TEXT NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status TEXT,
+    notes TEXT,
+    observed_metrics JSON DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (initiative_id) REFERENCES improvement_initiatives(id) ON DELETE CASCADE
+);
+```
+
 ## suggested_actions
 ```sql
 CREATE TABLE suggested_actions (
@@ -364,7 +364,7 @@ CREATE TABLE status_reports (
     tags JSON DEFAULT '[]',
     content JSON DEFAULT '{}',
     status TEXT NOT NULL DEFAULT 'draft',
-    auto_ticket_enabled BOOLEAN NOT NULL DEFAULT 0,
+    auto_ticket_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     analysis_model TEXT,
     analysis_started_at TIMESTAMP WITH TIME ZONE,
     analysis_completed_at TIMESTAMP WITH TIME ZONE,
@@ -442,7 +442,7 @@ CREATE TABLE saved_filters (
     name TEXT NOT NULL,
     definition JSON DEFAULT '{}',
     created_by TEXT NOT NULL,
-    shared BOOLEAN DEFAULT 0,
+    shared BOOLEAN DEFAULT TRUE,
     last_used_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -457,7 +457,7 @@ CREATE TABLE similarity_feedback (
     card_id TEXT NOT NULL,
     related_id TEXT NOT NULL,
     related_type TEXT NOT NULL,
-    is_relevant BOOLEAN DEFAULT 1,
+    is_relevant BOOLEAN DEFAULT FALSE,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -474,7 +474,7 @@ CREATE TABLE competencies (
     description TEXT,
     rubric JSON DEFAULT '{}',
     sort_order INTEGER DEFAULT 0,
-    is_active BOOLEAN NOT NULL DEFAULT 1,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -490,11 +490,35 @@ CREATE TABLE competency_criteria (
     weight REAL,
     intentionality_prompt TEXT,
     behavior_prompt TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT 1,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
     order_index INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (competency_id) REFERENCES competencies(id) ON DELETE CASCADE
+);
+```
+
+## competency_evaluation_jobs
+```sql
+CREATE TABLE competency_evaluation_jobs (
+    id TEXT PRIMARY KEY,
+    competency_id TEXT,
+    user_id TEXT,
+    status TEXT DEFAULT 'pending',
+    scope TEXT DEFAULT 'user',
+    target_period_start DATE,
+    target_period_end DATE,
+    triggered_by TEXT DEFAULT 'manual',
+    triggered_by_id TEXT,
+    started_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
+    summary_stats JSON DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (competency_id) REFERENCES competencies(id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (triggered_by_id) REFERENCES users(id) ON DELETE SET NULL
 );
 ```
 
@@ -542,34 +566,10 @@ CREATE TABLE competency_evaluation_items (
 );
 ```
 
-## competency_evaluation_jobs
-```sql
-CREATE TABLE competency_evaluation_jobs (
-    id TEXT PRIMARY KEY,
-    competency_id TEXT,
-    user_id TEXT,
-    status TEXT DEFAULT 'pending',
-    scope TEXT DEFAULT 'user',
-    target_period_start DATE,
-    target_period_end DATE,
-    triggered_by TEXT DEFAULT 'manual',
-    triggered_by_id TEXT,
-    started_at TIMESTAMP WITH TIME ZONE,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    error_message TEXT,
-    summary_stats JSON DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (competency_id) REFERENCES competencies(id) ON DELETE SET NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    FOREIGN KEY (triggered_by_id) REFERENCES users(id) ON DELETE SET NULL
-);
-```
-
 ## daily_evaluation_quotas
 ```sql
 CREATE TABLE daily_evaluation_quotas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     owner_id TEXT NOT NULL,
     quota_date DATE NOT NULL,
     executed_count INTEGER NOT NULL DEFAULT 0,
@@ -581,7 +581,7 @@ CREATE TABLE daily_evaluation_quotas (
 ## quota_defaults
 ```sql
 CREATE TABLE quota_defaults (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     card_daily_limit INTEGER NOT NULL DEFAULT 25,
     evaluation_daily_limit INTEGER NOT NULL DEFAULT 3,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -592,7 +592,7 @@ CREATE TABLE quota_defaults (
 ## user_quota_overrides
 ```sql
 CREATE TABLE user_quota_overrides (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id TEXT NOT NULL UNIQUE,
     card_daily_limit INTEGER,
     evaluation_daily_limit INTEGER,
@@ -611,7 +611,7 @@ CREATE TABLE analysis_sessions (
     request_text TEXT NOT NULL,
     notes TEXT,
     objective TEXT,
-    auto_objective BOOLEAN NOT NULL DEFAULT 1,
+    auto_objective BOOLEAN NOT NULL DEFAULT FALSE,
     max_cards INTEGER NOT NULL DEFAULT 3,
     response_model TEXT,
     proposals JSON DEFAULT '[]',
@@ -645,11 +645,11 @@ CREATE TABLE appeal_generations (
 ## api_credentials
 ```sql
 CREATE TABLE api_credentials (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     provider TEXT NOT NULL UNIQUE,
     encrypted_secret TEXT NOT NULL,
     secret_hint TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT 1,
+    is_active BOOLEAN NOT NULL DEFAULT False,
     model TEXT,
     created_by_id TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
