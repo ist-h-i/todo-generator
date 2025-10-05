@@ -337,7 +337,9 @@
             <ul class="mt-3 space-y-2 text-xs text-slate-500">
               @for (log of initiative.progress; track log.id) {
                 <li>
-                  <span class="font-semibold">{{ log.timestamp | date: 'yyyy/MM/dd' }}</span>
+                  <span class="font-semibold">{{
+                    log.timestamp | localDateTime: 'yyyy/MM/dd'
+                  }}</span>
                   {{ log.status }} — {{ log.notes }}
                 </li>
               }

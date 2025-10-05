@@ -375,7 +375,7 @@
                 <p class="page-list__title">{{ event.event_type }}</p>
               </div>
               <div class="page-list__meta">
-                <span>{{ event.created_at | date: 'short' }}</span>
+                <span>{{ event.created_at | localDateTime: 'short' }}</span>
               </div>
             </li>
           </ul>

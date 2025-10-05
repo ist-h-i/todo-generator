@@ -280,7 +280,7 @@
                     </div>
                     @if (subtask.dueDate) {
                       <p class="text-[11px] text-slate-500">
-                        期限: {{ subtask.dueDate | date: 'yyyy/MM/dd' }}
+                        期限: {{ subtask.dueDate | localDateTime: 'yyyy/MM/dd' }}
                       </p>
                     }
                     @if (!subtask.isCompact) {
@@ -355,7 +355,9 @@
             </div>
             <div class="card-overview__item">
               <dt>期限</dt>
-              <dd>{{ active.dueDate ? (active.dueDate | date: 'yyyy/MM/dd') : '未設定' }}</dd>
+              <dd>
+                {{ active.dueDate ? (active.dueDate | localDateTime: 'yyyy/MM/dd') : '未設定' }}
+              </dd>
             </div>
             <div class="card-overview__item">
               <dt>AIおすすめ度</dt>
@@ -391,7 +393,7 @@
                     <div class="comment-list__identity">
                       <span class="comment-list__author">{{ comment.authorNickname }}</span>
                       <span class="comment-list__timestamp"
-                        >更新: {{ comment.updatedAt | date: 'yyyy/MM/dd HH:mm' }}</span
+                        >更新: {{ comment.updatedAt | localDateTime: 'yyyy/MM/dd HH:mm' }}</span
                       >
                       @if (isCommentBeingEdited(comment.id)) {
                         <span class="comment-list__status">編集中</span>
@@ -432,7 +434,7 @@
                       <div class="comment-list__identity">
                         <span class="comment-list__author">{{ comment.authorNickname }}</span>
                         <span class="comment-list__timestamp"
-                          >更新: {{ comment.updatedAt | date: 'yyyy/MM/dd HH:mm' }}</span
+                          >更新: {{ comment.updatedAt | localDateTime: 'yyyy/MM/dd HH:mm' }}</span
                         >
                       </div>
                       <div class="comment-list__actions">
@@ -625,7 +627,10 @@
                                     comment.authorNickname
                                   }}</span>
                                   <span class="comment-list__timestamp"
-                                    >更新: {{ comment.updatedAt | date: 'yyyy/MM/dd HH:mm' }}</span
+                                    >更新:
+                                    {{
+                                      comment.updatedAt | localDateTime: 'yyyy/MM/dd HH:mm'
+                                    }}</span
                                   >
                                   @if (isCommentBeingEdited(comment.id)) {
                                     <span class="comment-list__status">編集中</span>
