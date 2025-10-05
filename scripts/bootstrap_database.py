@@ -84,6 +84,8 @@ def _create_schema(engine: Engine, tables: Iterable[str] | None = None) -> None:
 
 
 def _get_missing_tables(engine: Engine) -> set[str]:
+    # Import models so ``Base.metadata`` reflects every mapped table.
+    from backend.app import models  # noqa: F401
     from backend.app.database import Base
 
     inspector = inspect(engine)
