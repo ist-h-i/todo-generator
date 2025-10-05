@@ -44,7 +44,10 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("SECRET_ENCRYPTION_KEY", "secret_encryption_key"),
     )
     allowed_origins: str | list[str] = Field(
-        default_factory=lambda: ["http://localhost:4200"],
+        default_factory=lambda: [
+            "http://localhost:4200",
+            "https://verbalize-yourself.vercel.app",
+        ],
         validation_alias=AliasChoices("ALLOWED_ORIGINS", "allowed_origins"),
     )
     recommendation_label_weight: float = Field(
