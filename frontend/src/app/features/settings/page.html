@@ -246,7 +246,7 @@
                   >
                   <select
                     [attr.id]="'template-edit-status-' + template.id"
-                    class="form-control"
+                    class="form-control app-select"
                     [value]="templateEditForm.controls.defaultStatusId.value()"
                     (change)="
                       templateEditForm.controls.defaultStatusId.setValue($any($event.target).value)
@@ -425,7 +425,7 @@
           <span class="form-field__label" for="template-status">初期ステータス</span>
           <select
             id="template-status"
-            class="form-control"
+            class="form-control app-select"
             [value]="templateForm.controls.defaultStatusId.value()"
             (change)="templateForm.controls.defaultStatusId.setValue($any($event.target).value)"
           >

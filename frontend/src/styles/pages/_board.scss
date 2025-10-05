@@ -655,18 +655,23 @@
 .comment-form__textarea {
   width: 100%;
   border-radius: 1.25rem;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface);
-  padding: var(--space-sm) var(--space-md);
-  font-size: 0.875rem;
   transition:
     border-color 150ms ease,
     background-color 150ms ease;
 }
 
-.subtask-editor__input:focus,
-.comment-form__input:focus,
-.comment-form__textarea:focus {
+.subtask-editor__input:not(.app-select),
+.comment-form__input,
+.comment-form__textarea {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.875rem;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--surface);
+}
+
+.subtask-editor__input:not(.app-select):focus-visible,
+.comment-form__input:focus-visible,
+.comment-form__textarea:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
   outline-offset: 2px;
   border-color: var(--accent);
@@ -1145,7 +1150,7 @@
   border-color: color-mix(in srgb, var(--neutral-border-strong) 80%, transparent);
 }
 
-.dark .board-page .subtask-editor__input,
+.dark .board-page .subtask-editor__input:not(.app-select),
 .dark .board-page .comment-form__input,
 .dark .board-page .comment-form__textarea {
   background: color-mix(in srgb, var(--surface) 80%, transparent);

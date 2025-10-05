@@ -560,7 +560,7 @@
                     <label class="subtask-editor__field">
                       <span class="subtask-editor__field-label">ステータス</span>
                       <select
-                        class="subtask-editor__input"
+                        class="subtask-editor__input app-select"
                         [value]="task.status"
                         (change)="
                           changeSubtaskStatus(active.id, task.id, $any($event.target).value)
@@ -722,7 +722,7 @@
             <label class="subtask-editor__field">
               <span class="subtask-editor__field-label">ステータス</span>
               <select
-                class="subtask-editor__input"
+                class="subtask-editor__input app-select"
                 [value]="newSubtaskForm.controls.status.value()"
                 (change)="newSubtaskForm.controls.status.setValue($any($event.target).value)"
               >
