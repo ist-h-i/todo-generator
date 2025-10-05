@@ -50,6 +50,10 @@ export class ReportAssistantPageComponent {
   private readonly publishErrorState = signal<string | null>(null);
   private readonly publishSuccessState = signal<string | null>(null);
   public readonly proposals = new FormArray<FormGroup>([]);
+  public readonly statusOptions = computed(() => {
+    const statuses = this.workspace.settings().statuses;
+    return [...statuses].sort((left, right) => (left.order ?? 0) - (right.order ?? 0));
+  });
   private readonly statusNameIndex = computed(() => {
     const index = new Map<string, string>();
     for (const status of this.workspace.settings().statuses) {
@@ -476,11 +480,12 @@ export class ReportAssistantPageComponent {
   }
 
   private createProposalGroup(proposal?: StatusReportProposal): FormGroup {
-    const status = this.normalizeStatusForEditing(proposal?.status);
+    const settings = this.workspace.settings();
+    const statusId = this.resolveStatusId(proposal?.status, settings) ?? '';
     return this.fb.group({
       title: [proposal?.title ?? '', [Validators.required]],
       summary: [proposal?.summary ?? '', [Validators.required]],
-      status: [status],
+      status: [statusId],
       labels: [proposal ? proposal.labels.join(', ') : ''],
       priority: [proposal?.priority ?? 'medium'],
       dueInDays: [proposal?.due_in_days ?? null],
@@ -497,26 +502,6 @@ export class ReportAssistantPageComponent {
       description: [subtask?.description ?? ''],
       status: [status || 'todo'],
     });
-  }
-
-  private normalizeStatusForEditing(status: string | null | undefined): string {
-    if (!status) {
-      return '';
-    }
-
-    const trimmed = status.trim();
-    if (!trimmed) {
-      return '';
-    }
-
-    const index = this.statusNameIndex();
-    const direct = index.get(trimmed);
-    if (direct) {
-      return direct;
-    }
-
-    const normalized = trimmed.toLowerCase();
-    return index.get(normalized) ?? trimmed;
   }
 
   private normalizeSubtaskStatusForEditing(status: string | null | undefined): string {
