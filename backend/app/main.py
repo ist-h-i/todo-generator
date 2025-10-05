@@ -31,6 +31,21 @@ from .routers import (
     workspace_templates,
 )
 
+import subprocess
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+def run_migrations():
+    try:
+        logging.info("Running Alembic migrations...")
+        subprocess.run(["alembic", "upgrade", "head"], check=True)
+        logging.info("Migrations applied successfully.")
+    except Exception as e:
+        logging.error(f"Migration failed: {e}")
+
+run_migrations()
+
 app = FastAPI(
     title="Verbalize Yourself Backend",
     description="API for transforming unstructured input into actionable task boards.",
