@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.requests import Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 
 from .config import settings
@@ -26,7 +26,6 @@ from .routers import (
     comments,
     competencies,
     competency_evaluations,
-    status_reports,
     error_categories,
     filters,
     initiatives,
@@ -34,6 +33,7 @@ from .routers import (
     preferences,
     profile,
     reports,
+    status_reports,
     statuses,
     suggested_actions,
     workspace_templates,
@@ -65,6 +65,7 @@ def run_migrations() -> None:
         logger.info("Startup migrations completed.")
         logger.info("Ensuring database schema is up to date...")
         from . import models  # noqa: F401
+
         Base.metadata.create_all(bind=get_engine(), checkfirst=True)
         logger.info("Database schema ensured.")
     except Exception:
@@ -75,7 +76,7 @@ def run_migrations() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     run_migrations()
-    # ルート一覧をログ（405 調査用）
+    # Log route information for 405 investigation
     try:
         for r in app.routes:
             methods = getattr(r, "methods", None)
@@ -134,21 +135,21 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return _apply_cors(resp, request)
 
 
-@app.options("/{rest_of_path:path}", include_in_schema=False)
-async def cors_preflight(request: Request, rest_of_path: str = ""):
-    resp = Response(status_code=204)
-    resp.headers.update(
-        {
-            "Access-Control-Allow-Methods": request.headers.get(
-                "access-control-request-method", "*"
-            ),
-            "Access-Control-Allow-Headers": request.headers.get(
-                "access-control-request-headers", "*"
-            ),
-            "Access-Control-Max-Age": "600",
-        }
-    )
-    return _apply_cors(resp, request)
+@app.middleware("http")
+async def cors_preflight_middleware(request: Request, call_next):
+    if request.method == "OPTIONS":
+        resp = Response(status_code=204)
+        resp.headers.update(
+            {
+                "Access-Control-Allow-Methods": request.headers.get("access-control-request-method", "*"),
+                "Access-Control-Allow-Headers": request.headers.get("access-control-request-headers", "*"),
+                "Access-Control-Max-Age": "600",
+            }
+        )
+        return _apply_cors(resp, request)
+
+    response = await call_next(request)
+    return response
 
 
 @app.get("/", include_in_schema=False)
@@ -160,10 +161,14 @@ def root() -> Response:
 async def favicon_svg():
     if FAVICON_PATH:
         return FileResponse(FAVICON_PATH, media_type="image/svg+xml")
-    return Response(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" rx="8" fill="#111"/><text x="50%" y="55%" text-anchor="middle" fill="#fff" font-size="28" font-family="Inter, Arial" dy=".1em">VY</text></svg>',
-        media_type="image/svg+xml",
+    svg_markup = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">'
+        '<rect width="100%" height="100%" rx="8" fill="#111"/>'
+        '<text x="50%" y="55%" text-anchor="middle" fill="#fff" '
+        'font-size="28" font-family="Inter, Arial" dy=".1em">VY</text>'
+        "</svg>"
     )
+    return Response(svg_markup, media_type="image/svg+xml")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
