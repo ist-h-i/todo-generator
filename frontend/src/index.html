@@ -6,7 +6,31 @@
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
+    <meta name="verbalize:api-base-url" content="https://verbalize-yourself-peach.vercel.app" />
     <link rel="icon" type="image/svg+xml" href="/gemini.svg" />
+    <script>
+      (function () {
+        if (typeof window === 'undefined') {
+          return;
+        }
+
+        try {
+          var hostname = window.location && window.location.hostname;
+          if (!hostname) {
+            return;
+          }
+
+          if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            var apiMeta = document.querySelector('meta[name="verbalize:api-base-url"]');
+            if (apiMeta && apiMeta.parentNode) {
+              apiMeta.parentNode.removeChild(apiMeta);
+            }
+          }
+        } catch (error) {
+          // Ignore failures while resolving the runtime host.
+        }
+      })();
+    </script>
     <script>
       (function () {
         var THEME_STORAGE_KEY = 'verbalize-yourself:theme-preference';
