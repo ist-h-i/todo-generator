@@ -371,6 +371,22 @@ const mapCommentFromResponse = (source: CommentResponse): CardComment => ({
   subtaskId: sanitizeString(source.subtask_id),
 });
 
+const dedupeCommentsById = (comments: readonly CardComment[]): CardComment[] => {
+  const seen = new Set<string>();
+  const result: CardComment[] = [];
+
+  for (const comment of comments) {
+    if (seen.has(comment.id)) {
+      continue;
+    }
+
+    seen.add(comment.id);
+    result.push(comment);
+  }
+
+  return result;
+};
+
 const mapCardFromResponse = (source: CardResponse, fallbackStatusId: string): Card => {
   const rawLabelIds = dedupeIds([
     ...((source.label_ids ?? []) as readonly (string | null | undefined)[]),
@@ -746,6 +762,8 @@ export class WorkspaceStore {
   private readonly groupingSignal = signal<BoardGrouping>(DEFAULT_GROUPING);
   private readonly filtersSignal = signal<BoardFilters>({ ...INITIAL_FILTERS });
   private readonly selectedCardIdSignal = signal<string | null>(null);
+  private readonly loadedCommentCardIds = new Set<string>();
+  private readonly commentRequestTokens = new Map<string, number>();
   private readonly templateConfidenceThresholds = computed(
     () =>
       new Map(
@@ -1187,6 +1205,9 @@ export class WorkspaceStore {
    */
   public readonly selectCard = (cardId: string | null): void => {
     this.selectedCardIdSignal.set(cardId);
+    if (cardId) {
+      this.ensureCardCommentsLoaded(cardId);
+    }
   };
 
   /**
@@ -1283,16 +1304,23 @@ export class WorkspaceStore {
     }
 
     const previousSelection = this.selectedCardIdSignal();
+    const wasCommentsLoaded = this.loadedCommentCardIds.has(cardId);
     this.cardsSignal.set(next);
     if (previousSelection === cardId) {
       this.selectedCardIdSignal.set(null);
     }
+
+    this.loadedCommentCardIds.delete(cardId);
+    this.commentRequestTokens.delete(cardId);
 
     void firstValueFrom(this.cardsApi.deleteCard(cardId)).catch((error) => {
       this.logger.error('WorkspaceStore', error);
       this.cardsSignal.set(cards);
       if (previousSelection) {
         this.selectedCardIdSignal.set(previousSelection);
+      }
+      if (wasCommentsLoaded) {
+        this.loadedCommentCardIds.add(cardId);
       }
     });
   };
@@ -2173,6 +2201,8 @@ export class WorkspaceStore {
     if (!userId) {
       this.activeCardRequestToken += 1;
       this.cardsSignal.set([]);
+      this.loadedCommentCardIds.clear();
+      this.commentRequestTokens.clear();
       await this.refreshWorkspaceConfig(true);
       return;
     }
@@ -2214,9 +2244,95 @@ export class WorkspaceStore {
     this.applyWorkspaceMetadata(statuses, labels);
 
     const fallbackStatusId = this.settingsSignal().defaultStatusId;
-    const mappedCards = response.map((card) => mapCardFromResponse(card, fallbackStatusId));
+    const previousCards = this.cardsSignal();
+    const previousById = new Map(previousCards.map((card) => [card.id, card]));
+    const mappedCards = response.map((card) => {
+      const mapped = mapCardFromResponse(card, fallbackStatusId);
+      const previous = previousById.get(mapped.id);
+
+      if (!previous) {
+        return mapped;
+      }
+
+      return {
+        ...mapped,
+        comments: previous.comments,
+        activities: previous.activities,
+        templateId: previous.templateId,
+        originSuggestionId: previous.originSuggestionId,
+      } satisfies Card;
+    });
+
     this.cardsSignal.set(mappedCards);
+
+    const existingIds = new Set(mappedCards.map((card) => card.id));
+    for (const cardId of Array.from(this.loadedCommentCardIds)) {
+      if (!existingIds.has(cardId)) {
+        this.loadedCommentCardIds.delete(cardId);
+        this.commentRequestTokens.delete(cardId);
+      }
+    }
+
     this.reconcileCardsForSettings(this.settingsSignal());
+  }
+
+  private ensureCardCommentsLoaded(cardId: string): void {
+    if (this.loadedCommentCardIds.has(cardId)) {
+      return;
+    }
+
+    if (!this.cardsSignal().some((card) => card.id === cardId)) {
+      return;
+    }
+
+    const requestToken = (this.commentRequestTokens.get(cardId) ?? 0) + 1;
+    this.commentRequestTokens.set(cardId, requestToken);
+
+    void firstValueFrom(this.commentsApi.listComments({ cardId }))
+      .then((response) => {
+        if (this.commentRequestTokens.get(cardId) !== requestToken) {
+          return;
+        }
+
+        const remoteComments = response.map(mapCommentFromResponse);
+        const remoteById = new Map(remoteComments.map((comment) => [comment.id, comment]));
+
+        this.cardsSignal.update((cards) =>
+          cards.map((card) => {
+            if (card.id !== cardId) {
+              return card;
+            }
+
+            const merged: CardComment[] = [];
+            for (const comment of card.comments) {
+              const replacement = remoteById.get(comment.id);
+              if (replacement) {
+                merged.push(replacement);
+                remoteById.delete(comment.id);
+              } else {
+                merged.push(comment);
+              }
+            }
+
+            for (const comment of remoteById.values()) {
+              merged.push(comment);
+            }
+
+            return { ...card, comments: merged } satisfies Card;
+          }),
+        );
+
+        this.loadedCommentCardIds.add(cardId);
+        this.commentRequestTokens.delete(cardId);
+      })
+      .catch((error) => {
+        if (this.commentRequestTokens.get(cardId) !== requestToken) {
+          return;
+        }
+
+        this.commentRequestTokens.delete(cardId);
+        this.logger.error('WorkspaceStore', error);
+      });
   }
 
   private payloadHasChanges(payload: unknown): boolean {
@@ -2336,7 +2452,7 @@ export class WorkspaceStore {
           comment.id === commentId ? replacement : comment,
         );
 
-        return { ...card, comments } satisfies Card;
+        return { ...card, comments: dedupeCommentsById(comments) } satisfies Card;
       }),
     );
   }
@@ -2448,6 +2564,16 @@ export class WorkspaceStore {
   }
 
   private applyUserContext(userId: string | null): void {
+    const hasUserChanged = userId !== this.lastAppliedUserId;
+
+    if (hasUserChanged) {
+      this.activeCardRequestToken += 1;
+      this.selectedCardIdSignal.set(null);
+      this.cardsSignal.set([]);
+      this.loadedCommentCardIds.clear();
+      this.commentRequestTokens.clear();
+    }
+
     this.lastAppliedUserId = userId;
     const settings = this.loadSettings(userId);
     const preferences = this.loadPreferences(userId, settings);
