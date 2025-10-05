@@ -16,7 +16,11 @@ class Settings(BaseSettings):
     )
 
     database_url: str = Field(
-        default="sqlite:///./todo.db",
+        default=(
+            "postgresql://neondb_owner:npg_w25oaMpOeJrm@"
+            "ep-dark-dew-adi4tuf8-pooler.c-2.us-east-1.aws.neon.tech/neondb"
+            "?sslmode=require"
+        ),
         validation_alias=AliasChoices("DATABASE_URL", "database_url"),
     )
     debug: bool = Field(

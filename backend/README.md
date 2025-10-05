@@ -54,7 +54,7 @@ This FastAPI application implements the backend described in the project require
 
 Configuration is managed through environment variables (see `app/config.py`). Key variables include:
 
-- `DATABASE_URL`: SQLAlchemy connection string. Defaults to `sqlite:///./todo.db`.
+- `DATABASE_URL`: SQLAlchemy connection string. Defaults to the pooled Neon connection (`postgresql://neondb_owner:npg_w25oaMpOeJrm@ep-dark-dew-adi4tuf8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require`).
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
 - `GEMINI_MODEL`: Logical name for the Gemini model (default: `models/gemini-2.0-flash`).
 - `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).

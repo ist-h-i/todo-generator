@@ -42,13 +42,11 @@ Each item summarises the impact, root cause, and current mitigations so delivery
   - Audit label usage before deleting entries so cards can be re-tagged quickly.
   - Future work: add inline edit controls with colour pickers and validation that route through `WorkspaceConfigApiService.updateLabel`.
 
-## Workspace data is not persisted outside the container
-- **Impact**: All boards, cards, and configuration disappear whenever the FastAPI process restarts in the default development environment because the SQLite database file lives only inside the running container or virtual environment.
-- **Root cause**: The default `DATABASE_URL` points to `sqlite:///./todo.db`, creating the database in the application directory, and `Base.metadata.create_all` bootstraps it at startup. Without an external volume or managed database, the file is discarded when the environment rebuilds.【F:backend/app/config.py†L13-L36】【F:backend/app/main.py†L1-L43】
-- **Mitigation**:
-  - Point `DATABASE_URL` to a managed PostgreSQL instance (or another persistent backend) before deploying.
-  - Mount a persistent volume for `todo.db` during local development so data survives container restarts.
-  - Export data regularly if you must rely on the bundled SQLite database.
+## Workspace data is not persisted outside the container (resolved)
+- **Status**: Resolved by switching the default database to Neon PostgreSQL.
+- **Impact (original)**: All boards, cards, and configuration disappeared whenever the FastAPI process restarted in the default development environment because the SQLite database file lived only inside the running container or virtual environment.
+- **Root cause**: The default `DATABASE_URL` now points to the managed Neon instance, so schema and data are stored persistently instead of in the transient `todo.db` file.【F:backend/app/config.py†L13-L36】
+- **Mitigation**: No action required if you retain the Neon connection string. If you override `DATABASE_URL` with a local SQLite file for experimentation, mount a persistent volume or export data regularly to avoid data loss.
 
 ## AI recommendation services run without a live provider
 - **Impact**: Recommendation scores and explanations never reflect real-time AI output. Operators see heuristic-based values, so confidence indicators may drift from the production-grade LLM behaviour.

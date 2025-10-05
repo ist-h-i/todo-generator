@@ -63,7 +63,7 @@ Refer to `docs/architecture.md` for an end-to-end component breakdown and `docs/
 ### Prerequisites
 - Python 3.11 or later with `pip`.
 - Node.js 20+ and npm.
-- SQLite (bundled) or a PostgreSQL instance.
+- Access to the managed Neon PostgreSQL instance (connection string below).
 - A Gemini API key (Google AI Studio) stored through the admin settings UI.
 - Set `SECRET_ENCRYPTION_KEY` to a sufficiently long random value before storing secrets.
 
@@ -72,7 +72,7 @@ Create a `.env` file in the repository root or export variables before launching
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `DATABASE_URL` | SQLAlchemy connection string. Use PostgreSQL for production workloads. | `sqlite:///./todo.db` |
+| `DATABASE_URL` | SQLAlchemy connection string. Use the pooled Neon connection string for most scenarios. | `postgresql://neondb_owner:npg_w25oaMpOeJrm@ep-dark-dew-adi4tuf8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require` |
 | `DEBUG` | Enables verbose logging and exception responses. | `False` |
 | `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `models/gemini-2.0-flash` |
 | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | Gemini API key. Provide before enabling analyzer or report AI flows. | (required for AI features) |
@@ -99,7 +99,7 @@ The backend starts on http://localhost:8000 (with auto-applied migrations and `/
    pip install -r backend/requirements-dev.txt  # optional tooling
    uvicorn app.main:app --reload --app-dir backend
    ```
-   Startup migrations run automatically and create the SQLite database or upgrade your configured database schema.
+   Startup migrations run automatically and provision the Neon PostgreSQL schema (or upgrade the configured database).
 
 2. **Frontend** (new terminal)
    ```bash
