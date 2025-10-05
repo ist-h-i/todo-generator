@@ -2564,6 +2564,16 @@ export class WorkspaceStore {
   }
 
   private applyUserContext(userId: string | null): void {
+    const hasUserChanged = userId !== this.lastAppliedUserId;
+
+    if (hasUserChanged) {
+      this.activeCardRequestToken += 1;
+      this.selectedCardIdSignal.set(null);
+      this.cardsSignal.set([]);
+      this.loadedCommentCardIds.clear();
+      this.commentRequestTokens.clear();
+    }
+
     this.lastAppliedUserId = userId;
     const settings = this.loadSettings(userId);
     const preferences = this.loadPreferences(userId, settings);

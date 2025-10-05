@@ -618,6 +618,42 @@ describe('WorkspaceStore', () => {
 
       expect(commentsApi.listComments).toHaveBeenCalledTimes(1);
     });
+
+    it('reloads comments after the active user changes', async () => {
+      const internals = store as unknown as {
+        cardsSignal: { set(value: readonly Card[]): void };
+        loadedCommentCardIds: Set<string>;
+      };
+
+      auth.setUser(createAuthenticatedUser({ id: 'user-initial' }));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      internals.cardsSignal.set([createCardModel()]);
+
+      store.selectCard('card-1');
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(commentsApi.listComments).toHaveBeenCalledTimes(1);
+      expect(internals.loadedCommentCardIds.has('card-1')).toBeTrue();
+
+      commentsApi.listComments.calls.reset();
+
+      auth.setUser(createAuthenticatedUser({ id: 'user-next' }));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(internals.loadedCommentCardIds.size).toBe(0);
+
+      internals.cardsSignal.set([createCardModel()]);
+
+      store.selectCard('card-1');
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(commentsApi.listComments).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('refreshWorkspaceData', () => {
