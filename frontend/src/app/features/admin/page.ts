@@ -26,6 +26,7 @@ import {
   QuotaDefaults,
 } from '@core/models';
 import { signalForms } from '@shared/utils/signal-forms';
+import { LocalDateTimePipe } from '@shared/pipes/local-date-time.pipe';
 
 type AdminTab = 'competencies' | 'evaluations' | 'users' | 'settings';
 type CriterionFormGroup = FormGroup<{
@@ -47,7 +48,7 @@ type CompetencyFormControls = {
 @Component({
   selector: 'app-admin-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, LocalDateTimePipe],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

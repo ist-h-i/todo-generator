@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
+import { LocalDateTimePipe } from '@shared/pipes/local-date-time.pipe';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -43,7 +44,7 @@ const DEFAULT_HISTORY_LIMIT = 12;
 @Component({
   selector: 'app-profile-evaluations-page',
   standalone: true,
-  imports: [CommonModule, PageLayoutComponent],
+  imports: [CommonModule, PageLayoutComponent, LocalDateTimePipe],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

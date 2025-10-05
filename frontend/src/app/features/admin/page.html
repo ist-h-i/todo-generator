@@ -96,7 +96,7 @@
               </p>
               <div class="page-list__meta">
                 <span>評価項目: {{ competency.criteria.length }}件</span>
-                <span>最終更新: {{ competency.updated_at | date: 'medium' }}</span>
+                <span>最終更新: {{ competency.updated_at | localDateTime: 'medium' }}</span>
               </div>
             </li>
           }
@@ -283,8 +283,8 @@
                 </div>
                 <span class="admin-evaluations__meta">
                   対象: {{ userEmail(evaluation.user_id) }} ／ 期間:
-                  {{ evaluation.period_start | date: 'yyyy/MM/dd' }} -
-                  {{ evaluation.period_end | date: 'yyyy/MM/dd' }}
+                  {{ evaluation.period_start | localDateTime: 'yyyy/MM/dd' }} -
+                  {{ evaluation.period_end | localDateTime: 'yyyy/MM/dd' }}
                 </span>
               </header>
               <p class="admin-evaluations__rationale">
@@ -408,7 +408,7 @@
       @if (apiCredential(); as credential) {
         <p class="form-note">
           現在のキー: {{ credential.secret_hint || '****' }} ／ 更新日:
-          {{ credential.updated_at | date: 'medium' }}
+          {{ credential.updated_at | localDateTime: 'medium' }}
         </p>
       } @else {
         <p class="page-empty">登録済みの API トークンはありません。</p>

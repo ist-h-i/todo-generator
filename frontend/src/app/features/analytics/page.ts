@@ -13,6 +13,7 @@ import { FeedbackSeverity } from '@core/models';
 import { ContinuousImprovementStore } from '@core/state/continuous-improvement-store';
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
+import { LocalDateTimePipe } from '@shared/pipes/local-date-time.pipe';
 
 type ActionFeedback = { status: 'success' | 'error'; message: string };
 
@@ -22,7 +23,7 @@ type ActionFeedback = { status: 'success' | 'error'; message: string };
 @Component({
   selector: 'app-analytics-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageLayoutComponent],
+  imports: [CommonModule, RouterLink, PageLayoutComponent, LocalDateTimePipe],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

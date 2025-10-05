@@ -25,11 +25,12 @@ import {
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { createId } from '@core/utils/create-id';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
+import { LocalDateTimePipe } from '@shared/pipes/local-date-time.pipe';
 
 @Component({
   selector: 'app-report-assistant-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, PageLayoutComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, PageLayoutComponent, LocalDateTimePipe],
   templateUrl: './reports-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

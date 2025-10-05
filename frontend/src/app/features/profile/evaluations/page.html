@@ -125,9 +125,9 @@
                   </h2>
                   <p class="evaluations-page__latest-meta">
                     評価期間
-                    <span>{{ evaluation.period_start | date: 'yyyy/MM/dd' }}</span>
+                    <span>{{ evaluation.period_start | localDateTime: 'yyyy/MM/dd' }}</span>
                     〜
-                    <span>{{ evaluation.period_end | date: 'yyyy/MM/dd' }}</span>
+                    <span>{{ evaluation.period_end | localDateTime: 'yyyy/MM/dd' }}</span>
                   </p>
                   <p class="evaluations-page__latest-meta">
                     判定種別: {{ triggeredLabel(evaluation.triggered_by) }} / モデル:
@@ -265,8 +265,8 @@
                         <div class="evaluations-page__history-summary">
                           <div class="evaluations-page__history-summary-text">
                             <span class="evaluations-page__history-period"
-                              >{{ item.period_start | date: 'yyyy/MM/dd' }} 〜
-                              {{ item.period_end | date: 'yyyy/MM/dd' }}</span
+                              >{{ item.period_start | localDateTime: 'yyyy/MM/dd' }} 〜
+                              {{ item.period_end | localDateTime: 'yyyy/MM/dd' }}</span
                             >
                             <span class="evaluations-page__history-label">{{
                               item.competency?.name || 'コンピテンシー評価'
@@ -292,7 +292,10 @@
                         <div class="evaluations-page__history-meta">
                           <span>判定種別: {{ triggeredLabel(item.triggered_by) }}</span>
                           <span>モデル: {{ item.ai_model || '未設定' }}</span>
-                          <span>記録日時: {{ item.created_at | date: 'yyyy/MM/dd HH:mm' }}</span>
+                          <span
+                            >記録日時:
+                            {{ item.created_at | localDateTime: 'yyyy/MM/dd HH:mm' }}</span
+                          >
                         </div>
                         @if (
                           hasActions(item.attitude_actions) || hasActions(item.behavior_actions)
