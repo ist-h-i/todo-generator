@@ -4,6 +4,7 @@ from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_SECRET_ENCRYPTION_KEY = "verbalize-yourself"  # noqa: S105 - documented fallback value
+PLACEHOLDER_DATABASE_URL = "postgresql://username:password@host:5432/database"
 
 
 class Settings(BaseSettings):
@@ -16,7 +17,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = Field(
-        default="sqlite:///./todo.db",
+        default=PLACEHOLDER_DATABASE_URL,
         validation_alias=AliasChoices("DATABASE_URL", "database_url"),
     )
     debug: bool = Field(
@@ -66,6 +67,20 @@ class Settings(BaseSettings):
             "recommendation_profile_weight",
         ),
     )
+
+    @field_validator("database_url")
+    @classmethod
+    def ensure_database_url_is_configured(cls, value: str) -> str:
+        """Ensure the application does not run with the placeholder database URL."""
+
+        if value == PLACEHOLDER_DATABASE_URL:
+            msg = (
+                "DATABASE_URL must be configured via environment variables. "
+                "Refer to the README for the Neon connection instructions."
+            )
+            raise ValueError(msg)
+
+        return value
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

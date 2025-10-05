@@ -43,12 +43,10 @@ Each item summarises the impact, root cause, and current mitigations so delivery
   - Future work: add inline edit controls with colour pickers and validation that route through `WorkspaceConfigApiService.updateLabel`.
 
 ## Workspace data is not persisted outside the container
-- **Impact**: All boards, cards, and configuration disappear whenever the FastAPI process restarts in the default development environment because the SQLite database file lives only inside the running container or virtual environment.
-- **Root cause**: The default `DATABASE_URL` points to `sqlite:///./todo.db`, creating the database in the application directory, and `Base.metadata.create_all` bootstraps it at startup. Without an external volume or managed database, the file is discarded when the environment rebuilds.【F:backend/app/config.py†L13-L36】【F:backend/app/main.py†L1-L43】
-- **Mitigation**:
-  - Point `DATABASE_URL` to a managed PostgreSQL instance (or another persistent backend) before deploying.
-  - Mount a persistent volume for `todo.db` during local development so data survives container restarts.
-  - Export data regularly if you must rely on the bundled SQLite database.
+- **Status**: Mitigated when the backend is configured to use the managed Neon PostgreSQL instance.
+- **Impact**: All boards, cards, and configuration disappear whenever the FastAPI process restarts if the service runs against an ephemeral SQLite file.
+- **Root cause**: SQLite stores the database in the local filesystem by default. Restarting a containerised or cloud environment without a mounted volume discards the file.
+- **Mitigation**: Provide the Neon connection string via the `DATABASE_URL` environment variable before launching the backend. If you intentionally point to SQLite for experimentation, mount a persistent volume or export data regularly to avoid data loss.
 
 ## AI recommendation services run without a live provider
 - **Impact**: Recommendation scores and explanations never reflect real-time AI output. Operators see heuristic-based values, so confidence indicators may drift from the production-grade LLM behaviour.
