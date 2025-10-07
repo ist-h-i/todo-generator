@@ -46,10 +46,11 @@ if [ -n "${CODEX_AUTH_JSON_B64:-}" ]; then
     if ! printf '%s' "$CODEX_AUTH_JSON_B64" | base64 --decode > "${AUTH_FILE}" 2>/dev/null; then
       if command -v python3 >/dev/null 2>&1; then
         python3 - "$CODEX_AUTH_JSON_B64" "${AUTH_FILE}" <<'PY'
-import base64,sys,pathlib
-b64=sys.argv[1]; out=sys.argv[2]
-p=pathlib.Path(out); p.parent.mkdir(parents=True, exist_ok=True)
-p.write_bytes(base64.b64decode(b64))
+import base64, sys, pathlib
+b64 = sys.argv[1]
+out = pathlib.Path(sys.argv[2])
+out.parent.mkdir(parents=True, exist_ok=True)
+out.write_bytes(base64.b64decode(b64))
 PY
       else
         echo "Error: failed to decode CODEX_AUTH_JSON_B64" >&2
@@ -73,74 +74,60 @@ echo 'preferred_auth_method = "chatgpt"' > "${AUTH_DIR}/config.toml"
 # ---------- Pipeline ----------
 mkdir -p codex_output
 
-PIPELINE_STEPS=(
-  translator
-  requirements_analyst
-  requirements_reviewer
-  planner
-  threat_modeler
-  dpo_reviewer
-  detail_designer
-  design_reviewer
+AVAILABLE_DYNAMIC_STAGES=(
   qa_automation_planner
   coder
   code_quality_reviewer
-  security_reviewer
-  uiux_reviewer
-  implementation_reviewer
-  a11y_reviewer
-  i18n_reviewer
-  performance_reviewer
-  oss_sbom_auditor
-  ai_safety_reviewer
   integrator
   release_manager
-  docwriter
-  doc_editor
 )
 
+DEFAULT_POST_PLAN_STEPS=(
+  coder
+  code_quality_reviewer
+  integrator
+)
+
+PRE_PLANNER_STEPS=(translator)
+
 declare -A STAGE_INSTRUCTIONS=(
-  [translator]="Clarify the request in English. List assumptions and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points. Write 'None' if no follow-up is needed."
-  [requirements_analyst]="Structure FR/NFR and acceptance criteria. Expose risks and open items."
-  [requirements_reviewer]="Verify completeness and consistency. Send back if gaps remain."
-  [planner]="Define steps, owners, dependencies, gates, and clear done criteria."
-  [threat_modeler]="Identify key threats and propose mitigations on critical flows."
-  [dpo_reviewer]="Check data minimization, retention, consent, and legal compliance."
-  [detail_designer]="Design approach, interfaces, data, failure handling, and trade-offs."
-  [design_reviewer]="Assess design soundness and external impact. Provide concrete diffs."
-  [qa_automation_planner]="Define unit/contract/e2e test focus and thresholds."
-  [coder]="Output file paths with full replacement blocks and run commands."
-  [code_quality_reviewer]="Review correctness, readability, complexity; provide fix diffs."
-  [security_reviewer]="Evaluate input validation, secret handling, dependency risks; propose fixes."
-  [uiux_reviewer]="List UX improvements and interaction flow checks."
-  [implementation_reviewer]="Verify build/deploy/monitoring/rollback readiness."
-  [a11y_reviewer]="Validate WCAG, keyboard access, contrast, and ARIA."
-  [i18n_reviewer]="Verify variable strings, formats, and missing translations."
-  [performance_reviewer]="Set SLO targets, expected load, and regression thresholds."
-  [oss_sbom_auditor]="Audit SBOM and license compliance; flag prohibitions."
-  [ai_safety_reviewer]="Evaluate output safety and prompt-leak risks."
-  [integrator]="Confirm feedback is applied and consolidate remaining actions."
-  [release_manager]="Decide release readiness and rollback plan."
-  [docwriter]="Draft README/CHANGELOG/ADR updates."
-  [doc_editor]="Enforce terminology and formatting consistency."
+  [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points and write 'None' when no follow-up is needed."
+  [planner]="Define the minimum-step execution plan, highlight critical risks, and ensure the ordered steps can finish the task with the smallest viable change set."
+  [qa_automation_planner]="Recommend only the high-impact tests (unit, integration, or manual) required to validate the scoped change."
+  [coder]="Describe the exact files to edit with focused diffs or replacement blocks and list any commands to run. Avoid touching unrelated areas."
+  [code_quality_reviewer]="Validate correctness, readability, and edge cases. Supply lightweight fixes when needed to keep the implementation tight."
+  [integrator]="Confirm all planned work is covered, note remaining follow-ups, and explain how to land the change safely."
+  [release_manager]="State release readiness, outline minimal verification steps, and call out approvals or rollbacks if needed."
 )
 
 PREVIOUS_CONTEXT=""
-CLARIFYING_SECTION=""
 
-for STEP in "${PIPELINE_STEPS[@]}"; do
-  OUTPUT_FILE="codex_output/${STEP}.md"
+run_stage() {
+  local STEP="$1"
+  local OUTPUT_FILE="codex_output/${STEP}.md"
+  local HUMAN_STEP_NAME
   HUMAN_STEP_NAME=$(echo "${STEP}" | tr '_' ' ')
 
+  local PROMPT
   PROMPT="You are the ${HUMAN_STEP_NAME} stage in an auto-dev workflow.\n\n"
-  PROMPT+="Order: translator → requirements → requirements review → planner → threat modeling → DPO review → design → design review → QA planning → coding → parallel reviews → integration → CI/release → docs.\n\n"
+  PROMPT+="Order: translator -> planner -> selected execution stages (qa_automation_planner, coder, code_quality_reviewer, integrator, release_manager).\n\n"
   PROMPT+="Working language: English.\n"
   PROMPT+="Overall task: ${TASK_INPUT}.\n\n"
+  PROMPT+="Constraints:\n"
+  PROMPT+="- Minimize the scope of changes and keep edits tightly targeted.\n"
+  PROMPT+="- Use the fewest viable steps to reach a safe completion.\n"
+  PROMPT+="- Call out residual risks or open questions explicitly.\n\n"
   if [ -n "${PREVIOUS_CONTEXT}" ]; then
     PROMPT+="Context from earlier stages:\n${PREVIOUS_CONTEXT}\n\n"
   fi
   if [ -n "${STAGE_INSTRUCTIONS[${STEP}]-}" ]; then
     PROMPT+="Stage focus: ${STAGE_INSTRUCTIONS[${STEP}]}\n\n"
+  fi
+  if [ "${STEP}" = "planner" ]; then
+    local AVAILABLE_FOR_PROMPT
+    AVAILABLE_FOR_PROMPT=$(IFS=', '; echo "${AVAILABLE_DYNAMIC_STAGES[*]}")
+    PROMPT+="Select the minimum necessary execution stages from: ${AVAILABLE_FOR_PROMPT}.\n"
+    PROMPT+="Your final message MUST end with a ```json code block containing {\"steps\":[\"stage_id\",...],\"notes\":\"...\",\"tests\":\"...\"}. Only use stage IDs from the allowed list.\n\n"
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep it concise and scoped to this stage."
 
@@ -153,6 +140,7 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
     -- \
     -
 
+  local STEP_OUTPUT
   STEP_OUTPUT=$(cat "${OUTPUT_FILE}")
   if [ -n "${PREVIOUS_CONTEXT}" ]; then
     PREVIOUS_CONTEXT="${PREVIOUS_CONTEXT}"$'\n\n---\n\n'"${STEP_OUTPUT}"
@@ -161,6 +149,7 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
   fi
 
   if [ "${STEP}" = "translator" ]; then
+    local CLARIFYING_SECTION
     CLARIFYING_SECTION=$(printf '%s\n' "${STEP_OUTPUT}" |
       awk '
         BEGIN { in_section=0 }
@@ -169,11 +158,11 @@ for STEP in "${PIPELINE_STEPS[@]}"; do
         { if (in_section) print }
       ')
 
+    local CLARIFYING_CLEAN
     CLARIFYING_CLEAN=$(printf '%s\n' "${CLARIFYING_SECTION}" |
       sed '/^[[:space:]]*[-*]\{0,1\}[[:space:]]*\(none\|n\/a\)\.?[[:space:]]*$/Id')
 
     if printf '%s\n' "${CLARIFYING_CLEAN}" | grep -q '[^[:space:]]'; then
-      mkdir -p codex_output
       {
         printf '## Clarifying questions\n'
         printf '%s\n' "${CLARIFYING_SECTION}" | sed 's/[[:space:]]*$//'
@@ -185,4 +174,111 @@ JSON
       exit 0
     fi
   fi
+}
+
+for STEP in "${PRE_PLANNER_STEPS[@]}"; do
+  run_stage "${STEP}"
+done
+
+run_stage planner
+
+PLAN_LINES=""
+ALLOWED_IDS=$(IFS=','; echo "${AVAILABLE_DYNAMIC_STAGES[*]}")
+DEFAULT_IDS=$(IFS=','; echo "${DEFAULT_POST_PLAN_STEPS[*]}")
+if PLAN_OUTPUT=$(ALLOWED="${ALLOWED_IDS}" DEFAULT="${DEFAULT_IDS}" python3 - <<'PY'
+import json, os, pathlib, re
+
+def normalize(name: str) -> str:
+    return name.strip().lower().replace(" ", "_").replace("-", "_")
+
+def dedup(items):
+    result = []
+    for item in items:
+        if item and item not in result:
+            result.append(item)
+    return result
+
+allowed = dedup([normalize(entry) for entry in os.environ.get("ALLOWED", "").split(",") if entry.strip()])
+default = dedup([normalize(entry) for entry in os.environ.get("DEFAULT", "").split(",") if entry.strip()])
+if not allowed:
+    allowed = default.copy()
+allowed_set = set(allowed)
+if not default:
+    default = allowed.copy()
+
+text = ""
+planner_path = pathlib.Path("codex_output/planner.md")
+if planner_path.exists():
+    text = planner_path.read_text(encoding="utf-8")
+
+pattern = re.compile(r"```json\s*(\{.*?\})\s*```", re.DOTALL)
+plan_steps = []
+planner_payload = None
+
+for block in pattern.findall(text):
+    try:
+        data = json.loads(block)
+    except Exception:
+        continue
+    steps = data.get("steps")
+    if not isinstance(steps, list):
+        continue
+    collected = []
+    for step in steps:
+        candidate = None
+        if isinstance(step, str):
+            candidate = step
+        elif isinstance(step, dict):
+            candidate = step.get("id") or step.get("stage") or step.get("name")
+        if not candidate:
+            continue
+        normalized = normalize(candidate)
+        if normalized in allowed_set and normalized not in collected:
+            collected.append(normalized)
+    if collected:
+        plan_steps = collected
+        planner_payload = data
+        break
+
+source = "planner"
+if not plan_steps:
+    plan_steps = default
+    source = "fallback"
+
+output = {"steps": plan_steps, "source": source}
+if planner_payload is not None:
+    output["planner_payload"] = planner_payload
+
+pathlib.Path("codex_output/execution_plan.json").write_text(
+    json.dumps(output, ensure_ascii=False, indent=2),
+    encoding="utf-8",
+)
+
+for step in plan_steps:
+    print(step)
+PY
+); then
+  PLAN_LINES="${PLAN_OUTPUT}"
+else
+  PLAN_LINES=""
+fi
+
+EXECUTION_PLAN=()
+if [ -n "${PLAN_LINES}" ]; then
+  while IFS= read -r line; do
+    if [ -n "${line}" ]; then
+      EXECUTION_PLAN+=("${line}")
+    fi
+  done <<< "${PLAN_LINES}"
+fi
+
+if [ ${#EXECUTION_PLAN[@]} -eq 0 ]; then
+  EXECUTION_PLAN=("${DEFAULT_POST_PLAN_STEPS[@]}")
+fi
+
+printf '::notice::Planner selected stages: %s\n' "$(IFS=', '; echo "${EXECUTION_PLAN[*]}")"
+printf '%s\n' "${EXECUTION_PLAN[@]}" > codex_output/execution_plan_steps.txt
+
+for STEP in "${EXECUTION_PLAN[@]}"; do
+  run_stage "${STEP}"
 done
