@@ -80,21 +80,27 @@ jobs:
               body = coerce(comment.get("body")).replace("\r","")
 
               lines = body.split("\n")
-              i = 0
-              while i < len(lines) and lines[i].strip() == "":
-                  i += 1
-              if i == len(lines):
+              trigger_token = "@codex_agents"
+              trigger_index = -1
+              trigger_line = ""
+              for idx, raw in enumerate(lines):
+                  stripped = raw.strip()
+                  if not stripped:
+                      continue
+                  probe = stripped
+                  while probe.startswith(">"):
+                      probe = probe[1:].lstrip()
+                  if probe.lower().startswith(trigger_token):
+                      trigger_index = idx
+                      trigger_line = probe
+                      break
+              if trigger_index < 0:
                   out("run_codex","false"); sys.exit(0)
 
-              first = lines[i].lstrip()
-              if not first.startswith("@CODEX_AGENTS"):
-                  out("run_codex","false"); sys.exit(0)
-
-              head = first[len("@CODEX_AGENTS"):].lstrip(" \t:-")
-              command = ("\n".join([head] + lines[i+1:])).strip()
+              head = trigger_line[len(trigger_token):].lstrip(" \t:-")
+              command = ("\n".join([head] + lines[trigger_index+1:])).strip()
               if not command:
                   command = '""'
-
               policy = (
                   "You MUST follow these constraints:\n"
                   "1. Avoid creating unnecessary tasks and keep impact on the existing project to a minimum.\n"
@@ -129,7 +135,7 @@ jobs:
                       at = c.get("created_at") or ""
                       bd = (c.get("body") or "").strip()
                       if len(bd) > clip:
-                          bd = bd[:clip] + " …(truncated)"
+                          bd = bd[:clip] + " ...(truncated)"
                       out_items.append({"by":by, "at":at, "body":bd})
                   return out_items
 
