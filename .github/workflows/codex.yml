@@ -383,8 +383,9 @@ jobs:
           files="$(git --no-pager diff --name-only)"
           stat="$(git --no-pager diff --stat)"
           count="$(printf "%s\n" "$files" | sed '/^$/d' | wc -l | tr -d ' ')"
+          delim="EOF_$RANDOM$RANDOM"
           {
-            echo "change_summary<<EOF"
+            echo "change_summary<<$delim"
             echo "Changed files ($count):"
             echo
             printf '%s\n' "$files" | sed 's/^/- /'
@@ -392,7 +393,7 @@ jobs:
             echo "Diffstat:"
             echo
             printf '%s\n' "$stat"
-            echo "EOF"
+            echo "$delim"
           } >> "$GITHUB_OUTPUT"
 
       - name: Synthesize report change if needed
