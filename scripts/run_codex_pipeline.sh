@@ -158,11 +158,49 @@ run_stage() {
         { if (in_section) print }
       ')
 
-    local CLARIFYING_CLEAN
-    CLARIFYING_CLEAN=$(printf '%s\n' "${CLARIFYING_SECTION}" |
-      sed '/^[[:space:]]*[-*]\{0,1\}[[:space:]]*\(none\|n\/a\)\.?[[:space:]]*$/Id')
+    local NEEDS_CLARIFICATION
+    NEEDS_CLARIFICATION=$(printf '%s\n' "${CLARIFYING_SECTION}" | python3 - <<'PY'
+import re, sys
 
-    if printf '%s\n' "${CLARIFYING_CLEAN}" | grep -q '[^[:space:]]'; then
+text = sys.stdin.read()
+if not text.strip():
+    print("false")
+    raise SystemExit
+
+for raw in text.splitlines():
+    line = raw.strip()
+    if not line:
+        continue
+    # Remove common list markers
+    clean = re.sub(r'^[\-\*\u2022]+\s*', '', line)
+    clean = clean.strip()
+    if not clean:
+        continue
+    lowered = clean.lower()
+    if '?' in lowered:
+        print("true")
+        break
+    prefixes = (
+        "none",
+        "n/a",
+        "na",
+        "no ",
+        "not applicable",
+        "not at this time",
+        "nothing",
+    )
+    if lowered in {"no", "none"}:
+        continue
+    if any(lowered.startswith(prefix) for prefix in prefixes):
+        continue
+    print("true")
+    break
+else:
+    print("false")
+PY
+)
+
+    if [ "${NEEDS_CLARIFICATION}" = "true" ]; then
       {
         printf '## Clarifying questions\n'
         printf '%s\n' "${CLARIFYING_SECTION}" | sed 's/[[:space:]]*$//'
