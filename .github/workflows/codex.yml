@@ -40,10 +40,11 @@ jobs:
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, os, re, sys, uuid
+          import json, os, sys, uuid, urllib.request
 
           name = os.environ.get("GITHUB_EVENT_NAME","")
           path = os.environ.get("GITHUB_EVENT_PATH")
@@ -62,7 +63,8 @@ jobs:
                   with open(go, "a", encoding="utf-8") as g:
                       g.write(f"{k}={v}\n")
 
-          def coerce(x): return "" if x is None else str(x)
+          def coerce(x):
+              return "" if x is None else str(x)
 
           if name == "workflow_dispatch":
               inputs = event.get("inputs") or {}
@@ -90,7 +92,6 @@ jobs:
 
               head = first[len("@CODEX_AGENTS"):].lstrip(" \t:-")
               command = ("\n".join([head] + lines[i+1:])).strip()
-              # Allow empty command: pass literal "" so quoting is safe
               if not command:
                   command = '""'
 
@@ -101,10 +102,44 @@ jobs:
               )
               augmented_command = f"{command}\n\n{policy}".strip()
 
+              # Recent conversation snapshot (last 15 comments, clipped)
+              def fetch_issue_comments(ev, limit=15, clip=800):
+                  repo = (ev.get("repository") or {})
+                  owner = ((repo.get("owner") or {}).get("login")) or ""
+                  name  = repo.get("name") or ""
+                  num   = issue.get("number")
+                  if not (owner and name and num):
+                      return []
+                  url = f"https://api.github.com/repos/{owner}/{name}/issues/{num}/comments?per_page=100"
+                  headers = {"Accept":"application/vnd.github+json"}
+                  tok = os.environ.get("GITHUB_TOKEN","")
+                  if tok:
+                      headers["Authorization"] = f"Bearer {tok}"
+                  req = urllib.request.Request(url, headers=headers)
+                  try:
+                      with urllib.request.urlopen(req, timeout=30) as r:
+                          arr = json.loads(r.read().decode("utf-8"))
+                  except Exception as e:
+                      print(f"::warning::Failed to fetch comments: {e}")
+                      return []
+                  arr = arr[-limit:]
+                  out_items = []
+                  for c in arr:
+                      by = ((c.get("user") or {}).get("login")) or ""
+                      at = c.get("created_at") or ""
+                      bd = (c.get("body") or "").strip()
+                      if len(bd) > clip:
+                          bd = bd[:clip] + " …(truncated)"
+                      out_items.append({"by":by, "at":at, "body":bd})
+                  return out_items
+
+              conversation = fetch_issue_comments(event)
+
               payload = json.dumps({
                   "Issue Title": title,
                   "Issue Body": issue_body,
-                  "Instruction": augmented_command
+                  "Instruction": augmented_command,
+                  "Conversation": conversation
               }, ensure_ascii=False)
 
               out("run_codex","true")
@@ -117,6 +152,64 @@ jobs:
           if prev:
               print(f"TASK_INPUT preview: {prev[:200]}{'...' if len(prev)>200 else ''}")
           PY
+
+      - name: Load previous progress for this issue
+        if: ${{ steps.detect.outputs.run_codex == 'true' && github.event_name == 'issue_comment' }}
+        id: progress
+        run: |
+          set -euo pipefail
+          num="${{ steps.detect.outputs.issue_number }}"
+          if [ -z "${num}" ]; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch origin "refs/heads/codex/issue-${num}:refs/remotes/origin/codex/issue-${num}" || true
+          if git show "refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json" >/dev/null 2>&1; then
+            content="$(git show "refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json" || true)"
+            if [ -n "$content" ]; then
+              {
+                echo "json<<EOF"
+                echo "$content"
+                echo "EOF"
+              } >> "$GITHUB_OUTPUT"
+              echo "exists=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "exists=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge previous progress into TASK_INPUT
+        if: ${{ steps.detect.outputs.run_codex == 'true' }}
+        id: merge
+        env:
+          INPUT_JSON: ${{ steps.detect.outputs.task_input }}
+          PREV: ${{ steps.progress.outputs.json }}
+        run: |
+          set -euo pipefail
+          merged="$(python3 - <<'PY'
+          import json, os, sys
+          task=os.environ.get("INPUT_JSON","")
+          prev=os.environ.get("PREV","")
+          try:
+            data=json.loads(task)
+          except Exception:
+            # Fallback for workflow_dispatch plain string
+            data={"Instruction": task}
+          if prev:
+            try:
+              data["PreviousProgress"]=json.loads(prev)
+            except Exception:
+              data["PreviousProgressRaw"]=prev
+          print(json.dumps(data, ensure_ascii=False))
+          PY
+          )"
+          {
+            echo "task_input<<EOF"
+            echo "${merged}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Install Codex CLI
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -146,7 +239,7 @@ jobs:
           set -euo pipefail
           mkdir -p codex_output
           ./scripts/run_codex_pipeline.sh <<'JSON'
-          ${{ steps.detect.outputs.task_input }}
+          ${{ steps.merge.outputs.task_input }}
           JSON
 
       - name: Check for clarification request
@@ -177,11 +270,65 @@ jobs:
             echo "needs_clarification=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Persist progress snapshot
+        if: ${{ steps.detect.outputs.run_codex == 'true' && github.event_name == 'issue_comment' }}
+        id: persist
+        env:
+          ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
+        run: |
+          set -euo pipefail
+          dir=".codex/state/issue-${ISSUE_NUMBER}"
+          mkdir -p "$dir"
+          ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; export ts
+          python3 - <<'PY'
+          import os, json, pathlib, time
+          issue=os.environ.get("ISSUE_NUMBER","manual")
+          run_id=os.environ.get("GITHUB_RUN_ID","")
+          ts=os.environ.get("ts","")
+          out={"issue":issue,"run_id":run_id,"timestamp":ts}
+
+          # status.json (structured if possible)
+          p=pathlib.Path("codex_output/status.json")
+          if p.exists():
+            try:
+              out["status"]=json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+              out["status_raw"]=p.read_text(encoding="utf-8")
+
+          # clarifying questions preview
+          q=pathlib.Path("codex_output/clarifying_questions.md")
+          if q.exists():
+            out["clarifying_questions"]=q.read_text(encoding="utf-8")[:4000]
+
+          # file inventory with small previews
+          files=[]
+          base=pathlib.Path("codex_output")
+          if base.exists():
+            for q in base.rglob("*"):
+              if q.is_file():
+                sz=q.stat().st_size
+                item={"path":str(q), "size":sz}
+                if sz<=20000:
+                  try:
+                    item["preview"]=q.read_text(encoding="utf-8", errors="ignore")[:4000]
+                  except Exception:
+                    pass
+                files.append(item)
+          out["files"]=files
+
+          d=pathlib.Path(f".codex/state/issue-{issue}")
+          d.mkdir(parents=True, exist_ok=True)
+          (d/"progress.json").write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+          print(str(d/"progress.json"))
+          PY
+          echo "path=$dir/progress.json" >> "$GITHUB_OUTPUT"
+
       - name: Debug gates
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
         run: |
           echo "run_codex=${{ steps.detect.outputs.run_codex }}"
           echo "needs_clarification=${{ steps.clarifications.outputs.needs_clarification || 'n/a' }}"
+          echo "progress_saved=${{ steps.persist.outputs.path || 'n/a' }}"
 
       - name: Comment clarifying questions to issue
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' && github.event_name == 'issue_comment' }}
@@ -237,7 +384,7 @@ jobs:
           stat="$(git --no-pager diff --stat)"
           count="$(printf "%s\n" "$files" | sed '/^$/d' | wc -l | tr -d ' ')"
           {
-            echo "change_summary<<'EOF'"
+            echo "change_summary<<EOF"
             echo "Changed files ($count):"
             echo
             printf '%s\n' "$files" | sed 's/^/- /'
@@ -248,7 +395,6 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      # If no code changes, synthesize a small report file so a PR can still be created.
       - name: Synthesize report change if needed
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.diff.outputs.changed != 'true' }}
         id: synth
@@ -269,9 +415,8 @@ jobs:
             echo "## Task Input (JSON)"
             echo '```json'
           } > "${REPORT}"
-          # Append the multi-line JSON safely
           cat <<'JSON' >> "${REPORT}"
-          ${{ steps.detect.outputs.task_input }}
+          ${{ steps.merge.outputs.task_input }}
           JSON
           {
             echo '```'
@@ -291,12 +436,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.event_name == 'issue_comment' && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
           base: ${{ github.event.repository.default_branch }}
-          commit-message: "chore(codex): apply generated changes"
+          commit-message: "chore(codex): persist progress and apply generated changes"
           title: "${{ github.event_name == 'issue_comment' && format('Codex: issue #{0}', steps.detect.outputs.issue_number) || 'Codex: manual run' }}"
           body: |
             Task input (JSON):
 
-            ${{ steps.detect.outputs.task_input }}
+            ${{ steps.merge.outputs.task_input }}
 
             Changes summary:
 
@@ -327,7 +472,7 @@ jobs:
               "",
               "Task input (JSON):",
               "```json",
-              `${{ steps.detect.outputs.task_input }}`,
+              `${{ steps.merge.outputs.task_input }}`,
               "```",
               "",
               "Changes summary:",
