@@ -192,38 +192,9 @@ jobs:
             index_content="$(git show "${index_ref}" 2>/dev/null || true)"
 
             if [ -n "$index_content" ]; then
-              tmp_index="$(mktemp)"
-              printf '%s' "$index_content" > "$tmp_index"
-              tmp_payload="$(mktemp)"
-
-              python3 -c "
-              import json, os, sys
-              issue = '$num'
-              index_file = '$tmp_index'
-
-              if not issue or not index_file:
-                  sys.exit(0)
-
-              try:
-                  with open(index_file, 'r', encoding='utf-8') as f:
-                      raw = f.read().strip()
-                  if not raw:
-                      sys.exit(0)
-              except:
-                  sys.exit(0)
-
-              try:
-                  data = json.loads(raw)
-              except:
-                  sys.exit(0)
-
-              entry = data.get(issue) or data.get(str(issue))
-              if entry:
-                  print(json.dumps(entry, ensure_ascii=False))
-              " > "$tmp_payload"
-
-              payload="$(cat "$tmp_payload")"
-              rm -f "$tmp_index" "$tmp_payload"
+              payload="$(
+                ISSUE="${num}" INDEX_CONTENT="$index_content" python3 -c $'import json, os, sys\nissue = (os.environ.get(\"ISSUE\") or \"\").strip()\nraw = os.environ.get(\"INDEX_CONTENT\") or \"\"\nif not issue or not raw.strip():\n    sys.exit(0)\ntry:\n    data = json.loads(raw)\nexcept Exception:\n    sys.exit(0)\nentry = data.get(issue) or data.get(str(issue))\nif entry:\n    print(json.dumps(entry, ensure_ascii=False))'
+              )"
 
               if [ -n "$payload" ]; then
                 {
