@@ -173,34 +173,48 @@ jobs:
             exit 0
           fi
           git fetch origin "refs/heads/codex/issue-${num}:refs/remotes/origin/codex/issue-${num}" || true
-          index_content="$(git show "refs/remotes/origin/codex/issue-${num}:.codex/state/index.json" 2>/dev/null || true)"
-          if [ -n "$index_content" ]; then
-            payload="$(
-              printf '%s' "$index_content" | ISSUE="${num}" python3 -c 'import json, os, sys
-            issue = os.environ.get("ISSUE", "").strip()
-            raw = sys.stdin.read()
-            if not raw.strip():
-                sys.exit(0)
-            try:
-                data = json.loads(raw)
-            except Exception:
-                sys.exit(0)
-            entry = data.get(issue) or data.get(str(issue))
-            if entry:
-                print(json.dumps(entry, ensure_ascii=False))'
-            )"
-            if [ -n "$payload" ]; then
-              {
-                echo "json<<EOF"
-                echo "$payload"
-                echo "EOF"
-              } >> "$GITHUB_OUTPUT"
-              echo "exists=true" >> "$GITHUB_OUTPUT"
+          progress_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json"
+          progress_content="$(git show "${progress_ref}" 2>/dev/null || true)"
+          if [ -n "$progress_content" ]; then
+            {
+              echo "json<<EOF"
+              echo "$progress_content"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            index_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/index.json"
+            index_content="$(git show "${index_ref}" 2>/dev/null || true)"
+            if [ -n "$index_content" ]; then
+              payload="$(
+                printf '%s' "$index_content" | ISSUE="${num}" python3 - <<'PY'
+              import json, os, sys
+              issue = (os.environ.get("ISSUE") or "").strip()
+              raw = sys.stdin.read()
+              if not raw.strip():
+                  sys.exit(0)
+              try:
+                  data = json.loads(raw)
+              except Exception:
+                  sys.exit(0)
+              entry = data.get(issue) or data.get(str(issue))
+              if entry:
+                  print(json.dumps(entry, ensure_ascii=False))
+              PY
+              )"
+              if [ -n "$payload" ]; then
+                {
+                  echo "json<<EOF"
+                  echo "$payload"
+                  echo "EOF"
+                } >> "$GITHUB_OUTPUT"
+                echo "exists=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "exists=false" >> "$GITHUB_OUTPUT"
+              fi
             else
               echo "exists=false" >> "$GITHUB_OUTPUT"
             fi
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Merge previous progress into TASK_INPUT
