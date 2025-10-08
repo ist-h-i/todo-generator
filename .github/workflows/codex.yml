@@ -187,20 +187,20 @@ jobs:
             index_content="$(git show "${index_ref}" 2>/dev/null || true)"
             if [ -n "$index_content" ]; then
               payload="$(
-                printf '%s' "$index_content" | ISSUE="${num}" python3 -c 'import json, os, sys, textwrap; exec(textwrap.dedent("""\
-                  import json, os, sys
-                  issue = (os.environ.get('ISSUE') or '').strip()
-                  raw = sys.stdin.read()
-                  if not raw.strip():
-                      sys.exit(0)
-                  try:
-                      data = json.loads(raw)
-                  except Exception:
-                      sys.exit(0)
-                  entry = data.get(issue) or data.get(str(issue))
-                  if entry:
-                      print(json.dumps(entry, ensure_ascii=False))
-                  """))'
+                printf '%s' "$index_content" | ISSUE="${num}" python3 -c '
+                import json, os, sys
+                issue = (os.environ.get("ISSUE") or "").strip()
+                raw = sys.stdin.read()
+                if not raw.strip():
+                    sys.exit(0)
+                try:
+                    data = json.loads(raw)
+                except Exception:
+                    sys.exit(0)
+                entry = data.get(issue) or data.get(str(issue))
+                if entry:
+                    print(json.dumps(entry, ensure_ascii=False))
+                '
               )"
               if [ -n "$payload" ]; then
                 {
@@ -225,22 +225,22 @@ jobs:
           PREV: ${{ steps.progress.outputs.json }}
         run: |
           set -euo pipefail
-          merged="$(python3 - <<'PY'
-          import json, os, sys
-          task=os.environ.get("INPUT_JSON","")
-          prev=os.environ.get("PREV","")
-          try:
-            data=json.loads(task)
-          except Exception:
-            # Fallback for workflow_dispatch plain string
-            data={"Instruction": task}
-          if prev:
+          merged="$(
+            python3 -c '
+            import json, os
+            task=os.environ.get("INPUT_JSON","")
+            prev=os.environ.get("PREV","")
             try:
-              data["PreviousProgress"]=json.loads(prev)
+                data=json.loads(task)
             except Exception:
-              data["PreviousProgressRaw"]=prev
-          print(json.dumps(data, ensure_ascii=False))
-          PY
+                data={"Instruction": task}
+            if prev:
+                try:
+                    data["PreviousProgress"]=json.loads(prev)
+                except Exception:
+                    data["PreviousProgressRaw"]=prev
+            print(json.dumps(data, ensure_ascii=False))
+            '
           )"
           {
             echo "task_input<<EOF"
@@ -306,16 +306,19 @@ jobs:
         id: clarifications
         run: |
           set -euo pipefail
-          status=""
-          if [ -f codex_output/status.json ]; then
-            status=$(python3 - <<'PY'
-          import json, pathlib
-          path = pathlib.Path("codex_output/status.json")
-          data = json.loads(path.read_text(encoding="utf-8"))
-          print(data.get("status", ""))
-          PY
-            )
-          fi
+          status="$(
+            python3 -c '
+            import json, pathlib
+            p = pathlib.Path("codex_output/status.json")
+            if p.exists():
+                try:
+                    print(json.loads(p.read_text(encoding="utf-8")).get("status",""))
+                except Exception:
+                    print("")
+            else:
+                print("")
+            '
+          )"
           if [ "${status}" = "needs_clarification" ]; then
             echo "needs_clarification=true" >> "$GITHUB_OUTPUT"
             if [ -f codex_output/clarifying_questions.md ]; then
@@ -737,8 +740,8 @@ jobs:
         with:
           script: |
             const issueNumber = Number("${{ steps.detect.outputs.issue_number }}");
-            const prUrl = "${{ steps.pr.outputs.result.pull_request_url }}";
-            const prNumber = Number("${{ steps.pr.outputs.result.pull_request_number }}");
+            const prUrl = "${{ steps.pr.outputs.pull_request_url }}";
+            const prNumber = Number("${{ steps.pr.outputs.pull_request_number }}");
             const changeSummary = (process.env.CHANGE_SUMMARY || '').trim();
             const reportPath = (process.env.REPORT_PATH || '').trim();
             const summaryBlock = changeSummary
@@ -786,6 +789,7 @@ jobs:
               issue_number: issueNumber,
               body
             });
+
       - name: Enforce completion condition
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed != 'true' && steps.synth.outputs.synthesized != 'true') }}
         run: |
