@@ -167,14 +167,19 @@ jobs:
         id: progress
         run: |
           set -euo pipefail
+
           num="${{ steps.detect.outputs.issue_number }}"
+
           if [ -z "${num}" ]; then
             echo "exists=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
           git fetch origin "refs/heads/codex/issue-${num}:refs/remotes/origin/codex/issue-${num}" || true
+
           progress_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json"
           progress_content="$(git show "${progress_ref}" 2>/dev/null || true)"
+
           if [ -n "$progress_content" ]; then
             {
               echo "json<<EOF"
@@ -185,23 +190,41 @@ jobs:
           else
             index_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/index.json"
             index_content="$(git show "${index_ref}" 2>/dev/null || true)"
+
             if [ -n "$index_content" ]; then
               tmp_index="$(mktemp)"
               printf '%s' "$index_content" > "$tmp_index"
               tmp_payload="$(mktemp)"
-              python3 -c 'import json, os, pathlib, sys; issue = (os.environ.get("ISSUE") or "").strip(); index_file = os.environ.get("INDEX_FILE") or ""; \
-                if not issue or not index_file: sys.exit(0); \
-                try: \
-                  with open(index_file, "r", encoding="utf-8") as f: \
-                    raw = f.read().strip(); \
-                  if not raw: sys.exit(0); \
-                except: sys.exit(0); \
-                try: data = json.loads(raw); \
-                except: sys.exit(0); \
-                entry = data.get(issue) or data.get(str(issue)); \
-                if entry: print(json.dumps(entry, ensure_ascii=False))' > "$tmp_payload"
+
+              python3 -c "
+              import json, os, sys
+              issue = '$num'
+              index_file = '$tmp_index'
+
+              if not issue or not index_file:
+                  sys.exit(0)
+
+              try:
+                  with open(index_file, 'r', encoding='utf-8') as f:
+                      raw = f.read().strip()
+                  if not raw:
+                      sys.exit(0)
+              except:
+                  sys.exit(0)
+
+              try:
+                  data = json.loads(raw)
+              except:
+                  sys.exit(0)
+
+              entry = data.get(issue) or data.get(str(issue))
+              if entry:
+                  print(json.dumps(entry, ensure_ascii=False))
+              " > "$tmp_payload"
+
               payload="$(cat "$tmp_payload")"
               rm -f "$tmp_index" "$tmp_payload"
+
               if [ -n "$payload" ]; then
                 {
                   echo "json<<EOF"
@@ -215,6 +238,7 @@ jobs:
             else
               echo "exists=false" >> "$GITHUB_OUTPUT"
             fi
+          fi
 
       - name: Merge previous progress into TASK_INPUT
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -293,9 +317,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p codex_output
-          ./scripts/run_codex_pipeline.sh <<'JSON'
-          ${{ steps.merge.outputs.task_input }}
-          JSON
+          echo "${{ steps.merge.outputs.task_input }}" | ./scripts/run_codex_pipeline.sh
 
       - name: Check for clarification request
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -449,9 +471,8 @@ jobs:
           files="$(git --no-pager diff --name-only)"
           stat="$(git --no-pager diff --stat)"
           count="$(printf "%s\n" "$files" | sed '/^$/d' | wc -l | tr -d ' ')"
-          delim="EOF_$RANDOM$RANDOM"
           {
-            echo "change_summary<<$delim"
+            echo "change_summary<<EOF"
             echo "Changed files ($count):"
             echo
             printf '%s\n' "$files" | sed 's/^/- /'
@@ -459,7 +480,7 @@ jobs:
             echo "Diffstat:"
             echo
             printf '%s\n' "$stat"
-            echo "$delim"
+            echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
       - name: Synthesize report change if needed
@@ -482,10 +503,9 @@ jobs:
             echo "## Task Input (JSON)"
             echo '```json'
           } > "${REPORT}"
-          cat <<'JSON' >> "${REPORT}"
-          ${{ steps.merge.outputs.task_input }}
-          JSON
           {
+            echo '```json'
+            echo "${{ steps.merge.outputs.task_input }}"
             echo '```'
             echo
             echo "## Changes summary"
