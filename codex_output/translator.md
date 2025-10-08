@@ -1,35 +1,53 @@
-**Request Summary**
-- Redesign app-wide selectors (dropdowns) to a modern look.
-- Fix spacing: the trigger “open” icon is too close to the edge; add breathing room.
-- Ensure the trigger icon is vertically centered and visually simple/modern.
-- Keep the solution minimal and self-contained.
+**Summary**
+
+- Replace all app “select” UIs with a modern, simple Select based on Radix UI + shadcn styling.
+- Integrate React TypeScript component(s) with Tailwind; ensure shadcn-style project structure (`/components/ui`), install `@radix-ui/react-select` and `@radix-ui/react-icons`.
+- Ensure trigger icon is vertically centered and visually simple/modern.
 
 **Assumptions**
-- “Selector” refers to dropdown inputs (native `<select>`, a shared custom select, or Angular Material `mat-select`).
-- The change is styling-only (no behavior or API changes).
-- Centralized styles (SCSS/theme tokens) exist and should be used.
-- Accessibility and keyboard/focus states must be preserved.
-- Dark theme support (if present) must remain consistent.
+
+- The target UI is React (Next.js or Vite-React) and allows adding shadcn-style components.
+- TypeScript and Tailwind are (or will be) enabled.
+- A `@` path alias resolves to `src` (or we will add it).
+- A utility `cn` is available at `@/lib/utils` (or we will create it).
+- Design tokens like `ring`, `input`, `background`, `popover` map to Tailwind theme variables (shadcn defaults or equivalent).
+- The app accepts incremental replacement of existing selects with the new component.
 
 **Constraints**
-- Minimize scope and avoid template/TS changes if possible.
-- Deliver a complete, self-contained fix with minimal impact.
-- Reuse existing design tokens (color, spacing, radius, typography).
-- Vertically center the trigger icon and use a simple, modern icon style.
+
+- Minimize scope and avoid breaking existing styles or workflows.
+- Keep changes self-contained: new UI component(s), minimal config updates, explicit dependency adds.
+- Keep icon style simple; trigger icon must be vertically centered.
 
 **Unknowns**
-- Which selector implementations are used (native, custom, `mat-select`, or mixed).
-- Exact visual spec for the “modern” trigger icon (shape, weight, size).
-- Desired spacing around the icon and overall control density.
-- Theming needs (light/dark), RTL support, and target browsers.
-- Any module-specific overrides that could conflict with centralized styles.
+
+- Current framework: Angular vs React/Next. (Repo docs mention Angular; the task requests a React component.)
+- Whether shadcn/Tailwind/TS are already configured.
+- Existing components path and alias setup (is `/components/ui` present? does `@` resolve?).
+- Presence of `@/lib/utils` and the `cn` helper.
+- Design tokens/theming parity with shadcn (colors, radius).
+- Package manager and Node version constraints.
+
+**Risks**
+
+- If the project is Angular, integrating a React component directly is non-trivial (requires wrapper/micro-frontend); scope could expand.
+- Token/class name mismatch could produce visual regressions if Tailwind config differs from shadcn defaults.
+- Replacing “all selectors” may touch many files; careful, staged adoption may be needed.
+
+**Planned Deliverables (if React stack is confirmed)**
+
+- `components/ui/select.tsx` with the provided Radix-based Select.
+- `components/ui/label.tsx` (dependency).
+- `components/ui/demo.tsx` (usage example).
+- Instructions (or changes) to ensure Tailwind, shadcn conventions, TS, alias `@`, and `@/lib/utils` exist.
+- Dependency installation: `@radix-ui/react-select @radix-ui/react-icons`.
 
 **Clarifying Questions**
-- Which components power selectors across the app: native `<select>`, custom, `mat-select`, or a mix?
-- Do you have a preferred icon style (e.g., minimalist chevron) and size (px/rem)?
-- What right-side padding should be around the icon (e.g., 12–16px)?
-- What control height/density should we target (e.g., 40/44/48px min height)?
-- Must this apply globally via theme/SCSS overrides, or only to specific modules?
-- Are light/dark themes and RTL required for this update?
-- Any pages/components that must retain their current look (i.e., exclude from change)?
-- Target browser support we should consider for CSS features?
+
+- Is the frontend React/Next.js, or Angular? If Angular, do you want a React micro-frontend/embed, or an Angular-native solution instead?
+- Is Tailwind already configured? If yes, can you confirm theme tokens (ring, input, background, popover) and radius scale?
+- Do you already use shadcn’s folder convention (`/components/ui`) and alias `@` → `src`?
+- Do you have `@/lib/utils` with `cn` defined, or should I add it?
+- Icon set preference: stick with Radix icons from the spec, or switch to `lucide-react` (ChevronUp/Down/Check) to standardize icons?
+- What is the acceptance scope for “app-wide”: replace only custom select components, or also native `<select>` where safe?
+- Package manager and Node version to target (npm/yarn/pnpm; Node LTS)?

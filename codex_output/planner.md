@@ -1,30 +1,42 @@
-**Summary**
-- Goal: Modernize the select trigger icon, ensure it’s vertically centered, and add comfortable right padding — with a single, centralized SCSS change.
-- Scope: Styling-only; no template/TS changes. Apply to `.app-select` and `select.form-control`.
+**Repo Findings**
+- Framework: Angular with standalone components, not React (frontend/angular.json, .ts templates).
+- Tooling: TypeScript and Tailwind are already configured (frontend/tsconfig.json, frontend/tailwind.config.js).
+- Aliases: Uses `@app`, `@core`, `@features`, `@lib`, `@shared` (no `@` → `src`).
+- Styles: Global SCSS imports include `frontend/src/styles/pages/_base.scss` which defines modern select styling.
+- Current selects: Widely used as native `<select class="form-control app-select">...` across features; the new CSS centers the caret and increases right padding.
+
+**Impact Analysis**
+- Integrating the provided React shadcn+Radix Select is not appropriate here (Angular app; Radix is React-only; no `/components/ui`).
+- The requirement “trigger icon vertically centered and modern” is already implemented via CSS in `frontend/src/styles/pages/_base.scss`:
+  - Uses background chevrons with `background-position: right <space> center` for vertical centering.
+  - Provides modern spacing and states (hover/focus/dark).
+- Minimal path to completion is to standardize usage: keep native select and ensure `app-select` class is used consistently.
+
+**Component/Path Defaults**
+- Angular components live under `frontend/src/app/...`.
+- Global styles live under `frontend/src/styles.scss` and `frontend/src/styles/pages/*`.
+- There is no `/components/ui` convention in this Angular codebase; creating it for React components would add complexity and be unused.
+
+**Decision**
+- Do not attempt to add React/shadcn structure or Radix dependencies.
+- Finalize and document the Angular-native select styling already present.
+- Ensure templates consistently include `app-select` with `form-control`.
 
 **Minimal Plan**
-- Centralize in `frontend/src/styles/pages/_base.scss`.
-- Keep tokens, density, states (hover/focus/disabled), dark mode.
-- Use a minimalist chevron via CSS gradients; explicitly center vertically.
+- Verify/normalize select usage to `class="form-control app-select"` in templates where missing.
+- Keep the new CSS as the system-wide default; no external packages required.
+- Add a concise usage note for contributors (where to apply `app-select`).
+- Build to validate no style regressions.
 
-**Targeted Changes**
-- Update select base rule (and related states) to:
-  - Ensure explicit vertical centering: `background-position: right 1.85rem center, right 1.35rem center;`.
-  - Use a simple chevron (two thin linear-gradients) for a modern look.
-  - Keep `appearance: none;` and adequate right padding so the icon isn’t flush.
-  - Preserve multi/size variants (hide caret), focus-visible, dark mode, and disabled styling.
-- Extend selectors to both `.app-select` and `select.form-control` so all selects are covered app-wide with no template edits.
+**Risks**
+- Any non-standard select usage without `app-select` will not get the new style; we will scan and update only where necessary to minimize scope.
+- Tailwind tokens differ from shadcn; our CSS uses existing design tokens in `styles.scss`, avoiding conflicts.
 
-**Risks & Mitigations**
-- Slight visual drift on selects that previously used plain `.form-control` look; mitigate by keeping colors/radius consistent with existing tokens.
-- RTL not covered in this pass; keep physical `right` to minimize scope (optional follow-up: logical properties).
-
-**Test Plan (manual)**
-- Verify vertical centering across densities: default, compact, and at zoomed browser levels.
-- Check pages: Settings, Board, Reports (both `.app-select` and `select.form-control`).
-- States: default/hover/focus-visible/disabled; multi-select and `size > 1` (no chevron).
-- Theming: light/dark parity; no clipping at small widths; keyboard focus ring visible.
+**Open Questions**
+- Do we need to support multi-selects with the same visual treatment beyond the disabled background chevrons? (CSS currently disables chevrons for `multiple`/`size`.)
+- Any pages using custom select widgets that should be aligned to this style?
+- Is the current chevron color/size acceptable, or should we adjust contrast for dark mode?
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Centralize a single SCSS update in frontend/src/styles/pages/_base.scss to modernize the select trigger: explicitly center the chevron vertically with `background-position: right <offset> center`, switch to a minimalist chevron via two linear-gradients, retain adequate right padding, preserve states (hover/focus/disabled), dark mode, and multi/size variants. Apply to both `.app-select` and `select.form-control` to cover the app without template changes.","tests":"Build the frontend and visually verify on Settings, Board, and Reports pages: (1) trigger icon is vertically centered, (2) right padding provides comfortable space, (3) states (default/hover/focus-visible/disabled) render correctly, (4) multi-select/size>1 hides chevron, (5) light/dark parity, (6) no clipping at small widths and at different zoom levels."}
+{"steps":["coder","code_quality_reviewer","integrator","release_manager"],"notes":"Angular + Tailwind + TS already present. React/shadcn/Radix integration is not suitable. The new CSS in frontend/src/styles/pages/_base.scss modernizes selects and vertically centers the trigger icon. Minimal work: ensure all <select> use class \"form-control app-select\", keep CSS, and document usage. No new dependencies.","tests":"Manual checks: 1) Verify selects across Settings, Reports, Analyze, Board, Admin pages render with centered chevron, adequate right padding, and consistent radius. 2) Hover/focus states show border/ring and subtle shadow; disabled state dims and locks cursor. 3) Dark mode: check chevron visibility, focus outline, and contrast. 4) Multi-selects: confirm chevrons are removed and layout is stable. 5) Mobile viewport: ensure no overflow and tap targets remain ≥44px."}
 ```

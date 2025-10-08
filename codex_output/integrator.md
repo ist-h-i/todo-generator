@@ -1,44 +1,43 @@
-**Integration Check**
+**Integration Summary**
 
-- Outcome: Select trigger icon is vertically centered and simplified to a modern chevron via CSS gradients.
-- Scope: Single centralized SCSS update; no template/TS changes.
+- Confirmed stack: Angular + Tailwind + TypeScript (not React/shadcn).
+- Modern select styling with a vertically centered, simple chevron is implemented globally via SCSS.
+- All known templates use the standardized classes; no additional code changes required.
 
-**What Changed**
+**What’s In Place**
 
-- Vertically centered caret and added comfortable right padding:
-  - `frontend/src/styles/pages/_base.scss:85` (base rule for `.app-select, select.form-control`)
-  - `frontend/src/styles/pages/_base.scss:94` (increased right padding)
-  - `frontend/src/styles/pages/_base.scss:113` (background-position: `right 1.85rem center, right 1.35rem center`)
-- States and variants extended to both targets:
-  - Hover `frontend/src/styles/pages/_base.scss:129`
-  - Focus-visible `frontend/src/styles/pages/_base.scss:138`
-  - Disabled `frontend/src/styles/pages/_base.scss:149`
-  - Multiple/size variant removes caret `frontend/src/styles/pages/_base.scss:174`
-  - Dark theme variants `frontend/src/styles/pages/_base.scss:184`, `frontend/src/styles/pages/_base.scss:204`, `frontend/src/styles/pages/_base.scss:213`, `frontend/src/styles/pages/_base.scss:220`
-  - Hide MS arrow `frontend/src/styles/pages/_base.scss:225`
+- Centered trigger icon and modern look:
+  - `frontend/src/styles/pages/_base.scss:85` — Base rule targets `.app-select, select.form-control`.
+  - `frontend/src/styles/pages/_base.scss:94` — Extra right padding so the icon isn’t flush.
+  - `frontend/src/styles/pages/_base.scss:113` — `background-position: right … center` for vertical centering.
+- Example usage in templates:
+  - `frontend/src/app/features/reports/reports-page.component.html:255`
+  - `frontend/src/app/features/reports/reports-page.component.html:274`
+  - `frontend/src/app/features/admin/page.html:129`
+  - `frontend/src/app/features/admin/page.html:425`
 
-**Coverage**
+**Why Not shadcn/React Here**
 
-- Applies to `.app-select` and `select.form-control` across the app (no template edits needed):
-  - `frontend/src/app/features/settings/page.html:249`, `frontend/src/app/features/settings/page.html:428`
-  - `frontend/src/app/features/board/page.html:565`, `frontend/src/app/features/board/page.html:730`
-  - `frontend/src/app/features/reports/reports-page.component.html:255` (plain `form-control`), `frontend/src/app/features/reports/reports-page.component.html:274` (`app-select`)
-  - Additional: Admin/Analyze pages use `.app-select`.
+- The repo is an Angular app; Radix UI Select and shadcn components are React-only.
+- Creating `/components/ui` for React and adding `@radix-ui/react-select` would add unused dependencies and increase scope.
 
-**Meets Requirements**
+**How To Use (Angular)**
 
-- Vertical center of trigger icon: yes (`center` on Y axis).
-- Simple, modern icon: yes (minimal chevron via two linear-gradients).
+- Apply `class="form-control app-select"` to native `<select>` elements for consistent styling and centered icon.
+- Multi-select and `size > 1` variants are handled (caret removed, padding adjusted) by the SCSS defaults.
 
-**Residual Risks**
+**Project Structure Notes**
 
-- Slight visual drift where `select.form-control` previously matched plain inputs.
-- RTL not addressed (kept physical `right` for minimal scope).
+- Components live under `frontend/src/app/...`.
+- Global/shared styles live under `frontend/src/styles.scss` and `frontend/src/styles/pages/*`.
+- There is no `/components/ui` convention in this Angular codebase.
 
-**How To Land Safely**
+**Risks / Open Questions**
 
-- Build and smoke test visuals:
-  - `cd frontend && npm ci && npm run build` (or `npm start` for preview)
-- Verify in light/dark: default/hover/focus-visible/disabled; multi/size>1 removes caret; no clipping at narrow widths; keyboard focus ring visible.
+- RTL is not adjusted (icon is anchored to the right). Add logical-position rules if RTL is needed.
+- High-contrast/forced-colors mode may need a tweak to ensure caret visibility or fallback to native.
 
-If you want, I can add an optional forced-colors safeguard to hide the chevron in high-contrast mode.
+**Optional Next Steps**
+
+- If you want RTL support, I can add `:dir(rtl)` overrides for the caret position.
+- If you need React/shadcn in a separate React app, I can provide a minimal setup guide and drop the provided `select.tsx`, `label.tsx`, and `demo.tsx` into `/components/ui` there.
