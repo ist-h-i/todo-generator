@@ -215,38 +215,6 @@ jobs:
             else
               echo "exists=false" >> "$GITHUB_OUTPUT"
             fi
-          fi
-
-          python3 - <<'PY'
-          import json
-          import sys
-          
-          try:
-              data = json.loads('''$raw''')
-          except Exception:
-              sys.exit(0)
-
-          entry = data.get('''$issue''') or data.get(str('''$issue'''))
-          if entry:
-              print(json.dumps(entry, ensure_ascii=False))
-          PY
-              
-          payload="$(cat "$tmp_payload")"
-              rm -f "$tmp_index" "$tmp_payload"
-              if [ -n "$payload" ]; then
-                {
-                  echo "json<<EOF"
-                  echo "$payload"
-                  echo "EOF"
-                } >> "$GITHUB_OUTPUT"
-                echo "exists=true" >> "$GITHUB_OUTPUT"
-              else
-                echo "exists=false" >> "$GITHUB_OUTPUT"
-              fi
-            else
-              echo "exists=false" >> "$GITHUB_OUTPUT"
-            fi
-          fi
 
       - name: Merge previous progress into TASK_INPUT
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
