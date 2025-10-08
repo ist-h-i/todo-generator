@@ -127,7 +127,7 @@ run_stage() {
     local AVAILABLE_FOR_PROMPT
     AVAILABLE_FOR_PROMPT=$(IFS=', '; echo "${AVAILABLE_DYNAMIC_STAGES[*]}")
     PROMPT+="Select the minimum necessary execution stages from: ${AVAILABLE_FOR_PROMPT}.\n"
-    PROMPT+="Your final message MUST end with a ```json code block containing {\"steps\":[\"stage_id\",...],\"notes\":\"...\",\"tests\":\"...\"}. Only use stage IDs from the allowed list.\n\n"
+    PROMPT+="Your final message MUST end with a \`\`\`json code block containing {\"steps\":[\"stage_id\",...],\"notes\":\"...\",\"tests\":\"...\"}. Only use stage IDs from the allowed list.\n\n"
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep it concise and scoped to this stage."
 
