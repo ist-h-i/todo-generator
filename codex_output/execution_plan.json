@@ -1,0 +1,17 @@
+{
+  "steps": [
+    "coder",
+    "code_quality_reviewer",
+    "integrator"
+  ],
+  "source": "planner",
+  "planner_payload": {
+    "steps": [
+      "coder",
+      "code_quality_reviewer",
+      "integrator"
+    ],
+    "notes": "Minimize edits by only widening the two profile fields: a single DB migration (expand to 200), bump server- and client-side validators to 200, and update localized error/help text. Deploy migration first, then API, then SPA. Watch for length-dependent indexes and keep counting semantics consistent with current implementation.",
+    "tests": "Add/adjust boundary tests: UI validator (≤200 ok, 201 fails), API DTO validation (≤200 ok, 201 fails), persistence round-trip at 200 chars, and update any tests that asserted 32. Verify i18n message shows 200 and surfaces on failure."
+  }
+}
