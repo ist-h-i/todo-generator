@@ -188,10 +188,51 @@ jobs:
             if [ -n "$index_content" ]; then
               tmp_index="$(mktemp)"
               printf '%s' "$index_content" > "$tmp_index"
-              payload="$(
-                ISSUE="${num}" INDEX_FILE="$tmp_index" python3 -c $'import json, os, pathlib, sys\nissue = (os.environ.get("ISSUE") or "").strip()\npath = os.environ.get("INDEX_FILE") or ""\nif not issue or not path:\n    sys.exit(0)\ntry:\n    raw = pathlib.Path(path).read_text(encoding="utf-8")\nexcept Exception:\n    sys.exit(0)\nraw = raw.strip()\nif not raw:\n    sys.exit(0)\ntry:\n    data = json.loads(raw)\nexcept Exception:\n    sys.exit(0)\nentry = data.get(issue) or data.get(str(issue))\nif entry:\n    print(json.dumps(entry, ensure_ascii=False))'
-              )"
-              rm -f "$tmp_index"
+              tmp_payload="$(mktemp)"
+              python3 -c 'import json, os, pathlib, sys; issue = (os.environ.get("ISSUE") or "").strip(); index_file = os.environ.get("INDEX_FILE") or ""; \
+                if not issue or not index_file: sys.exit(0); \
+                try: \
+                  with open(index_file, "r", encoding="utf-8") as f: \
+                    raw = f.read().strip(); \
+                  if not raw: sys.exit(0); \
+                except: sys.exit(0); \
+                try: data = json.loads(raw); \
+                except: sys.exit(0); \
+                entry = data.get(issue) or data.get(str(issue)); \
+                if entry: print(json.dumps(entry, ensure_ascii=False))' > "$tmp_payload"
+              payload="$(cat "$tmp_payload")"
+              rm -f "$tmp_index" "$tmp_payload"
+              if [ -n "$payload" ]; then
+                {
+                  echo "json<<EOF"
+                  echo "$payload"
+                  echo "EOF"
+                } >> "$GITHUB_OUTPUT"
+                echo "exists=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "exists=false" >> "$GITHUB_OUTPUT"
+              fi
+            else
+              echo "exists=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+          python3 - <<'PY'
+          import json
+          import sys
+          
+          try:
+              data = json.loads('''$raw''')
+          except Exception:
+              sys.exit(0)
+
+          entry = data.get('''$issue''') or data.get(str('''$issue'''))
+          if entry:
+              print(json.dumps(entry, ensure_ascii=False))
+          PY
+              
+          payload="$(cat "$tmp_payload")"
+              rm -f "$tmp_index" "$tmp_payload"
               if [ -n "$payload" ]; then
                 {
                   echo "json<<EOF"
@@ -730,8 +771,8 @@ jobs:
         with:
           script: |
             const issueNumber = Number("${{ steps.detect.outputs.issue_number }}");
-            const prUrl = "${{ steps.pr.outputs.pull_request_url }}";
-            const prNumber = Number("${{ steps.pr.outputs.pull_request_number }}");
+            const prUrl = "${{ steps.pr.outputs.result.pull_request_url }}";
+            const prNumber = Number("${{ steps.pr.outputs.result.pull_request_number }}");
             const changeSummary = (process.env.CHANGE_SUMMARY || '').trim();
             const reportPath = (process.env.REPORT_PATH || '').trim();
             const summaryBlock = changeSummary
