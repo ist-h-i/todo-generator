@@ -1,45 +1,63 @@
-I’ll make tightly scoped changes to raise the per-item limit from 32 → 200 for profile “業務内容/ロール” across backend validation and Angular UI input. No DB migration is needed because roles are stored as a JSON array without per-item length constraints.
+Summary
+- Implemented a centralized SCSS-only update to modernize selectors (dropdowns) and fix caret spacing.
+- Extended existing `.app-select` styles to also cover `select.form-control` with no template changes.
+- Increased right padding and shifted caret gradients left to avoid being flush to the edge.
+- Preserved tokens, states, and dark-mode variants.
 
-Changes made
+Files Changed
+- frontend/src/styles/pages/_base.scss:85
+  - Extended selector from `.app-select` to `.app-select, select.form-control`.
+  - Increased right padding and nudged caret positions:
+    - Padding: from `calc(1.1rem + 1.85rem)` to `calc(1.1rem + 2.25rem)`.
+    - Caret positions: from `calc(100% - 1.35rem)` and `calc(100% - 0.85rem)` to `calc(100% - 1.85rem)` and `calc(100% - 1.35rem)`.
 
-- Backend
-  - backend/app/services/profile.py:15
-    - Replace `_MAX_ROLE_LENGTH = 32` with `_MAX_ROLE_LENGTH = 200`
-    - Effect:
-      - Server-side validator `parse_roles` now allows up to 200 chars per item.
-      - Error text updates automatically to: 業務内容は1項目あたり200文字以内で入力してください。
+Focused Diffs (replacement blocks)
+- Base selector styles (adds `select.form-control`, adjusts spacing)
+  - frontend/src/styles/pages/_base.scss:85–127
+    - Before: `.app-select { padding: 0.85rem calc(1.1rem + 1.85rem) ... background-position: calc(100% - 1.35rem), calc(100% - 0.85rem) }`
+    - After: `.app-select, select.form-control { padding: 0.85rem calc(1.1rem + 2.25rem) ... background-position: calc(100% - 1.85rem), calc(100% - 1.35rem) }`
+- Hover state
+  - frontend/src/styles/pages/_base.scss:129–136
+    - Extended to `.app-select:hover:not(:disabled), select.form-control:hover:not(:disabled)`
+- Focus state
+  - frontend/src/styles/pages/_base.scss:138–147
+    - Extended to `.app-select:focus-visible, select.form-control:focus-visible`
+- Disabled state
+  - frontend/src/styles/pages/_base.scss:149–166
+    - Extended to `.app-select:disabled, select.form-control:disabled`
+- Options background
+  - frontend/src/styles/pages/_base.scss:168–172
+    - Extended to `.app-select option, select.form-control option`
+- Multiple/size variant (no caret)
+  - frontend/src/styles/pages/_base.scss:174–182
+    - Extended to include `select.form-control[multiple]` and `select.form-control[size]:not([size='1'])`
+- Dark theme base/hover/focus/options
+  - frontend/src/styles/pages/_base.scss:184–202, 204–211, 213–218, 220–223
+    - Extended `.dark .app-select` selectors to include `.dark select.form-control`
+- Hide IE arrow
+  - frontend/src/styles/pages/_base.scss:225–228
+    - Extended to `.app-select::-ms-expand, select.form-control::-ms-expand`
 
-- Frontend (Angular)
-  - frontend/src/app/core/profile/profile-dialog.ts:307
-    - Replace `const MAX_CUSTOM_ROLE_LENGTH = 32;` with `const MAX_CUSTOM_ROLE_LENGTH = 200;`
-    - Effect:
-      - Custom role input `[attr.maxlength]` updates to 200.
-      - UI error text updates automatically to: 担当領域は200文字以内で入力してください。
-      - Helper text “最大{{ maxCustomRoleLength }}文字” now reflects 200.
+Why this is minimal
+- One-file change; no component/template or behavior modifications.
+- Covers both `.app-select` and any `select.form-control` usages across the app.
+- Keeps existing tokens, transitions, and dark-mode support intact.
 
-Why no DB migration
+Suggested Commands (optional)
+- Build to verify styles compile and render:
+  - cd `frontend` && `npm run build`
+- For local preview:
+  - cd `frontend` && `npm start`
 
-- The `roles` field is defined as `JSON` in `backend/app/models.py` and does not impose a per-item string limit at the database layer. Widening is therefore unnecessary and there’s no index dependent on string length for these items.
+Quick Test Pointers
+- Settings page selects: `frontend/src/app/features/settings/page.html` (e.g., 247, 426 if present).
+- Board subtask selects (if any present).
+- Reports page selects:
+  - `frontend/src/app/features/reports/reports-page.component.html:300` (select.form-control)
+  - `frontend/src/app/features/reports/reports-page.component.html:319` (form-control app-select)
+- Check default/hover/focus/disabled; multi-select and `size > 1` (no caret) and dark mode.
 
-Commands to validate (optional)
-
-- Backend tests:
-  - From repository root: `pytest -q`
-- Frontend type-check/build (if environment supports Node):
-  - `npm ci`
-  - `npm run build`
-
-Residual risks / notes
-
-- Counting remains based on Python/TS string length (code units), not grapheme clusters; this preserves existing semantics.
-- Predefined option labels are already well below 200 chars; no UI layout issues expected.
-- If there are external consumers assuming ≤ 32 chars, they should be reviewed separately (none found in this repo).
-
-Diff summary
-
-- backend/app/services/profile.py:15
-  - - `_MAX_ROLE_LENGTH = 32`
-  - + `_MAX_ROLE_LENGTH = 200`
-- frontend/src/app/core/profile/profile-dialog.ts:307
-  - - `const MAX_CUSTOM_ROLE_LENGTH = 32;`
-  - + `const MAX_CUSTOM_ROLE_LENGTH = 200;`
+Residual Risks / Open Questions
+- Slight visual change on any `select.form-control` that previously relied on plain `.form-control` look.
+- If modules have local select overrides, specificity may need a minor follow-up.
+- If a denser variant is required, confirm padding spec (e.g., 12–14px around caret) and whether compact sizes are needed.

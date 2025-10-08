@@ -11,7 +11,7 @@
       "code_quality_reviewer",
       "integrator"
     ],
-    "notes": "Minimize edits by only widening the two profile fields: a single DB migration (expand to 200), bump server- and client-side validators to 200, and update localized error/help text. Deploy migration first, then API, then SPA. Watch for length-dependent indexes and keep counting semantics consistent with current implementation.",
-    "tests": "Add/adjust boundary tests: UI validator (≤200 ok, 201 fails), API DTO validation (≤200 ok, 201 fails), persistence round-trip at 200 chars, and update any tests that asserted 32. Verify i18n message shows 200 and surfaces on failure."
+    "notes": "Implement a centralized SCSS-only update: extend .app-select styles to also target select.form-control and increase right padding + caret offset for modern spacing. No template or behavioral changes. Preserve tokens, dark mode, and focus states. Risk: minor visual changes for selects previously inheriting plain .form-control styling.",
+    "tests": "Build frontend and visually verify selectors on Settings, Board, and Reports pages. Confirm caret spacing, hover/focus/disabled states, dark-mode variants, multi-select behavior (no caret), and keyboard focus. Spot-check any selects lacking .app-select or .form-control usage."
   }
 }

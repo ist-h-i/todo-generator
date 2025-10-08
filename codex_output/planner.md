@@ -1,29 +1,60 @@
-Here’s a minimal, execution-ready plan to lift the per-item limit for Profile “Business” and “Role content” fields from 32 to 200 characters across all layers with the least necessary change.
+Summary
+- Goal: Modernize app-wide <select> styling, fix caret spacing, and apply consistently with minimal, centralized CSS changes.
+- Approach: Update the existing shared select styles and extend them to cover `select.form-control` so templates do not need edits.
 
-**Scope**
-- Update only the two profile fields (“業務” and “ロールの内容”) length limits from 32 → 200 at UI, API/validators, domain rules, and DB schema.
-- Keep validation semantics the same except for the new max-length and message.
-- Use a widening DB migration with no data rewrite.
+Minimal Plan
+- Centralize styling in one place to minimize risk and scope.
+- Keep behavior and templates unchanged.
+- Use existing tokens and dark-mode variants.
 
-**Plan**
-- Locate all constraints: constants, validators, DTO/schema, entity/ORM column types, migrations, and i18n messages tied to 32.
-- Database: add a migration to widen affected columns to length 200 (e.g., VARCHAR(200)) without altering nullability/indexes unless required.
-- Backend: bump max length checks to 200 in request DTOs/validators and any domain/service rules; update error messages (JA) to reflect 200.
-- Frontend (Angular): set `maxlength="200"` (and Angular validators) on the relevant inputs; update localized helper/error text to 200; ensure any char counters use 200.
-- Tests: update existing 32-length tests; add boundary tests for 200/201; include API and UI validations.
-- Deploy in safe order: run DB migration first; then deploy API; then deploy SPA.
+Targeted Changes
+- Update selector styles in `frontend/src/styles/pages/_base.scss:85`:
+  - Extend rules to apply to both `.app-select` and `select.form-control` without duplicating templates.
+  - Increase right padding to create space around the caret.
+  - Move caret gradients left to avoid being flush to the edge.
+- Mirror the same selector extension for all related states:
+  - Hover: `frontend/src/styles/pages/_base.scss:126`
+  - Focus: `frontend/src/styles/pages/_base.scss:134`
+  - Disabled: `frontend/src/styles/pages/_base.scss:144`
+  - Options: `frontend/src/styles/pages/_base.scss:162`
+  - Multiple/size: `frontend/src/styles/pages/_base.scss:167`
+  - Dark theme base/hover/focus/options: `frontend/src/styles/pages/_base.scss:175, 194, 202, 208`
+  - Hide IE arrow: `frontend/src/styles/pages/_base.scss:212`
+- Concrete adjustments (illustrative values using rem to stay token‑friendly):
+  - Padding: from `padding: 0.85rem calc(1.1rem + 1.85rem) 0.85rem 1.1rem;` to `padding: 0.85rem calc(1.1rem + 2.25rem) 0.85rem 1.1rem;`
+  - Caret positions: from
+    - `calc(100% - 1.35rem)` and `calc(100% - 0.85rem)`
+    - to `calc(100% - 1.85rem)` and `calc(100% - 1.35rem)`
 
-**Residual Risks / Open Questions**
-- Unknown exact model/column names and whether these fields are indexed; if indexed in MySQL with utf8mb4, index length limits may need handling (prefix index or drop/recreate as needed).
-- Counting semantics: current validators may count UTF-16 code units, not grapheme clusters; maintaining existing behavior minimizes scope unless stricter Unicode-grapheme counting is required.
-- Localization keys/structure: ensure only the specific message(s) are updated to avoid affecting unrelated copies.
+Why this is minimal
+- One-file change; no component or template updates.
+- Works for both `.app-select` and existing `select.form-control` usages (e.g., reports page).
+- Preserves existing design tokens, transitions, and dark mode.
 
-**Validation Tests**
-- Server: payload with 200 chars passes; 201 chars fails with updated JA message. Existing 32-char tests updated to 200.
-- DB: persisted records with 200-char items read back intact.
-- UI: inputs accept up to 200 chars; show correct error at 201; updated helper text visible; no layout breakage in typical views.
-- Regression: create/edit flows for profiles with mixed list items still function.
+Open Questions
+- Exact spacing spec for the caret: is 12–14px desired?
+- Any variants (dense/compact) that need different padding?
+- Are there selectors without `.app-select` or `.form-control` that must be covered?
+
+Residual Risks
+- Extending styles to `select.form-control` may slightly change visuals where a more neutral input style was intended for selects; audit key forms after change.
+- If any modules override select styles locally, specificity conflicts may require a follow-up tweak.
+
+Test Plan
+- Visual checks (light/dark):
+  - Settings page selects: `frontend/src/app/features/settings/page.html:247`, `frontend/src/app/features/settings/page.html:426`
+  - Board subtask selects: `frontend/src/app/features/board/page.html:564`, `frontend/src/app/features/board/page.html:729`
+  - Reports page selects (both styled paths): `frontend/src/app/features/reports/reports-page.component.html:255` (formerly plain `form-control`), `frontend/src/app/features/reports/reports-page.component.html:274` (`app-select`)
+- States:
+  - Default/hover/focus/disabled; verify focus ring visibility and no layout shift.
+  - Multi-select and `size > 1` render without caret and with correct padding.
+- Accessibility:
+  - Keyboard focus order and arrow-key interactions on native select remain intact.
+- Responsive:
+  - Ensure caret is not clipped or flush at small widths.
+- Regression scan:
+  - Search for any `select` usages without `.app-select` or `.form-control` and spot-check.
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Minimize edits by only widening the two profile fields: a single DB migration (expand to 200), bump server- and client-side validators to 200, and update localized error/help text. Deploy migration first, then API, then SPA. Watch for length-dependent indexes and keep counting semantics consistent with current implementation.","tests":"Add/adjust boundary tests: UI validator (≤200 ok, 201 fails), API DTO validation (≤200 ok, 201 fails), persistence round-trip at 200 chars, and update any tests that asserted 32. Verify i18n message shows 200 and surfaces on failure."}
+{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Implement a centralized SCSS-only update: extend .app-select styles to also target select.form-control and increase right padding + caret offset for modern spacing. No template or behavioral changes. Preserve tokens, dark mode, and focus states. Risk: minor visual changes for selects previously inheriting plain .form-control styling.","tests":"Build frontend and visually verify selectors on Settings, Board, and Reports pages. Confirm caret spacing, hover/focus/disabled states, dark-mode variants, multi-select behavior (no caret), and keyboard focus. Spot-check any selects lacking .app-select or .form-control usage."}
 ```
