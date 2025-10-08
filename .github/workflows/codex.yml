@@ -173,12 +173,10 @@ jobs:
             exit 0
           fi
           git fetch origin "refs/heads/codex/issue-${num}:refs/remotes/origin/codex/issue-${num}" || true
-          index_content="$(git show "refs/remotes/origin/codex/issue-${num}:.codex/state/index.json" || true)"
+          index_content="$(git show "refs/remotes/origin/codex/issue-${num}:.codex/state/index.json" 2>/dev/null || true)"
           if [ -n "$index_content" ]; then
             payload="$(
-              ISSUE="${num}" python3 - <<'PY' <<< "$index_content"
-            import json, os, sys
-
+              printf '%s' "$index_content" | ISSUE="${num}" python3 -c 'import json, os, sys
             issue = os.environ.get("ISSUE", "").strip()
             raw = sys.stdin.read()
             if not raw.strip():
@@ -189,8 +187,7 @@ jobs:
                 sys.exit(0)
             entry = data.get(issue) or data.get(str(issue))
             if entry:
-                print(json.dumps(entry, ensure_ascii=False))
-            PY
+                print(json.dumps(entry, ensure_ascii=False))'
             )"
             if [ -n "$payload" ]; then
               {
