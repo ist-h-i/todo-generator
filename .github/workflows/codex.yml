@@ -521,11 +521,13 @@ jobs:
               if not line:
                   continue
               status = line[:2]
-              path_fragment = line[3:]
-              if status and status[0] in {"R", "C"} and " -> " in path_fragment:
-                  paths_to_add = [part.strip() for part in path_fragment.split(" -> ", 1) if part.strip()]
+              remainder = line[2:].lstrip()
+              if not remainder:
+                  continue
+              if ("R" in status or "C" in status) and " -> " in remainder:
+                  paths_to_add = [part.strip() for part in remainder.split(" -> ", 1) if part.strip()]
               else:
-                  paths_to_add = [path_fragment.strip()]
+                  paths_to_add = [remainder.strip()]
               for candidate in paths_to_add:
                   if candidate:
                       candidates.append(candidate)
@@ -591,7 +593,7 @@ jobs:
           for key in ordered_keys:
               paths = groups[key]
               run(["git", "restore", "--staged", "."])
-              run(["git", "add", "--"] + paths)
+              run(["git", "add", "-A", "--"] + paths)
 
               group_label = label_map.get(key, f"{key}領域")
               sample_limit = 4
