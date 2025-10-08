@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, os, sys, uuid, urllib.request
+          import json, os, re, sys, uuid, urllib.request
 
           name = os.environ.get("GITHUB_EVENT_NAME","")
           path = os.environ.get("GITHUB_EVENT_PATH")
@@ -80,9 +80,10 @@ jobs:
               body = coerce(comment.get("body")).replace("\r","")
 
               lines = body.split("\n")
-              trigger_token = "@codex_agents"
+              trigger_pattern = re.compile(r"^@?codex_agents\b[:\s-]*", re.IGNORECASE)
               trigger_index = -1
               trigger_line = ""
+              command_start = 0
               for idx, raw in enumerate(lines):
                   stripped = raw.strip()
                   if not stripped:
@@ -90,14 +91,16 @@ jobs:
                   probe = stripped
                   while probe.startswith(">"):
                       probe = probe[1:].lstrip()
-                  if probe.lower().startswith(trigger_token):
+                  match = trigger_pattern.match(probe)
+                  if match:
                       trigger_index = idx
                       trigger_line = probe
+                      command_start = match.end()
                       break
               if trigger_index < 0:
                   out("run_codex","false"); sys.exit(0)
 
-              head = trigger_line[len(trigger_token):].lstrip(" \t:-")
+              head = trigger_line[command_start:].lstrip(" \t:-")
               command = ("\n".join([head] + lines[trigger_index+1:])).strip()
               if not command:
                   command = '""'
