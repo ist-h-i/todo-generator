@@ -11,7 +11,7 @@
       "code_quality_reviewer",
       "integrator"
     ],
-    "notes": "Implement a centralized SCSS-only update: extend .app-select styles to also target select.form-control and increase right padding + caret offset for modern spacing. No template or behavioral changes. Preserve tokens, dark mode, and focus states. Risk: minor visual changes for selects previously inheriting plain .form-control styling.",
-    "tests": "Build frontend and visually verify selectors on Settings, Board, and Reports pages. Confirm caret spacing, hover/focus/disabled states, dark-mode variants, multi-select behavior (no caret), and keyboard focus. Spot-check any selects lacking .app-select or .form-control usage."
+    "notes": "Centralize a single SCSS update in frontend/src/styles/pages/_base.scss to modernize the select trigger: explicitly center the chevron vertically with `background-position: right <offset> center`, switch to a minimalist chevron via two linear-gradients, retain adequate right padding, preserve states (hover/focus/disabled), dark mode, and multi/size variants. Apply to both `.app-select` and `select.form-control` to cover the app without template changes.",
+    "tests": "Build the frontend and visually verify on Settings, Board, and Reports pages: (1) trigger icon is vertically centered, (2) right padding provides comfortable space, (3) states (default/hover/focus-visible/disabled) render correctly, (4) multi-select/size>1 hides chevron, (5) light/dark parity, (6) no clipping at small widths and at different zoom levels."
   }
 }

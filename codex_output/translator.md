@@ -1,41 +1,35 @@
 **Request Summary**
-- Redesign the app-wide “selector” (dropdown/select input) to a modern style.
-- Fix spacing: the “open” button/caret is flush to the edge; add sufficient padding.
-- Apply consistently across the app with minimal, targeted changes.
+- Redesign app-wide selectors (dropdowns) to a modern look.
+- Fix spacing: the trigger “open” icon is too close to the edge; add breathing room.
+- Ensure the trigger icon is vertically centered and visually simple/modern.
+- Keep the solution minimal and self-contained.
 
 **Assumptions**
-- “Selector” refers to dropdown inputs (native `<select>`, a shared custom component, or Angular Material `mat-select`).
-- Styling-only change; no behavior, API, or layout restructuring.
-- Centralized styling exists (design tokens/SCSS variables) and should be used.
-- Accessibility and keyboard/focus states must be preserved or improved.
-- Dark mode/theme support must remain consistent if present.
+- “Selector” refers to dropdown inputs (native `<select>`, a shared custom select, or Angular Material `mat-select`).
+- The change is styling-only (no behavior or API changes).
+- Centralized styles (SCSS/theme tokens) exist and should be used.
+- Accessibility and keyboard/focus states must be preserved.
+- Dark theme support (if present) must remain consistent.
 
 **Constraints**
-- Minimize scope and risk; prefer overriding shared component/theme styles.
-- Avoid breaking changes to component APIs or templates.
-- Keep within existing design system tokens (colors, spacing, radius, typography).
-- Maintain cross-browser support and responsive behavior.
+- Minimize scope and avoid template/TS changes if possible.
+- Deliver a complete, self-contained fix with minimal impact.
+- Reuse existing design tokens (color, spacing, radius, typography).
+- Vertically center the trigger icon and use a simple, modern icon style.
 
 **Unknowns**
-- Which selector implementations are in use (native, custom, Angular Material)?
-- Exact design direction for “modern” (radius, shadow, borders, density).
-- Target padding values around the caret/open button.
-- Required states (hover, focus, active, disabled, error) visual specs.
-- Theming requirements (light/dark), RTL support, and target browsers.
+- Which selector implementations are used (native, custom, `mat-select`, or mixed).
+- Exact visual spec for the “modern” trigger icon (shape, weight, size).
+- Desired spacing around the icon and overall control density.
+- Theming needs (light/dark), RTL support, and target browsers.
+- Any module-specific overrides that could conflict with centralized styles.
 
 **Clarifying Questions**
-- Which component(s) power selectors: native `<select>`, custom, `mat-select`, or mixed?
-- Do we have design tokens/specs for “modern” (radius, spacing, colors, focus ring)?
-- What padding should surround the caret/open button (e.g., 8–12px)?
-- Any size/density standard (e.g., 40–44px min touch target, 36/40/48px heights)?
-- Which states must be designed (default/hover/focus/disabled/error) and do we have examples?
-- Should we animate open/close or caret rotation? Any motion constraints?
-- Must this change apply app-wide automatically via theme overrides, or only to specific modules?
-- Are there screenshots or examples of the “broken” layout to confirm issues and scope?
-- What are the supported browsers and themes (light/dark, RTL)?
-- Are there existing regressions tests or visual baselines we must preserve?
-
-**Residual Risks**
-- Global CSS/theme overrides may cause regressions in edge cases.
-- Mixed selector implementations may require multiple targeted overrides.
-- Without precise design specs, “modern” could be interpreted inconsistently.
+- Which components power selectors across the app: native `<select>`, custom, `mat-select`, or a mix?
+- Do you have a preferred icon style (e.g., minimalist chevron) and size (px/rem)?
+- What right-side padding should be around the icon (e.g., 12–16px)?
+- What control height/density should we target (e.g., 40/44/48px min height)?
+- Must this apply globally via theme/SCSS overrides, or only to specific modules?
+- Are light/dark themes and RTL required for this update?
+- Any pages/components that must retain their current look (i.e., exclude from change)?
+- Target browser support we should consider for CSS features?

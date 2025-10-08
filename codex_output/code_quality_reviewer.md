@@ -1,53 +1,34 @@
 **Summary**
-
-- Centralized SCSS update is present and aligns with the minimal plan.
-- Styles now apply to both `.app-select` and `select.form-control` with increased right padding and adjusted caret offsets.
-- Hover, focus, disabled, options, multi/size variants, dark mode, and MS caret hiding are all covered.
+- Meets requirements: trigger icon is vertically centered and simplified to a modern chevron.
+- Scope is minimal and centralized; no template/TS changes.
 
 **What I Checked**
+- Base select rule applies to both `.app-select` and `select.form-control`: frontend/src/styles/pages/_base.scss:85
+- Vertical centering via explicit background positioning: frontend/src/styles/pages/_base.scss:113
+- States and variants extended consistently:
+  - Hover: frontend/src/styles/pages/_base.scss:129
+  - Focus-visible: frontend/src/styles/pages/_base.scss:138
+  - Disabled: frontend/src/styles/pages/_base.scss:149
+  - Multi/size variants hide caret: frontend/src/styles/pages/_base.scss:174
+  - Dark theme variants: frontend/src/styles/pages/_base.scss:184, frontend/src/styles/pages/_base.scss:204, frontend/src/styles/pages/_base.scss:213, frontend/src/styles/pages/_base.scss:220
+  - Hide IE arrow: frontend/src/styles/pages/_base.scss:225
+- App usage covered (examples): frontend/src/app/features/settings/page.html:249, frontend/src/app/features/board/page.html:565, frontend/src/app/features/reports/reports-page.component.html:274
 
-- Base selector: `frontend/src/styles/pages/_base.scss:85` includes `.app-select, select.form-control` with:
-  - Padding set to `0.85rem calc(1.1rem + 2.25rem) 0.85rem 1.1rem`.
-  - Caret positions at `calc(100% - 1.85rem)` and `calc(100% - 1.35rem)`.
-- States and variants extended:
-  - Hover: `frontend/src/styles/pages/_base.scss:129`
-  - Focus-visible: `frontend/src/styles/pages/_base.scss:138`
-  - Disabled: `frontend/src/styles/pages/_base.scss:149`
-  - Options: `frontend/src/styles/pages/_base.scss:168`
-  - Multiple/size: `frontend/src/styles/pages/_base.scss:174`
-  - Dark theme variants: `frontend/src/styles/pages/_base.scss:184, 204, 213, 220`
-  - IE arrow: `frontend/src/styles/pages/_base.scss:225`
-- Coverage: All `<select>` usage spots are either `.app-select` or `.form-control` (including one `select.form-control` at `frontend/src/app/features/reports/reports-page.component.html:255`), so the extension achieves app-wide impact without template changes.
-
-**Quality Notes**
-
-- Readability: Clear comments annotate the padding and caret tweaks.
-- Consistency: Uses existing color tokens, transitions, and mirrors `.form-control` radius (1.25rem).
-- Accessibility: `:focus-visible` provides a visible outline and accent ring; disabled state communicates non-interactive affordance.
-- Density: `min-height: 3rem` (~48px) is appropriate for touch targets.
+**Findings**
+- Vertical centering achieved using `background-position: right 1.85rem center, right 1.35rem center;` (clean and robust for different heights).
+- Right padding increased to prevent the caret from being flush to the edge; spacing looks balanced.
+- Icon is a simple, minimalist chevron built from linear gradients; aligns with “modern” ask.
+- Accessibility preserved: `:focus-visible` outline and accent ring; disabled visuals clear.
+- Dark theme parity implemented with matching states.
 
 **Edge Cases**
+- Multi-select and `size > 1` correctly remove the caret and adjust padding (frontend/src/styles/pages/_base.scss:174).
+- Specificity should override plain `.form-control` where used on `select`.
+- Modern `color-mix()` usage is fine for current browsers; older browsers may not support it.
 
-- Multi-select/size > 1 correctly hides the caret and adjusts padding.
-- Specificity ensures select-specific focus styles override generic `.form-control` focus.
-- Dark theme inherits the outline color via `var(--accent)` and adds appropriate focus glow.
+**Lightweight Suggestions (Optional)**
+- RTL readiness: Consider `padding-inline-end` and keep `right <offset>` or switch to `background-position: right <offset> center` (already used) for caret; optionally mirror to logical properties later for full RTL.
+- Forced colors: Optionally add `@media (forced-colors: active) { .app-select, select.form-control { background-image: none; } }` to avoid invisible chevrons in high-contrast modes.
 
-**Residual Risks / Open Questions**
-
-- RTL: Current spacing uses physical sides (right). If RTL is required, consider logical properties to flip caret and padding automatically.
-- Visual drift: `select.form-control` on pages that previously used neutral input styling will now adopt the modern select look; audit critical forms.
-- Browser support: `color-mix()` requires modern browsers (already used elsewhere in the project).
-
-**Lightweight Suggestions (Optional, Non-blocking)**
-
-- RTL friendliness: Consider `padding-inline-end` and `background-position: right 1.85rem center, right 1.35rem center;` to adapt automatically in RTL contexts.
-- Tokens: If a consistent radius token is desired, align `1.25rem` to an existing variable (e.g., add `--radius-md`), but keep as-is if `.form-control` intentionally uses 1.25rem.
-
-**Verification Pointers**
-
-- Reports status select (no `.app-select`): `frontend/src/app/features/reports/reports-page.component.html:255`
-- App-select examples:
-  - Settings: `frontend/src/app/features/settings/page.html:247`, `frontend/src/app/features/settings/page.html:426`
-  - Board: `frontend/src/app/features/board/page.html:564`, `frontend/src/app/features/board/page.html:729`
-  - Admin/Analyze examples listed by rg results
-- Check default/hover/focus/disabled in light/dark, multi/size variants, and small widths for caret spacing.
+**Verdict**
+- Approve. The implementation is correct, minimal, and satisfies “vertical center” and “simple, modern icon” requirements. Optional suggestions can be considered as follow-ups if needed.
