@@ -224,26 +224,23 @@ jobs:
           PREV: ${{ steps.progress.outputs.json }}
         run: |
           set -euo pipefail
-          merged="$(
-            python3 -c '
-            import json, os
-            task=os.environ.get("INPUT_JSON","")
-            prev=os.environ.get("PREV","")
-            try:
-                data=json.loads(task)
-            except Exception:
-                data={"Instruction": task}
-            if prev:
-                try:
-                    data["PreviousProgress"]=json.loads(prev)
-                except Exception:
-                    data["PreviousProgressRaw"]=prev
-            print(json.dumps(data, ensure_ascii=False))
-            '
-          )"
-          {
+          python3 -c "
+          import json, os
+          task = os.environ.get('INPUT_JSON', '')
+          prev = os.environ.get('PREV', '')
+          try:
+              data = json.loads(task)
+          except Exception:
+              data = {'Instruction': task}
+          if prev:
+              try:
+                  data['PreviousProgress'] = json.loads(prev)
+              except Exception:
+                  data['PreviousProgressRaw'] = prev
+          print(json.dumps(data, ensure_ascii=False))
+          " | {
             echo "task_input<<EOF"
-            echo "${merged}"
+            cat
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -341,55 +338,55 @@ jobs:
           state_dir=".codex/state"
           mkdir -p "$state_dir"
           ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; export ts
-          python3 - <<'PY'
-          import os, json, pathlib, time
-          issue=(os.environ.get("ISSUE_NUMBER") or "manual").strip() or "manual"
-          run_id=os.environ.get("GITHUB_RUN_ID","")
-          ts=os.environ.get("ts","")
-          out={"issue":issue,"run_id":run_id,"timestamp":ts}
+          python3 -c "
+          import os, json, pathlib
+          issue = (os.environ.get('ISSUE_NUMBER') or 'manual').strip() or 'manual'
+          run_id = os.environ.get('GITHUB_RUN_ID', '')
+          ts = os.environ.get('ts', '')
+          out = {'issue': issue, 'run_id': run_id, 'timestamp': ts}
 
           # status.json (structured if possible)
-          p=pathlib.Path("codex_output/status.json")
+          p = pathlib.Path('codex_output/status.json')
           if p.exists():
-            try:
-              out["status"]=json.loads(p.read_text(encoding="utf-8"))
-            except Exception:
-              out["status_raw"]=p.read_text(encoding="utf-8")
+              try:
+                  out['status'] = json.loads(p.read_text(encoding='utf-8'))
+              except Exception:
+                  out['status_raw'] = p.read_text(encoding='utf-8')
 
           # clarifying questions preview
-          q=pathlib.Path("codex_output/clarifying_questions.md")
+          q = pathlib.Path('codex_output/clarifying_questions.md')
           if q.exists():
-            out["clarifying_questions"]=q.read_text(encoding="utf-8")[:4000]
+              out['clarifying_questions'] = q.read_text(encoding='utf-8')[:4000]
 
           # file inventory with small previews
-          files=[]
-          base=pathlib.Path("codex_output")
+          files = []
+          base = pathlib.Path('codex_output')
           if base.exists():
-            for q in base.rglob("*"):
-              if q.is_file():
-                sz=q.stat().st_size
-                item={"path":str(q), "size":sz}
-                if sz<=20000:
-                  try:
-                    item["preview"]=q.read_text(encoding="utf-8", errors="ignore")[:4000]
-                  except Exception:
-                    pass
-                files.append(item)
-          out["files"]=files
+              for q in base.rglob('*'):
+                  if q.is_file():
+                      sz = q.stat().st_size
+                      item = {'path': str(q), 'size': sz}
+                      if sz <= 20000:
+                          try:
+                              item['preview'] = q.read_text(encoding='utf-8', errors='ignore')[:4000]
+                          except Exception:
+                              pass
+                      files.append(item)
+          out['files'] = files
 
-          index_path=pathlib.Path(".codex/state/index.json")
+          index_path = pathlib.Path('.codex/state/index.json')
           if index_path.exists():
-            try:
-              data=json.loads(index_path.read_text(encoding="utf-8"))
-            except Exception:
-              data={}
+              try:
+                  data = json.loads(index_path.read_text(encoding='utf-8'))
+              except Exception:
+                  data = {}
           else:
-            data={}
-          data[issue]=out
+              data = {}
+          data[issue] = out
           index_path.parent.mkdir(parents=True, exist_ok=True)
-          index_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+          index_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
           print(str(index_path))
-          PY
+          " >> "$GITHUB_OUTPUT"
           echo "path=$state_dir/index.json" >> "$GITHUB_OUTPUT"
 
       - name: Debug gates
@@ -509,26 +506,27 @@ jobs:
           CHANGE_SUMMARY: ${{ steps.summary.outputs.change_summary }}
         run: |
           set -euo pipefail
-          python3 <<'PY'
+          python3 -c "
           import os
           import subprocess
+
           def run(cmd, *, capture=False):
               if capture:
                   result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, text=True)
                   return result.stdout
               subprocess.run(cmd, check=True)
 
-          branch = os.environ["BRANCH_NAME"]
-          branch_exists = os.environ.get("BRANCH_EXISTS", "false").lower() == "true"
-          issue_number = (os.environ.get("ISSUE_NUMBER") or "").strip()
-          issue_title_raw = (os.environ.get("ISSUE_TITLE") or "").strip()
-          change_summary = (os.environ.get("CHANGE_SUMMARY") or "").strip()
+          branch = os.environ['BRANCH_NAME']
+          branch_exists = os.environ.get('BRANCH_EXISTS', 'false').lower() == 'true'
+          issue_number = (os.environ.get('ISSUE_NUMBER') or '').strip()
+          issue_title_raw = (os.environ.get('ISSUE_TITLE') or '').strip()
+          change_summary = (os.environ.get('CHANGE_SUMMARY') or '').strip()
 
-          run(["git", "restore", "--staged", "."])
+          run(['git', 'restore', '--staged', '.'])
 
-          status_output = run(["git", "status", "--porcelain"], capture=True).strip()
+          status_output = run(['git', 'status', '--porcelain'], capture=True).strip()
           if not status_output:
-              print("::notice::No files to commit.")
+              print('::notice::No files to commit.')
               raise SystemExit(0)
 
           candidates = []
@@ -540,8 +538,8 @@ jobs:
               remainder = line[2:].lstrip()
               if not remainder:
                   continue
-              if ("R" in status or "C" in status) and " -> " in remainder:
-                  paths_to_add = [part.strip() for part in remainder.split(" -> ", 1) if part.strip()]
+              if ('R' in status or 'C' in status) and ' -> ' in remainder:
+                  paths_to_add = [part.strip() for part in remainder.split(' -> ', 1) if part.strip()]
               else:
                   paths_to_add = [remainder.strip()]
               for candidate in paths_to_add:
@@ -556,102 +554,102 @@ jobs:
                   files.append(candidate)
 
           if not files:
-              print("::notice::No files to commit.")
+              print('::notice::No files to commit.')
               raise SystemExit(0)
 
           def group_key(path: str) -> str:
-              if "/" not in path:
-                  return "root"
-              head = path.split("/", 1)[0]
-              if head in {"backend", "frontend", "docs", "prompts", "scripts"}:
+              if '/' not in path:
+                  return 'root'
+              head = path.split('/', 1)[0]
+              if head in {'backend', 'frontend', 'docs', 'prompts', 'scripts'}:
                   return head
-              return "others"
+              return 'others'
 
           groups = {}
           for path in files:
               key = group_key(path)
               groups.setdefault(key, []).append(path)
 
-          order = ["docs", "frontend", "backend", "prompts", "scripts", "root", "others"]
+          order = ['docs', 'frontend', 'backend', 'prompts', 'scripts', 'root', 'others']
           for key in list(groups):
               groups[key].sort()
           ordered_keys = [key for key in order if key in groups] + [key for key in sorted(groups) if key not in order]
 
           def adjust_length(text: str) -> str:
               fillers = [
-                  "自動テストやスタイルチェックの基準とも整合する粒度で差分を束ねています。",
-                  "依存モジュールや参考資料への影響も同じコミット内で追跡できるよう補足しました。",
-                  "レビュアーが安心して判断できるだけの文脈情報を意識的に保持しています。"
+                  '自動テストやスタイルチェックの基準とも整合する粒度で差分を束ねています。',
+                  '依存モジュールや参考資料への影響も同じコミット内で追跡できるよう補足しました。',
+                  'レビュアーが安心して判断できるだけの文脈情報を意識的に保持しています。'
               ]
               while len(text) < 200 and fillers:
                   text += fillers.pop(0)
               if len(text) > 300:
-                  text = text[:297] + "..."
+                  text = text[:297] + '...'
               return text
 
           label_map = {
-              "backend": "バックエンド領域",
-              "frontend": "フロントエンド領域",
-              "docs": "ドキュメント領域",
-              "prompts": "プロンプト設定領域",
-              "scripts": "スクリプト領域",
-              "root": "リポジトリ直下",
-              "others": "横断領域"
+              'backend': 'バックエンド領域',
+              'frontend': 'フロントエンド領域',
+              'docs': 'ドキュメント領域',
+              'prompts': 'プロンプト設定領域',
+              'scripts': 'スクリプト領域',
+              'root': 'リポジトリ直下',
+              'others': '横断領域'
           }
 
-          issue_ref = f"#{issue_number}" if issue_number.isdigit() else "該当Issueなし"
-          title_fragment = issue_title_raw.replace("\r", " ").replace("\n", " ").strip()
+          issue_ref = f'#{issue_number}' if issue_number.isdigit() else '該当Issueなし'
+          title_fragment = issue_title_raw.replace('\r', ' ').replace('\n', ' ').strip()
           if not title_fragment:
-              title_fragment = "Codex自動実行タスク"
+              title_fragment = 'Codex自動実行タスク'
           if len(title_fragment) > 60:
-              title_fragment = title_fragment[:57] + "…"
+              title_fragment = title_fragment[:57] + '…'
 
           for key in ordered_keys:
               paths = groups[key]
-              run(["git", "restore", "--staged", "."])
-              run(["git", "add", "-A", "--"] + paths)
+              run(['git', 'restore', '--staged', '.'])
+              run(['git', 'add', '-A', '--'] + paths)
 
-              group_label = label_map.get(key, f"{key}領域")
+              group_label = label_map.get(key, f'{key}領域')
               sample_limit = 4
               sample = paths[:sample_limit]
               if len(paths) > sample_limit:
-                  sample.append("その他")
-              file_digest = "、".join(sample) if sample else "対象ファイル"
+                  sample.append('その他')
+              file_digest = '、'.join(sample) if sample else '対象ファイル'
               file_count = len(paths)
 
               content = (
-                  f"{group_label}で検出した{file_count}件のファイル差分をまとめて適用し、自動生成された変更を構造単位で整理しました。"
-                  f"主要ファイルは{file_digest}で、関連する設定や補助コードも合わせて整合性を保つよう同期しています。"
-                  "レビュー時に変更意図を追いやすいよう、依存関係と補助資料を同じコミットに束ねています。"
+                  f'{group_label}で検出した{file_count}件のファイル差分をまとめて適用し、自動生成された変更を構造単位で整理しました。'
+                  f'主要ファイルは{file_digest}で、関連する設定や補助コードも合わせて整合性を保つよう同期しています。'
+                  'レビュー時に変更意図を追いやすいよう、依存関係と補助資料を同じコミットに束ねています。'
               )
               if change_summary:
-                  content += "差分概要は自動生成したサマリに基づき、過不足がないかを再確認済みです。"
+                  content += '差分概要は自動生成したサマリに基づき、過不足がないかを再確認済みです。'
               content = adjust_length(content)
 
               if issue_number:
-                  issue_fragment = f"関連Issue {issue_ref} の解決"
+                  issue_fragment = f'関連Issue {issue_ref} の解決'
               else:
-                  issue_fragment = "手動起動タスクの要件充足"
+                  issue_fragment = '手動起動タスクの要件充足'
 
               purpose = (
-                  f"自動化ワークフローが提案した{group_label}の修正を段階的に共有し、レビュアーが影響範囲を俯瞰できるようにすることが狙いです。"
-                  f"{issue_fragment}と「{title_fragment}」の背景を踏まえ、後続対応や回帰検証への橋渡しとなる情報を確保するためにこのコミット単位で保存しています。"
-                  "また、ビルドと運用に必要な周辺設定を先行して整備することで、追加対応時の手戻りを抑え継続的な改善サイクルを維持する意図があります。"
+                  f'自動化ワークフローが提案した{group_label}の修正を段階的に共有し、レビュアーが影響範囲を俯瞰できるようにすることが狙いです。'
+                  f'{issue_fragment}と「{title_fragment}」の背景を踏まえ、後続対応や回帰検証への橋渡しとなる情報を確保するためにこのコミット単位で保存しています。'
+                  'また、ビルドと運用に必要な周辺設定を先行して整備することで、追加対応時の手戻りを抑え継続的な改善サイクルを維持する意図があります。'
               )
               purpose = adjust_length(purpose)
 
-              commit_message = f"##変更内容\n{content}\n\n##目的\n{purpose}"
-              run(["git", "commit", "-m", commit_message])
+              commit_message = f'##変更内容\n{content}\n\n##目的\n{purpose}'
+              run(['git', 'commit', '-m', commit_message])
 
-          remaining = run(["git", "status", "--porcelain"], capture=True).strip()
+          remaining = run(['git', 'status', '--porcelain'], capture=True).strip()
           if remaining:
-              raise SystemExit(f"Uncommitted files remain:\n{remaining}")
+              raise SystemExit(f'Uncommitted files remain:\n{remaining}')
 
           if branch_exists:
-              run(["git", "push", "origin", f"HEAD:{branch}"])
+              run(['git', 'push', 'origin', f'HEAD:{branch}'])
           else:
-              run(["git", "push", "-u", "origin", branch])
-          PY
+              run(['git', 'push', '-u', 'origin', branch])
+          "
 
       - name: Create or update pull request
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed == 'true' || steps.synth.outputs.synthesized == 'true') }}
