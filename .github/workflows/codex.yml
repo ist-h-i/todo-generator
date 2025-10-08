@@ -186,22 +186,12 @@ jobs:
             index_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/index.json"
             index_content="$(git show "${index_ref}" 2>/dev/null || true)"
             if [ -n "$index_content" ]; then
+              tmp_index="$(mktemp)"
+              printf '%s' "$index_content" > "$tmp_index"
               payload="$(
-                printf '%s' "$index_content" | ISSUE="${num}" python3 -c '
-                import json, os, sys
-                issue = (os.environ.get("ISSUE") or "").strip()
-                raw = sys.stdin.read()
-                if not raw.strip():
-                    sys.exit(0)
-                try:
-                    data = json.loads(raw)
-                except Exception:
-                    sys.exit(0)
-                entry = data.get(issue) or data.get(str(issue))
-                if entry:
-                    print(json.dumps(entry, ensure_ascii=False))
-                '
+                ISSUE="${num}" INDEX_FILE="$tmp_index" python3 -c $'import json, os, pathlib, sys\nissue = (os.environ.get("ISSUE") or "").strip()\npath = os.environ.get("INDEX_FILE") or ""\nif not issue or not path:\n    sys.exit(0)\ntry:\n    raw = pathlib.Path(path).read_text(encoding="utf-8")\nexcept Exception:\n    sys.exit(0)\nraw = raw.strip()\nif not raw:\n    sys.exit(0)\ntry:\n    data = json.loads(raw)\nexcept Exception:\n    sys.exit(0)\nentry = data.get(issue) or data.get(str(issue))\nif entry:\n    print(json.dumps(entry, ensure_ascii=False))'
               )"
+              rm -f "$tmp_index"
               if [ -n "$payload" ]; then
                 {
                   echo "json<<EOF"
