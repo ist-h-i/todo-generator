@@ -510,12 +510,33 @@ jobs:
 
           run(["git", "restore", "--staged", "."])
 
-          files_output = run(["git", "diff", "--name-only"], capture=True).strip()
-          if not files_output:
+          status_output = run(["git", "status", "--porcelain"], capture=True).strip()
+          if not status_output:
               print("::notice::No files to commit.")
               raise SystemExit(0)
 
-          files = [line.strip() for line in files_output.splitlines() if line.strip()]
+          candidates = []
+          for raw_line in status_output.splitlines():
+              line = raw_line.rstrip()
+              if not line:
+                  continue
+              status = line[:2]
+              path_fragment = line[3:]
+              if status and status[0] in {"R", "C"} and " -> " in path_fragment:
+                  paths_to_add = [part.strip() for part in path_fragment.split(" -> ", 1) if part.strip()]
+              else:
+                  paths_to_add = [path_fragment.strip()]
+              for candidate in paths_to_add:
+                  if candidate:
+                      candidates.append(candidate)
+
+          files = []
+          seen = set()
+          for candidate in candidates:
+              if candidate not in seen:
+                  seen.add(candidate)
+                  files.append(candidate)
+
           if not files:
               print("::notice::No files to commit.")
               raise SystemExit(0)
