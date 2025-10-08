@@ -187,20 +187,20 @@ jobs:
             index_content="$(git show "${index_ref}" 2>/dev/null || true)"
             if [ -n "$index_content" ]; then
               payload="$(
-                printf '%s' "$index_content" | ISSUE="${num}" python3 - <<'PY'
-              import json, os, sys
-              issue = (os.environ.get("ISSUE") or "").strip()
-              raw = sys.stdin.read()
-              if not raw.strip():
-                  sys.exit(0)
-              try:
-                  data = json.loads(raw)
-              except Exception:
-                  sys.exit(0)
-              entry = data.get(issue) or data.get(str(issue))
-              if entry:
-                  print(json.dumps(entry, ensure_ascii=False))
-              PY
+                printf '%s' "$index_content" | ISSUE="${num}" python3 -c 'import json, os, sys, textwrap; exec(textwrap.dedent("""\
+                  import json, os, sys
+                  issue = (os.environ.get('ISSUE') or '').strip()
+                  raw = sys.stdin.read()
+                  if not raw.strip():
+                      sys.exit(0)
+                  try:
+                      data = json.loads(raw)
+                  except Exception:
+                      sys.exit(0)
+                  entry = data.get(issue) or data.get(str(issue))
+                  if entry:
+                      print(json.dumps(entry, ensure_ascii=False))
+                  """))'
               )"
               if [ -n "$payload" ]; then
                 {
