@@ -173,12 +173,29 @@ jobs:
             exit 0
           fi
           git fetch origin "refs/heads/codex/issue-${num}:refs/remotes/origin/codex/issue-${num}" || true
-          if git show "refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json" >/dev/null 2>&1; then
-            content="$(git show "refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json" || true)"
-            if [ -n "$content" ]; then
+          index_content="$(git show "refs/remotes/origin/codex/issue-${num}:.codex/state/index.json" || true)"
+          if [ -n "$index_content" ]; then
+            payload="$(
+              ISSUE="${num}" python3 - <<'PY' <<< "$index_content"
+            import json, os, sys
+
+            issue = os.environ.get("ISSUE", "").strip()
+            raw = sys.stdin.read()
+            if not raw.strip():
+                sys.exit(0)
+            try:
+                data = json.loads(raw)
+            except Exception:
+                sys.exit(0)
+            entry = data.get(issue) or data.get(str(issue))
+            if entry:
+                print(json.dumps(entry, ensure_ascii=False))
+            PY
+            )"
+            if [ -n "$payload" ]; then
               {
                 echo "json<<EOF"
-                echo "$content"
+                echo "$payload"
                 echo "EOF"
               } >> "$GITHUB_OUTPUT"
               echo "exists=true" >> "$GITHUB_OUTPUT"
@@ -308,12 +325,12 @@ jobs:
           ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
         run: |
           set -euo pipefail
-          dir=".codex/state/issue-${ISSUE_NUMBER}"
-          mkdir -p "$dir"
+          state_dir=".codex/state"
+          mkdir -p "$state_dir"
           ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; export ts
           python3 - <<'PY'
           import os, json, pathlib, time
-          issue=os.environ.get("ISSUE_NUMBER","manual")
+          issue=(os.environ.get("ISSUE_NUMBER") or "manual").strip() or "manual"
           run_id=os.environ.get("GITHUB_RUN_ID","")
           ts=os.environ.get("ts","")
           out={"issue":issue,"run_id":run_id,"timestamp":ts}
@@ -347,12 +364,20 @@ jobs:
                 files.append(item)
           out["files"]=files
 
-          d=pathlib.Path(f".codex/state/issue-{issue}")
-          d.mkdir(parents=True, exist_ok=True)
-          (d/"progress.json").write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
-          print(str(d/"progress.json"))
+          index_path=pathlib.Path(".codex/state/index.json")
+          if index_path.exists():
+            try:
+              data=json.loads(index_path.read_text(encoding="utf-8"))
+            except Exception:
+              data={}
+          else:
+            data={}
+          data[issue]=out
+          index_path.parent.mkdir(parents=True, exist_ok=True)
+          index_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+          print(str(index_path))
           PY
-          echo "path=$dir/progress.json" >> "$GITHUB_OUTPUT"
+          echo "path=$state_dir/index.json" >> "$GITHUB_OUTPUT"
 
       - name: Debug gates
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
