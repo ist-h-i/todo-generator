@@ -252,7 +252,7 @@
                   <div class="form-grid form-grid--two report-assistant-page__proposal-grid">
                     <div class="form-field">
                       <label class="form-field__label">推奨ステータス</label>
-                      <select class="form-control" formControlName="status">
+                      <select class="form-control app-select" formControlName="status">
                         <option value="">ステータスを選択</option>
                         @for (status of statusOptions(); track status.id) {
                           <option [value]="status.id">{{ status.name }}</option>
