@@ -109,10 +109,10 @@ select.form-control {
       color-mix(in srgb, var(--text-secondary) 72%, transparent) 50%,
       transparent 50%
     );
-  /* Nudge caret gradients left for modern spacing */
+  /* Vertically center the trigger icon and keep modern right-side spacing */
   background-position:
-    calc(100% - 1.85rem) calc(50% - 0.25rem),
-    calc(100% - 1.35rem) calc(50% - 0.25rem);
+    right 1.85rem center,
+    right 1.35rem center;
   background-size: 0.65rem 0.65rem;
   background-repeat: no-repeat;
   background-origin: border-box;

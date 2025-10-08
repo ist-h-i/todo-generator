@@ -1,41 +1,53 @@
-**Request Summary**
-- Redesign the app-wide “selector” (dropdown/select input) to a modern style.
-- Fix spacing: the “open” button/caret is flush to the edge; add sufficient padding.
-- Apply consistently across the app with minimal, targeted changes.
+**Summary**
+
+- Replace all app “select” UIs with a modern, simple Select based on Radix UI + shadcn styling.
+- Integrate React TypeScript component(s) with Tailwind; ensure shadcn-style project structure (`/components/ui`), install `@radix-ui/react-select` and `@radix-ui/react-icons`.
+- Ensure trigger icon is vertically centered and visually simple/modern.
 
 **Assumptions**
-- “Selector” refers to dropdown inputs (native `<select>`, a shared custom component, or Angular Material `mat-select`).
-- Styling-only change; no behavior, API, or layout restructuring.
-- Centralized styling exists (design tokens/SCSS variables) and should be used.
-- Accessibility and keyboard/focus states must be preserved or improved.
-- Dark mode/theme support must remain consistent if present.
+
+- The target UI is React (Next.js or Vite-React) and allows adding shadcn-style components.
+- TypeScript and Tailwind are (or will be) enabled.
+- A `@` path alias resolves to `src` (or we will add it).
+- A utility `cn` is available at `@/lib/utils` (or we will create it).
+- Design tokens like `ring`, `input`, `background`, `popover` map to Tailwind theme variables (shadcn defaults or equivalent).
+- The app accepts incremental replacement of existing selects with the new component.
 
 **Constraints**
-- Minimize scope and risk; prefer overriding shared component/theme styles.
-- Avoid breaking changes to component APIs or templates.
-- Keep within existing design system tokens (colors, spacing, radius, typography).
-- Maintain cross-browser support and responsive behavior.
+
+- Minimize scope and avoid breaking existing styles or workflows.
+- Keep changes self-contained: new UI component(s), minimal config updates, explicit dependency adds.
+- Keep icon style simple; trigger icon must be vertically centered.
 
 **Unknowns**
-- Which selector implementations are in use (native, custom, Angular Material)?
-- Exact design direction for “modern” (radius, shadow, borders, density).
-- Target padding values around the caret/open button.
-- Required states (hover, focus, active, disabled, error) visual specs.
-- Theming requirements (light/dark), RTL support, and target browsers.
+
+- Current framework: Angular vs React/Next. (Repo docs mention Angular; the task requests a React component.)
+- Whether shadcn/Tailwind/TS are already configured.
+- Existing components path and alias setup (is `/components/ui` present? does `@` resolve?).
+- Presence of `@/lib/utils` and the `cn` helper.
+- Design tokens/theming parity with shadcn (colors, radius).
+- Package manager and Node version constraints.
+
+**Risks**
+
+- If the project is Angular, integrating a React component directly is non-trivial (requires wrapper/micro-frontend); scope could expand.
+- Token/class name mismatch could produce visual regressions if Tailwind config differs from shadcn defaults.
+- Replacing “all selectors” may touch many files; careful, staged adoption may be needed.
+
+**Planned Deliverables (if React stack is confirmed)**
+
+- `components/ui/select.tsx` with the provided Radix-based Select.
+- `components/ui/label.tsx` (dependency).
+- `components/ui/demo.tsx` (usage example).
+- Instructions (or changes) to ensure Tailwind, shadcn conventions, TS, alias `@`, and `@/lib/utils` exist.
+- Dependency installation: `@radix-ui/react-select @radix-ui/react-icons`.
 
 **Clarifying Questions**
-- Which component(s) power selectors: native `<select>`, custom, `mat-select`, or mixed?
-- Do we have design tokens/specs for “modern” (radius, spacing, colors, focus ring)?
-- What padding should surround the caret/open button (e.g., 8–12px)?
-- Any size/density standard (e.g., 40–44px min touch target, 36/40/48px heights)?
-- Which states must be designed (default/hover/focus/disabled/error) and do we have examples?
-- Should we animate open/close or caret rotation? Any motion constraints?
-- Must this change apply app-wide automatically via theme overrides, or only to specific modules?
-- Are there screenshots or examples of the “broken” layout to confirm issues and scope?
-- What are the supported browsers and themes (light/dark, RTL)?
-- Are there existing regressions tests or visual baselines we must preserve?
 
-**Residual Risks**
-- Global CSS/theme overrides may cause regressions in edge cases.
-- Mixed selector implementations may require multiple targeted overrides.
-- Without precise design specs, “modern” could be interpreted inconsistently.
+- Is the frontend React/Next.js, or Angular? If Angular, do you want a React micro-frontend/embed, or an Angular-native solution instead?
+- Is Tailwind already configured? If yes, can you confirm theme tokens (ring, input, background, popover) and radius scale?
+- Do you already use shadcn’s folder convention (`/components/ui`) and alias `@` → `src`?
+- Do you have `@/lib/utils` with `cn` defined, or should I add it?
+- Icon set preference: stick with Radix icons from the spec, or switch to `lucide-react` (ChevronUp/Down/Check) to standardize icons?
+- What is the acceptance scope for “app-wide”: replace only custom select components, or also native `<select>` where safe?
+- Package manager and Node version to target (npm/yarn/pnpm; Node LTS)?

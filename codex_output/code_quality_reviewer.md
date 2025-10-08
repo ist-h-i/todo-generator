@@ -1,53 +1,39 @@
 **Summary**
+- Stack is Angular + Tailwind + TypeScript; React/shadcn/Radix integration is not applicable.
+- Modern select styling with vertically centered trigger icon is implemented via CSS; no new deps needed.
 
-- Centralized SCSS update is present and aligns with the minimal plan.
-- Styles now apply to both `.app-select` and `select.form-control` with increased right padding and adjusted caret offsets.
-- Hover, focus, disabled, options, multi/size variants, dark mode, and MS caret hiding are all covered.
+**Reviewed Changes**
+- Normalized a remaining select to use modern style:
+  - frontend/src/app/features/reports/reports-page.component.html:255
+- Global select styling provides the requested design:
+  - frontend/src/styles/pages/_base.scss:85
+    - Uses appearance reset and increased right padding.
+    - Centers the caret via background-position “right … center”.
+    - Adds hover/focus/disabled, dark-mode variants.
 
-**What I Checked**
+**Verification Notes**
+- Most selects already use the standardized classes:
+  - Examples using `app-select`: frontend/src/app/features/settings/page.html:426, frontend/src/app/features/analyze/page.html:262, frontend/src/app/features/board/page.html:729, frontend/src/app/features/admin/page.html:129, 218, 232.
+- CSS targets both `.app-select` and `select.form-control`, so legacy usage remains covered.
 
-- Base selector: `frontend/src/styles/pages/_base.scss:85` includes `.app-select, select.form-control` with:
-  - Padding set to `0.85rem calc(1.1rem + 2.25rem) 0.85rem 1.1rem`.
-  - Caret positions at `calc(100% - 1.85rem)` and `calc(100% - 1.35rem)`.
-- States and variants extended:
-  - Hover: `frontend/src/styles/pages/_base.scss:129`
-  - Focus-visible: `frontend/src/styles/pages/_base.scss:138`
-  - Disabled: `frontend/src/styles/pages/_base.scss:149`
-  - Options: `frontend/src/styles/pages/_base.scss:168`
-  - Multiple/size: `frontend/src/styles/pages/_base.scss:174`
-  - Dark theme variants: `frontend/src/styles/pages/_base.scss:184, 204, 213, 220`
-  - IE arrow: `frontend/src/styles/pages/_base.scss:225`
-- Coverage: All `<select>` usage spots are either `.app-select` or `.form-control` (including one `select.form-control` at `frontend/src/app/features/reports/reports-page.component.html:255`), so the extension achieves app-wide impact without template changes.
+**Meets Design Ask**
+- Trigger icon vertical centering: done via `background-position: right X center` in `frontend/src/styles/pages/_base.scss:85`.
+- Simple, modern look: padding, radius, subtle shadows, and focus outline are present.
 
-**Quality Notes**
+**Quality Observations**
+- Accessibility: clear focus outline and no reliance on custom JS; native select semantics preserved.
+- Multi-select handling removes chevrons and adjusts padding as expected.
+- Dark mode contrast accounted for with alternate color-mix values.
 
-- Readability: Clear comments annotate the padding and caret tweaks.
-- Consistency: Uses existing color tokens, transitions, and mirrors `.form-control` radius (1.25rem).
-- Accessibility: `:focus-visible` provides a visible outline and accent ring; disabled state communicates non-interactive affordance.
-- Density: `min-height: 3rem` (~48px) is appropriate for touch targets.
+**Risks / Edge Cases**
+- RTL locales: arrows are fixed to “right”; optional enhancement is to add `:dir(rtl)` overrides to mirror positions.
+- High-contrast/forced-colors: consider an optional media query to fall back to native arrow for visibility.
 
-**Edge Cases**
+**Recommendations (Minimal, Optional)**
+- Add a short contributor note: use `class="form-control app-select"` for all `<select>` in templates for consistent styling.
+- If RTL is in scope, add logical-position overrides:
+  - Example: `:dir(rtl) .app-select { background-position: left 1.85rem center, left 1.35rem center; }`
+- If targeting Windows High Contrast, consider `@media (forced-colors: active)` to restore native indicator.
 
-- Multi-select/size > 1 correctly hides the caret and adjusts padding.
-- Specificity ensures select-specific focus styles override generic `.form-control` focus.
-- Dark theme inherits the outline color via `var(--accent)` and adds appropriate focus glow.
-
-**Residual Risks / Open Questions**
-
-- RTL: Current spacing uses physical sides (right). If RTL is required, consider logical properties to flip caret and padding automatically.
-- Visual drift: `select.form-control` on pages that previously used neutral input styling will now adopt the modern select look; audit critical forms.
-- Browser support: `color-mix()` requires modern browsers (already used elsewhere in the project).
-
-**Lightweight Suggestions (Optional, Non-blocking)**
-
-- RTL friendliness: Consider `padding-inline-end` and `background-position: right 1.85rem center, right 1.35rem center;` to adapt automatically in RTL contexts.
-- Tokens: If a consistent radius token is desired, align `1.25rem` to an existing variable (e.g., add `--radius-md`), but keep as-is if `.form-control` intentionally uses 1.25rem.
-
-**Verification Pointers**
-
-- Reports status select (no `.app-select`): `frontend/src/app/features/reports/reports-page.component.html:255`
-- App-select examples:
-  - Settings: `frontend/src/app/features/settings/page.html:247`, `frontend/src/app/features/settings/page.html:426`
-  - Board: `frontend/src/app/features/board/page.html:564`, `frontend/src/app/features/board/page.html:729`
-  - Admin/Analyze examples listed by rg results
-- Check default/hover/focus/disabled in light/dark, multi/size variants, and small widths for caret spacing.
+**On React/shadcn Instructions**
+- Creating `/components/ui` and adding `@radix-ui/react-select` is not suitable for this Angular codebase and would increase scope unnecessarily. The current CSS solution satisfies the issue requirements with minimal impact.
