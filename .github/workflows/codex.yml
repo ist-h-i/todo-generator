@@ -285,10 +285,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_CODEX: ${{ steps.detect.outputs.run_codex }}
+          TASK_INPUT: ${{ steps.merge.outputs.task_input }}
         run: |
           set -euo pipefail
           mkdir -p codex_output
-          echo "${{ steps.merge.outputs.task_input }}" | ./scripts/run_codex_pipeline.sh
+          printf '%s' "$TASK_INPUT" | ./scripts/run_codex_pipeline.sh
 
       - name: Check for clarification request
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
