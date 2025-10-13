@@ -2,7 +2,18 @@
   "steps": [
     "coder",
     "code_quality_reviewer",
-    "integrator"
+    "integrator",
+    "release_manager"
   ],
-  "source": "fallback"
+  "source": "planner",
+  "planner_payload": {
+    "steps": [
+      "coder",
+      "code_quality_reviewer",
+      "integrator",
+      "release_manager"
+    ],
+    "notes": "Angular app confirmed. Do not introduce React/shadcn. Enhance the existing shared UiSelectComponent under frontend/src/app/shared/ui/select/ with a modern custom options panel (rounded, shadowed, animated, accessible). Keep trigger improvements in frontend/src/styles/pages/_base.scss. Add a component-scoped SCSS for the panel with light/dark tokens. Fix ControlValueAccessor onTouched visibility. Apply the component where it already exists (Admin/Reports), leaving native selects styled for trigger parity and a short migration note for future conversions. No new dependencies.",
+    "tests": "1) ng build --configuration production. 2) Open Admin/Reports pages and verify: panel radius, shadow, border, max-height scroll, open/close animation, z-index, selected checkmark, hover/focus states, disabled styling, keyboard navigation and ARIA. 3) Check light/dark themes and high-contrast (forced-colors). 4) Confirm native selects still render improved trigger and no layout regressions."
+  }
 }

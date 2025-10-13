@@ -1,38 +1,31 @@
-**Fix Applied**
+**Summary**
+- Modernized the select options panel and finalized the trigger icon alignment.
+- Kept changes minimal and Angular‑native; no new deps or framework shifts.
 
-- Made the template-called touch handler public so Angular AOT stops erroring.
-  - Updated: frontend/src/app/shared/ui/select/ui-select.ts:52
-  - Template call site: frontend/src/app/shared/ui/select/ui-select.ts:34
-  - Details:
-    - onTouched is declared as a public field and initialized: public onTouched: () => void = () => {};
-    - registerOnTouched assigns the provided handler: frontend/src/app/shared/ui/select/ui-select.ts:60
+**What Changed**
+- Updated `frontend/src/app/shared/ui/select/ui-select.ts:1`:
+  - Hidden native select is now unfocusable/hidden to AT: adds `tabindex="-1" aria-hidden="true" inert`.
+  - Options panel styling: rounded radius, subtle border, elevated shadow, smooth open animation, constrained max-height with scrolling.
+  - Keyboard UX polish: visual “active” state for the focused option (`.is-active`) + focus-visible outline; dark-mode variants included.
+  - Retains simple down chevron SVG on the trigger, centered and modern.
 
-**Why This Fix**
-- Angular templates can only access public members. The build error TS2341 occurred because onTouched was private when referenced by (blur)="onTouched()".
+**Why**
+- “Make the options panel modern” while keeping scope small and consistent with existing SCSS tokens.
+- Fixes prior a11y/focus issue where the hidden native select could still be focused.
 
-**Selector Design Status**
-- Centralized CSS for a modern, vertically centered single down-arrow caret is in place:
-  - Styles: frontend/src/styles/pages/_base.scss:78
-  - Uses inline SVG chevron, padded trigger, hover/focus/disabled, multi-select, and dark mode variants.
+**Verify**
+- Build frontend and smoke test Admin/Reports pages using `<app-ui-select>`:
+  - Trigger renders a simple, centered down chevron with balanced spacing.
+  - Panel opens below the trigger with rounded corners, shadow, clean hover/selected/active states, proper z-index, and smooth animation.
+  - Keyboard: ArrowUp/Down moves the active row, Enter selects, Esc closes; focus ring visible.
+  - Hidden native select no longer receives focus.
 
-**React/shadcn Select (Prep Instructions)**
-- This repo is Angular. If/when you add a React app (e.g., Next.js + Tailwind + shadcn):
-  - Components path (shadcn convention): components/ui
-  - Add files:
-    - components/ui/select.tsx (provided Select)
-    - components/ui/label.tsx (provided Label)
-  - Ensure utility: lib/utils.ts exports cn(...)
-  - Install deps: npm i @radix-ui/react-select @radix-ui/react-icons
-  - Tailwind/shadcn setup: initialize Tailwind, shadcn CLI, and ensure tokens like bg-background, border-input are configured.
+**Project Paths / Stack**
+- This repo is Angular + SCSS; shared UI lives under `frontend/src/app/shared/ui/` and base styles under `frontend/src/styles/`.
+- React/shadcn is not introduced to avoid scope creep. For React projects, default paths would be `/components/ui` with Tailwind and `@/lib/utils`; not applicable here.
 
-**Why components/ui**
-- shadcn CLI scaffolds and docs assume components/ui, keeping primitives standardized and discoverable. It simplifies future component additions and consistency.
+**Optional Follow‑ups (low effort)**
+- Scroll active option into view on open/arrow navigation.
+- Add Home/End keys and `aria-activedescendant` wiring for full ARIA polish.
 
-**Next Steps**
-- Build Angular to confirm: cd frontend && npm ci && npm run build
-- If you want, I can add a quick safeguard to use (blur)="onTouched?.()" and scan for other private members referenced in templates.
-
-**Questions**
-- Should the React Select be integrated now (in a separate React app), or just prepped for future?
-- Any RTL or legacy browser constraints for the select visuals?
-- Any modules that should retain current selector styling and be excluded?
+If you want, I can implement the active-item scroll and Home/End keys next.

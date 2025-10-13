@@ -1,37 +1,30 @@
 **Summary**
-- Build error TS2341 is resolved by making `onTouched` public. Verified in the shared select component.
-- Selector visuals are modernized: single down chevron, vertically centered, with proper right padding via centralized SCSS.
-- React/shadcn Select: provide/setup guidance only (repo is Angular). Minor correctness notes for the pasted code.
+- The custom Angular `UiSelectComponent` delivers a modern options panel: rounded corners, subtle border, elevated shadow, max-height + scroll, entry animation, clear hover/selected/disabled states, and a simple down chevron trigger.
+- Scope stays minimal and centralized (component + existing SCSS). The prior TS2341 error is fixed by making `onTouched` public.
 
-**Angular Fix (TS2341)**
-- Root cause: Angular templates can only access public members; `(blur)="onTouched()"` referenced a private member.
-- Current state: `public onTouched: () => void = () => {};` is defined, so templates can call it.
-  - Template reference: `frontend/src/app/shared/ui/select/ui-select.ts:34`
-  - Public member: `frontend/src/app/shared/ui/select/ui-select.ts:52`
-- `registerOnTouched(fn)` correctly assigns to the public field: `frontend/src/app/shared/ui/select/ui-select.ts:60`.
-- No other template references to private members found.
+**What Looks Good**
+- Trigger: vertically centered simple chevron; spacing balanced; `.ui-select__trigger` suppresses background-image from global select styles.
+- Panel: `role="listbox"`, items `role="option"` with `aria-selected`, smooth animation, `z-index: 1000`, dark theme parity, high‑contrast safeguard for the chevron icon.
+- Keyboard: ArrowUp/Down navigation, Enter to select, Escape to close; click‑outside to dismiss.
+- Minimal impact: native `<select>` retained for multi/size; global `_base.scss` keeps parity for native selects.
 
-**Selector Design (CSS)**
-- Global rule applies to both `.app-select` and `select.form-control`: `frontend/src/styles/pages/_base.scss:78`
-- Changes meet the request:
-  - Simple single down chevron via inline SVG; inherits `currentColor`: `frontend/src/styles/pages/_base.scss:101`
-  - Vertically centered icon: `background-position: right 1.6rem center;` `frontend/src/styles/pages/_base.scss:103`
-  - Comfortable right padding to avoid flush caret: `frontend/src/styles/pages/_base.scss:92`
-  - States: hover/focus/disabled and dark theme variants covered: `frontend/src/styles/pages/_base.scss:111`, `frontend/src/styles/pages/_base.scss:122`, `frontend/src/styles/pages/_base.scss:136`, `frontend/src/styles/pages/_base.scss:153`
-  - Multi/size>1 hides caret and resets padding: `frontend/src/styles/pages/_base.scss:164`
-- Note: `color-mix()` is used; ensure target browsers support it or accept graceful degradation.
+**Issues To Address (Small, High-Value)**
+- Hidden native select remains focusable in single mode.
+  - Impact: Tab order includes an invisible control; screen reader noise and confusing focus.
+  - Fix: On the hidden select (`.ui-select__native--hidden`) add `[attr.tabindex]=\"-1\" [attr.aria-hidden]=\"true\" inert`. This keeps it in DOM for option parsing/value sync while removing it from focus and accessibility trees.
+- Keyboard polish (optional but low‑effort):
+  - Scroll active option into view when opening or moving the active index (e.g., `element.scrollIntoView({ block: 'nearest' })`).
+  - Support Home/End keys to jump to first/last option.
+  - Consider `aria-activedescendant` on the trigger and `id` on options to expose the active state to AT.
+- Focus styling for options (optional):
+  - Add `.ui-select__option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }` for clearer keyboard focus.
+- Stacking context (verify):
+  - `z-index: 1000` is likely fine; confirm it clears any app toolbars/overlays.
 
-**React/shadcn Select (Integration Notes)**
-- This repo is Angular-only; integrate in a React app when available.
-- Components folder: use `components/ui` (shadcn convention). Rationale: shadcn CLI scaffolds and docs assume this path; keeps primitives discoverable.
-- Ensure `@/lib/utils` `cn` helper exists and Tailwind/shadcn tokens (e.g., `bg-background`, `border-input`) are configured.
-- Dependencies to install in the React app: `@radix-ui/react-select`, `@radix-ui/react-icons`.
-- Minor correctness fix in the pasted Select: ensure this class name is exactly as provided in your original snippet:
-  - `max-h-[min(24rem,var(--radix-select-content-available-height))]` (avoid the typo `max-h=[min(...)]`).
-
-**Risks / Follow-ups**
-- RTL: current CSS uses physical `right`; if RTL is required, consider logical properties in a follow-up.
-- High-contrast/forced colors: optionally hide the chevron image in forced-colors mode to avoid visibility issues.
+**Security/Perf/Compat**
+- No new dependencies. CSS `color-mix()` usage mirrors existing styles; older browsers may lack support (already present elsewhere).
+- DOM reads are minimal; event listeners are scoped. No obvious security risks.
 
 **Verdict**
-- Approve. The Angular build blocker is addressed (`onTouched` is public), and the selector redesign is centralized, minimal, and meets requirements. React/shadcn component is ready to add when a React app exists (with the noted class fix).
+- Approve with one required fix: make the hidden select unfocusable/hidden to AT in single mode.
+- Optional niceties: scroll active item into view, Home/End keys, focus-visible outline, and `aria-activedescendant`. These are small and safe enhancements if you want me to add them.
