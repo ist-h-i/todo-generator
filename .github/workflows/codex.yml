@@ -715,6 +715,7 @@ jobs:
           REPORT_PATH: ${{ steps.synth.outputs.report_path }}
         with:
           script: |
+            const fs = require('fs');
             const issueNumber = Number("${{ steps.detect.outputs.issue_number }}");
             const prUrl = "${{ steps.pr.outputs.result.pull_request_url }}";
             const prNumber = Number("${{ steps.pr.outputs.result.pull_request_number }}");
@@ -736,7 +737,7 @@ jobs:
             const apiDbImpact = /(\/api\/|\.sql\b|db|database|schema|migration|prisma|datasource)/i.test(summaryLines)
               ? "変更あり（自動推定・要確認）"
               : "変更なし（自動推定）";
-            const body = [
+            const fallbackReport = [
               "## 背景",
               `- 目的: ${purpose}`,
               `- 関連: ${relatedIssue}`,
@@ -759,11 +760,15 @@ jobs:
               "- 重点: 差分とPR内容の妥当性を確認してください。",
               "- 非対象: 特になし"
             ].join("\n");
+            const workReportPath = 'codex_output/work_report.md';
+            const report = fs.existsSync(workReportPath)
+              ? (fs.readFileSync(workReportPath, 'utf8').trim() || fallbackReport)
+              : fallbackReport;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issueNumber,
-              body
+              body: report
             });
 
       - name: Enforce completion condition
