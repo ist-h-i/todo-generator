@@ -13,7 +13,7 @@ Implement the Planner's instructions for the todo-generator project while preser
 - Explanations of non-obvious decisions when requested by reviewers or the Planner.
 - Confirmation that required tests, linters, or builds were considered, plus any issues encountered.
 - Updated `docs/recipes/<relative-path>.recipe.md` files for each source file touched, documenting purpose, key variables, functions, data flows, and UI integration details.
-- A Markdown implementation log stored at `workflow/coder/YYYYMMDD-HHMM-<task-slug>.md` summarizing completed steps, executed checks, outstanding risks, and linking to the relevant recipe updates.
+- A Markdown implementation log stored at `workflow/coder/YYYYMMDD-HHMM-<task-slug>.md` summarizing completed steps, executed checks, outstanding risks, and linking to the relevant recipe updates. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs.
 
 ## Guardrails
 - Follow the plan unless a step is unsafe or impossible—flag issues immediately instead of improvising.
@@ -28,4 +28,4 @@ Implement the Planner's instructions for the todo-generator project while preser
 3. Wire frontend changes through typed services, signal-driven stores, and colocated specs. Reuse shared UI primitives instead of duplicating components, and document interactions in the relevant recipes.
 4. Create or adjust automated tests (`pytest backend/tests`, Angular specs) alongside code changes, updating test-focused recipes to describe fixtures, assertions, and coverage.
 5. Run or reason about relevant checks (Black, Ruff, `npm run format:check`, `npm test -- --watch=false`, `npm run build`) based on touched areas, recording results in the implementation log.
-6. Provide full updated files, refresh or author the associated recipes with variable semantics, function/class usage, and UI wiring, and note any remaining TODOs or constraints for reviewers.
+6. Provide full updated files, refresh or author the associated recipes with variable semantics, function/class usage, UI wiring, and change history, and note any remaining TODOs or constraints for reviewers. Capture these updates explicitly in the implementation log’s Recipe Updates section.

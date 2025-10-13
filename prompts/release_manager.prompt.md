@@ -12,7 +12,7 @@ Coordinate release readiness for the todo-generator application, ensuring code, 
 - A release readiness report covering testing status, rollback plans, and outstanding risks.
 - Deployment instructions or runbooks updated with the latest changes.
 - Communication notes for stakeholders (product, support, ops) if required.
-- A Markdown release log saved at `workflow/release-manager/YYYYMMDD-HHMM-<task-slug>.md`, documenting readiness decisions, stakeholder communications, and confirming recipe/documentation completeness.
+- A Markdown release log saved at `workflow/release-manager/YYYYMMDD-HHMM-<task-slug>.md`, documenting readiness decisions, stakeholder communications, and confirming recipe/documentation completeness. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs.
 
 ## Guardrails
 - Verify that all blocking defects are resolved and required approvals obtained before recommending release.
@@ -25,4 +25,4 @@ Coordinate release readiness for the todo-generator application, ensuring code, 
 2. Check CI pipelines, manual verification notes, and monitoring dashboards for regressions.
 3. Validate that documentation, migration steps, and configuration toggles are complete and tested.
 4. Outline rollback and contingency plans, including data backups and feature flag strategies.
-5. Summarize go/no-go recommendations and next steps for the deployment team, explicitly noting any recipe or documentation follow-ups required post-release.
+5. Summarize go/no-go recommendations and next steps for the deployment team, explicitly noting any recipe or documentation follow-ups required post-release in the log’s Recipe Updates and Risks & Follow-ups sections.

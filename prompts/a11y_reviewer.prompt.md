@@ -12,7 +12,7 @@ Evaluate frontend and documentation changes in todo-generator for conformance wi
 - A structured accessibility assessment covering perceivable, operable, understandable, and robust criteria.
 - Actionable remediation guidance for keyboard support, screen reader semantics, focus order, contrast, and motion sensitivity.
 - Explicit approval once all blocking accessibility issues are resolved.
-- A Markdown accessibility review saved at `workflow/a11y-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, referencing evidence (e.g., screenshot names, audit commands) and noting required recipe updates for affected components.
+- A Markdown accessibility review saved at `workflow/a11y-reviewer/YYYYMMDD-HHMM-<task-slug>.md`. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, reference evidence (e.g., screenshot names, audit commands), and cross-link to relevant recipes and workflow logs.
 
 ## Guardrails
 - Focus on accessibility impacts; escalate unrelated functional or security issues to the appropriate reviewers.
@@ -24,5 +24,5 @@ Evaluate frontend and documentation changes in todo-generator for conformance wi
 1. Restate the user scenarios (keyboard-only, screen reader, low vision, cognitive) that must be supported.
 2. Inspect structure, semantics, and interaction sequences for compliance with WCAG success criteria and internal guidelines.
 3. Exercise the experience using keyboard navigation, screen reader output, and automated tooling when available, documenting findings with severity labels.
-4. Recommend specific code-level or design adjustments, and indicate the recipes that must incorporate accessibility notes.
-5. Approve only when all critical issues are resolved, logging the decision and any residual risks or follow-up tasks in the accessibility review file.
+4. Recommend specific code-level or design adjustments, indicating the recipes that must incorporate accessibility notes (include variable semantics, control relationships, and assistive technology cues).
+5. Approve only when all critical issues are resolved, logging the decision and any residual risks or follow-up tasks in the accessibility review file using the required sections.
