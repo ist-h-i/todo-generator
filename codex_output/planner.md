@@ -1,33 +1,30 @@
-Summary
-- Goal: Unblock CI by fixing TS2531 in the shared select component while keeping prior selector design changes intact (modern arrow, dark-mode parity).
-- Context: Angular app, shared select at frontend/src/app/shared/ui/select/ui-select.ts. Error arises from calling includes on possibly null value.
-- Approach: Minimal, targeted TypeScript fix to safely handle null/primitive vs array; no behavioral or template changes.
+**Scope And Intent**
+- Target only root `README.md` and `docs/README.md` for small, safe edits.
+- Focus on correctness and clarity; avoid renames/restructures to preserve links.
 
-Root Cause
-- In ui-select.ts:278, code assumes this.value is an array and calls this.value.includes(o.value). At runtime/typing, this.value can be null (or a non-array for single-select), triggering TS2531 and potential runtime errors.
+**Proposed Minimal Changes**
+- Root `README.md`
+  - Fix minor wording: “Manual setup (macOS/Linux)”.
+  - Scan for obvious typo/formatting inconsistencies; do not reorder sections.
+- `docs/README.md`
+  - Remove stray “ E” artifacts and unify list formatting.
+  - Add a link to `docs/recipes/README.md` under “Prompts & Automation” or a short “Recipes” line.
+  - Keep section order and link text stable to minimize diff.
 
-Targeted Fix
-- Normalize the value before filtering:
-  - Create a safe array: const selected = Array.isArray(this.value) ? this.value : this.value != null ? [this.value] : [];
-  - Use selected.includes(o.value) for label derivation.
-- Keep onTouched non-private (previously fixed) to avoid TS2341 regression.
-- No changes to inputs/outputs or public API; zero impact on consumers.
+**Why This Fits 30 Minutes**
+- Two files, surgical edits, no renames or structural moves.
+- No external tools; simple content changes and local link checks only.
 
-Scope
-- Single-file edit in frontend/src/app/shared/ui/select/ui-select.ts.
-- No template/scss refactors. Existing modern styles and icon currentColor alignment remain.
+**Risks / Open Questions**
+- Language preference: Issue is Japanese, current docs are English. Proceeding in English to minimize scope.
+- Hidden consumers may depend on exact wording; keeping changes minimal mitigates this.
+- We’re not performing a full link audit across all docs (out of scope for 30 min).
 
-Risks
-- Value typing (string | number | string[] | null) mismatches; normalize carefully.
-- Ensure options array exists; if it can be null in some flows, guard with optional chaining or default to [].
-
-Validation
-- Build: cd frontend && npm ci && npm run build
-- Tests: npm test (Karma) to confirm no load errors.
-- Manual: verify selects render, labels show correctly for single/multi-select, and no console errors.
-
-Why not React/shadcn integration?
-- Repo is Angular. Introducing React/Tailwind/shadcn would exceed “minimal impact” and time constraints. The existing Angular shared select and centralized SCSS already deliver the requested design updates.
+**Acceptance Criteria**
+- `README.md` reads cleanly with corrected “macOS/Linux”.
+- `docs/README.md` has no stray “ E” artifacts, all listed links resolve to existing local files.
+- No file renames; existing inbound links continue to work.
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Fix TS2531 by normalizing the select value before calling `includes`: derive `selected = Array.isArray(this.value) ? this.value : this.value != null ? [this.value] : []` and use it for filtering labels. Keep `onTouched` non-private. No API or template changes; retain existing modern styling and dark-mode behavior. Single-file change: `frontend/src/app/shared/ui/select/ui-select.ts`.","tests":"1) Build: `cd frontend && npm ci && npm run build` (or `ng build --configuration production`) 2) Unit tests: `npm test` to confirm Karma starts with 0 load errors 3) Manual: open pages with selects (Reports, Admin, Settings) and verify that labels render correctly for single/multi-select and there are no console errors. Dark mode still shows visible arrow (currentColor)."}```
+{"steps":["coder"],"notes":"Apply small, targeted edits to README.md and docs/README.md: fix macOS/Linux wording, remove stray artifacts in docs index, and add a single missing link to the recipes index. Avoid restructures and renames to keep the diff minimal and safe.","tests":"- Verify no stray artifacts: `rg -n \" E\" docs/README.md` returns no results.\n- Validate key links exist: `test -f docs/governance/development-governance-handbook.md && test -f docs/guidelines/angular-coding-guidelines.md && test -f docs/ui-design-system.md && test -f docs/ui-layout-requirements.md && test -f docs/recipes/README.md`.\n- Spot-check README wording: confirm it contains \"Manual setup (macOS/Linux)\"."}
+```
