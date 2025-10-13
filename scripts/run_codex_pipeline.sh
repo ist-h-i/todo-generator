@@ -92,7 +92,7 @@ PRE_PLANNER_STEPS=(translator)
 
 declare -A STAGE_INSTRUCTIONS=(
   [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points and write 'None' when no follow-up is needed."
-  [planner]="Define the minimum-step execution plan, highlight critical risks, and ensure the ordered steps can finish the task with the smallest viable change set."
+  [planner]="Define the minimum-step execution plan that fits within the 30-minute task cap, highlight critical risks, and ensure the ordered steps can finish the task with the smallest viable change set."
   [qa_automation_planner]="Recommend only the high-impact tests (unit, integration, or manual) required to validate the scoped change."
   [coder]="Describe the exact files to edit with focused diffs or replacement blocks and list any commands to run. Avoid touching unrelated areas."
   [code_quality_reviewer]="Validate correctness, readability, and edge cases. Supply lightweight fixes when needed to keep the implementation tight."
@@ -116,6 +116,7 @@ run_stage() {
   PROMPT+="Constraints:\n"
   PROMPT+="- Minimize the scope of changes and keep edits tightly targeted.\n"
   PROMPT+="- Use the fewest viable steps to reach a safe completion.\n"
+  PROMPT+="- Each task must fit inside a 30-minute execution window, so prefer solutions achievable with the smallest diff possible.\n"
   PROMPT+="- Call out residual risks or open questions explicitly.\n\n"
   if [ -n "${PREVIOUS_CONTEXT}" ]; then
     PROMPT+="Context from earlier stages:\n${PREVIOUS_CONTEXT}\n\n"
@@ -127,6 +128,8 @@ run_stage() {
     local AVAILABLE_FOR_PROMPT
     AVAILABLE_FOR_PROMPT=$(IFS=', '; echo "${AVAILABLE_DYNAMIC_STAGES[*]}")
     PROMPT+="Select the minimum necessary execution stages from: ${AVAILABLE_FOR_PROMPT}.\n"
+    PROMPT+="Keep the route lean: default to the lightest-stage combination (even coder-only when safe) that can deliver a working fix within 30 minutes, and justify any additional stages.\n"
+    PROMPT+="If no route can finish within 30 minutes, state that explicitly before proposing contingency steps.\n"
     PROMPT+="Your final message MUST end with a \`\`\`json code block containing {\"steps\":[\"stage_id\",...],\"notes\":\"...\",\"tests\":\"...\"}. Only use stage IDs from the allowed list.\n\n"
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep it concise and scoped to this stage."
