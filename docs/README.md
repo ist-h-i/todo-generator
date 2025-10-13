@@ -8,12 +8,9 @@ Use this index to locate the specs, playbooks, and references that keep Verbaliz
 - [Persistence detail design](persistence-detail-design.md)  ESchema relationships, startup migration strategy, and storage conventions.
 - [System architecture playbook](system-architecture-playbook.md)  EReusable principles, decision workflows, and role expectations that generalise beyond this product.
 
-## Coding Guidelines
-- [General coding guidelines](guidelines/general-coding-guidelines.md) - Backend, repository, and security standards for the whole project.
+## Governance & Delivery
+- [Development governance handbook](governance/development-governance-handbook.md) - Unified coding standards, workflow agreements, and AI-driven development expectations.
 - [Angular coding & design guidelines](guidelines/angular-coding-guidelines.md) - Coding standards, state management, and design-system rules for the SPA.
-
-## Delivery Workflow & Operations
-- [Development rules](development-rules.md)  EWorking agreements, checklists, and automation expectations for day-to-day development.
 - [Known issues & workarounds](known-issues.md)  EActively tracked gaps with mitigation ideas for support and QA teams.
 - [MCP helper servers](mcp-helper-servers.md)  EHow to launch the local MCP Git and filesystem helpers used in automation tooling.
 - [Security hotspot review](security-review.md)  EFindings from the last security sweep with remediation guidance.

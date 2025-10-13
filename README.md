@@ -144,10 +144,22 @@ sonar-scanner
 The helper script runs `coverage run -m pytest` inside `backend/` and `npm run test:ci` in `frontend/`. It emits `backend/coverage.xml` and `frontend/coverage/frontend/lcov.info`, which SonarQube consumes through `sonar-project.properties`.
 
 ## Documentation & knowledge base
+
+### Repository guidelines
+
+- [Development Governance Handbook](docs/governance/development-governance-handbook.md)
+- [Angular Coding & Design Guidelines](docs/guidelines/angular-coding-guidelines.md)
+- [UI Design System](docs/ui-design-system.md)
+- [UI Layout Requirements](docs/ui-layout-requirements.md)
+
+How to use these guides:
+- Start with the Development Governance Handbook for repository structure, backend practices, quality gates, and AI-driven expectations.
+- Apply the Angular Coding & Design Guidelines whenever you touch the SPA.
+- Keep design and workflow docs in sync when updating components, flows, or build tooling. Document intentional deviations.
 - [Documentation index](docs/README.md) – curated map of the most frequently referenced specs and playbooks.
 - [Architecture overview](docs/architecture.md) – high-level system diagram and component breakdown.
 - [Data flow reference](docs/data-flow-overview.md) – end-to-end traces for core workflows.
-- [Development rules](docs/development-rules.md) – working agreements, quality bars, and automation hints.
+- [Development governance handbook](docs/governance/development-governance-handbook.md) – unified standards, workflow agreements, and quality bars.
 - [System architecture playbook](docs/system-architecture-playbook.md) – reusable principles and workflow guidance for similar products.
 - [Security hotspots](docs/security-review.md) – known risks and recommended remediation paths.
 

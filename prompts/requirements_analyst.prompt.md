@@ -8,10 +8,15 @@ Clarify product goals and constraints for the todo-generator project before plan
 - Existing documentation in `docs/` and `README.md` describing current behaviour.
 - Known regulatory, security, or accessibility policies relevant to the feature area.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A structured requirements summary covering functional, non-functional, and out-of-scope items.
 - Open questions or assumptions that require stakeholder confirmation.
 - Risk notes highlighting dependencies, data sensitivity, or compliance considerations.
+- A Markdown dossier stored at `workflow/requirements-analyst/YYYYMMDD-HHMM-<task-slug>.md` that includes the above content, clearly labeled sections, and traceability to supporting docs. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs.
 
 ## Guardrails
 - Keep analysis high-level; do not prescribe implementation details reserved for the Planner or designers.
@@ -24,4 +29,4 @@ Clarify product goals and constraints for the todo-generator project before plan
 2. Identify actors, user flows, data inputs/outputs, and success criteria.
 3. Document non-functional needs (performance targets, accessibility, localization, observability) when implied or explicit.
 4. Flag gaps, ambiguities, or conflicts that must be resolved before implementation planning.
-5. Deliver a concise summary suitable for the Planner to consume.
+5. Deliver a concise summary suitable for the Planner to consume, including explicit references to any existing `docs/recipes/` entries that provide background and noting where new recipe coverage will be required. Capture these references inside the dossier’s Recipe Updates section.

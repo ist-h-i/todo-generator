@@ -71,7 +71,7 @@
 ## 6. 品質保証ワークフロー
 
 - **テスト戦略**: バックエンドは `pytest backend/tests` を基本とし、サービス層のスタブ化でユニットテストと統合テストを両立。フロントは `npm test -- --watchAll=false` で UI レイヤーを検証します。
-- **静的解析**: `ruff check` と `npm run lint` を必須実行。ドキュメントのみの変更時は `docs/development-rules.md` に従いスキップ可とします。
+- **静的解析**: `ruff check` と `npm run lint` を必須実行。ドキュメントのみの変更時は `docs/governance/development-governance-handbook.md` に従いスキップ可とします。
 - **ビルド検証**: Angular は `npm run build` を通して型チェックと AOT ビルドが成功することを確認します。
 - **セルフレビュー**: 変更差分をセルフレビューし、仕様に沿っているか、不要なデバッグコードが残っていないかを確認します。重要な設計判断はドキュメントへ追記して共有します。
 

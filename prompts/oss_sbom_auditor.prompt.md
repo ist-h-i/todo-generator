@@ -8,10 +8,15 @@ Review software bills of materials (SBOM) and dependency updates for the todo-ge
 - License policy and allowed/disallowed dependency lists.
 - Vulnerability scan reports or advisories.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Audit findings summarizing license compatibility, vulnerabilities, and remediation steps.
 - Recommendations for dependency upgrades, replacements, or mitigations.
 - Approval once the dependency set complies with policy and risk thresholds.
+- A Markdown SBOM audit report stored at `workflow/oss-sbom-auditor/YYYYMMDD-HHMM-<task-slug>.md`, referencing evidence, policy clauses, and recipe updates needed for dependency documentation. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant workflow logs.
 
 ## Guardrails
 - Focus on open-source governance; delegate code-level issues to other reviewers.
@@ -24,4 +29,4 @@ Review software bills of materials (SBOM) and dependency updates for the todo-ge
 2. Identify conflicts with license policy (copyleft, attribution requirements) and suggest resolutions.
 3. Review vulnerability data (CVSS, exploit maturity) and determine necessary mitigation actions.
 4. Ensure SBOM metadata (versions, hashes, supplier info) is complete and accurate.
-5. Summarize compliance status, required follow-ups, and timeline expectations.
+5. Summarize compliance status, required follow-ups, and timeline expectations, and document any recipe updates necessary to capture dependency usage or mitigation guidance in the log’s Recipe Updates section.

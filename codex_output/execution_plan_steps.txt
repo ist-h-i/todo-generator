@@ -1,4 +1,3 @@
-coder
 code_quality_reviewer
 integrator
 release_manager

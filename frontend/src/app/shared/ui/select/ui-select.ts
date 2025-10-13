@@ -193,7 +193,7 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
 
   options: Array<{ value: string; label: string; disabled: boolean }> = [];
 
-  private onChange: (val: any) => void = () => {};
+  private onChange: (val: string | string[] | null) => void = () => {};
   // Must be public to be callable from the template (blur) handler
   public onTouched: () => void = () => {};
 
@@ -206,10 +206,10 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
     this.value = obj;
     this.syncLabelFromValue();
   }
-  registerOnChange(fn: any): void {
+  registerOnChange(fn: (val: string | string[] | null) => void): void {
     this.onChange = fn;
   }
-  registerOnTouched(fn: any): void {
+  registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
   setDisabledState(isDisabled: boolean): void {

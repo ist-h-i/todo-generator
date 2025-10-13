@@ -92,12 +92,13 @@ PRE_PLANNER_STEPS=(translator)
 
 declare -A STAGE_INSTRUCTIONS=(
   [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points and write 'None' when no follow-up is needed."
-  [planner]="Define the minimum-step execution plan, highlight critical risks, and ensure the ordered steps can finish the task with the smallest viable change set."
+  [planner]="Define the minimum-step execution plan that fits within the 30-minute task cap, highlight critical risks, and ensure the ordered steps can finish the task with the smallest viable change set."
   [qa_automation_planner]="Recommend only the high-impact tests (unit, integration, or manual) required to validate the scoped change."
   [coder]="Describe the exact files to edit with focused diffs or replacement blocks and list any commands to run. Avoid touching unrelated areas."
   [code_quality_reviewer]="Validate correctness, readability, and edge cases. Supply lightweight fixes when needed to keep the implementation tight."
   [integrator]="Confirm all planned work is covered, note remaining follow-ups, and explain how to land the change safely."
   [release_manager]="State release readiness, outline minimal verification steps, and call out approvals or rollbacks if needed."
+  [work_report]="Draft the issue comment work report using sections for 背景, 変更概要, 影響, 検証, and レビュー観点. Synthesize prior stage outputs to fill each section with concise, actionable context."
 )
 
 PREVIOUS_CONTEXT=""
@@ -116,6 +117,7 @@ run_stage() {
   PROMPT+="Constraints:\n"
   PROMPT+="- Minimize the scope of changes and keep edits tightly targeted.\n"
   PROMPT+="- Use the fewest viable steps to reach a safe completion.\n"
+  PROMPT+="- Each task must fit inside a 30-minute execution window, so prefer solutions achievable with the smallest diff possible.\n"
   PROMPT+="- Call out residual risks or open questions explicitly.\n\n"
   if [ -n "${PREVIOUS_CONTEXT}" ]; then
     PROMPT+="Context from earlier stages:\n${PREVIOUS_CONTEXT}\n\n"
@@ -127,6 +129,8 @@ run_stage() {
     local AVAILABLE_FOR_PROMPT
     AVAILABLE_FOR_PROMPT=$(IFS=', '; echo "${AVAILABLE_DYNAMIC_STAGES[*]}")
     PROMPT+="Select the minimum necessary execution stages from: ${AVAILABLE_FOR_PROMPT}.\n"
+    PROMPT+="Keep the route lean: default to the lightest-stage combination (even coder-only when safe) that can deliver a working fix within 30 minutes, and justify any additional stages.\n"
+    PROMPT+="If no route can finish within 30 minutes, state that explicitly before proposing contingency steps.\n"
     PROMPT+="Your final message MUST end with a \`\`\`json code block containing {\"steps\":[\"stage_id\",...],\"notes\":\"...\",\"tests\":\"...\"}. Only use stage IDs from the allowed list.\n\n"
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep it concise and scoped to this stage."
@@ -151,12 +155,41 @@ run_stage() {
   if [ "${STEP}" = "translator" ]; then
     local CLARIFYING_SECTION
     CLARIFYING_SECTION=$(printf '%s\n' "${STEP_OUTPUT}" |
-      awk '
-        BEGIN { in_section=0 }
-        tolower($0) ~ /^##[[:space:]]*clarifying questions/ { in_section=1; next }
-        /^##[[:space:]]+/ { if (in_section) exit; }
-        { if (in_section) print }
-      ')
+      python3 - <<'PY'
+import re
+import sys
+
+text = sys.stdin.read().splitlines()
+
+section_lines = []
+in_section = False
+
+heading_pattern = re.compile(r"^\s*(?:#{2,}|\*\*|__)+\s*clarifying questions", re.IGNORECASE)
+next_heading_pattern = re.compile(r"^\s*(?:#{2,}|\*\*|__)+\s*[A-Za-z0-9]")
+
+for raw in text:
+    stripped = raw.strip()
+    if not in_section:
+        if heading_pattern.match(stripped):
+            in_section = True
+        continue
+
+    if next_heading_pattern.match(stripped):
+        leading = stripped.lstrip()
+        if leading.startswith(("**", "__")):
+            inner = re.sub(r"^(?:\*\*|__)\s*", "", leading)
+            inner = re.sub(r"\s*(?:\*\*|__)\s*$", "", inner)
+            normalized = inner.strip()
+            if normalized.endswith(":") or "?" in normalized:
+                section_lines.append(raw.rstrip())
+                continue
+        break
+
+    section_lines.append(raw.rstrip())
+
+print("\n".join(section_lines).rstrip())
+PY
+    )
 
     local NEEDS_CLARIFICATION
     NEEDS_CLARIFICATION=$(printf '%s\n' "${CLARIFYING_SECTION}" | python3 - <<'PY'
@@ -320,3 +353,5 @@ printf '%s\n' "${EXECUTION_PLAN[@]}" > codex_output/execution_plan_steps.txt
 for STEP in "${EXECUTION_PLAN[@]}"; do
   run_stage "${STEP}"
 done
+
+run_stage "work_report"
