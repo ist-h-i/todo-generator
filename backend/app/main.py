@@ -71,7 +71,7 @@ app = FastAPI(
     description="API for transforming unstructured input into actionable task boards.",
     version="0.1.0",
     lifespan=lifespan,
-    swagger_favicon_url="/favicon.svg",
+    swagger_ui_favicon_url="/favicon.svg",
 )
 
 app.add_middleware(
