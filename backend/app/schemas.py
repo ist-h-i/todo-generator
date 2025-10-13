@@ -988,11 +988,11 @@ class EvaluationTriggerRequest(BaseModel):
     triggered_by: Literal["manual", "auto"] = "manual"
 
     @model_validator(mode="after")
-    def ensure_period(cls, values: "EvaluationTriggerRequest") -> "EvaluationTriggerRequest":
-        if values.period_start and values.period_end:
-            if values.period_start > values.period_end:
+    def ensure_period(self) -> "EvaluationTriggerRequest":
+        if self.period_start and self.period_end:
+            if self.period_start > self.period_end:
                 raise ValueError("period_start must be on or before period_end")
-        return values
+        return self
 
 
 class SelfEvaluationRequest(BaseModel):
@@ -1001,11 +1001,11 @@ class SelfEvaluationRequest(BaseModel):
     period_end: Optional[date] = None
 
     @model_validator(mode="after")
-    def ensure_period(cls, values: "SelfEvaluationRequest") -> "SelfEvaluationRequest":
-        if values.period_start and values.period_end:
-            if values.period_start > values.period_end:
+    def ensure_period(self) -> "SelfEvaluationRequest":
+        if self.period_start and self.period_end:
+            if self.period_start > self.period_end:
                 raise ValueError("period_start must be on or before period_end")
-        return values
+        return self
 
 
 class EvaluationQuotaStatus(BaseModel):
