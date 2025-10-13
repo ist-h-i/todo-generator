@@ -1,15 +1,13 @@
 {
   "steps": [
-    "coder",
     "code_quality_reviewer"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder",
       "code_quality_reviewer"
     ],
-    "notes": "Move unique Angular guidance from frontend/README.md into docs/guidelines/angular-coding-guidelines.md without duplicating existing bullets; remove the frontend 'Coding Guidelines' section and add a Quick Links block. Add the same Quick Links block to backend/README.md. Root README remains unchanged as it already acts as an index.",
-    "tests": "1) Ensure no prescriptive rules remain in any README: `rg -n '\\b(must|should|never|do not|guideline|ルール)\\b' README.md frontend/README.md backend/README.md`. 2) Validate subfolder Quick Links: check that ../docs/governance/development-governance-handbook.md, ../docs/guidelines/angular-coding-guidelines.md, ../docs/ui-design-system.md, ../docs/ui-layout-requirements.md exist. 3) Confirm Angular guidelines include merged topics by grepping for 'RxResource', 'Signal Store', 'Naming', 'innerHTML'. 4) Manual skim for tone/duplication in docs/guidelines/angular-coding-guidelines.md."
+    "notes": "Repository already meets the goal: READMEs are index-only; Angular rules consolidated under docs/guidelines. Run a lightweight verification to confirm no prescriptive rules remain and links resolve from subfolders.",
+    "tests": "1) Ensure no rule-like language in target READMEs: rg -n \"\\b(must|should|never|do not|guideline|ルール)\\b\" README.md frontend/README.md backend/README.md\n2) Verify Quick Links presence in subfolder READMEs: rg -n \"Repository guidelines|Development Governance Handbook\" frontend/README.md backend/README.md\n3) Check link targets exist: test -f docs/governance/development-governance-handbook.md && test -f docs/guidelines/angular-coding-guidelines.md && test -f docs/ui-design-system.md && test -f docs/ui-layout-requirements.md\n4) Confirm Angular doc contains merged topics: rg -n \"RxResource|Signal Store|union types|DomSanitizer|LoggerService\" docs/guidelines/angular-coding-guidelines.md\n5) Spot-check that other READMEs don’t accidentally contain rules: rg -n \"\\b(must|should|never|do not|guideline|ルール)\\b\" workflow/README.md docs/README.md docs/recipes/README.md"
   }
 }
