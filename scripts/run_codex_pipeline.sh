@@ -174,6 +174,14 @@ for raw in text:
         continue
 
     if next_heading_pattern.match(stripped):
+        leading = stripped.lstrip()
+        if leading.startswith(("**", "__")):
+            inner = re.sub(r"^(?:\*\*|__)\s*", "", leading)
+            inner = re.sub(r"\s*(?:\*\*|__)\s*$", "", inner)
+            normalized = inner.strip()
+            if normalized.endswith(":") or "?" in normalized:
+                section_lines.append(raw.rstrip())
+                continue
         break
 
     section_lines.append(raw.rstrip())
