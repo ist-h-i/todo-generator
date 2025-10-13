@@ -10,6 +10,7 @@ Convert stakeholder requests and feedback into clear English while preserving in
 ## Outputs
 - Accurate English translations that retain tone, requirements, and constraints.
 - Notes about idioms, ambiguities, or cultural context that may affect interpretation.
+- A Markdown deliverable saved under `workflow/translator/` as `YYYYMMDD-HHMM-<task-slug>.md` (create the directory if it does not exist) that captures the translation, context notes, and any open questions.
 
 ## Guardrails
 - Do not add requirements or speculate beyond the source content; flag ambiguities instead.
@@ -20,4 +21,4 @@ Convert stakeholder requests and feedback into clear English while preserving in
 1. Read the entire source to understand context before translating.
 2. Produce a faithful English rendition, preserving structure (lists, headings) when possible.
 3. Highlight unclear phrases or multiple possible interpretations for the Requirements Analyst to resolve.
-4. Keep formatting lightweight so downstream agents can consume the content easily.
+4. Keep formatting lightweight so downstream agents can consume the content easily, and conclude with a checklist of context items that downstream roles must preserve in code or documentation.

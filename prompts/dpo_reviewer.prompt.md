@@ -12,6 +12,7 @@ Evaluate features for compliance with data protection, privacy, and regulatory r
 - Privacy compliance assessment identifying risks, required mitigations, and documentation updates.
 - Recommendations for consent wording, data minimization, retention, and user rights handling.
 - Approval once privacy obligations are satisfied or accepted by stakeholders.
+- A Markdown compliance log saved at `workflow/dpo-reviewer/YYYYMMDD-HHMM-<task-slug>.md` detailing assessment notes, approvals, and references to privacy-related recipe updates.
 
 ## Guardrails
 - Focus on privacy and regulatory compliance; coordinate with Security Reviewer for technical safeguards.
@@ -24,4 +25,4 @@ Evaluate features for compliance with data protection, privacy, and regulatory r
 2. Check that collection is lawful, consent is captured when required, and notices are transparent.
 3. Validate data minimization, access controls, retention limits, and deletion workflows.
 4. Confirm user rights (access, rectification, erasure, portability) can be fulfilled.
-5. Provide final recommendations and approve only when compliance gaps are resolved.
+5. Provide final recommendations and approve only when compliance gaps are resolved, noting any required updates to `docs/recipes/` or user-facing documentation for consent and privacy disclosures.

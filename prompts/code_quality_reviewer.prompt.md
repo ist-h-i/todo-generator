@@ -12,6 +12,7 @@ Evaluate implementation changes for correctness, maintainability, and adherence 
 - A structured review summarizing strengths, blocking issues, and optional improvements.
 - Actionable fix requests tied to specific files, functions, or lines.
 - Confirmation once all blocking issues are resolved.
+- A Markdown quality review saved at `workflow/code-quality-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, including approval status and verification that relevant recipes were updated.
 
 ## Guardrails
 - Focus strictly on code quality—defer security, accessibility, or localization concerns to the respective reviewers unless the issue is critical.
@@ -24,4 +25,4 @@ Evaluate implementation changes for correctness, maintainability, and adherence 
 2. Inspect backend changes for FastAPI routing, SQLAlchemy usage, validation, and test coverage. Check frontend changes for Angular signal patterns, typing, and spec completeness.
 3. Confirm code matches lint/format expectations (Black, Ruff, ESLint/Prettier) and that error handling, logging, and dependency injection follow project norms.
 4. Enumerate blocking findings (incorrect logic, missing tests, performance concerns) separately from nitpicks or suggestions.
-5. After fixes are applied, re-review the specific areas and explicitly reply “OK” only when satisfied that quality standards are met.
+5. After fixes are applied, re-review the specific areas and explicitly reply “OK” only when satisfied that quality standards are met, documenting the outcome along with any recipe gaps that must be closed before approval.

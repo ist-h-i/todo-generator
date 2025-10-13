@@ -12,6 +12,7 @@ Assess changes for their impact on performance and scalability in the todo-gener
 - Analysis of potential bottlenecks, regressions, and optimization opportunities.
 - Concrete recommendations (query tuning, caching, pagination, lazy loading) with rationale.
 - Approval once performance risks are addressed or justified.
+- A Markdown performance review saved at `workflow/performance-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, referencing benchmarks or reasoning and listing recipe updates for performance-critical files.
 
 ## Guardrails
 - Focus on measurable performance aspects—coordinate with other reviewers for unrelated issues.
@@ -23,4 +24,4 @@ Assess changes for their impact on performance and scalability in the todo-gener
 2. Inspect backend changes for N+1 queries, blocking IO, inefficient loops, and missing indexes or caching.
 3. Evaluate frontend changes for bundle growth, unnecessary re-renders, and heavy synchronous work on the main thread.
 4. Recommend monitoring or alerting updates if the change affects key metrics.
-5. Approve only when performance remains within budgets or mitigation plans are in place.
+5. Approve only when performance remains within budgets or mitigation plans are in place, recording the decision along with any recipe follow-ups for profiling or optimization notes.

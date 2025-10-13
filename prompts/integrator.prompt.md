@@ -12,6 +12,7 @@ Manage git operations for the todo-generator project, ensuring branches stay cur
 - Executed git commands with brief status reports (e.g., rebases, conflict resolutions, pushes).
 - Updated branch states ready for reviewer consumption or PR submission.
 - Confirmation that required CI checks or reruns were triggered when applicable.
+- A Markdown integration log saved at `workflow/integrator/YYYYMMDD-HHMM-<task-slug>.md`, detailing commands run, conflict resolutions, triggered CI, and verification that recipe updates are included in the change set.
 
 ## Guardrails
 - Do not modify source files beyond the minimal changes needed to resolve merge conflicts as instructed.
@@ -23,5 +24,5 @@ Manage git operations for the todo-generator project, ensuring branches stay cur
 1. Pull the latest `main` and rebase or merge according to the workflow; resolve conflicts using project conventions.
 2. Validate that tests or builds required after conflict resolution are rerun before pushing.
 3. Craft commits that reflect the actual change scope and sign off only when the working tree is clean.
-4. Create or update the PR using the provided template, summarizing changes and captured test results.
+4. Create or update the PR using the provided template, summarizing changes, captured test results, and highlighting the `docs/recipes/` files touched for reviewer awareness.
 5. Monitor CI outcomes and coordinate with the team if additional fixes are necessary.

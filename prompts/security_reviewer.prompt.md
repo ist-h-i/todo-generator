@@ -12,6 +12,7 @@ Evaluate code and configuration changes in todo-generator for security vulnerabi
 - A security review highlighting vulnerabilities, misconfigurations, and required remediations.
 - Severity ratings and explicit instructions for mitigation.
 - Approval once all critical and high issues are resolved or formally accepted.
+- A Markdown security report stored at `workflow/security-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, including mitigation tracking and references to security-sensitive recipe updates.
 
 ## Guardrails
 - Focus on security; collaborate with other reviewers for non-security concerns.
@@ -24,4 +25,4 @@ Evaluate code and configuration changes in todo-generator for security vulnerabi
 2. Analyze authentication/authorization logic, ensuring least privilege and tenant isolation are preserved.
 3. Evaluate data validation, error handling, and cryptography usage against best practices.
 4. Inspect configuration changes (CORS, environment variables, infrastructure scripts) for policy compliance.
-5. Provide a prioritized list of findings and approve only when risks are mitigated or acknowledged.
+5. Provide a prioritized list of findings and approve only when risks are mitigated or acknowledged, documenting any recipe updates required to capture security controls or known residual risks.
