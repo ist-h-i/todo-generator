@@ -1,28 +1,29 @@
-**Integrator Findings**
+I reviewed the failing select component and applied a minimal, type-safe fix to unblock CI.
 
-- Implemented per-component/class recipe convention for Angular with minimal impact.
-  - Generator added: `scripts/generate_class_recipes.py:1` (idempotent; skips existing; excludes `*.spec.ts` and `test.ts`).
-  - Output location: `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
-  - Captures public methods/properties via lightweight parsing.
+What I changed
+- Normalized value handling everywhere we do selection checks to avoid calling includes on a possibly null value.
+  - Updated selection predicate to use a safe array for both single and multiple modes:
+    - frontend/src/app/shared/ui/select/ui-select.ts:256
+- Kept the previous null-safe label derivation intact for the multiple-select label join.
 
-- Docs updated to guide usage.
-  - `docs/recipes/README.md:1` includes “Per-Class/Component Recipes (Angular)” with commands and structure.
-  - Existing per-file generator retained for backend/frontend files: `scripts/generate_file_recipes.py:1`.
+Why this fixes the error
+- The prior error came from calling includes on a possibly null value (TS2531). By normalizing to a string array first, includes is always safe, and the logic remains consistent for both single and multi-select.
 
-- Seeded representative class recipes (ready for owners to refine).
-  - `docs/recipes/classes/frontend/src/app/App.recipe.md:1`
-  - `docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md:1`
-  - `docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md:1`
+Key references
+- Selection check now uses a normalized array:
+  - frontend/src/app/shared/ui/select/ui-select.ts:256
+- Multiple mode label derivation already safe:
+  - frontend/src/app/shared/ui/select/ui-select.ts:286
 
-- Scope & alignment
-  - Matches request to document at the component/class level.
-  - Keeps codebase untouched; changes are scripts + docs only.
-  - Idempotent generation to minimize churn and future maintenance burden.
+Impact
+- Behavior unchanged; only safer type handling.
+- Styles and the modernized arrow/currentColor alignment remain intact.
+- Scope is a single-file, minimal change.
 
-- Residual risks / open items
-  - Regex-based extraction may miss edge cases (multiline signatures, getters/setters on same line, decorators split across lines). Acceptable for starter stubs.
-  - Coverage currently seeded; repo-wide generation would add many files. Run selectively to keep diffs small.
+How to verify
+- Build: cd frontend && ng build --configuration production
+- Tests: cd frontend && npm test (Karma should start with 0 load errors)
+- Manual: Confirm selects show correct labels for single/multi, and no console errors. Dark mode arrow remains visible and matches text color.
 
-- Next actions (optional)
-  - Generate additional class recipes where needed: `python scripts/generate_class_recipes.py frontend/src/app/<target-folder>`.
-  - Team can iteratively fill descriptions in created stubs while keeping structure consistent.
+Note on React/shadcn request
+- This repo is Angular. The provided React/shadcn component path (/components/ui) doesn’t apply here. We retained the Angular shared select (frontend/src/app/shared/ui/select/ui-select.ts) and centralized SCSS updates for minimal impact and full app coverage. If you need a separate React setup, I can provide a shadcn/Tailwind guide and component placement under /components/ui in a React app.

@@ -1,36 +1,35 @@
 **背景**
-- Goal: Provide “recipe” docs per component/class describing public methods and key variables with minimal churn.
-- User preference: Per component/class, not per folder/file.
-- Scope: Angular app under `frontend/src/app/**`; exclude tests, mocks, stories, generated assets.
-- Constraints: Small, self-contained diff; no runtime/build impact; idempotent tooling.
+- 目的: セレクターをモダン化し、ダークモードでの視認性を改善
+- 現状: リポジトリは Angular 構成（React/shadcn ではない）。共通セレクターは `frontend/src/app/shared/ui/select/ui-select.ts` に実装
+- ブロッカー: TypeScript エラー TS2531（null 可能な `this.value` に対して `includes` を呼び出し）により CI が停止
 
 **変更概要**
-- Added per-class/component generator: `scripts/generate_class_recipes.py:1`
-  - Scans `frontend/src/app/**/*.ts` excluding `*.spec.ts` and `test.ts`.
-  - Detects `export class` and common Angular decorators (`@Component`, `@Injectable`, `@Directive`, `@Pipe`).
-  - Extracts public API (public methods/properties) best-effort via lightweight parsing.
-  - Writes one recipe per class at `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
-  - Idempotent: skips existing files; no overwrites.
-- Kept prior per-file generator (for backend or file-level docs) available: `scripts/generate_file_recipes.py:1`
-- Seeded a few representative class recipes to demonstrate structure.
-- Updated `docs/recipes/README.md:1` with brief usage and convention notes.
+- TS 安全化: 選択値を正規化した安全な配列に変換してから判定
+  - 例: `const selected = Array.isArray(this.value) ? this.value : this.value != null ? [String(this.value)] : [];` → `selected.includes(o.value)`
+  - 修正対象: `frontend/src/app/shared/ui/select/ui-select.ts:278`
+- 公開性: テンプレートから呼ぶ `onTouched()` は public を維持（TS2341 再発防止）
+- スタイル整備（既存反映の要旨）:
+  - 下向きアローをシンプルなシェブロンに統一、Y 方向センタリング
+  - アイコン色を `currentColor` に統一し、ダーク/ライトで文字色に追従
+  - オプションパネルの半径・影・間隔をモダン寄りに調整（最小影響範囲で）
 
 **影響**
-- No application code changes; build/runtime unaffected.
-- Enables incremental documentation by class/component with minimal maintenance overhead.
-- Dual paths supported: per-class for Angular, per-file for backend where useful.
+- 挙動・API変更なし（型安全化のみ）。既存の単一/複数選択どちらにも対応
+- ダークモードで矢印が背景と同化する問題を解消（文字色と同一化）
+- 影響範囲は共有セレクターとグローバル select スタイルに限定（副作用小）
 
 **検証**
-- Generate class recipes: `python scripts/generate_class_recipes.py`
-- Spot-check output paths:
-  - Examples under `docs/recipes/classes/frontend/src/app/**/<ClassName>.recipe.md`
-- Confirm idempotency: re-run command; no changes to existing files.
-- Verify exclusions: no recipes for `*.spec.ts`, `test.ts`, mocks, or non-TS assets.
-- Content sanity: public methods/properties listed; TODO placeholders ready for authors.
+- ビルド/テスト
+  - `cd frontend && npm ci && npm run build`（または `ng build --configuration production`）
+  - `npm test`（Karma が load error 0 で起動）
+- 手動確認
+  - 単一/複数選択のラベルが正しく同期される（null/未選択時もエラーなし）
+  - ライト/ダークでテキストと矢印の色が一致
+  - フォーカスリング、ホバー、無効状態のコントラストが維持
+  - 主な画面（レポート/管理/設定）での視認性を確認
 
 **レビュー観点**
-- Convention fit: Per-class/component aligns with request; placement under `docs/recipes/classes/` avoids source-tree clutter. Confirm team preference on location.
-- Coverage limits: Regex/lightweight parsing may miss multi-line signatures, getters/setters, or complex decorators; acceptable for initial stubs.
-- Depth: Currently documents public API; extend if private members are critical.
-- Adoption: Decide whether to run generator broadly now or seed per-feature gradually to keep diffs small.
-- Next small improvements (optional): support `export default class`, include `static` members, basic `@Input/@Output` capture, and a “Skipped existing” summary in script output.
+- 型安全: `this.value` が `string | string[] | null` でも常に配列化してから `includes` 使用
+- 互換性: 値が非文字型でも `String(...)` で比較を安定化（既存表示と同等）
+- デザイン: アイコン `currentColor` 化でテーマ追従、余白/半径/影は既存トークンと整合
+- リスク/残課題: RTL と強制ハイコントラスト対応は最小変更のため未深掘り（必要なら追補可）

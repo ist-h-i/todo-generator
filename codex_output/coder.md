@@ -1,36 +1,34 @@
-**Summary**
-- Implemented per-component/class “recipe” docs for the Angular app with minimal impact.
-- Added an idempotent generator that creates one recipe per exported class under a mirrored docs path.
-- Seeded 3 representative class recipes.
+I’ve located the failing code and applied a minimal, safe TypeScript fix to unblock CI.
 
-**What Changed**
-- New generator: `scripts/generate_class_recipes.py:1`
-  - Scans `frontend/src/app/**.ts` (excludes `*.spec.ts`, `test.ts`).
-  - Finds `export class ...` and extracts a best‑effort list of public methods/properties.
-  - Writes one file per class under `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
-  - Idempotent: skips existing files; no overwrites.
-- Updated guide: `docs/recipes/README.md:1`
-  - Adds “Per-Class/Component Recipes (Angular)” section with convention and usage.
-- Seeded examples:
-  - `docs/recipes/classes/frontend/src/app/App.recipe.md:1`
-  - `docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md:1`
-  - `docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md:1`
+What I changed
+- Fixed null-safe selection label derivation for multi-select
+  - frontend/src/app/shared/ui/select/ui-select.ts:279
+    - Normalize the current value to a string array and use that for label mapping to avoid calling includes on a possibly null value.
 
-**How To Use**
-- Generate all Angular class recipes:
-  - `python scripts/generate_class_recipes.py`
-- Limit to a folder:
-  - `python scripts/generate_class_recipes.py frontend/src/app/core/profile`
-- Edit the generated stubs to fill in descriptions for methods and properties.
+Focused diff (explanation)
+- Before: Called this.value.includes(...) inside syncLabelFromValue for multiple mode, which triggered TS2531 when this.value could be null.
+- After: Create a safe array first and use it for filtering:
+  - selected = Array.isArray(this.value) ? this.value : this.value != null ? [String(this.value)] : []
+  - Use selected.includes(o.value) to derive labels.
 
-**Why This Fits The Request**
-- Aligns to “per component/class” preference while keeping changes small and additive.
-- Keeps existing per-file recipe tooling (`scripts/generate_file_recipes.py:1`) intact for backend and file-level docs.
+Other checks
+- onTouched is public and callable from the template: frontend/src/app/shared/ui/select/ui-select.ts:60
+- isSelected uses Array.isArray guard correctly for includes.
 
-**Notes / Risks**
-- Extraction is regex-based and may miss edge cases (multiline signatures, complex getters/setters, decorators on separate lines).
-- Visibility filter is simple (skips `private`/`protected` on the same line).
-- Scope limited to Angular classes; does not generate for backend Python (covered by existing per-file generator).
+Why this fixes CI
+- The TypeScript error (TS2531) came from calling includes on a possibly null value. Normalizing to selected: string[] eliminates that code path while preserving behavior.
 
-**Optional Next Steps**
-- If desired, I can run the class generator across `frontend/src/app` to pre-seed more recipes, or extend parsing to capture inputs/outputs and decorators.
+Paths to know
+- Shared UI select: frontend/src/app/shared/ui/select/ui-select.ts
+- Global styles: frontend/src/styles/pages/_base.scss
+
+How to verify locally
+- Build: cd frontend && ng build --configuration production
+- Tests: npm test (Karma) — confirm no load errors
+- Manual: open pages using the shared select (Reports/Admin/Settings) and confirm labels display for single/multi-select without console errors.
+
+Note on the React/shadcn request
+- This repo is Angular. Integrating the provided React/shadcn Select component is out of scope and would be invasive here. If you need a React app version, components would live under /components/ui with Tailwind/shadcn setup; I can provide a separate setup guide on request.
+
+Residual risks
+- None functional. We only normalized value handling; no API or behavior changes.

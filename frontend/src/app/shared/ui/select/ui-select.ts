@@ -118,7 +118,8 @@ import {
 
     .ui-select__trigger { display: inline-flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding-right: 2.5rem; background-image: none !important; }
     .ui-select__value { flex: 1 1 auto; min-width: 0; text-align: left; }
-    .ui-select__icon { display: inline-flex; align-items: center; justify-content: center; color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary)); }
+    /* Match icon color to current text color (fixes dark-mode blending) */
+    .ui-select__icon { display: inline-flex; align-items: center; justify-content: center; color: currentColor; }
 
     /* Hidden variant used only for single-select custom panel mode */
     .ui-select__native--hidden { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; appearance: none; }
@@ -257,10 +258,13 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   }
 
   isSelected(val: string): boolean {
-    if (this.multiple && Array.isArray(this.value)) {
-      return this.value.includes(val);
-    }
-    return String(this.value ?? '') === String(val ?? '');
+    // Normalize current value to a string array for a unified check
+    const selected: string[] = Array.isArray(this.value)
+      ? this.value
+      : this.value != null
+        ? [String(this.value)]
+        : [];
+    return selected.includes(val);
   }
 
   private readOptions(): void {
@@ -271,10 +275,19 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   }
 
   private syncLabelFromValue(): void {
+    // Normalize current value to a string array to avoid null/primitive pitfalls
+    const selected: string[] = Array.isArray(this.value)
+      ? this.value
+      : this.value != null
+        ? [String(this.value)]
+        : [];
+
     if (this.multiple) {
-      // For multiple, show count or empty
-      if (Array.isArray(this.value) && this.value.length) {
-        const labels = this.options.filter((o) => this.value.includes(o.value)).map((o) => o.label);
+      // For multiple, show joined labels or empty
+      if (selected.length) {
+        const labels = this.options
+          .filter((o) => selected.includes(o.value))
+          .map((o) => o.label);
         this.selectedLabel = labels.join(', ');
       } else {
         this.selectedLabel = '';
