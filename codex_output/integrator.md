@@ -1,31 +1,29 @@
-**Status**
-- Dark-mode arrow now matches text color for both native selects and the shared Angular UiSelect. No additional code changes required.
+I reviewed the failing select component and applied a minimal, type-safe fix to unblock CI.
 
-**What Ensures The Match**
-- UiSelect caret inherits text color:
-  - `frontend/src/app/shared/ui/select/ui-select.ts:122` → `.ui-select__icon { ... color: currentColor; }`
-  - Inline SVG uses `stroke="currentColor"`: `frontend/src/app/shared/ui/select/ui-select.ts:41`
-- Native `<select>` caret inherits text color in both themes:
-  - `frontend/src/styles/pages/_base.scss:106` → background SVG with `stroke='currentColor'`
-  - Dark theme keeps the same approach: `frontend/src/styles/pages/_base.scss:167`
+What I changed
+- Normalized value handling everywhere we do selection checks to avoid calling includes on a possibly null value.
+  - Updated selection predicate to use a safe array for both single and multiple modes:
+    - frontend/src/app/shared/ui/select/ui-select.ts:256
+- Kept the previous null-safe label derivation intact for the multiple-select label join.
 
-**Related Fix Already Applied**
-- Template blur handler access error resolved: `onTouched` is public
-  - `frontend/src/app/shared/ui/select/ui-select.ts:208` (public `onTouched`)
+Why this fixes the error
+- The prior error came from calling includes on a possibly null value (TS2531). By normalizing to a string array first, includes is always safe, and the logic remains consistent for both single and multi-select.
 
-**Verify**
-- Switch to dark mode and check:
-  - UiSelect triggers: `frontend/src/app/features/reports/reports-page.component.html:255`, `:274`
-  - Native selects: `frontend/src/app/features/settings/page.html:249`, `:428`, `frontend/src/app/features/board/page.html:565`, `:730`
-- Build: `cd frontend && npm ci && npm run build`
+Key references
+- Selection check now uses a normalized array:
+  - frontend/src/app/shared/ui/select/ui-select.ts:256
+- Multiple mode label derivation already safe:
+  - frontend/src/app/shared/ui/select/ui-select.ts:286
 
-**Notes on shadcn/React Select**
-- This repo is Angular. Adding the provided React (Radix) Select would introduce a React runtime, which is out of scope for a minimal, safe change.
-- If you later add a React sub-app:
-  - Component path: `components/ui/select.tsx`, label at `components/ui/label.tsx`
-  - Utils: `lib/utils.ts` for `cn`
-  - Install: `@radix-ui/react-select`, `@radix-ui/react-icons`
-  - Tailwind must be configured; shadcn’s default structure is `components/ui` for primitives.
+Impact
+- Behavior unchanged; only safer type handling.
+- Styles and the modernized arrow/currentColor alignment remain intact.
+- Scope is a single-file, minimal change.
 
-**Next Step**
-- If any instance still shows a mismatched icon in dark mode, point me to its file, and I’ll align it to use `currentColor` as above.
+How to verify
+- Build: cd frontend && ng build --configuration production
+- Tests: cd frontend && npm test (Karma should start with 0 load errors)
+- Manual: Confirm selects show correct labels for single/multi, and no console errors. Dark mode arrow remains visible and matches text color.
+
+Note on React/shadcn request
+- This repo is Angular. The provided React/shadcn component path (/components/ui) doesn’t apply here. We retained the Angular shared select (frontend/src/app/shared/ui/select/ui-select.ts) and centralized SCSS updates for minimal impact and full app coverage. If you need a separate React setup, I can provide a shadcn/Tailwind guide and component placement under /components/ui in a React app.

@@ -1,40 +1,35 @@
 **背景**
-- 目的: セレクターをモダン化し、ダークモードで下向きアローが背景と同化する問題を解消する
-- 文脈: リポジトリは Angular 構成。React/shadcn 向けの Select 実装が提示されたが、最小変更の方針により既存 Angular 実装を改善
-- 主要課題: ダークモードでトリガー文字色とアイコン色が不一致（アイコンが薄く見える）
+- 目的: セレクターをモダン化し、ダークモードでの視認性を改善
+- 現状: リポジトリは Angular 構成（React/shadcn ではない）。共通セレクターは `frontend/src/app/shared/ui/select/ui-select.ts` に実装
+- ブロッカー: TypeScript エラー TS2531（null 可能な `this.value` に対して `includes` を呼び出し）により CI が停止
 
 **変更概要**
-- 共有コンポーネントのアイコン色をテキスト色に揃えるよう統一
-  - `.ui-select__icon` の `color` を `currentColor` に変更（アイコンが常に親の文字色を継承）
-  - コンポーネント内の SVG は `stroke="currentColor"` のため、暗色/明色テーマで自動追従
-- 既存のネイティブ `<select>` のグローバルスタイルはすでに `currentColor` ベースの矢印のため変更なし
-- 挙動変更なし・テンプレ/TS 変更なし・スコープ極小
+- TS 安全化: 選択値を正規化した安全な配列に変換してから判定
+  - 例: `const selected = Array.isArray(this.value) ? this.value : this.value != null ? [String(this.value)] : [];` → `selected.includes(o.value)`
+  - 修正対象: `frontend/src/app/shared/ui/select/ui-select.ts:278`
+- 公開性: テンプレートから呼ぶ `onTouched()` は public を維持（TS2341 再発防止）
+- スタイル整備（既存反映の要旨）:
+  - 下向きアローをシンプルなシェブロンに統一、Y 方向センタリング
+  - アイコン色を `currentColor` に統一し、ダーク/ライトで文字色に追従
+  - オプションパネルの半径・影・間隔をモダン寄りに調整（最小影響範囲で）
 
 **影響**
-- ダークモードでアイコンが背景に溶ける問題を解消
-- ホバー/フォーカス/無効などの状態表現は維持
-- 変更箇所は共通 UI セレクターのみで副作用が小さい
+- 挙動・API変更なし（型安全化のみ）。既存の単一/複数選択どちらにも対応
+- ダークモードで矢印が背景と同化する問題を解消（文字色と同一化）
+- 影響範囲は共有セレクターとグローバル select スタイルに限定（副作用小）
 
 **検証**
-- ビルド: `cd frontend && npm ci && npm run build` もしくは `ng build --configuration production`
-- 手動確認（ライト/ダーク両方）:
-  - 共有セレクターのトリガーで、テキストと下向きアローの色が一致すること
-  - フォーカスリング、ホバー、無効状態でのコントラスト維持
-  - 複数箇所（レポート/管理などの画面）でアイコンが視認できること
-  - マルチセレクトや `size > 1` のバリアントに影響がないこと
+- ビルド/テスト
+  - `cd frontend && npm ci && npm run build`（または `ng build --configuration production`）
+  - `npm test`（Karma が load error 0 で起動）
+- 手動確認
+  - 単一/複数選択のラベルが正しく同期される（null/未選択時もエラーなし）
+  - ライト/ダークでテキストと矢印の色が一致
+  - フォーカスリング、ホバー、無効状態のコントラストが維持
+  - 主な画面（レポート/管理/設定）での視認性を確認
 
 **レビュー観点**
-- ダークモード時の色コントラスト（WCAG AA 以上）を満たしているか
-- 文字色トークン変更時にアイコンも追随すること（`currentColor` 継承）
-- 既存ページのネイティブ `<select>` に回 regressions がないこと
-- 可能なら high-contrast（forced-colors）環境での視認性も確認
-
-**補足（shadcn/React 統合について）**
-- 現状は Angular アプリのため、React/shadcn の導入は未実施（最小変更のため）
-- 将来 React サブアプリを追加する場合:
-  - コンポーネント配置: `components/ui`
-  - ユーティリティ: `lib/utils.ts`（`cn`）
-  - 依存: `@radix-ui/react-select`, `@radix-ui/react-icons`
-  - 提示コードは `components/ui/select.tsx` と `components/ui/label.tsx` に配置して使用可能
-
-以上により、ダークモード時のアイコン視認性問題は、最小の差分で解消済みです。
+- 型安全: `this.value` が `string | string[] | null` でも常に配列化してから `includes` 使用
+- 互換性: 値が非文字型でも `String(...)` で比較を安定化（既存表示と同等）
+- デザイン: アイコン `currentColor` 化でテーマ追従、余白/半径/影は既存トークンと整合
+- リスク/残課題: RTL と強制ハイコントラスト対応は最小変更のため未深掘り（必要なら追補可）

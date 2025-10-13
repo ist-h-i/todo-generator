@@ -1,41 +1,34 @@
-Summary
-- Fixed dark-mode issue: the select’s down-arrow now inherits the trigger text color, preventing it from blending into the background.
-- Scope kept minimal and centralized to the shared Angular select component.
+I’ve located the failing code and applied a minimal, safe TypeScript fix to unblock CI.
 
 What I changed
-- Updated the icon color to inherit current text color.
-- File: frontend/src/app/shared/ui/select/ui-select.ts:119
-  - Before: color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary));
-  - After: color: currentColor;
+- Fixed null-safe selection label derivation for multi-select
+  - frontend/src/app/shared/ui/select/ui-select.ts:279
+    - Normalize the current value to a string array and use that for label mapping to avoid calling includes on a possibly null value.
 
-Focused Diff
-- frontend/src/app/shared/ui/select/ui-select.ts:119
-  - .ui-select__icon { display: inline-flex; align-items: center; justify-content: center; color: currentColor; }
+Focused diff (explanation)
+- Before: Called this.value.includes(...) inside syncLabelFromValue for multiple mode, which triggered TS2531 when this.value could be null.
+- After: Create a safe array first and use it for filtering:
+  - selected = Array.isArray(this.value) ? this.value : this.value != null ? [String(this.value)] : []
+  - Use selected.includes(o.value) to derive labels.
 
-Why this works
-- The trigger button uses class `app-select`, which already sets `color: var(--text-primary)` and adapts in dark mode.
-- The SVG caret uses `stroke="currentColor"`; by switching the wrapper to `color: currentColor`, the icon matches the text color in both light/dark modes.
-- Native `<select>` styling in global SCSS already uses a `currentColor` chevron (no change needed): frontend/src/styles/pages/_base.scss:90
+Other checks
+- onTouched is public and callable from the template: frontend/src/app/shared/ui/select/ui-select.ts:60
+- isSelected uses Array.isArray guard correctly for includes.
 
-Impact
-- One-line style change; no template or logic changes.
-- Applies to all usages of `<app-ui-select>` across the app (e.g., reports/admin pages).
+Why this fixes CI
+- The TypeScript error (TS2531) came from calling includes on a possibly null value. Normalizing to selected: string[] eliminates that code path while preserving behavior.
 
-Verify
-- Switch to dark mode and check any `<app-ui-select>`:
-  - frontend/src/app/features/reports/reports-page.component.html:255
-  - frontend/src/app/features/admin/page.html:129
-- Confirm the caret color matches the trigger text for default/hover/focus/disabled.
-- Optional: build to sanity check
-  - cd frontend
-  - npm ci
-  - npm run build
+Paths to know
+- Shared UI select: frontend/src/app/shared/ui/select/ui-select.ts
+- Global styles: frontend/src/styles/pages/_base.scss
 
-Note on shadcn/React component request
-- This repository is an Angular app with Tailwind and TypeScript already configured. It does not contain a React runtime or shadcn project structure.
-- If you plan to add a React/shadcn sub-app later, use:
-  - Components path: components/ui (default for shadcn)
-  - Utils helper: lib/utils.ts (for `cn`)
-  - Install: @radix-ui/react-icons, @radix-ui/react-select
-  - Place the provided Select at components/ui/select.tsx and Label at components/ui/label.tsx, then render a demo in your React app entry.
-- Given the current Angular codebase and the constraint to keep changes minimal, I did not introduce React or new dependencies.
+How to verify locally
+- Build: cd frontend && ng build --configuration production
+- Tests: npm test (Karma) — confirm no load errors
+- Manual: open pages using the shared select (Reports/Admin/Settings) and confirm labels display for single/multi-select without console errors.
+
+Note on the React/shadcn request
+- This repo is Angular. Integrating the provided React/shadcn Select component is out of scope and would be invasive here. If you need a React app version, components would live under /components/ui with Tailwind/shadcn setup; I can provide a separate setup guide on request.
+
+Residual risks
+- None functional. We only normalized value handling; no API or behavior changes.
