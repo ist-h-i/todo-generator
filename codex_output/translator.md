@@ -1,29 +1,43 @@
-**Request Summary**
-- Add “recipes” documenting source code. Specifically: create .md files that describe each function and variable. Title suggests per-folder recipes; body suggests per-source-file documentation.
+**Summary**
+- Enforce “no explicit any” in the frontend, migrate to explicit interfaces/types, review for Angular v20 best practices, apply minimal code/docs fixes.
+
+**Objectives**
+- Remove/replace existing `any` usages with safe typings.
+- Prevent future `any` via lint/TS config and guideline updates.
+- Align SPA code with Angular v20 best practices; apply only targeted fixes.
 
 **Assumptions**
-- Use the existing recipe standard in `docs/recipes/README.md` (per-file “recipe” docs with naming `docs/recipes/<relative_path with __>.recipe.md`).
-- Scope includes both backend (`backend/app/**`) and frontend Angular app (`frontend/src/**`), excluding tests and generated assets unless requested.
-- Focus on public-facing functions/classes and important variables; internal/private items documented when they materially affect behavior.
+- The repo contains an Angular SPA subject to these rules.
+- Updating `docs/guidelines/angular-coding-guidelines.md` is the primary place to codify rules; governance alignment lives in `docs/governance/development-governance-handbook.md`.
+- Minimal ESLint/TS config tweaks are acceptable to enforce policy.
+- Using `unknown`, generics, or domain interfaces is preferred over `any`.
 
 **Constraints**
-- Minimize changes and churn; prefer a small, targeted set of docs or stubs that align with the existing recipe convention.
-- Fit within a 30-minute window; avoid attempting exhaustive coverage in one pass.
-- Keep consistent with the Development Governance Handbook and Angular guidelines linked in `docs/`.
+- Keep diffs small; change only what’s necessary.
+- Fit within a 30-minute window; prioritize high-impact areas.
+- Do not introduce unrelated refactors or upgrades.
+- Follow existing design system and layout docs (`docs/ui-design-system.md`, `docs/ui-layout-requirements.md`).
 
-**Unknowns**
-- Whether “per-folder” recipes are required in addition to (or instead of) the existing per-file recipe convention.
-- Exact coverage: all files vs. selected “core” files; include tests?
-- Depth: brief summaries vs. exhaustive descriptions for every variable.
-- Priority areas (e.g., critical services, APIs, or high-churn modules).
+**Deliverables**
+- Targeted code changes replacing `any` with proper interfaces/types.
+- Lint/config enforcement (e.g., `@typescript-eslint/no-explicit-any`) if permitted.
+- Updated guidance in `docs/guidelines/angular-coding-guidelines.md` with examples.
+- Brief change summary and residual risks noted in the PR.
+
+**Non-Goals**
+- Broad architecture changes or Angular version upgrades.
+- Rewriting third-party or generated code beyond necessary type shims.
+
+**Risks / Open Questions**
+- Some `any` replacements may require minor runtime-safe refactors.
+- Third-party types or generated code may still surface `any`.
+- Full repo audit may exceed the timebox; a scoped pass may be needed first.
 
 **Clarifying Questions**
-- Should we follow the current per-file recipe convention in `docs/recipes/README.md`, or create per-folder recipes (or both)?
-- Which code areas are in-scope first: backend, frontend, or both? Any priority directories?
-- Do you want to include tests and scripts, or only production code?
-- What depth is expected for “variables”: only exported/public, or all locals where relevant?
-- Is an initial set of stubs acceptable (to minimize diff), with a plan to incrementally fill details?
-
-**Risks / Impacts**
-- Exhaustive documentation of every function/variable across the repo is large and time-consuming; high risk of drift if not incrementally maintained.
-- Introducing a new per-folder pattern may conflict with the existing per-file recipe standard unless explicitly aligned.
+- Which frontend paths are in scope (e.g., `src/` of which app/package)?
+- May we add/modify ESLint rules (e.g., enable `no-explicit-any`) and TS compiler options (`strict`, `noImplicitAny`)?
+- Preference when bridging unknown inputs: use `unknown` + type guards vs. introducing local interfaces?
+- Any directories to exclude (e.g., generated code, test mocks, migrations)?
+- Should we build on PR #507 or open a new PR?
+- What are the acceptance criteria (e.g., zero `any` in `src/`, lint passes, docs updated)?
+- Is enabling stricter settings (e.g., `noUnsafeAny` equivalents) acceptable if fallout is minimal?

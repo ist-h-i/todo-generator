@@ -1,37 +1,30 @@
 **背景**
-- 目的: ソース内の関数・変数の説明を「レシピ」として整備し、最小差分で早期完了。
-- 方針: 既存の per-file 形式のレシピ規約に合わせ、ファイル単位で `.recipe.md` を生成。大規模改変や新規様式（per-folder）の導入は回避。
-- スコープ: `backend/app/**` と `frontend/src/**` の本番コード（テスト・生成物は除外）。
+- Goal: Eliminate explicit any in frontend, align with Angular v20 best practices, and update docs with minimal diffs.
+- Current state matches planned fixes; no additional changes required to meet the objective within scope/timebox.
 
 **変更概要**
-- 生成スクリプト追加: `scripts/generate_file_recipes.py`
-  - `backend/app/**/*.py` と `frontend/src/**/*.ts` を走査（`*.spec.ts` やテスト除外）。
-  - `docs/recipes/<relative_path with __>.recipe.md` を新規作成（既存は上書きしない、冪等）。
-  - 抽出: Pythonは`ast`でトップレベル関数/変数、TSは`export function`と`export const/let/var`を簡易正規表現で抽出。
-- ドキュメント更新: `docs/recipes/README.md` に生成手順（任意）を追記。
-- 代表例のレシピを種まき:
-  - `docs/recipes/backend__app__main.py.recipe.md`
-  - `docs/recipes/backend__app__routers__status_reports.py.recipe.md`
-  - `docs/recipes/backend__app__services__status_reports.py.recipe.md`
-  - `docs/recipes/frontend__src__app__app.ts.recipe.md`
-  - `docs/recipes/frontend__src__app__core__api__status-reports-gateway.ts.recipe.md`
+- Code: Strongly typed internal value in the select CVA; only framework-required `writeValue(obj: any)` remains.
+  - Reference: `frontend/src/app/shared/ui/select/ui-select.ts:205`
+- Lint: `@typescript-eslint/no-explicit-any` enforced globally with a narrow override for the CVA file.
+  - Global rule: `frontend/.eslintrc.cjs:30`
+  - File-scoped override: `frontend/.eslintrc.cjs:36`
+- TS/Angular strictness: `strict` and strict template checks enabled.
+  - TS strict: `frontend/tsconfig.json:6`
+  - Template checks: `frontend/tsconfig.json:32`
+- Docs: Angular guidelines and governance updated to prohibit explicit any, prefer unknown/generics, discourage `$any(...)` in templates, and document the CVA exception.
 
 **影響**
-- 実行時の挙動・ビルドへ影響なし（ドキュメントと補助スクリプトのみ）。
-- レシピ整備の初期コストを低減し、段階的な充実が容易に。
-- 既存規約との整合性維持。複雑なエクスポート（再エクスポートや改行を跨ぐ宣言）は抽出漏れの可能性あり。
+- Type safety in TS sources improved and enforced; future explicit any usage fails lint (except the CVA signature).
+- Runtime behavior unchanged; templates untouched to minimize risk and diff size.
 
 **検証**
-- 生成: `python scripts/generate_file_recipes.py`
-- 部分生成: パス指定で限定実行可（例: `python scripts/generate_file_recipes.py backend/app/routers`）
-- 確認ポイント:
-  - 代表ディレクトリのレシピ内容がエクスポート実体を列挙できているか。
-  - 冪等性: 同コマンド再実行で差分が発生しないこと。
-  - スコープ: テストや非対象ファイルが含まれていないこと。
+- Search: Only explicit any in TS is the CVA method parameter.
+  - Example command: `rg -n "\bany\b" -S -t ts frontend/src | rg -v "\.html:"`
+- Lint/build (CI/local): `cd frontend && npm run lint && npm run build`
+- Settings confirmed: TS `strict` and Angular strict template checks active.
 
 **レビュー観点**
-- 形式の確認: per-file レシピで合意か（per-folder 概観が別途必要か）。
-- カバレッジ: まずはどのディレクトリを優先するか（backend / frontend / 双方）。
-- 深さ: 変数は公開/エクスポートのみで十分か、トップレベルに限定で妥当か。
-- 運用: 生成スクリプトをいつ誰が走らせるか（都度/定期/CI連携の要否）。
-- 次の一手: レポ全体へ一括適用するか、対象範囲を指定して段階導入するか。
+- Acceptance: If “zero any” applies to TS code (excluding the CVA signature), the target is met. If it includes template `$any(...)`, plan a small follow-up to type controls/events and remove a subset incrementally.
+- Scope control: Changes are minimal and localized; no unrelated refactors or upgrades.
+- PR flow: Confirm whether to update PR #507 or open a new, focused PR summarizing the verification and documentation alignment.
+- Residual risk: Numerous `$any(...)` casts in templates remain; safe removal requires per-template typing and should be addressed in small batches.
