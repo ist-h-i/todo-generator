@@ -1,30 +1,36 @@
 **背景**
-- Goal: Eliminate explicit any in frontend, align with Angular v20 best practices, and update docs with minimal diffs.
-- Current state matches planned fixes; no additional changes required to meet the objective within scope/timebox.
+- Goal: Provide “recipe” docs per component/class describing public methods and key variables with minimal churn.
+- User preference: Per component/class, not per folder/file.
+- Scope: Angular app under `frontend/src/app/**`; exclude tests, mocks, stories, generated assets.
+- Constraints: Small, self-contained diff; no runtime/build impact; idempotent tooling.
 
 **変更概要**
-- Code: Strongly typed internal value in the select CVA; only framework-required `writeValue(obj: any)` remains.
-  - Reference: `frontend/src/app/shared/ui/select/ui-select.ts:205`
-- Lint: `@typescript-eslint/no-explicit-any` enforced globally with a narrow override for the CVA file.
-  - Global rule: `frontend/.eslintrc.cjs:30`
-  - File-scoped override: `frontend/.eslintrc.cjs:36`
-- TS/Angular strictness: `strict` and strict template checks enabled.
-  - TS strict: `frontend/tsconfig.json:6`
-  - Template checks: `frontend/tsconfig.json:32`
-- Docs: Angular guidelines and governance updated to prohibit explicit any, prefer unknown/generics, discourage `$any(...)` in templates, and document the CVA exception.
+- Added per-class/component generator: `scripts/generate_class_recipes.py:1`
+  - Scans `frontend/src/app/**/*.ts` excluding `*.spec.ts` and `test.ts`.
+  - Detects `export class` and common Angular decorators (`@Component`, `@Injectable`, `@Directive`, `@Pipe`).
+  - Extracts public API (public methods/properties) best-effort via lightweight parsing.
+  - Writes one recipe per class at `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
+  - Idempotent: skips existing files; no overwrites.
+- Kept prior per-file generator (for backend or file-level docs) available: `scripts/generate_file_recipes.py:1`
+- Seeded a few representative class recipes to demonstrate structure.
+- Updated `docs/recipes/README.md:1` with brief usage and convention notes.
 
 **影響**
-- Type safety in TS sources improved and enforced; future explicit any usage fails lint (except the CVA signature).
-- Runtime behavior unchanged; templates untouched to minimize risk and diff size.
+- No application code changes; build/runtime unaffected.
+- Enables incremental documentation by class/component with minimal maintenance overhead.
+- Dual paths supported: per-class for Angular, per-file for backend where useful.
 
 **検証**
-- Search: Only explicit any in TS is the CVA method parameter.
-  - Example command: `rg -n "\bany\b" -S -t ts frontend/src | rg -v "\.html:"`
-- Lint/build (CI/local): `cd frontend && npm run lint && npm run build`
-- Settings confirmed: TS `strict` and Angular strict template checks active.
+- Generate class recipes: `python scripts/generate_class_recipes.py`
+- Spot-check output paths:
+  - Examples under `docs/recipes/classes/frontend/src/app/**/<ClassName>.recipe.md`
+- Confirm idempotency: re-run command; no changes to existing files.
+- Verify exclusions: no recipes for `*.spec.ts`, `test.ts`, mocks, or non-TS assets.
+- Content sanity: public methods/properties listed; TODO placeholders ready for authors.
 
 **レビュー観点**
-- Acceptance: If “zero any” applies to TS code (excluding the CVA signature), the target is met. If it includes template `$any(...)`, plan a small follow-up to type controls/events and remove a subset incrementally.
-- Scope control: Changes are minimal and localized; no unrelated refactors or upgrades.
-- PR flow: Confirm whether to update PR #507 or open a new, focused PR summarizing the verification and documentation alignment.
-- Residual risk: Numerous `$any(...)` casts in templates remain; safe removal requires per-template typing and should be addressed in small batches.
+- Convention fit: Per-class/component aligns with request; placement under `docs/recipes/classes/` avoids source-tree clutter. Confirm team preference on location.
+- Coverage limits: Regex/lightweight parsing may miss multi-line signatures, getters/setters, or complex decorators; acceptable for initial stubs.
+- Depth: Currently documents public API; extend if private members are critical.
+- Adoption: Decide whether to run generator broadly now or seed per-feature gradually to keep diffs small.
+- Next small improvements (optional): support `export default class`, include `static` members, basic `@Input/@Output` capture, and a “Skipped existing” summary in script output.

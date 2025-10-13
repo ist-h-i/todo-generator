@@ -27,3 +27,17 @@ You can seed missing recipes using a helper script:
   - `python scripts/generate_file_recipes.py frontend/src/app/core/api/status-reports-gateway.ts`
 
 The generator creates recipe stubs only when missing and will not overwrite existing files.
+
+## Per-Class/Component Recipes (Angular)
+- Purpose: When documenting Angular, prefer per-class/component “recipes” focused on public APIs.
+- Location: `docs/recipes/classes/<frontend/src/... mirrored directories>/<ClassName>.recipe.md`.
+- Generate stubs (idempotent):
+  - All Angular classes: `python scripts/generate_class_recipes.py`
+  - Scoped path: `python scripts/generate_class_recipes.py frontend/src/app/core/profile`
+
+Each class recipe should include:
+1) Purpose & Responsibilities – one or two sentences.
+2) Public API – methods and properties with one-line explanations.
+3) Notable Dependencies – injected services, inputs/outputs.
+4) Usage Notes – typical call patterns and pitfalls.
+5) Change History – key modifications and rationale.

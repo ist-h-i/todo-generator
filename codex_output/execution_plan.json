@@ -1,15 +1,8 @@
 {
   "steps": [
     "coder",
+    "code_quality_reviewer",
     "integrator"
   ],
-  "source": "planner",
-  "planner_payload": {
-    "steps": [
-      "coder",
-      "integrator"
-    ],
-    "notes": "Replace the only TS-level any with a safe union in ui-select, allow the framework-required writeValue(any) via a file-scoped ESLint override, and document the no-explicit-any policy (unknown/generics, template $any guidance). Keep scope minimal; do not refactor templates. Residual risk: numerous template $any casts remain; flagged for incremental cleanup.",
-    "tests": "- rg -n \"\\bany\\b\" frontend/src | rg -v \"\\.html:\" returns only writeValue signature.\n- cd frontend && npm run lint (should pass due to override).\n- cd frontend && npm run build && npm test -- --watch=false (sanity check in CI).\n"
-  }
+  "source": "fallback"
 }

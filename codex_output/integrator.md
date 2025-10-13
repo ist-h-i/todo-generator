@@ -1,50 +1,28 @@
 **Integrator Findings**
 
-- All planned changes are already present; no further edits needed.
-- Type safety, lint enforcement, and docs align with “no explicit any” and Angular v20 guidance.
+- Implemented per-component/class recipe convention for Angular with minimal impact.
+  - Generator added: `scripts/generate_class_recipes.py:1` (idempotent; skips existing; excludes `*.spec.ts` and `test.ts`).
+  - Output location: `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
+  - Captures public methods/properties via lightweight parsing.
 
-**What I Verified**
+- Docs updated to guide usage.
+  - `docs/recipes/README.md:1` includes “Per-Class/Component Recipes (Angular)” with commands and structure.
+  - Existing per-file generator retained for backend/frontend files: `scripts/generate_file_recipes.py:1`.
 
-- Explicit any in TS:
-  - Only `writeValue(obj: any)` exists due to ControlValueAccessor: frontend/src/app/shared/ui/select/ui-select.ts:205
-  - `value` is strongly typed: `string | string[] | null` in the same file.
-- Lint enforcement:
-  - Global rule enabled: `@typescript-eslint/no-explicit-any: "error"` at frontend/.eslintrc.cjs:30
-  - Narrow override only for the CVA file at frontend/.eslintrc.cjs:36
-- Strict typing:
-  - TypeScript strict mode enabled: frontend/tsconfig.json:6
-  - Angular strict template checking enabled: frontend/tsconfig.json:32
-- Documentation updated:
-  - Angular guidelines: discourages `any`, prefers `unknown`/generics, and warns on `$any(...)` casts (templates).
-    - docs/guidelines/angular-coding-guidelines.md
-  - Governance handbook: “No any”, CVA `writeValue(obj: any)` exception via ESLint override, usage examples.
-    - docs/governance/development-governance-handbook.md:168–179
-- Angular v20 alignment:
-  - Project uses Angular v20.x packages (CLI/Build/Core/Forms/Router) with strict settings and modern patterns in guidelines (OnPush, signals, Resource API, control flow).
+- Seeded representative class recipes (ready for owners to refine).
+  - `docs/recipes/classes/frontend/src/app/App.recipe.md:1`
+  - `docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md:1`
+  - `docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md:1`
 
-**No Further Changes**
+- Scope & alignment
+  - Matches request to document at the component/class level.
+  - Keeps codebase untouched; changes are scripts + docs only.
+  - Idempotent generation to minimize churn and future maintenance burden.
 
-- The single framework-mandated `any` is isolated to the CVA signature with a file-scoped ESLint override.
-- TS sources otherwise contain no explicit `any`. Templates contain `$any(...)` casts that are documented as discouraged.
+- Residual risks / open items
+  - Regex-based extraction may miss edge cases (multiline signatures, getters/setters on same line, decorators split across lines). Acceptable for starter stubs.
+  - Coverage currently seeded; repo-wide generation would add many files. Run selectively to keep diffs small.
 
-**Residual Risks / Open Questions**
-
-- Numerous `$any(...)` casts remain in templates. Safe replacement requires typing FormControls/event targets per template; propose incremental cleanup.
-- Acceptance criteria: If “zero any” includes template `$any`, a follow-up is needed; if limited to TS code, this meets the bar with the CVA exception.
-- Coordination with PR #507: Confirm whether to supersede or rebase; current tree already reflects the intended state.
-
-**How To Land Safely**
-
-- Open a short “confirm and document” PR or update PR #507 with a summary that no further code changes were needed and that docs and lint rules are in place.
-- Note the CVA exception and the future effort to reduce `$any(...)` in templates.
-
-**Validation Commands**
-
-- Scan for explicit any in TypeScript:
-  - rg -n "\bany\b" -S -t ts
-- Frontend lint/build/tests:
-  - cd frontend && npm run lint
-  - cd frontend && npm run build
-  - cd frontend && npm test -- --watch=false
-
-If you want, I can scope a minimal follow-up to replace a small set of `$any(...)` casts in one feature template with typed controls.
+- Next actions (optional)
+  - Generate additional class recipes where needed: `python scripts/generate_class_recipes.py frontend/src/app/<target-folder>`.
+  - Team can iteratively fill descriptions in created stubs while keeping structure consistent.
