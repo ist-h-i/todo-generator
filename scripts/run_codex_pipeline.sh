@@ -154,12 +154,41 @@ run_stage() {
   if [ "${STEP}" = "translator" ]; then
     local CLARIFYING_SECTION
     CLARIFYING_SECTION=$(printf '%s\n' "${STEP_OUTPUT}" |
-      awk '
-        BEGIN { in_section=0 }
-        tolower($0) ~ /^##[[:space:]]*clarifying questions/ { in_section=1; next }
-        /^##[[:space:]]+/ { if (in_section) exit; }
-        { if (in_section) print }
-      ')
+      python3 - <<'PY'
+import re
+import sys
+
+text = sys.stdin.read().splitlines()
+
+section_lines = []
+in_section = False
+
+heading_pattern = re.compile(r"^\s*(?:#{2,}|\*\*|__)+\s*clarifying questions", re.IGNORECASE)
+next_heading_pattern = re.compile(r"^\s*(?:#{2,}|\*\*|__)+\s*[A-Za-z0-9]")
+
+for raw in text:
+    stripped = raw.strip()
+    if not in_section:
+        if heading_pattern.match(stripped):
+            in_section = True
+        continue
+
+    if next_heading_pattern.match(stripped):
+        leading = stripped.lstrip()
+        if leading.startswith(("**", "__")):
+            inner = re.sub(r"^(?:\*\*|__)\s*", "", leading)
+            inner = re.sub(r"\s*(?:\*\*|__)\s*$", "", inner)
+            normalized = inner.strip()
+            if normalized.endswith(":") or "?" in normalized:
+                section_lines.append(raw.rstrip())
+                continue
+        break
+
+    section_lines.append(raw.rstrip())
+
+print("\n".join(section_lines).rstrip())
+PY
+    )
 
     local NEEDS_CLARIFICATION
     NEEDS_CLARIFICATION=$(printf '%s\n' "${CLARIFYING_SECTION}" | python3 - <<'PY'
