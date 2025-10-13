@@ -29,7 +29,7 @@ import {
       [disabled]="disabled"
       [multiple]="multiple || null"
       [attr.size]="size ?? null"
-      [value]="!multiple ? (value ?? '') : null"
+      [value]="!multiple ? (typeof value === 'string' ? value : '') : null"
       (change)="onSelectChange($event)"
       (blur)="onTouched()"
     >
@@ -45,19 +45,19 @@ export class UiSelectComponent implements ControlValueAccessor {
   @Input() size?: number;
 
   disabled = false;
-  value: any = '';
+  value: string | string[] | null = null;
 
-  private onChange: (val: any) => void = () => {};
+  private onChange: (val: string | string[] | null) => void = () => {};
   // Must be public to be callable from the template (blur) handler
   public onTouched: () => void = () => {};
 
-  writeValue(obj: any): void {
-    this.value = obj;
+  writeValue(value: string | string[] | null): void {
+    this.value = value ?? null;
   }
-  registerOnChange(fn: any): void {
+  registerOnChange(fn: (val: string | string[] | null) => void): void {
     this.onChange = fn;
   }
-  registerOnTouched(fn: any): void {
+  registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
   setDisabledState(isDisabled: boolean): void {
