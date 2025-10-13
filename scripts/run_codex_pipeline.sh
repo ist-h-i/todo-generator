@@ -139,20 +139,19 @@ run_stage() {
   PROMPT_FILE=$(mktemp)
   printf '%s' "${PROMPT}" > "${PROMPT_FILE}"
 
-  if ! "${CODEX_CLI[@]}" exec \
+  "${CODEX_CLI[@]}" exec \
     --full-auto \
     --cd "${GITHUB_WORKSPACE:-$(pwd)}" \
     --output-last-message "${OUTPUT_FILE}" \
     --config approval_policy=never \
     --config sandbox='"workspace-write"' \
     -- \
-    - < "${PROMPT_FILE}"; then
-    local STATUS=$?
-    rm -f "${PROMPT_FILE}"
+    - < "${PROMPT_FILE}"
+  local STATUS=$?
+  rm -f "${PROMPT_FILE}"
+  if [ "${STATUS}" -ne 0 ]; then
     return "${STATUS}"
   fi
-
-  rm -f "${PROMPT_FILE}"
 
   local STEP_OUTPUT
   STEP_OUTPUT=$(cat "${OUTPUT_FILE}")
