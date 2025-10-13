@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
-
 from pathlib import Path
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
-from fastapi.requests import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.requests import Request
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 
 from .config import settings
-from .database import Base, engine
+from .database import Base, get_engine
 from .migrations import run_startup_migrations
 from .routers import (
     activity,
@@ -26,7 +26,6 @@ from .routers import (
     comments,
     competencies,
     competency_evaluations,
-    status_reports,
     error_categories,
     filters,
     initiatives,
@@ -34,25 +33,40 @@ from .routers import (
     preferences,
     profile,
     reports,
+    status_reports,
     statuses,
     suggested_actions,
     workspace_templates,
 )
 
-FAVICON_PATH = Path(__file__).resolve().parent.parent / "favicon.svg"
-
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+
+def _find_favicon() -> Optional[Path]:
+    candidates = [
+        Path(__file__).resolve().parent / "favicon.svg",
+        Path(__file__).resolve().parent.parent / "favicon.svg",
+        Path("/var/task/favicon.svg"),
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return None
+
+
+FAVICON_PATH = _find_favicon()
 
 
 def run_migrations() -> None:
     try:
         logger.info("Running startup migrations...")
-        run_startup_migrations(engine)
+        run_startup_migrations(get_engine())
         logger.info("Startup migrations completed.")
         logger.info("Ensuring database schema is up to date...")
-        from . import models  # ensure models are imported
-        Base.metadata.create_all(bind=engine, checkfirst=True)
+        from . import models  # noqa: F401
+
+        Base.metadata.create_all(bind=get_engine(), checkfirst=True)
         logger.info("Database schema ensured.")
     except Exception:
         logger.exception("Database initialization failed")
@@ -60,9 +74,16 @@ def run_migrations() -> None:
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
-    # Vercel: execute on cold start only
+async def lifespan(app: FastAPI):
     run_migrations()
+    # Log route information for 405 investigation
+    try:
+        for r in app.routes:
+            methods = getattr(r, "methods", None)
+            if methods:
+                logger.info("route: %-28s methods=%s", r.path, sorted(m for m in methods if m != "HEAD"))
+    except Exception:
+        logger.exception("Route logging failed")
     yield
 
 
@@ -83,15 +104,12 @@ app.add_middleware(
 )
 
 
-def _apply_cors(response: JSONResponse, request: Request) -> JSONResponse:
+def _apply_cors(response: Response, request: Request) -> Response:
     origin = request.headers.get("origin")
-    # Allow wildcard or exact match (trailing slash tolerant)
     if "*" in settings.allowed_origins:
-        if origin:
-            response.headers["Access-Control-Allow-Origin"] = origin
-        else:
-            response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
+        response.headers["Access-Control-Allow-Origin"] = origin or "*"
     elif origin and origin.rstrip("/") in settings.allowed_origins:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -117,17 +135,48 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return _apply_cors(resp, request)
 
 
+@app.middleware("http")
+async def cors_preflight_middleware(request: Request, call_next):
+    if request.method == "OPTIONS":
+        resp = Response(status_code=204)
+        resp.headers.update(
+            {
+                "Access-Control-Allow-Methods": request.headers.get("access-control-request-method", "*"),
+                "Access-Control-Allow-Headers": request.headers.get("access-control-request-headers", "*"),
+                "Access-Control-Max-Age": "600",
+            }
+        )
+        return _apply_cors(resp, request)
+
+    response = await call_next(request)
+    return response
+
+
+@app.get("/", include_in_schema=False)
+def root() -> Response:
+    return RedirectResponse(url="/health")
+
+
 @app.get("/favicon.svg", include_in_schema=False)
-async def favicon_svg() -> FileResponse:
-    return FileResponse(FAVICON_PATH, media_type="image/svg+xml")
+async def favicon_svg():
+    if FAVICON_PATH:
+        return FileResponse(FAVICON_PATH, media_type="image/svg+xml")
+    svg_markup = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">'
+        '<rect width="100%" height="100%" rx="8" fill="#111"/>'
+        '<text x="50%" y="55%" text-anchor="middle" fill="#fff" '
+        'font-size="28" font-family="Inter, Arial" dy=".1em">VY</text>'
+        "</svg>"
+    )
+    return Response(svg_markup, media_type="image/svg+xml")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
-async def favicon_ico() -> RedirectResponse:
+async def favicon_ico():
     return RedirectResponse(url="/favicon.svg")
 
 
-# include routers
+# Routers
 app.include_router(analysis.router)
 app.include_router(analytics.router)
 app.include_router(appeals.router)

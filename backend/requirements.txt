@@ -12,4 +12,4 @@ google-generativeai>=0.5.0,<1.0.0
 Pillow==10.4.0
 Jinja2>=3.1.4,<4.0.0
 cryptography>=42.0.0,<44.0.0
-pyscopg2-binary==2.9.9
+psycopg2-binary==2.9.10
