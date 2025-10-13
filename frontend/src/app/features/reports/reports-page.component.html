@@ -252,12 +252,12 @@
                   <div class="form-grid form-grid--two report-assistant-page__proposal-grid">
                     <div class="form-field">
                       <label class="form-field__label">推奨ステータス</label>
-                      <select class="form-control" formControlName="status">
+                      <app-ui-select formControlName="status">
                         <option value="">ステータスを選択</option>
                         @for (status of statusOptions(); track status.id) {
                           <option [value]="status.id">{{ status.name }}</option>
                         }
-                      </select>
+                      </app-ui-select>
                     </div>
                     <div class="form-field">
                       <label class="form-field__label">推奨ラベル</label>
@@ -271,12 +271,12 @@
                     </div>
                     <div class="form-field">
                       <label class="form-field__label">優先度</label>
-                      <select class="form-control app-select" formControlName="priority">
+                      <app-ui-select formControlName="priority">
                         <option value="urgent">urgent</option>
                         <option value="high">high</option>
                         <option value="medium">medium</option>
                         <option value="low">low</option>
-                      </select>
+                      </app-ui-select>
                     </div>
                     <div class="form-field">
                       <label class="form-field__label">期限目安 (日)</label>

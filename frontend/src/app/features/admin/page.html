@@ -126,10 +126,10 @@
           </label>
           <label class="form-field">
             <span class="form-field__label">レベル</span>
-            <select class="form-control app-select" name="competency-level" formControlName="level">
+            <app-ui-select name="competency-level" formControlName="level">
               <option value="junior">初級 (3段階)</option>
               <option value="intermediate">中級 (5段階)</option>
-            </select>
+            </app-ui-select>
           </label>
           <label class="form-field form-field--full">
             <span class="form-field__label">説明</span>
@@ -215,8 +215,7 @@
         <div class="form-grid form-grid--two">
           <label class="form-field">
             <span class="form-field__label">対象ユーザ</span>
-            <select
-              class="form-control app-select"
+            <app-ui-select
               formControlName="userId"
               name="evaluation-user"
               required
@@ -225,12 +224,11 @@
               @for (user of users(); track user.id) {
                 <option [value]="user.id">{{ user.email }}</option>
               }
-            </select>
+            </app-ui-select>
           </label>
           <label class="form-field">
             <span class="form-field__label">コンピテンシー</span>
-            <select
-              class="form-control app-select"
+            <app-ui-select
               formControlName="competencyId"
               name="evaluation-competency"
               required
@@ -239,7 +237,7 @@
               @for (competency of competencies(); track competency.id) {
                 <option [value]="competency.id">{{ competency.name }}</option>
               }
-            </select>
+            </app-ui-select>
           </label>
           <label class="form-field">
             <span class="form-field__label">評価開始日</span>
@@ -422,7 +420,7 @@
       <form class="page-form" [formGroup]="apiForm" (submit)="updateApiCredential($event)">
         <label class="form-field">
           <span class="form-field__label">利用モデル</span>
-          <select class="form-control app-select" name="api-model" formControlName="model">
+          <app-ui-select name="api-model" formControlName="model">
             @if (!isKnownModel(apiForm.controls.model.value)) {
               <option [value]="apiForm.controls.model.value">
                 {{ apiForm.controls.model.value }} (保存済み)
@@ -431,7 +429,7 @@
             @for (option of geminiModelOptions; track option.value) {
               <option [value]="option.value">{{ option.label }}</option>
             }
-          </select>
+          </app-ui-select>
         </label>
 
         <label class="form-field form-field--full">

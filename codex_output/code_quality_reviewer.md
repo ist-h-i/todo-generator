@@ -1,53 +1,37 @@
 **Summary**
+- Build error TS2341 is resolved by making `onTouched` public. Verified in the shared select component.
+- Selector visuals are modernized: single down chevron, vertically centered, with proper right padding via centralized SCSS.
+- React/shadcn Select: provide/setup guidance only (repo is Angular). Minor correctness notes for the pasted code.
 
-- Centralized SCSS update is present and aligns with the minimal plan.
-- Styles now apply to both `.app-select` and `select.form-control` with increased right padding and adjusted caret offsets.
-- Hover, focus, disabled, options, multi/size variants, dark mode, and MS caret hiding are all covered.
+**Angular Fix (TS2341)**
+- Root cause: Angular templates can only access public members; `(blur)="onTouched()"` referenced a private member.
+- Current state: `public onTouched: () => void = () => {};` is defined, so templates can call it.
+  - Template reference: `frontend/src/app/shared/ui/select/ui-select.ts:34`
+  - Public member: `frontend/src/app/shared/ui/select/ui-select.ts:52`
+- `registerOnTouched(fn)` correctly assigns to the public field: `frontend/src/app/shared/ui/select/ui-select.ts:60`.
+- No other template references to private members found.
 
-**What I Checked**
+**Selector Design (CSS)**
+- Global rule applies to both `.app-select` and `select.form-control`: `frontend/src/styles/pages/_base.scss:78`
+- Changes meet the request:
+  - Simple single down chevron via inline SVG; inherits `currentColor`: `frontend/src/styles/pages/_base.scss:101`
+  - Vertically centered icon: `background-position: right 1.6rem center;` `frontend/src/styles/pages/_base.scss:103`
+  - Comfortable right padding to avoid flush caret: `frontend/src/styles/pages/_base.scss:92`
+  - States: hover/focus/disabled and dark theme variants covered: `frontend/src/styles/pages/_base.scss:111`, `frontend/src/styles/pages/_base.scss:122`, `frontend/src/styles/pages/_base.scss:136`, `frontend/src/styles/pages/_base.scss:153`
+  - Multi/size>1 hides caret and resets padding: `frontend/src/styles/pages/_base.scss:164`
+- Note: `color-mix()` is used; ensure target browsers support it or accept graceful degradation.
 
-- Base selector: `frontend/src/styles/pages/_base.scss:85` includes `.app-select, select.form-control` with:
-  - Padding set to `0.85rem calc(1.1rem + 2.25rem) 0.85rem 1.1rem`.
-  - Caret positions at `calc(100% - 1.85rem)` and `calc(100% - 1.35rem)`.
-- States and variants extended:
-  - Hover: `frontend/src/styles/pages/_base.scss:129`
-  - Focus-visible: `frontend/src/styles/pages/_base.scss:138`
-  - Disabled: `frontend/src/styles/pages/_base.scss:149`
-  - Options: `frontend/src/styles/pages/_base.scss:168`
-  - Multiple/size: `frontend/src/styles/pages/_base.scss:174`
-  - Dark theme variants: `frontend/src/styles/pages/_base.scss:184, 204, 213, 220`
-  - IE arrow: `frontend/src/styles/pages/_base.scss:225`
-- Coverage: All `<select>` usage spots are either `.app-select` or `.form-control` (including one `select.form-control` at `frontend/src/app/features/reports/reports-page.component.html:255`), so the extension achieves app-wide impact without template changes.
+**React/shadcn Select (Integration Notes)**
+- This repo is Angular-only; integrate in a React app when available.
+- Components folder: use `components/ui` (shadcn convention). Rationale: shadcn CLI scaffolds and docs assume this path; keeps primitives discoverable.
+- Ensure `@/lib/utils` `cn` helper exists and Tailwind/shadcn tokens (e.g., `bg-background`, `border-input`) are configured.
+- Dependencies to install in the React app: `@radix-ui/react-select`, `@radix-ui/react-icons`.
+- Minor correctness fix in the pasted Select: ensure this class name is exactly as provided in your original snippet:
+  - `max-h-[min(24rem,var(--radix-select-content-available-height))]` (avoid the typo `max-h=[min(...)]`).
 
-**Quality Notes**
+**Risks / Follow-ups**
+- RTL: current CSS uses physical `right`; if RTL is required, consider logical properties in a follow-up.
+- High-contrast/forced colors: optionally hide the chevron image in forced-colors mode to avoid visibility issues.
 
-- Readability: Clear comments annotate the padding and caret tweaks.
-- Consistency: Uses existing color tokens, transitions, and mirrors `.form-control` radius (1.25rem).
-- Accessibility: `:focus-visible` provides a visible outline and accent ring; disabled state communicates non-interactive affordance.
-- Density: `min-height: 3rem` (~48px) is appropriate for touch targets.
-
-**Edge Cases**
-
-- Multi-select/size > 1 correctly hides the caret and adjusts padding.
-- Specificity ensures select-specific focus styles override generic `.form-control` focus.
-- Dark theme inherits the outline color via `var(--accent)` and adds appropriate focus glow.
-
-**Residual Risks / Open Questions**
-
-- RTL: Current spacing uses physical sides (right). If RTL is required, consider logical properties to flip caret and padding automatically.
-- Visual drift: `select.form-control` on pages that previously used neutral input styling will now adopt the modern select look; audit critical forms.
-- Browser support: `color-mix()` requires modern browsers (already used elsewhere in the project).
-
-**Lightweight Suggestions (Optional, Non-blocking)**
-
-- RTL friendliness: Consider `padding-inline-end` and `background-position: right 1.85rem center, right 1.35rem center;` to adapt automatically in RTL contexts.
-- Tokens: If a consistent radius token is desired, align `1.25rem` to an existing variable (e.g., add `--radius-md`), but keep as-is if `.form-control` intentionally uses 1.25rem.
-
-**Verification Pointers**
-
-- Reports status select (no `.app-select`): `frontend/src/app/features/reports/reports-page.component.html:255`
-- App-select examples:
-  - Settings: `frontend/src/app/features/settings/page.html:247`, `frontend/src/app/features/settings/page.html:426`
-  - Board: `frontend/src/app/features/board/page.html:564`, `frontend/src/app/features/board/page.html:729`
-  - Admin/Analyze examples listed by rg results
-- Check default/hover/focus/disabled in light/dark, multi/size variants, and small widths for caret spacing.
+**Verdict**
+- Approve. The Angular build blocker is addressed (`onTouched` is public), and the selector redesign is centralized, minimal, and meets requirements. React/shadcn component is ready to add when a React app exists (with the noted class fix).
