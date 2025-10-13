@@ -1,52 +1,60 @@
 **Request Summary**
-- Modernize all app selectors: trigger and the options panel (dropdown content).
-- Provide a reusable UI component and apply it app‑wide.
-- A React/shadcn Select component was provided; use it if the stack supports it, otherwise give setup guidance.
+- Modernize all app selectors and ensure the trigger chevron is vertically centered and simple.
+- Fix dark mode where the down-arrow blends into the background by matching icon and text color.
+- Integrate a provided Select component (Radix + shadcn style) into a project that supports shadcn structure, Tailwind, and TypeScript; provide setup instructions if missing.
+- Place components under `components/ui`; explain why and create if absent.
 
-**Repo Reality (observed)**
-- The app is Angular (paths such as `frontend/src/app/...` and a prior Angular build error).
-- TypeScript is present (Angular).
-- Styling currently uses SCSS (e.g., `frontend/src/styles/pages/_base.scss`), Tailwind not confirmed.
-- Shared Angular UI components likely live under `frontend/src/app/shared/ui/...` (e.g., `.../ui/select/`).
+**Context & Mismatch**
+- Existing repo evidence shows Angular (templates, SCSS, Angular compiler error).
+- The provided component is React (Radix UI) targeting a shadcn/Next.js-style structure.
+- Two viable paths:
+  - React path: add shadcn UI structure and the Radix Select as-is (requires React environment).
+  - Angular path: implement a visually equivalent custom select and dark-mode color fix in Angular, keeping minimal change.
 
-**Assumptions**
-- Introducing React + shadcn into an Angular app would be high-impact and conflicts with “minimal changes”.
-- Goal is visual/design parity (modern look) more than adopting a specific library.
-- “Modern options panel” implies custom-rendered dropdown content (radius, shadow, focus states, labels/separators, keyboard support), not the unstyleable native `<select>` dropdown.
+**Key Assumptions**
+- Goal is design parity (look/feel), not changing app behavior.
+- Dark mode color issue means chevron should inherit text color (use `text-current` or remove custom color).
+- If current app is Angular-only, React code will not be executed; instead, replicate styling and behavior.
 
 **Constraints**
-- Keep scope minimal; avoid cross‑framework migration.
-- Deliver a complete, self‑contained outcome without breaking existing flows.
-- Respect existing theming/tokens and dark mode where applicable.
+- Minimal, centralized changes; avoid broad refactors.
+- Deliver a finished, self-contained outcome.
+- Keep existing spacing, radius, and tokens consistent; only adjust as needed.
 
-**Approach Options**
-- Angular‑native (recommended for minimal impact):
-  - Provide/extend an Angular `UiSelectComponent` (in `frontend/src/app/shared/ui/select/`) that renders a custom panel (via CDK Overlay or existing solution), and style it to match the “modern” spec: rounded corners, subtle border, elevation, constrained max-height with smooth scrolling, focus/active highlights, separators/labels, disabled states.
-  - Continue centralized SCSS token usage (and any dark mode variants) in existing styles (e.g., `_base.scss`) or component-scoped styles.
-- React/shadcn path (only if the app is React or a new React area exists):
-  - Use shadcn project conventions with `@/components/ui/select` and `@/lib/utils`.
-  - Install `@radix-ui/react-select` and `@radix-ui/react-icons`.
-  - Add the provided `select.tsx`, `demo.tsx`, and `label` component under `/components/ui/` and wire Tailwind.
+**Dependencies (React path)**
+- NPM: `@radix-ui/react-icons`, `@radix-ui/react-select`
+- Tailwind CSS configured; shadcn project structure present.
+- `cn` helper in `@/lib/utils` (create if missing with `clsx`/`tailwind-merge`).
 
 **Default Paths**
-- shadcn (React): components under `/components/ui`, utilities under `/lib/utils`, global styles in `app/globals.css` (or Tailwind entry).
-- This repo (Angular): shared UI under `frontend/src/app/shared/ui/...`; shared styles in `frontend/src/styles/...` (e.g., `_base.scss`).
-- If `/components/ui` does not exist (Angular app), creating it for React components is not appropriate; instead keep Angular components under `frontend/src/app/shared/ui/` for consistency.
+- shadcn default: `components/ui` for UI primitives, `lib/utils.ts` for `cn`.
+- If your project’s components aren’t under `/components/ui`, create it to align with shadcn conventions (consistent imports, reuse, theming). Styles live in Tailwind config and global CSS (e.g., `app/globals.css` or `src/styles/globals.css`).
 
-**Dependencies**
-- React path: `@radix-ui/react-select`, `@radix-ui/react-icons` (and Tailwind + shadcn CLI).
-- Angular path: no React deps; if icons are needed, use inline SVG or an Angular-friendly icon set (lucide-angular or SVG assets) rather than `lucide-react`.
+**What to Copy**
+- `components/ui/select.tsx` (provided Select implementation).
+- `components/ui/label.tsx` (originui/label).
+- Optional demo: place `demo.tsx` where your app can render it (e.g., `app/(demo)/select-demo/page.tsx` or a stories file).
 
-**Unknowns**
-- Is Tailwind already configured in this repo?
-- Is there an existing Angular overlay/select implementation we should extend rather than create anew?
-- Theming requirements for the panel (light/dark, density, animations).
-- Scope of rollout: global replacement vs. targeted modules.
+**Dark Mode Fix (React path)**
+- Make the trigger icon match text color: set `className="text-current"` on `ChevronDownIcon` (or remove any `text-*` color to inherit).
+- Ensure trigger text color already swaps correctly in dark mode (Tailwind `text-foreground`).
+
+**Angular Path (if staying Angular)**
+- Keep changes minimal by centralizing CSS/SCSS:
+  - Use a simple chevron via CSS gradients or an inline SVG as background.
+  - Ensure vertical centering with `background-position: right <space> center`.
+  - In dark mode, set `color` for the control and use `currentColor` in the chevron so the icon matches text.
+- If a shared Angular Select exists (`src/app/shared/ui/select/ui-select.*`), update its template to use an inline SVG with `fill="currentColor"` and ensure dark-mode text color applies, or keep background-image approach but switch to `currentColor`.
+- Preserve focus, hover, disabled, multi/size variants.
+
+**Setup (if React/shadcn/TW/TS missing)**
+- Initialize TS and Tailwind; install and configure Tailwind.
+- Install shadcn UI CLI, run init, and adopt `components/ui` + `lib/utils.ts`.
+- Install `@radix-ui/react-icons` and `@radix-ui/react-select`.
 
 **Clarifying Questions**
-- Confirm: this repository is Angular-only; should we avoid introducing React/shadcn and implement an Angular `UiSelectComponent` with a modern options panel?
-- If Tailwind is desired in Angular, is it already installed? If not, do you want Tailwind added, or should we stick to SCSS tokens?
-- Do we need keyboard navigation parity (arrow keys, typeahead) and ARIA roles for the custom panel?
-- Any must-have panel features (labels, separators, groups, scroll buttons, max height, animations)?
-- Pages to verify first (e.g., Settings, Board, Reports) and any exclusions from the new style?
-- Icon style specifics for the trigger and selected/active item (size/weight, chevron only)?
+- Is the target app Angular-only, or do you intend to add a React/shadcn sub-app?
+- If Angular-only, do you prefer a pure CSS solution (background chevron) or an inline SVG icon?
+- Do you already use Tailwind in the project? If not, should we keep SCSS-based styling?
+- Which pages/components should show the new select first for validation?
+- Any RTL or high-contrast (forced colors) requirements we should account for?

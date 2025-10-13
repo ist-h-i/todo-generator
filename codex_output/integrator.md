@@ -1,31 +1,31 @@
-**Summary**
-- Modernized the select options panel and finalized the trigger icon alignment.
-- Kept changes minimal and Angular‑native; no new deps or framework shifts.
+**Status**
+- Dark-mode arrow now matches text color for both native selects and the shared Angular UiSelect. No additional code changes required.
 
-**What Changed**
-- Updated `frontend/src/app/shared/ui/select/ui-select.ts:1`:
-  - Hidden native select is now unfocusable/hidden to AT: adds `tabindex="-1" aria-hidden="true" inert`.
-  - Options panel styling: rounded radius, subtle border, elevated shadow, smooth open animation, constrained max-height with scrolling.
-  - Keyboard UX polish: visual “active” state for the focused option (`.is-active`) + focus-visible outline; dark-mode variants included.
-  - Retains simple down chevron SVG on the trigger, centered and modern.
+**What Ensures The Match**
+- UiSelect caret inherits text color:
+  - `frontend/src/app/shared/ui/select/ui-select.ts:122` → `.ui-select__icon { ... color: currentColor; }`
+  - Inline SVG uses `stroke="currentColor"`: `frontend/src/app/shared/ui/select/ui-select.ts:41`
+- Native `<select>` caret inherits text color in both themes:
+  - `frontend/src/styles/pages/_base.scss:106` → background SVG with `stroke='currentColor'`
+  - Dark theme keeps the same approach: `frontend/src/styles/pages/_base.scss:167`
 
-**Why**
-- “Make the options panel modern” while keeping scope small and consistent with existing SCSS tokens.
-- Fixes prior a11y/focus issue where the hidden native select could still be focused.
+**Related Fix Already Applied**
+- Template blur handler access error resolved: `onTouched` is public
+  - `frontend/src/app/shared/ui/select/ui-select.ts:208` (public `onTouched`)
 
 **Verify**
-- Build frontend and smoke test Admin/Reports pages using `<app-ui-select>`:
-  - Trigger renders a simple, centered down chevron with balanced spacing.
-  - Panel opens below the trigger with rounded corners, shadow, clean hover/selected/active states, proper z-index, and smooth animation.
-  - Keyboard: ArrowUp/Down moves the active row, Enter selects, Esc closes; focus ring visible.
-  - Hidden native select no longer receives focus.
+- Switch to dark mode and check:
+  - UiSelect triggers: `frontend/src/app/features/reports/reports-page.component.html:255`, `:274`
+  - Native selects: `frontend/src/app/features/settings/page.html:249`, `:428`, `frontend/src/app/features/board/page.html:565`, `:730`
+- Build: `cd frontend && npm ci && npm run build`
 
-**Project Paths / Stack**
-- This repo is Angular + SCSS; shared UI lives under `frontend/src/app/shared/ui/` and base styles under `frontend/src/styles/`.
-- React/shadcn is not introduced to avoid scope creep. For React projects, default paths would be `/components/ui` with Tailwind and `@/lib/utils`; not applicable here.
+**Notes on shadcn/React Select**
+- This repo is Angular. Adding the provided React (Radix) Select would introduce a React runtime, which is out of scope for a minimal, safe change.
+- If you later add a React sub-app:
+  - Component path: `components/ui/select.tsx`, label at `components/ui/label.tsx`
+  - Utils: `lib/utils.ts` for `cn`
+  - Install: `@radix-ui/react-select`, `@radix-ui/react-icons`
+  - Tailwind must be configured; shadcn’s default structure is `components/ui` for primitives.
 
-**Optional Follow‑ups (low effort)**
-- Scroll active option into view on open/arrow navigation.
-- Add Home/End keys and `aria-activedescendant` wiring for full ARIA polish.
-
-If you want, I can implement the active-item scroll and Home/End keys next.
+**Next Step**
+- If any instance still shows a mismatched icon in dark mode, point me to its file, and I’ll align it to use `currentColor` as above.
