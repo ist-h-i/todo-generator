@@ -1,65 +1,62 @@
 **Request Summary**
-- Create a reusable, modern Select UI component and apply it across the app.
-- Integrate the provided React (shadcn-style) component using Tailwind CSS and TypeScript.
-- If the codebase lacks shadcn/Tailwind/TS, provide setup instructions.
-- Standardize component paths; use `/components/ui` (create it and explain why if it doesn’t exist).
-- Add the `select.tsx`, `demo.tsx`, and `label` component; install Radix dependencies.
+- Redesign all selector (dropdown) UIs to a modern, simple style with a vertically centered, single down-arrow icon and comfortable right padding.
+- Fix the Angular build error: TS2341 in `UiSelectComponent` where `(blur)="onTouched()"` references a private member.
+- Integrate a React-based `Select` component (shadcn + Tailwind + TypeScript). If the project isn’t already set up, provide setup instructions.
+- Standardize component paths to `components/ui`; if not present, explain why creating it is important (shadcn conventions).
+- Add dependency `Label` component and install `@radix-ui/react-icons` and `@radix-ui/react-select`.
+- Keep changes minimal and self-contained.
 
 **Assumptions**
-- The app can host React components (Next.js/Vite/CRA or a React micro-frontend).
-- Tailwind and TypeScript are (or can be) enabled without major restructuring.
-- Path alias `@/` is (or can be) configured to project root (tsconfig + tooling).
-- Using the shadcn project structure is acceptable for UI primitives.
-- The provided API boundaries (Radix Select) meet accessibility and design needs.
+- “Selectors” include native `<select>` elements and any shared/custom Angular select component currently used.
+- The Angular error is from a shared UI select (`src/app/shared/ui/select/ui-select.ts`) used across the app.
+- The repository may primarily be Angular; React/shadcn integration likely targets an existing or new React SPA section (e.g., micro-frontend or separate app).
+- Design intent: minimalist chevron (down), vertically centered, adequate right padding, consistent radius/colors, accessible focus states, dark mode parity if present.
 
 **Constraints**
-- Minimize scope and avoid breaking existing features.
-- Deliver a self-contained, working Select with minimal project-wide changes.
-- Keep iconography simple and centered; match “modern” style.
-- Prefer central placement under `/components/ui` for consistency.
+- Minimal scope: smallest viable fix for the Angular error (change visibility/public wrapper).
+- Avoid broad refactors; keep styling centralized where possible.
+- Deliver a finished, self-contained outcome without introducing unrelated tasks.
 
 **Unknowns**
-- Baseline framework: existing app appears Angular in places; is React available?
-- Is there an existing shadcn/Tailwind setup and `/components/ui` convention?
-- Does the project already have `@/lib/utils` with `cn` helper?
-- Existing selector usage: native `<select>`, Angular Material, or custom components?
-- Theming requirements (light/dark, tokens), RTL support, and target browsers.
-- Global replacement strategy: code refactor vs. CSS overrides vs. gradual adoption.
+- Whether this repo already contains a React app with Tailwind and shadcn configured.
+- The desired scope of React integration within an Angular-dominant codebase (micro-frontend, separate app, or future migration).
+- Exact theming tokens (radius, colors) to align with.
+- Required browser support (affects CSS features) and RTL requirements.
 
-**Dependencies Identified**
-- Required: `@radix-ui/react-select`, `@radix-ui/react-icons`
-- React peers: `react`, `react-dom` (v18+)
-- Utility for `cn`: `clsx` and `tailwind-merge` (if `@/lib/utils` not present)
-- Optional: `lucide-react` (only if we replace Radix icons)
+**Angular Error – Likely Root Cause and Minimal Fix**
+- Cause: members used in Angular templates must be public. `onTouched` is private in `UiSelectComponent`, but called via `(blur)="onTouched()"`.
+- Minimal fix options:
+  - Make the property/method public (preferred): `public onTouched = () => {};` and call `(blur)="onTouched?.()"`.
+  - Or add a public wrapper: `public handleBlur() { this.onTouched(); }` and update template to `(blur)="handleBlur()"`.
 
-**Deliverables**
-- `/components/ui/select.tsx` (provided code, shadcn-style)
-- `/components/ui/label.tsx` (originui/label)
-- `@/lib/utils.ts` with `cn` helper (if missing)
-- `/components/ui/select.demo.tsx` (demo usage from provided `demo.tsx`)
-- Setup docs (if needed): shadcn CLI, Tailwind, TS, path alias configuration
-- Guidance to apply the component app-wide with minimal churn
+**React/shadcn Integration Targets**
+- Default components path: `components/ui` (shadcn convention). Important because:
+  - shadcn CLI scaffolds components and styles expecting this structure.
+  - Keeps UI primitives discoverable and standardized across the app.
+- Files to add:
+  - `components/ui/select.tsx` (provided)
+  - `components/ui/label.tsx` (provided)
+  - `demo.tsx` usage example (optional or in a storybook/sandbox route)
+- Dependencies to install:
+  - `@radix-ui/react-icons`
+  - `@radix-ui/react-select`
+
+**If Project Lacks shadcn/Tailwind/TS**
+- Provide setup instructions:
+  - Initialize a React app with TypeScript (e.g., Next.js with `create-next-app --ts`).
+  - Install Tailwind CSS and configure `tailwind.config.ts`, `postcss.config.js`, and global CSS.
+  - Install and initialize shadcn UI (`npx shadcn@latest init`) and confirm `components/ui` structure.
+  - Add the `cn` utility under `lib/utils.ts` and configure the `@/` alias.
 
 **Acceptance Criteria**
-- Select trigger icon is a simple down chevron, vertically centered.
-- Component compiles and renders with Tailwind styles.
-- No runtime errors; TypeScript types pass.
-- Demo page/component shows working Select with default value and items.
-- Clear instructions exist if the stack isn’t yet shadcn/Tailwind/TS-ready.
-- Pathing aligns to `/components/ui` with `@/` imports.
-
-**Risks/Mitigations**
-- Angular vs React mismatch: confirm feasibility; otherwise propose an Angular-equivalent or a CSS-first solution while planning React integration separately.
-- Global replacement churn: propose incremental adoption (shared wrapper or adapter) to minimize code changes.
-- Theming/RTL: note as follow-ups if not immediately required.
+- Angular build passes; no TS2341 error from `UiSelectComponent`.
+- App-wide selector visuals: modern, simple down-arrow, vertically centered; adequate right padding; accessible focus state; disabled state clear; dark mode parity if relevant.
+- React `Select` component and `Label` added under `components/ui`, ready for use; dependencies installed (or clear setup instructions provided if React stack absent).
+- Clear note on why `components/ui` path is used and required.
 
 **Clarifying Questions**
-- Is the current app React-based, Angular-based, or hybrid? If Angular-only, should we: a) deliver an Angular Select, or b) add React via micro-frontend/custom elements?
-- Does the repository already have Tailwind, shadcn structure, and `/components/ui`?
-- Do we already have `@/lib/utils` with a `cn` helper, or should we add it?
-- Are there existing design tokens (colors/radius/spacing) to match for the Select?
-- Must we replace all existing selectors now, or stage adoption (new screens first)?
-- Any pages/components that must retain their current selector styling?
-- Do we need dark mode and RTL behavior in this iteration?
-- Is swapping Radix icons to `lucide-react` preferred, or keep Radix icons as provided?
-
+- Is there an existing React (Next.js) app in this repo, or should we provide setup steps for a new React app alongside the Angular app?
+- Should the React `Select` be used immediately in production UI, or just prepared for future use while Angular selectors get the CSS redesign now?
+- Are RTL and older browser support (impacting CSS like `color-mix`) required?
+- Any pages/components that must keep their current selector look and be excluded from the global update?
+- Do you want the Angular selector’s icon implemented purely via CSS (no template/TS changes beyond the TS fix), or is a shared Angular UI component update acceptable?

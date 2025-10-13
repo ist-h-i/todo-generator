@@ -4,14 +4,5 @@
     "code_quality_reviewer",
     "integrator"
   ],
-  "source": "planner",
-  "planner_payload": {
-    "steps": [
-      "coder",
-      "code_quality_reviewer",
-      "integrator"
-    ],
-    "notes": "Implement an Angular Select UI component (standalone CVA) under frontend/src/app/shared/ui/select that wraps native <select> and applies existing classes (form-control app-select) to inherit the modern design already defined in _base.scss. Replace the 4 current native selects in Reports and Admin templates with the new component, preserving projected <option> content and reactive forms bindings. Do not introduce React/shadcn/Radix; this is an Angular repo with Tailwind and TS already set up. Keep centralized CSS so any remaining selects continue to match the new design.",
-    "tests": "- Compile frontend and run locally.\n- On Reports and Admin pages, verify: (1) component binds with formControlName (value/disabled/dirty/touched propagate), (2) options render and selection updates form state, (3) focus-visible ring and hover/disabled states match, (4) chevron icon remains vertically centered and spaced, (5) no regressions for any remaining native selects due to global styles."
-  }
+  "source": "fallback"
 }

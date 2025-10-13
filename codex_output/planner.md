@@ -1,52 +1,47 @@
-Summary
-- The frontend is Angular (standalone components), not React.
-- Tailwind CSS and TypeScript are already configured.
-- App-wide select styling is centralized in frontend/src/styles/pages/_base.scss and already implements a modern, vertically centered chevron.
-- No shadcn or React structure exists; adding React/Radix would be invasive here.
+**Plan Summary**
+- Fix Angular TS error by making `onTouched` public where used in templates.
+- Keep selector redesign minimal and centralized (CSS-only).
+- Prepare shadcn React Select for projects that support React; provide setup instructions otherwise.
+- Maintain existing behaviors, states, and theming; avoid broad refactors.
 
-Default Paths
-- Components: frontend/src/app/shared/ui (existing shared UI components live here).
-- Styles: frontend/src/styles.scss (Tailwind layers), frontend/src/styles/pages/_base.scss (central form/select rules).
+**Critical Fix**
+- TS2341 root cause: Angular templates can only access public members.
+- Change in `src/app/shared/ui/select/ui-select.ts:34` implies `(blur)="onTouched()"`.
+- Minimal change: make the field public so templates can call it:
+  - Ensure `onTouched` is declared as `public onTouched: () => void = () => {};` and assigned in `registerOnTouched`.
+  - If you prefer no visibility change, add `public handleBlur() { this.onTouched(); }` and update template to `(blur)="handleBlur()"` (slightly larger impact).
+- Sanity check other template-accessed members like `onChange` for the same issue.
 
-Why not /components/ui
-- /components/ui is a shadcn (React) convention used by its CLI and Next.js/Vite setups.
-- In this Angular repo, creating /components/ui would fragment the UI layer and introduce React-only files that don’t compile. Keeping UI parts under frontend/src/app/shared/ui remains consistent, minimizes churn, and fits Angular’s module/standalone imports.
+**Selector Redesign Scope**
+- Keep CSS centralized; do not change templates where possible.
+- Goals:
+  - Simple down chevron, vertically centered.
+  - Adequate right padding so the icon isn’t flush.
+  - Preserve focus-visible, hover, disabled; multi/size>1 hides caret.
+  - Light/dark parity.
+- If not already present, update the shared select rule(s) that cover native `<select>` and shared Angular select wrapper.
 
-Minimal Integration Plan
-- Create Angular Select UI component: frontend/src/app/shared/ui/select/select.ts (standalone, ControlValueAccessor).
-  - Wraps native <select>, projects <option> children.
-  - Applies existing classes form-control app-select so it inherits the new design.
-  - Supports formControlName/ngModel, disabled, name, id, multiple.
-- Replace current native selects (4 instances) with <app-ui-select> while preserving options:
-  - frontend/src/app/features/reports/reports-page.component.html:255, frontend/src/app/features/reports/reports-page.component.html:274
-  - frontend/src/app/features/admin/page.html:129, frontend/src/app/features/admin/page.html:425
-  - Add UiSelectComponent to imports in their page .ts files.
-- Keep global style coverage so any untouched selects still look correct (already done in _base.scss).
+**React/shadcn Integration**
+- Default component and styles path: `components/ui` (shadcn convention).
+  - Why important: shadcn CLI scaffolds and docs assume `components/ui`, making primitives discoverable and consistent.
+- If a React app with Tailwind + shadcn + TS exists:
+  - Add `components/ui/select.tsx` and `components/ui/label.tsx` (provided code).
+  - Ensure `@/lib/utils` exports `cn`.
+  - Install: `@radix-ui/react-icons` and `@radix-ui/react-select`.
+  - Optional: add `demo.tsx` to a sandbox/story route.
+- If no React app:
+  - Provide setup instructions (Next.js TS, Tailwind, shadcn init, `@/` alias, add `cn` util) without modifying Angular app structure.
 
-Dependencies
-- Do not install @radix-ui/react-select or @radix-ui/react-icons (React-only).
-- No new NPM packages required for Angular implementation.
+**Assumptions/Questions**
+- Are any other private members used in templates (`onChange`, etc.)?
+- Should the React select be integrated now, or prepped for future?
+- Any pages/components that must be excluded from the global CSS update?
+- RTL and older browser support requirements?
 
-If React/shadcn is required later
-- Only applicable if a React app is present. Then:
-  - Setup shadcn CLI, ensure Tailwind and TS configured.
-  - Create /components/ui, add select.tsx and label.tsx, and @/lib/utils.ts (cn helper).
-  - Install @radix-ui/react-select and @radix-ui/react-icons.
-  - Not recommended in this Angular-only repo.
-
-Risks
-- Changing templates to use <app-ui-select> must maintain reactive forms behavior; CVA will address this.
-- Multi-select and size>1 behavior should match CSS variants (component should pass the attributes through).
-
-Questions
-- Any multi-select use cases to support now?
-- Should we add a size/density input (e.g., compact) or stick to current tokens?
-- Any pages that must retain current native <select> markup (no component swap)?
-
-Verification
-- Build and smoke test the two pages (Reports, Admin): default/hover/focus/disabled, values bind correctly, keyboard/focus ring present, options render, icon is centered.
-- Confirm any remaining native selects still look correct via the centralized CSS.
+**Risk Control**
+- Visibility change is safe and minimal; wrapper alternative is available.
+- CSS-only icon ensures no runtime risk; keep specificity modest to avoid regressions.
+- React component addition gated by project presence; otherwise, documented setup only.
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Implement an Angular Select UI component (standalone CVA) under frontend/src/app/shared/ui/select that wraps native <select> and applies existing classes (form-control app-select) to inherit the modern design already defined in _base.scss. Replace the 4 current native selects in Reports and Admin templates with the new component, preserving projected <option> content and reactive forms bindings. Do not introduce React/shadcn/Radix; this is an Angular repo with Tailwind and TS already set up. Keep centralized CSS so any remaining selects continue to match the new design.","tests":"- Compile frontend and run locally.\n- On Reports and Admin pages, verify: (1) component binds with formControlName (value/disabled/dirty/touched propagate), (2) options render and selection updates form state, (3) focus-visible ring and hover/disabled states match, (4) chevron icon remains vertically centered and spaced, (5) no regressions for any remaining native selects due to global styles."}
-```
+{"steps":["coder","code_quality_reviewer","integrator"],"notes":"1) Fix TS2341 by making `onTouched` public in `src/app/shared/ui/select/ui-select.ts` (or add a public `handleBlur()` wrapper and update the template). Verify any other template-referenced members are public. 2) Centralize selector redesign via CSS: vertically centered simple down chevron, adequate right padding, preserve focus/hover/disabled and multi/size>1 rules, maintain light/dark parity. 3) React/shadcn: if a React app exists, add `components/ui/select.tsx` and `components/ui/label.tsx`, ensure `@/lib/utils` `cn` util, install `@radix-ui/react-select` and `@radix-ui/react-icons`, optionally add `demo.tsx`. If not, provide concise setup instructions (Next.js TS + Tailwind + shadcn) and rationale for `components/ui` path.","tests":"Angular: run `npm ci && npm run build` for the frontend; expect no TS2341. Manually verify select triggers across key pages: arrow is a single down chevron, vertically centered, with comfortable right padding; focus-visible ring, hover, disabled; multi/select size>1 hides caret; dark theme parity if applicable. If React app exists: `npm i @radix-ui/react-select @radix-ui/react-icons`, render the demo and verify keyboard navigation, focus ring, and viewport scrolling. Lint/type-check both stacks."}
