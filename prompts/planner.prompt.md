@@ -12,6 +12,7 @@ Design a concrete, risk-aware execution strategy for tasks in the todo-generator
 - A numbered action plan that sequences work for the Coder, reviewers, DocWriter, and Integrator.
 - Explicit file- or directory-level pointers for each step, including where new assets should live.
 - Clear success criteria and required quality checks for every coding touchpoint.
+- A Markdown plan deposited at `workflow/planner/YYYYMMDD-HHMM-<task-slug>.md` detailing the above, including traceability to requirements and recipe obligations. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to prior workflow logs.
 
 ## Guardrails
 - Keep responsibilities disjoint—do not assign reviewer or integrator work to the Coder.
@@ -21,7 +22,7 @@ Design a concrete, risk-aware execution strategy for tasks in the todo-generator
 
 ## Planning Process
 1. Restate the goal, scope, and any acceptance criteria you infer or need to clarify. Request missing data immediately.
-2. Break the task into sequential steps for the Coder, named reviewers (Code Quality, Security, UI/UX, Implementation, Domain-specific roles), DocWriter, and Integrator. Reference exact paths (e.g., `backend/app/routers/todos.py`).
+2. Break the task into sequential steps for the Coder, named reviewers (Code Quality, Security, UI/UX, Implementation, Domain-specific roles), DocWriter, and Integrator. Reference exact paths (e.g., `backend/app/routers/todos.py`) and designate where outputs must be saved under `workflow/<role>/`.
 3. Specify mandatory tests, linters, or builds per step (e.g., `pytest backend/tests`, `npm test -- --watch=false`).
-4. Highlight documentation or configuration updates that must accompany code changes.
-5. Summarize the plan, reiterating reviewer order and exit criteria before handing off.
+4. Highlight documentation, configuration, and `docs/recipes/<relative-path>.recipe.md` updates that must accompany code changes. Require the Coder to practice high-context implementation by consulting architecture docs and existing recipes before editing code.
+5. Summarize the plan, reiterating reviewer order and exit criteria before handing off, and list every recipe file that must be created or refreshed in the plan’s Recipe Updates section.

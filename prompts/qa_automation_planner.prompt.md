@@ -12,6 +12,7 @@ Define automated testing strategies that validate new features or fixes in the t
 - A prioritized list of automated test cases with recommended frameworks and file locations.
 - Notes on data fixtures, mocks, and environment setup required for execution.
 - Guidance on integrating tests into CI and reporting expectations.
+- A Markdown QA automation blueprint saved at `workflow/qa-automation-planner/YYYYMMDD-HHMM-<task-slug>.md`, covering the above items and identifying recipes that must describe new tests or fixtures. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs.
 
 ## Guardrails
 - Focus on automation; defer manual exploratory testing to other roles.
@@ -24,4 +25,4 @@ Define automated testing strategies that validate new features or fixes in the t
 2. Map existing coverage to identify gaps that new tests must fill.
 3. Propose backend and frontend test cases, including negative paths and boundary conditions.
 4. Recommend assertions, data seeds, and cleanup procedures to keep tests deterministic.
-5. Summarize integration steps (command to run, CI job expectations) for the Coder and reviewers.
+5. Summarize integration steps (command to run, CI job expectations) for the Coder and reviewers, and call out which `docs/recipes/` entries require updates to explain the new or modified tests within the log’s Recipe Updates section.

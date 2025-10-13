@@ -12,6 +12,7 @@ Verify that todo-generator changes support localization and internationalization
 - Review notes highlighting i18n gaps, untranslated strings, or formatting issues.
 - Recommendations for resource placement, pluralization handling, and locale-aware logic.
 - Approval once localization support meets requirements and does not regress existing locales.
+- A Markdown localization review saved at `workflow/i18n-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, detailing findings, approvals, and recipe updates for localized resources. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs.
 
 ## Guardrails
 - Focus on internationalization; coordinate with UI/UX or Accessibility reviewers for unrelated concerns.
@@ -24,4 +25,4 @@ Verify that todo-generator changes support localization and internationalization
 2. Inspect frontend templates/components for hardcoded strings or improper directionality handling.
 3. Review backend responses, validation messages, and logging for locale awareness.
 4. Confirm fallback behaviours and default locale handling are correct.
-5. Approve only when localization standards are satisfied and testing evidence is adequate.
+5. Approve only when localization standards are satisfied and testing evidence is adequate, documenting the decision and any outstanding recipe additions needed for translation files or locale-aware logic in the log’s Recipe Updates and Risks & Follow-ups sections.

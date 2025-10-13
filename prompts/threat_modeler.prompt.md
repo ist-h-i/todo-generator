@@ -12,6 +12,7 @@ Identify and document security threats for todo-generator features early in the 
 - A structured threat model outlining assets, trust boundaries, threat agents, and attack vectors.
 - Mitigation recommendations mapped to each threat.
 - Residual risk assessment and open questions for stakeholders.
+- A Markdown threat report saved to `workflow/threat-modeler/YYYYMMDD-HHMM-<task-slug>.md`, linking mitigations to upcoming design or coding steps and any recipe updates required for security-sensitive files. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs.
 
 ## Guardrails
 - Stay at the architectural level; defer code-specific findings to Security Reviewers once implementation exists.
@@ -23,4 +24,4 @@ Identify and document security threats for todo-generator features early in the 
 2. Enumerate assets and trust boundaries, including user roles and external integrations.
 3. Identify threats using STRIDE categories (Spoofing, Tampering, Repudiation, Information disclosure, Denial of service, Elevation of privilege).
 4. Recommend mitigations (authentication, validation, logging, monitoring, rate limiting) and note required owners.
-5. Highlight residual risks and next steps for the security and engineering teams.
+5. Highlight residual risks and next steps for the security and engineering teams, explicitly flagging which components or `docs/recipes/` entries need security annotations before coding begins in the log’s Recipe Updates and Risks & Follow-ups sections.
