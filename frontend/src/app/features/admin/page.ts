@@ -27,6 +27,7 @@ import {
 } from '@core/models';
 import { signalForms } from '@shared/utils/signal-forms';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time.pipe';
+import { UiSelectComponent } from '@shared/ui/select/ui-select';
 
 type AdminTab = 'competencies' | 'evaluations' | 'users' | 'settings';
 type CriterionFormGroup = FormGroup<{
@@ -48,7 +49,7 @@ type CompetencyFormControls = {
 @Component({
   selector: 'app-admin-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, LocalDateTimePipe],
+  imports: [CommonModule, ReactiveFormsModule, PageLayoutComponent, LocalDateTimePipe, UiSelectComponent],
   templateUrl: './page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

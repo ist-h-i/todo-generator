@@ -1,50 +1,38 @@
-**Integration Check**
+**Fix Applied**
 
-- Centralized SCSS update is present and matches the plan; no template or TS changes required.
-- Base selector block extends to both `.app-select` and `select.form-control`, increases right padding, and shifts caret positions.
-  - frontend/src/styles/pages/_base.scss:85
-  - Padding: `0.85rem calc(1.1rem + 2.25rem) 0.85rem 1.1rem` (added caret space).
-  - Caret positions: `calc(100% - 1.85rem)` and `calc(100% - 1.35rem)`.
-  - Verified states and variants are extended consistently:
-    - Hover: frontend/src/styles/pages/_base.scss:129
-    - Focus-visible: frontend/src/styles/pages/_base.scss:138
-    - Disabled: frontend/src/styles/pages/_base.scss:149
-    - Options: frontend/src/styles/pages/_base.scss:168
-    - Multiple/size: frontend/src/styles/pages/_base.scss:174
-    - Dark theme base/hover/focus/options: frontend/src/styles/pages/_base.scss:184, frontend/src/styles/pages/_base.scss:204, frontend/src/styles/pages/_base.scss:213, frontend/src/styles/pages/_base.scss:220
-    - Hide IE arrow: frontend/src/styles/pages/_base.scss:225
+- Made the template-called touch handler public so Angular AOT stops erroring.
+  - Updated: frontend/src/app/shared/ui/select/ui-select.ts:52
+  - Template call site: frontend/src/app/shared/ui/select/ui-select.ts:34
+  - Details:
+    - onTouched is declared as a public field and initialized: public onTouched: () => void = () => {};
+    - registerOnTouched assigns the provided handler: frontend/src/app/shared/ui/select/ui-select.ts:60
 
-**Coverage Validation**
+**Why This Fix**
+- Angular templates can only access public members. The build error TS2341 occurred because onTouched was private when referenced by (blur)="onTouched()".
 
-- Select usages found for both `.app-select` and plain `select.form-control`; updated rules will apply app-wide without template edits:
-  - Settings selects: frontend/src/app/features/settings/page.html:247, frontend/src/app/features/settings/page.html:426
-  - Board selects: frontend/src/app/features/board/page.html:564, frontend/src/app/features/board/page.html:729
-  - Reports selects (both styles): frontend/src/app/features/reports/reports-page.component.html:255, frontend/src/app/features/reports/reports-page.component.html:274
-  - Additional usage confirmed across Admin/Analyze pages via `rg`.
+**Selector Design Status**
+- Centralized CSS for a modern, vertically centered single down-arrow caret is in place:
+  - Styles: frontend/src/styles/pages/_base.scss:78
+  - Uses inline SVG chevron, padded trigger, hover/focus/disabled, multi-select, and dark mode variants.
 
-**What’s Working**
+**React/shadcn Select (Prep Instructions)**
+- This repo is Angular. If/when you add a React app (e.g., Next.js + Tailwind + shadcn):
+  - Components path (shadcn convention): components/ui
+  - Add files:
+    - components/ui/select.tsx (provided Select)
+    - components/ui/label.tsx (provided Label)
+  - Ensure utility: lib/utils.ts exports cn(...)
+  - Install deps: npm i @radix-ui/react-select @radix-ui/react-icons
+  - Tailwind/shadcn setup: initialize Tailwind, shadcn CLI, and ensure tokens like bg-background, border-input are configured.
 
-- Modernized spacing around the caret; not flush to the edge.
-- States preserved (default/hover/focus/disabled), multi/size variant removes caret.
-- Dark mode variants mirrored; focus-visible outline present.
+**Why components/ui**
+- shadcn CLI scaffolds and docs assume components/ui, keeping primitives standardized and discoverable. It simplifies future component additions and consistency.
 
-**Residual Risks / Open Questions**
+**Next Steps**
+- Build Angular to confirm: cd frontend && npm ci && npm run build
+- If you want, I can add a quick safeguard to use (blur)="onTouched?.()" and scan for other private members referenced in templates.
 
-- Slight visual drift where `select.form-control` previously resembled plain inputs; recommend spot-check of key forms.
-- RTL: Base padding uses physical right; consider logical props for RTL later (non-blocking).
-- If any module has local overrides with higher specificity, may need a small follow-up.
-
-**How To Land Safely**
-
-- Build and smoke test the frontend to ensure SCSS compiles and visuals meet expectations:
-  - Commands: `cd frontend && npm ci && npm run build` (or `npm start` for local preview).
-- Visual checks (light/dark):
-  - Default/hover/focus/disabled on the Settings, Board, and Reports pages noted above.
-  - Multi-select and `size > 1` render without caret; padding correct.
-  - Small widths: caret not clipped and spacing remains.
-- Accessibility:
-  - Confirm keyboard focus ring is visible and no layout shift on focus.
-
-**Optional Follow‑Ups (Non-blocking)**
-
-- RTL friendliness: replace physical right padding/caret positions with `padding-inline-end` and `background-position: right 1.85rem center, right 1.35rem center;` if RTL support is required.
+**Questions**
+- Should the React Select be integrated now (in a separate React app), or just prepped for future?
+- Any RTL or legacy browser constraints for the select visuals?
+- Any modules that should retain current selector styling and be excluded?
