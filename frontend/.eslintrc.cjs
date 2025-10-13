@@ -30,4 +30,13 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
   },
+  overrides: [
+    // Angular ControlValueAccessor requires `writeValue(obj: any)`. Allow in this file only.
+    {
+      files: ['src/app/shared/ui/select/ui-select.ts'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
+    },
+  ],
 };

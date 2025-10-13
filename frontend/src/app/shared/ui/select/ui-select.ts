@@ -183,7 +183,7 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   @Input() placeholder?: string;
 
   disabled = false;
-  value: any = '';
+  value: string | string[] | null = null;
   panelOpen = false;
   selectedLabel = '';
   activeIndex = -1;
@@ -203,7 +203,7 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   }
 
   writeValue(obj: any): void {
-    this.value = obj;
+    this.value = obj as string | string[] | null;
     this.syncLabelFromValue();
   }
   registerOnChange(fn: (val: string | string[] | null) => void): void {
