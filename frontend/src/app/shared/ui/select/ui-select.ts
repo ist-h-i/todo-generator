@@ -118,7 +118,8 @@ import {
 
     .ui-select__trigger { display: inline-flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding-right: 2.5rem; background-image: none !important; }
     .ui-select__value { flex: 1 1 auto; min-width: 0; text-align: left; }
-    .ui-select__icon { display: inline-flex; align-items: center; justify-content: center; color: color-mix(in srgb, var(--text-secondary) 88%, var(--text-primary)); }
+    /* Match icon color to current text color (fixes dark-mode blending) */
+    .ui-select__icon { display: inline-flex; align-items: center; justify-content: center; color: currentColor; }
 
     /* Hidden variant used only for single-select custom panel mode */
     .ui-select__native--hidden { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; appearance: none; }
