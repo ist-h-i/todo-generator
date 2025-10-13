@@ -1,31 +1,32 @@
-Summary
-- README contained no coding rules; no moves/merges were needed.
-- Added a small “Repository guidelines” block with Quick Links to make README a clearer search/index entry point.
+Completed: removed rule text from READMEs, merged unique Angular guidance into the guidelines doc, and added index-style Quick Links.
 
-Changes made
-- Updated `README.md:148` to add:
-  - Quick Links to:
-    - `docs/governance/development-governance-handbook.md`
-    - `docs/guidelines/angular-coding-guidelines.md`
-    - `docs/ui-design-system.md`
-    - `docs/ui-layout-requirements.md`
-  - Short “How to use these guides” instructions
+What changed
+- Angular guidelines updated with unique rules from frontend README:
+  - `docs/guidelines/angular-coding-guidelines.md:11` TypeScript standards updated (arrow functions, avoid manual subscribe, union types).
+  - `docs/guidelines/angular-coding-guidelines.md:22` Naming & file conventions added (camelCase/PascalCase/UPPER_SNAKE_CASE, suffixes, import order, aliases).
+  - `docs/guidelines/angular-coding-guidelines.md:28` State/data flow expanded (Signal Store preference, Resource API/RxResource, error handling via LoggerService).
+  - `docs/guidelines/angular-coding-guidelines.md:65` Security added (DomSanitizer, HttpInterceptor, CSRF).
+- Frontend README: removed “Coding Guidelines” section; added Quick Links block so it acts as an index
+  - `frontend/README.md:50` Repository guidelines + usage bullets with `../docs/...` links.
+- Backend README: added the same Quick Links block near the top
+  - `backend/README.md:16` Repository guidelines + usage bullets with `../docs/...` links.
+- Root README: already index-oriented; no changes.
 
-No other files changed.
+Why this is minimal
+- Consolidates rules in a single authoritative place without duplicating governance/CI/commit policies (already covered in the handbook).
+- Keeps READMEs as searchable entry points without prescriptive guidance.
 
 Validation
-- Link targets exist:
+- No prescriptive rules remain in READMEs:
+  - `rg -n '\b(must|should|never|do not|guideline|ルール)\b' README.md frontend/README.md backend/README.md`
+- Links resolve:
   - `docs/governance/development-governance-handbook.md`
   - `docs/guidelines/angular-coding-guidelines.md`
   - `docs/ui-design-system.md`
   - `docs/ui-layout-requirements.md`
-- README contains no prescriptive coding rules (only a link section). Suggested quick checks:
-  - `rg -n '\b(coding rules|must|should|never|do not|ルール)\b' README.md`
-  - Open `README.md` to verify the new “Repository guidelines” block renders as intended.
+- New Angular topics present:
+  - `RxResource`, `Signal Store`, `union types`, `DomSanitizer`, `LoggerService` in `docs/guidelines/angular-coding-guidelines.md`.
 
-Notes
-- Scope kept minimal (single-file additive edit).
-- Did not alter existing “Documentation & knowledge base” content or ToC to avoid churn.
-
-Open questions
-- Do you want this “Repository guidelines” block promoted near the top and added to the ToC? I kept it within the docs section to minimize diff.
+Residual risks / notes
+- Minor duplication risk if future edits reintroduce similar bullets; current additions are scoped to unique items.
+- I intentionally did not migrate “Conventional Commits” or CI/CD bullets from the frontend README since the Governance Handbook already covers them. If you want explicit cross-links, I can add a sentence referencing the handbook sections.

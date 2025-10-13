@@ -9,7 +9,7 @@
       "coder",
       "code_quality_reviewer"
     ],
-    "notes": "Add a Quick Links block to README and remove/move any coding-rule text if found. Given current repo, README contains no explicit rules; expect an additive Quick Links change only. If any rule-like lines are discovered, merge them into the Angular or Governance docs without duplication.",
-    "tests": "1) Link check: verify README links to docs/governance/development-governance-handbook.md, docs/guidelines/angular-coding-guidelines.md, docs/ui-design-system.md, docs/ui-layout-requirements.md. 2) Grep README for rule keywords (e.g., 'must', 'do not', 'coding', 'guideline', 'lint', 'style', 'naming', 'design tokens') and confirm no prescriptive rules remain. 3) Quick skim of modified docs to ensure headings remain coherent and no duplicate guidance was introduced."
+    "notes": "Move unique Angular guidance from frontend/README.md into docs/guidelines/angular-coding-guidelines.md without duplicating existing bullets; remove the frontend 'Coding Guidelines' section and add a Quick Links block. Add the same Quick Links block to backend/README.md. Root README remains unchanged as it already acts as an index.",
+    "tests": "1) Ensure no prescriptive rules remain in any README: `rg -n '\\b(must|should|never|do not|guideline|ルール)\\b' README.md frontend/README.md backend/README.md`. 2) Validate subfolder Quick Links: check that ../docs/governance/development-governance-handbook.md, ../docs/guidelines/angular-coding-guidelines.md, ../docs/ui-design-system.md, ../docs/ui-layout-requirements.md exist. 3) Confirm Angular guidelines include merged topics by grepping for 'RxResource', 'Signal Store', 'Naming', 'innerHTML'. 4) Manual skim for tone/duplication in docs/guidelines/angular-coding-guidelines.md."
   }
 }

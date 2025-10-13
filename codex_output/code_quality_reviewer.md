@@ -1,25 +1,34 @@
 **Summary**
-- README now acts as an index and contains no prescriptive coding rules. The new “Repository guidelines” block with Quick Links is appropriate and minimal.
+- All READMEs now act as index/entry points; no prescriptive coding rules remain.
+- Unique Angular rules are consolidated into the central guideline doc under `docs/guidelines/`.
 
 **Verification**
-- No rule-like language remains in `README.md` beyond link text (grep check ok).
-- Links resolve:
+- No rule-like language in READMEs (grep clean for must/should/never/do not/guideline/ルール).
+- Root README includes an index-style “Repository guidelines” block: README.md:148.
+- Subfolder READMEs include the same Quick Links and usage notes:
+  - frontend/README.md:50
+  - backend/README.md:16
+- Links resolve correctly (root and subfolders):
   - `docs/governance/development-governance-handbook.md`
   - `docs/guidelines/angular-coding-guidelines.md`
   - `docs/ui-design-system.md`
   - `docs/ui-layout-requirements.md`
-- New section is clearly scoped: `README.md:148` header “Repository guidelines” with links at `README.md:150-153` and usage bullets at `README.md:155-164`.
+- Angular guideline doc contains the migrated topics:
+  - Resource API/RxResource, union types, avoid manual subscribe, Signal Store preference, naming/file/import order, LoggerService, DomSanitizer:
+    - docs/guidelines/angular-coding-guidelines.md:19
+    - docs/guidelines/angular-coding-guidelines.md:25
+    - docs/guidelines/angular-coding-guidelines.md:32
+    - docs/guidelines/angular-coding-guidelines.md:34
+    - docs/guidelines/angular-coding-guidelines.md:66
 
-**Quality/Readability**
-- The section reads as a concise index; tone is consistent with the rest of the README.
-- No duplication introduced in guideline documents; no rewording needed there.
+**Quality/Consistency**
+- Tone and structure are consistent across README and docs.
+- No contradictory guidance found between Governance and Angular docs; frontend/backend-specific items are appropriately scoped.
 
 **Minor Nits (non-blocking)**
-- Small duplication: “Development Governance Handbook” linked in both the quick list (`README.md:150`) and again in usage bullets (`README.md:162`). Consider dropping one to reduce redundancy.
-- Optional ToC tweak: if desired, add a nested ToC entry for “Repository guidelines” under “Documentation & knowledge base” to improve scanability.
-
-**Out of Scope Observations**
-- `README.md` environment-variable table formatting breaks between `DATABASE_URL` and `DEBUG` due to an inserted paragraph; not part of this change but worth a future tidy.
+- Root README environment variable table is broken by an inserted paragraph between rows; consider moving the sentence below the table to restore Markdown rendering: README.md:73–74.
+- Small duplication: Governance link appears both in Quick Links and again in the usage bullets in the same section (could drop the second to reduce redundancy): README.md:150, README.md:162.
+- Optional: Add a nested ToC entry for “Repository guidelines” under “Documentation & knowledge base” to improve scanability.
 
 **Conclusion**
-- Definition of Done met with a minimal diff. No further action required.
+- Definition of Done met with minimal, targeted edits. No further changes required.

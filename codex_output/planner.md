@@ -1,36 +1,51 @@
 Plan summary
 
-- Smallest viable change: README already lacks explicit coding rules. Add a concise Quick Links section to make it a searchable entry point. No need to move content unless we detect rule-like text during audit.
-- Merge step becomes a no-op unless hidden/camouflaged rules are found (e.g., prescriptive “do not use any”, state management mandates, UI token requirements). If found, route Angular items into docs/guidelines/angular-coding-guidelines.md and repo-wide items into docs/governance/development-governance-handbook.md, avoiding duplication where identical guidance exists.
+- Scope is limited to READMEs: root, frontend, backend.
+- Root README already contains an index-style “Repository guidelines” block and no coding rules; no changes needed there.
+- frontend/README.md contains a large “Coding Guidelines” section; move its unique Angular guidance into docs/guidelines/angular-coding-guidelines.md, then remove the section and add a concise Quick Links block.
+- backend/README.md contains no prescriptive rules; add a minimal Quick Links block so it also works as a search/index entry point.
 
-Actions
+Minimal actions
 
-- Audit README for coding-rule content; classify by target (Angular vs. governance).
-- If any rules exist, cut from README and integrate into the correct existing documents, aligning headings and avoiding duplication.
-- Update README to include a short Quick Links section:
-  - docs/governance/development-governance-handbook.md
-  - docs/guidelines/angular-coding-guidelines.md
-  - docs/ui-design-system.md
-  - docs/ui-layout-requirements.md
-- Confirm README functions as index: keep overview/setup, quality commands, and troubleshooting; exclude coding-rule guidance.
+- Merge unique Angular guidance from frontend’s “Coding Guidelines” into the existing Angular guidelines doc without duplicating existing bullets:
+  - Data fetching via Resource API (RxResource).
+  - Prefer Angular Signal Store for global state; reserve NgRx for existing/exceptional cases.
+  - Union types for resource states.
+  - Naming conventions (camelCase, PascalCase, UPPER_SNAKE_CASE; suffix patterns; kebab-case filenames).
+  - Avoid manual subscribe; integrate signals and takeUntilDestroyed.
+  - Error handling patterns (surface via Resource states or try/catch and LoggerService).
+  - Import order (Angular → third-party → application) and absolute aliases.
+  - Brief security note (sanitize innerHTML, centralize via HttpInterceptor, CSRF).
+- Do not copy governance items from frontend README (Conventional Commits, CI/CD) since handbook already covers them; avoids duplication.
+- Replace frontend “Coding Guidelines” section with a Quick Links block pointing to ../docs/… targets.
+- Add the same Quick Links block to backend/README.md using ../docs/… relative links.
 
-Risks and open questions
+Risks and mitigations
 
-- Risk: Subtle rule-like sentences (e.g., “Never use shadows”) embedded as feature descriptions. Mitigation: grep for typical rule keywords and review surrounding sentences before moving.
-- Risk: Duplicating guidance already covered in both Governance and Angular docs. Mitigation: prefer centralizing in Governance for repo-wide rules and link from Angular if necessary; don’t duplicate text.
-- Open question: Any mandated README template or badges to preserve? Current README is consistent and contains no rule sections; change will be additive.
+- Duplication in Angular guidelines: integrate as short bullets into existing sections; avoid repeating content already covered.
+- Broken relative links from subfolders: ensure links use ../docs/... in frontend and backend.
+- Tone/consistency: keep wording aligned with existing guideline style; avoid expanding scope.
 
-Minimal route justification
+Selected stages
 
-- coder: Implement small doc edits and any needed content moves.
-- code_quality_reviewer: Sanity-check tone, duplication, and links; ensure README reads as an index and not a rules doc.
+- coder: implement doc moves and small README edits.
+- code_quality_reviewer: verify links, duplication, and that READMEs contain no prescriptive rules.
 
 Validation
 
-- Link integrity: ensure the four Quick Links resolve.
-- Absence of rules in README: grep for common rule keywords to confirm.
-- No style/structure breakage in target docs.
+- Verify no prescriptive rules remain in READMEs:
+  - grep for rule-like keywords in README.md, frontend/README.md, backend/README.md.
+- Link checks:
+  - Confirm Quick Links resolve from subfolders: ../docs/governance/development-governance-handbook.md, ../docs/guidelines/angular-coding-guidelines.md, ../docs/ui-design-system.md, ../docs/ui-layout-requirements.md.
+- Angular doc merge sanity:
+  - Confirm presence of added topics: “RxResource”, “Signal Store”, “Naming”, “Security”.
+  - Skim to ensure no contradictory guidance.
+
+Open questions
+
+- Placement preference in sub-READMEs: top vs near the bottom; defaulting to a small “Repository guidelines” section near the docs/links area to minimize churn.
+- Language: repository is English-first; keeping edits in English.
 
 ```json
-{"steps":["coder","code_quality_reviewer"],"notes":"Add a Quick Links block to README and remove/move any coding-rule text if found. Given current repo, README contains no explicit rules; expect an additive Quick Links change only. If any rule-like lines are discovered, merge them into the Angular or Governance docs without duplication.","tests":"1) Link check: verify README links to docs/governance/development-governance-handbook.md, docs/guidelines/angular-coding-guidelines.md, docs/ui-design-system.md, docs/ui-layout-requirements.md. 2) Grep README for rule keywords (e.g., 'must', 'do not', 'coding', 'guideline', 'lint', 'style', 'naming', 'design tokens') and confirm no prescriptive rules remain. 3) Quick skim of modified docs to ensure headings remain coherent and no duplicate guidance was introduced."}
+{"steps":["coder","code_quality_reviewer"],"notes":"Move unique Angular guidance from frontend/README.md into docs/guidelines/angular-coding-guidelines.md without duplicating existing bullets; remove the frontend 'Coding Guidelines' section and add a Quick Links block. Add the same Quick Links block to backend/README.md. Root README remains unchanged as it already acts as an index.","tests":"1) Ensure no prescriptive rules remain in any README: `rg -n '\\b(must|should|never|do not|guideline|ルール)\\b' README.md frontend/README.md backend/README.md`. 2) Validate subfolder Quick Links: check that ../docs/governance/development-governance-handbook.md, ../docs/guidelines/angular-coding-guidelines.md, ../docs/ui-design-system.md, ../docs/ui-layout-requirements.md exist. 3) Confirm Angular guidelines include merged topics by grepping for 'RxResource', 'Signal Store', 'Naming', 'innerHTML'. 4) Manual skim for tone/duplication in docs/guidelines/angular-coding-guidelines.md."}
 ```

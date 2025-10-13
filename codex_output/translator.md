@@ -1,54 +1,35 @@
 **Restated Goal (English)**
 
-- Move any coding rules currently in `README` into the appropriate existing guidelines documents, merging them without duplication.
-- Update `README` so it no longer contains coding rules and instead serves as a concise, searchable entry point (an index to key project docs).
+- Remove any coding rules from all READMEs (root and subfolders like `frontend`, `backend`).
+- Merge those rules into the appropriate existing docs under `docs/` so guidance lives in one place.
+- Make READMEs serve as concise, searchable entry points (index/quick links), not rule repositories.
 
 **Assumptions**
 
-- Existing guidelines already live under `docs/`, notably:
-  - `docs/governance/development-governance-handbook.md` (repo structure, backend, quality gates)
-  - `docs/guidelines/angular-coding-guidelines.md` (SPA coding + design)
-  - `docs/ui-design-system.md`, `docs/ui-layout-requirements.md`
-- The `README` currently includes some “coding rules” content that overlaps with those docs.
-- The desired `README` should highlight key links (i.e., act as a search/index hub) and keep non-guideline essentials (project overview, setup, contribution entry points).
+- Authoritative targets already exist:
+  - `docs/governance/development-governance-handbook.md` (repo-wide/backend/quality gates)
+  - `docs/guidelines/angular-coding-guidelines.md` (SPA coding/design/state management)
+  - `docs/ui-design-system.md` and `docs/ui-layout-requirements.md` (UI/UX rules)
+- “Coding rules” = prescriptive guidance (must/should/do not), naming/linting conventions, architecture/state rules, UI token/layout rules.
+- Avoid duplication: prefer consolidating into one doc and linking rather than copying.
 
 **Constraints**
 
-- Minimal, tightly scoped edits; smallest diff possible.
-- Fit within a short execution window; avoid broad refactors.
-- Do not introduce new guideline files if existing targets are appropriate.
-- Preserve existing document structure and style.
+- Minimal diff, smallest viable edits; no new files or broad restructures.
+- Preserve non-rule README content (overview, setup, commands).
+- Keep links relative and valid; do not break existing anchors.
+- 30-minute window; target only READMEs with rule-like content.
 
 **Unknowns**
 
-- Exact sections in `README` that are considered “coding rules”.
-- Degree of overlap or conflict between `README` rules and `docs/guidelines/angular-coding-guidelines.md` or other docs.
-- Whether there are non-Angular (language-agnostic or backend) rules in `README` that should go into the Governance Handbook vs. Angular guidelines.
-- Any mandated `README` sections or formatting conventions for this repo.
+- Which specific README sections currently contain rules (root and subfolders).
+- Whether backend-specific rules need a separate destination beyond the Governance Handbook.
+- Any existing team- or module-specific guideline docs outside `docs/`.
 
-**Proposed Minimal Outcome**
+**Clarifying questions**
 
-- Remove coding-rule sections from `README`.
-- Merge that content into:
-  - Angular-specific items → `docs/guidelines/angular-coding-guidelines.md`
-  - Repo-wide or backend/quality items → `docs/governance/development-governance-handbook.md`
-- Update `README` to a lean index: short project description + Quick Links to the above documents (and any existing essential links).
-
-**Definition of Done**
-
-- `README` contains no coding rules; acts as an index with clear links.
-- Coding rules from `README` are integrated into the appropriate existing documents without duplication.
-- Links work and headings remain coherent.
-- No unrelated files changed.
-
-**Risks**
-
-- Unintended duplication or contradictions if similar guidance already exists.
-- Misclassification of rules (e.g., moving backend items into Angular guidelines).
-- Breaking anchors or internal links if headings are altered during merge.
-
-**Clarifying Questions**
-
-- Please confirm which `README` sections should be treated as “coding rules”.
-- If a rule spans both Angular and general practices, should it be duplicated in both places or centralized in Governance and referenced from Angular?
-- Any required `README` template or mandatory sections we must keep (badges, install steps, contribution guide link)?
+- Should the “Repository Guidelines” Quick Links block be added verbatim to root README (and adapted for sub-READMEs), or tailored per folder context?
+- For backend rules, is the Governance Handbook the single source of truth, or is there another backend guideline doc to prefer?
+- Placement preference: should the index/Quick Links appear near the top of each README or within an existing “Documentation” section to minimize churn?
+- Language preference: keep READMEs in English, or mirror Japanese where present?
+- Any additional folders with READMEs (e.g., `infra`, `mobile`) that must be included beyond `frontend`/`backend`?
