@@ -5,6 +5,7 @@ Each agent role in the automated development pipeline must export its deliverabl
 ## Directory Structure
 - Create a subdirectory per role using the kebab-case name (e.g., `translator`, `requirements-analyst`, `coder`).
 - Store each output as `YYYYMMDD-HHMM-<task-slug>.md`, where `<task-slug>` briefly identifies the effort.
+- Record Planner-produced implementation checklists inside `workflow/checklists/` using the same timestamp + slug convention so downstream roles can consume them sequentially.
 - Include cross-links to related recipe files and previous workflow logs when relevant.
 
 ## Required Sections
