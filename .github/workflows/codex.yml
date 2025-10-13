@@ -406,6 +406,7 @@ jobs:
       - name: Upload Codex outputs
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: codex-agent-outputs
           path: codex_output
