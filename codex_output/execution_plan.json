@@ -11,7 +11,7 @@
       "code_quality_reviewer",
       "integrator"
     ],
-    "notes": "Fix TS2531 by normalizing the select value before calling `includes`: derive `selected = Array.isArray(this.value) ? this.value : this.value != null ? [this.value] : []` and use it for filtering labels. Keep `onTouched` non-private. No API or template changes; retain existing modern styling and dark-mode behavior. Single-file change: `frontend/src/app/shared/ui/select/ui-select.ts`.",
-    "tests": "1) Build: `cd frontend && npm ci && npm run build` (or `ng build --configuration production`) 2) Unit tests: `npm test` to confirm Karma starts with 0 load errors 3) Manual: open pages with selects (Reports, Admin, Settings) and verify that labels render correctly for single/multi-select and there are no console errors. Dark mode still shows visible arrow (currentColor)."
+    "notes": "Centralize a style-only fix so the select caret (down-arrow) inherits `currentColor`. In `frontend/src/styles/pages/_base.scss`, ensure the chevron gradients use `currentColor` and the dark-mode block sets an appropriate text color so the caret contrasts. Add a small safeguard in `frontend/src/app/shared/ui/select/ui-select.ts` to ensure the icon/SVG inherit `currentColor`. No behavior changes or new deps; Angular-only solution (no React/shadcn).",
+    "tests": "1) Build: cd frontend && npm ci && npm run build. 2) Open dark mode and verify on pages with selects that the down-arrow matches the text color and is clearly visible. 3) Confirm light/dark parity for hover/focus/disabled states; multi-select/size>1 variants still hide the caret; no regressions on Reports/Admin/Settings selects."
   }
 }

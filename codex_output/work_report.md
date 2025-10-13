@@ -1,35 +1,40 @@
 **背景**
-- 目的: セレクターをモダン化し、ダークモードでの視認性を改善
-- 現状: リポジトリは Angular 構成（React/shadcn ではない）。共通セレクターは `frontend/src/app/shared/ui/select/ui-select.ts` に実装
-- ブロッカー: TypeScript エラー TS2531（null 可能な `this.value` に対して `includes` を呼び出し）により CI が停止
+- 目的: ダークモード時、セレクター内の下向きアローが背景と同化し視認性が低い問題を解消
+- 前提: リポジトリは Angular 構成（React/shadcn ではない）。最小変更・スタイル中心で全体適用
+- 対象: ネイティブ `<select>`（`.app-select`, `select.form-control`）と共有 Angular セレクター（`ui-select`）
 
 **変更概要**
-- TS 安全化: 選択値を正規化した安全な配列に変換してから判定
-  - 例: `const selected = Array.isArray(this.value) ? this.value : this.value != null ? [String(this.value)] : [];` → `selected.includes(o.value)`
-  - 修正対象: `frontend/src/app/shared/ui/select/ui-select.ts:278`
-- 公開性: テンプレートから呼ぶ `onTouched()` は public を維持（TS2341 再発防止）
-- スタイル整備（既存反映の要旨）:
-  - 下向きアローをシンプルなシェブロンに統一、Y 方向センタリング
-  - アイコン色を `currentColor` に統一し、ダーク/ライトで文字色に追従
-  - オプションパネルの半径・影・間隔をモダン寄りに調整（最小影響範囲で）
+- アイコン色の継承を統一（currentColor）
+  - セレクターのキャレット（CSS 背景のシェブロン）を `currentColor` で描画し、テキスト色に追従
+    - `frontend/src/styles/pages/_base.scss:85, :101, :112`
+  - ダークモードでトリガーの文字色を高コントラストのテーマトークンに明示
+    - `frontend/src/styles/pages/_base.scss:164`（例: `color: var(--text-primary);`）
+- 共有 Angular セレクターのアイコンも同様に継承
+  - `.ui-select__icon { color: currentColor; }` とし、SVG は `stroke="currentColor"`
+  - ダークモードでトリガーに文字色を適用（アイコンが同色化）
+    - `frontend/src/app/shared/ui/select/ui-select.ts:171`
+- 付随対応（ビルドブロッカー解消のみ、挙動不変）
+  - `onTouched()` を template から呼べる公開化（TS2341）
+  - null 安全な選択値判定に整理（TS2531）
+    - `frontend/src/app/shared/ui/select/ui-select.ts:278`
 
 **影響**
-- 挙動・API変更なし（型安全化のみ）。既存の単一/複数選択どちらにも対応
-- ダークモードで矢印が背景と同化する問題を解消（文字色と同一化）
-- 影響範囲は共有セレクターとグローバル select スタイルに限定（副作用小）
+- ダークモードで下向きアローが文字色と揃い、背景と同化せず明瞭に表示
+- ホバー/フォーカス/無効状態の表現は維持。多選択や `size > 1` のバリアントは非表示のまま
+- 変更は集中（SCSS + 既存 UI コンポーネントの最小スタイル）で副作用は限定的
 
 **検証**
-- ビルド/テスト
-  - `cd frontend && npm ci && npm run build`（または `ng build --configuration production`）
-  - `npm test`（Karma が load error 0 で起動）
-- 手動確認
-  - 単一/複数選択のラベルが正しく同期される（null/未選択時もエラーなし）
-  - ライト/ダークでテキストと矢印の色が一致
-  - フォーカスリング、ホバー、無効状態のコントラストが維持
-  - 主な画面（レポート/管理/設定）での視認性を確認
+- ビルド: `cd frontend && npm ci && npm run build`（または `ng build --configuration production`）
+- 手動確認（ライト/ダーク）
+  - テキストとアローの色が一致し、十分なコントラストがあること
+  - フォーカスリング・ホバー・無効状態の視認性
+  - 複数画面での一貫性: `frontend/src/app/features/settings/page.html:249, :428`、`frontend/src/app/features/board/page.html:565, :730`、`frontend/src/app/features/reports/reports-page.component.html:255, :274`
+  - マルチ/`size>1` でキャレット非表示、パディング崩れがないこと
 
 **レビュー観点**
-- 型安全: `this.value` が `string | string[] | null` でも常に配列化してから `includes` 使用
-- 互換性: 値が非文字型でも `String(...)` で比較を安定化（既存表示と同等）
-- デザイン: アイコン `currentColor` 化でテーマ追従、余白/半径/影は既存トークンと整合
-- リスク/残課題: RTL と強制ハイコントラスト対応は最小変更のため未深掘り（必要なら追補可）
+- コントラスト: ダークモードで背景に対して十分か（WCAG 目安）
+- 継承: `currentColor` に統一され、局所上書きが不整合を起こしていないか
+- 回帰: セレクトの高さ/パディング/縦中央揃え（`background-position: right <offset> center`）が崩れていないか
+- 追加検討（任意・別Issue）
+  - RTL 対応（必要なら caret 位置を論理プロパティ化）
+  - 強制ハイコントラスト環境での見え方（`@media (forced-colors: active)` で背景アイコン抑制）

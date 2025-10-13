@@ -1,33 +1,28 @@
-Summary
-- Goal: Unblock CI by fixing TS2531 in the shared select component while keeping prior selector design changes intact (modern arrow, dark-mode parity).
-- Context: Angular app, shared select at frontend/src/app/shared/ui/select/ui-select.ts. Error arises from calling includes on possibly null value.
-- Approach: Minimal, targeted TypeScript fix to safely handle null/primitive vs array; no behavioral or template changes.
+Plan summary
+- Keep scope minimal and style-only. Do not introduce React/shadcn into this Angular repo.
+- Centralize the fix in the global select styles so both native selects and the shared Angular select inherit the correct icon color in dark mode.
 
-Root Cause
-- In ui-select.ts:278, code assumes this.value is an array and calls this.value.includes(o.value). At runtime/typing, this.value can be null (or a non-array for single-select), triggering TS2531 and potential runtime errors.
+What I’ll have the coder do
+- Update caret color to inherit text color:
+  - In `frontend/src/styles/pages/_base.scss`, ensure the chevron (background-image) uses `currentColor` (no hard-coded gray). If a variable is used, define `--select-caret-color: currentColor` and reference it in the gradient.
+- Enforce dark-mode inheritance:
+  - In the dark theme block(s) in `frontend/src/styles/pages/_base.scss`, ensure the select trigger `color` is set to the dark theme foreground token used for text, so the caret inherits a high-contrast value.
+- Align the custom Angular select icon to currentColor (safety belt):
+  - In `frontend/src/app/shared/ui/select/ui-select.ts` styles/template, ensure the icon element/class (e.g., `.ui-select__icon`) uses `color: currentColor` and the SVG uses `stroke="currentColor"` or inherits via CSS. No behavior changes.
 
-Targeted Fix
-- Normalize the value before filtering:
-  - Create a safe array: const selected = Array.isArray(this.value) ? this.value : this.value != null ? [this.value] : [];
-  - Use selected.includes(o.value) for label derivation.
-- Keep onTouched non-private (previously fixed) to avoid TS2341 regression.
-- No changes to inputs/outputs or public API; zero impact on consumers.
+Why this is minimal
+- One SCSS file change covers `.app-select` and `select.form-control` app‑wide.
+- A tiny style nudge in the Angular select ensures consistency in case an inline SVG overrides inheritance.
+- No template/TS logic changes, no new dependencies, no design-system drift.
 
-Scope
-- Single-file edit in frontend/src/app/shared/ui/select/ui-select.ts.
-- No template/scss refactors. Existing modern styles and icon currentColor alignment remain.
+Risks and mitigations
+- Unknown dark-mode selector: I’ll reuse the existing dark theme block(s) already present in `frontend/src/styles/pages/_base.scss`.
+- If any module forces a different icon color, the global `currentColor` approach still respects local text color, keeping behavior predictable.
 
-Risks
-- Value typing (string | number | string[] | null) mismatches; normalize carefully.
-- Ensure options array exists; if it can be null in some flows, guard with optional chaining or default to [].
-
-Validation
-- Build: cd frontend && npm ci && npm run build
-- Tests: npm test (Karma) to confirm no load errors.
-- Manual: verify selects render, labels show correctly for single/multi-select, and no console errors.
-
-Why not React/shadcn integration?
-- Repo is Angular. Introducing React/Tailwind/shadcn would exceed “minimal impact” and time constraints. The existing Angular shared select and centralized SCSS already deliver the requested design updates.
+Manual verification
+- Build: `cd frontend && npm ci && npm run build` (production) and smoke test pages using selects.
+- Check in dark mode that the down-arrow matches the trigger text color and is clearly visible; verify hover/focus/disabled states, and that multi/size variants remain unchanged.
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Fix TS2531 by normalizing the select value before calling `includes`: derive `selected = Array.isArray(this.value) ? this.value : this.value != null ? [this.value] : []` and use it for filtering labels. Keep `onTouched` non-private. No API or template changes; retain existing modern styling and dark-mode behavior. Single-file change: `frontend/src/app/shared/ui/select/ui-select.ts`.","tests":"1) Build: `cd frontend && npm ci && npm run build` (or `ng build --configuration production`) 2) Unit tests: `npm test` to confirm Karma starts with 0 load errors 3) Manual: open pages with selects (Reports, Admin, Settings) and verify that labels render correctly for single/multi-select and there are no console errors. Dark mode still shows visible arrow (currentColor)."}```
+{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Centralize a style-only fix so the select caret (down-arrow) inherits `currentColor`. In `frontend/src/styles/pages/_base.scss`, ensure the chevron gradients use `currentColor` and the dark-mode block sets an appropriate text color so the caret contrasts. Add a small safeguard in `frontend/src/app/shared/ui/select/ui-select.ts` to ensure the icon/SVG inherit `currentColor`. No behavior changes or new deps; Angular-only solution (no React/shadcn).","tests":"1) Build: cd frontend && npm ci && npm run build. 2) Open dark mode and verify on pages with selects that the down-arrow matches the text color and is clearly visible. 3) Confirm light/dark parity for hover/focus/disabled states; multi-select/size>1 variants still hide the caret; no regressions on Reports/Admin/Settings selects."}
+```
