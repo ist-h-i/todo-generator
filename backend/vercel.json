@@ -1,6 +1,6 @@
 {
   "functions": {
-    "backend/app/main.py": { "runtime": "python3.12" }
+    "backend/app/main.py": { "runtime": "python3.11" }
   },
   "routes": [
     { "src": "/(.*)", "dest": "backend/app/main.py" }
