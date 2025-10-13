@@ -15,11 +15,23 @@ This document collects the coding, testing, and design-system expectations for t
 - Structure reactive forms with strongly typed `FormGroup` / `FormControl` definitions. Extract form helpers to `shared/utils` (e.g., `signalForms`) to encapsulate boilerplate.
 - Use barrel files only when they improve clarity. Avoid circular imports by keeping feature modules self-contained.
 - Leverage `takeUntilDestroyed(this.destroyRef)` for subscription cleanup in components and services.
+ - Prefer arrow functions with explicit parameter and return types (including `void` where applicable). Declare access modifiers for class members.
+ - Avoid manual `subscribe` in components and services; prefer template async bindings, signals, or the Resource API (`RxResource`) to manage lifecycles.
+ - Express remote resource states with union types where practical (e.g., `'idle' | 'loading' | 'success' | 'error'`).
+
+### Naming & File Conventions
+- `camelCase` for variables and functions; `PascalCase` for classes, components, and types; `UPPER_SNAKE_CASE` for constants.
+- Suffix signals with `Signal` and strongly typed forms with `Form` for clarity (e.g., `statusSignal`, `userForm`).
+- Use kebab-case for filenames and keep one primary component/service/class per file.
+- Order imports as Angular → third-party → application, prefer absolute aliases (e.g., `@app/...`), and remove unused imports.
 
 ## State Management & Data Flow
 - Use Angular signals to represent local component state (`signal`, `computed`, `effect`). Keep long-lived cross-feature data in store classes under `core/state/**` and expose read-only selectors to components.
 - When interacting with backend services, centralise optimistic updates and rollback logic in the store or gateway layer (`WorkspaceStore`, `AnalysisGateway`). Components should render state and delegate mutations to these abstractions.
 - Maintain strict separation between presentation components (template + styling) and coordinators (components that orchestrate services or stores). Presentation components must receive inputs and emit outputs without direct API calls.
+ - Prefer Angular Signal Store for app-wide state. Reserve NgRx for existing codebases or exceptional complexity; do not introduce it by default in new features.
+ - For remote data lifecycles, use the Resource API (`RxResource`) to handle loading, success, and error states declaratively. Wrap `HttpClient` calls via resource helpers instead of ad-hoc subscriptions.
+ - Error handling: surface recoverable errors through resource state or explicit `try/catch`, log via a shared `LoggerService`, and present user-facing messages through the notification services.
 
 ## Templates & Components
 - Use descriptive selectors prefixed with `app-` for feature roots and `vy-` for shared primitives. Keep templates declarative and move conditional logic into getters or signals to aid testing.
@@ -50,11 +62,14 @@ This document collects the coding, testing, and design-system expectations for t
 - Keep ESLint and Prettier configurations in sync with `angular.json` and project-level overrides. Update `tsconfig.*.json` when new compiler options are required, and document the rationale in the PR description.
 - Use `npm run story:build` (if available) or manual component capture to produce UI evidence for design reviews.
 
+## Security
+- Sanitize any `[innerHTML]` bindings via `DomSanitizer` and avoid bypassing security unless strictly necessary and reviewed.
+- Centralise authentication and logging concerns in `HttpInterceptor` implementations; ensure CSRF and credential handling are aligned with backend expectations.
+
 ## Delivery Checklist
 1. Align implementation with design tokens and layout rules before opening a PR; request a design review for any deviation.
 2. Verify light and dark themes, responsive breakpoints (mobile, tablet, desktop), and keyboard navigation.
 3. Ensure new modules are lazy-loaded where appropriate and that route guards are updated when access requirements change.
 4. Update the relevant design docs (`docs/ui-design-system.md`, `docs/ui-layout-requirements.md`) when tokens, components, or layouts evolve.
-
 
 
