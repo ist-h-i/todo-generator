@@ -258,10 +258,13 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   }
 
   isSelected(val: string): boolean {
-    if (this.multiple && Array.isArray(this.value)) {
-      return this.value.includes(val);
-    }
-    return String(this.value ?? '') === String(val ?? '');
+    // Normalize current value to a string array for a unified check
+    const selected: string[] = Array.isArray(this.value)
+      ? this.value
+      : this.value != null
+        ? [String(this.value)]
+        : [];
+    return selected.includes(val);
   }
 
   private readOptions(): void {
@@ -272,10 +275,19 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   }
 
   private syncLabelFromValue(): void {
+    // Normalize current value to a string array to avoid null/primitive pitfalls
+    const selected: string[] = Array.isArray(this.value)
+      ? this.value
+      : this.value != null
+        ? [String(this.value)]
+        : [];
+
     if (this.multiple) {
-      // For multiple, show count or empty
-      if (Array.isArray(this.value) && this.value.length) {
-        const labels = this.options.filter((o) => this.value.includes(o.value)).map((o) => o.label);
+      // For multiple, show joined labels or empty
+      if (selected.length) {
+        const labels = this.options
+          .filter((o) => selected.includes(o.value))
+          .map((o) => o.label);
         this.selectedLabel = labels.join(', ');
       } else {
         this.selectedLabel = '';
