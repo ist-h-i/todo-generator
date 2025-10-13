@@ -48,7 +48,8 @@ export class UiSelectComponent implements ControlValueAccessor {
   value: any = '';
 
   private onChange: (val: any) => void = () => {};
-  private onTouched: () => void = () => {};
+  // Must be public to be callable from the template (blur) handler
+  public onTouched: () => void = () => {};
 
   writeValue(obj: any): void {
     this.value = obj;
@@ -76,4 +77,3 @@ export class UiSelectComponent implements ControlValueAccessor {
     }
   }
 }
-
