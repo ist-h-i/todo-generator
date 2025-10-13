@@ -1,17 +1,13 @@
 {
   "steps": [
-    "coder",
-    "code_quality_reviewer",
-    "integrator"
+    "coder"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder",
-      "code_quality_reviewer",
-      "integrator"
+      "coder"
     ],
-    "notes": "Centralize a style-only fix so the select caret (down-arrow) inherits `currentColor`. In `frontend/src/styles/pages/_base.scss`, ensure the chevron gradients use `currentColor` and the dark-mode block sets an appropriate text color so the caret contrasts. Add a small safeguard in `frontend/src/app/shared/ui/select/ui-select.ts` to ensure the icon/SVG inherit `currentColor`. No behavior changes or new deps; Angular-only solution (no React/shadcn).",
-    "tests": "1) Build: cd frontend && npm ci && npm run build. 2) Open dark mode and verify on pages with selects that the down-arrow matches the text color and is clearly visible. 3) Confirm light/dark parity for hover/focus/disabled states; multi-select/size>1 variants still hide the caret; no regressions on Reports/Admin/Settings selects."
+    "notes": "Centralize the fix by adjusting select hover styles in frontend/src/styles/pages/_base.scss to stop the background from turning white. Align hover behavior with inputs: keep subtle border/box-shadow feedback, remove or reduce hover background lightening in both light and dark themes. No TS/template changes, no new deps, retain currentColor chevron.",
+    "tests": "Build the frontend and manually verify on Settings, Board, and Reports pages that: (1) hover background no longer turns white; (2) focus-visible ring and disabled states remain correct; (3) dark mode remains readable; (4) caret icon color matches text (currentColor) and remains visible; (5) no regressions for multi-select/size>1."
   }
 }
