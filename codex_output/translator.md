@@ -1,29 +1,46 @@
 **Request Summary**
-- Add “recipes” documenting source code. Specifically: create .md files that describe each function and variable. Title suggests per-folder recipes; body suggests per-source-file documentation.
+- Add “recipe” Markdown docs that explain source code elements with minimal changes.
+- User preference: organize recipes per component/class (not per folder or per file).
+- Content focus: describe functions and variables for each component/class.
 
 **Assumptions**
-- Use the existing recipe standard in `docs/recipes/README.md` (per-file “recipe” docs with naming `docs/recipes/<relative_path with __>.recipe.md`).
-- Scope includes both backend (`backend/app/**`) and frontend Angular app (`frontend/src/**`), excluding tests and generated assets unless requested.
-- Focus on public-facing functions/classes and important variables; internal/private items documented when they materially affect behavior.
+- Target code: Angular SPA (`frontend/src/app/**`). Include services, components, directives, pipes, and core classes.
+- Exclude tests, mocks, stories, generated files.
+- Document public API first (public methods/properties); include private items only when essential.
+- Language: English (per working language), with simple structure that collaborators can extend.
 
 **Constraints**
-- Minimize changes and churn; prefer a small, targeted set of docs or stubs that align with the existing recipe convention.
-- Fit within a 30-minute window; avoid attempting exhaustive coverage in one pass.
-- Keep consistent with the Development Governance Handbook and Angular guidelines linked in `docs/`.
+- Keep the diff small; avoid large-scale restructuring or new dependencies.
+- Finish with a self-contained, usable outcome in a short time box.
+- Align with Development Governance and Angular Coding Guidelines.
+
+**Proposed Approach (Minimal Impact)**
+- Convention: one recipe per component/class unit named `<ClassOrComponent>.recipe.md`.
+- Placement: either
+  - A) alongside the source file, or
+  - B) under `docs/recipes/<mirrored path>/`.
+- Content: brief overview, responsibility, list of public methods/properties with one-line explanations, notable variables/config, and usage notes.
 
 **Unknowns**
-- Whether “per-folder” recipes are required in addition to (or instead of) the existing per-file recipe convention.
-- Exact coverage: all files vs. selected “core” files; include tests?
-- Depth: brief summaries vs. exhaustive descriptions for every variable.
-- Priority areas (e.g., critical services, APIs, or high-churn modules).
+- Exact placement preference (co-located vs `docs/recipes/` mirror).
+- Scope breadth (Angular only vs also backend/scripts if present).
+- Depth for variables (exported/public only vs all relevant).
+- Required language (English only vs bilingual JP/EN).
+- Whether to include auto-generation tooling or keep entirely manual for now.
 
 **Clarifying Questions**
-- Should we follow the current per-file recipe convention in `docs/recipes/README.md`, or create per-folder recipes (or both)?
-- Which code areas are in-scope first: backend, frontend, or both? Any priority directories?
-- Do you want to include tests and scripts, or only production code?
-- What depth is expected for “variables”: only exported/public, or all locals where relevant?
-- Is an initial set of stubs acceptable (to minimize diff), with a plan to incrementally fill details?
+- Where should recipe files live?
+  - Co-located next to `.ts` files, or under `docs/recipes/` mirroring paths?
+- Scope confirmation: Angular SPA only, or include other code areas too?
+- Coverage: document only public API, or include private members as well?
+- Naming: confirm `<ClassOrComponent>.recipe.md` per class/component is acceptable.
+- Language: English only, or bilingual JP/EN?
+- Do you want a small script to scaffold stubs (idempotent, no overwrites), or manual creation for selected key components first?
 
-**Risks / Impacts**
-- Exhaustive documentation of every function/variable across the repo is large and time-consuming; high risk of drift if not incrementally maintained.
-- Introducing a new per-folder pattern may conflict with the existing per-file recipe standard unless explicitly aligned.
+**Acceptance Criteria (Proposed)**
+- Each selected component/class has a `<ClassOrComponent>.recipe.md` with:
+  - Purpose/role, key responsibilities
+  - Public methods/properties with one-line descriptions
+  - Important variables/config and constraints
+  - Notes on usage and dependencies
+- Files are placed per agreed convention and exclude tests.

@@ -1,31 +1,28 @@
-**Summary**
-- Modernized the select options panel and finalized the trigger icon alignment.
-- Kept changes minimal and Angular‑native; no new deps or framework shifts.
+**Integrator Findings**
 
-**What Changed**
-- Updated `frontend/src/app/shared/ui/select/ui-select.ts:1`:
-  - Hidden native select is now unfocusable/hidden to AT: adds `tabindex="-1" aria-hidden="true" inert`.
-  - Options panel styling: rounded radius, subtle border, elevated shadow, smooth open animation, constrained max-height with scrolling.
-  - Keyboard UX polish: visual “active” state for the focused option (`.is-active`) + focus-visible outline; dark-mode variants included.
-  - Retains simple down chevron SVG on the trigger, centered and modern.
+- Implemented per-component/class recipe convention for Angular with minimal impact.
+  - Generator added: `scripts/generate_class_recipes.py:1` (idempotent; skips existing; excludes `*.spec.ts` and `test.ts`).
+  - Output location: `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
+  - Captures public methods/properties via lightweight parsing.
 
-**Why**
-- “Make the options panel modern” while keeping scope small and consistent with existing SCSS tokens.
-- Fixes prior a11y/focus issue where the hidden native select could still be focused.
+- Docs updated to guide usage.
+  - `docs/recipes/README.md:1` includes “Per-Class/Component Recipes (Angular)” with commands and structure.
+  - Existing per-file generator retained for backend/frontend files: `scripts/generate_file_recipes.py:1`.
 
-**Verify**
-- Build frontend and smoke test Admin/Reports pages using `<app-ui-select>`:
-  - Trigger renders a simple, centered down chevron with balanced spacing.
-  - Panel opens below the trigger with rounded corners, shadow, clean hover/selected/active states, proper z-index, and smooth animation.
-  - Keyboard: ArrowUp/Down moves the active row, Enter selects, Esc closes; focus ring visible.
-  - Hidden native select no longer receives focus.
+- Seeded representative class recipes (ready for owners to refine).
+  - `docs/recipes/classes/frontend/src/app/App.recipe.md:1`
+  - `docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md:1`
+  - `docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md:1`
 
-**Project Paths / Stack**
-- This repo is Angular + SCSS; shared UI lives under `frontend/src/app/shared/ui/` and base styles under `frontend/src/styles/`.
-- React/shadcn is not introduced to avoid scope creep. For React projects, default paths would be `/components/ui` with Tailwind and `@/lib/utils`; not applicable here.
+- Scope & alignment
+  - Matches request to document at the component/class level.
+  - Keeps codebase untouched; changes are scripts + docs only.
+  - Idempotent generation to minimize churn and future maintenance burden.
 
-**Optional Follow‑ups (low effort)**
-- Scroll active option into view on open/arrow navigation.
-- Add Home/End keys and `aria-activedescendant` wiring for full ARIA polish.
+- Residual risks / open items
+  - Regex-based extraction may miss edge cases (multiline signatures, getters/setters on same line, decorators split across lines). Acceptable for starter stubs.
+  - Coverage currently seeded; repo-wide generation would add many files. Run selectively to keep diffs small.
 
-If you want, I can implement the active-item scroll and Home/End keys next.
+- Next actions (optional)
+  - Generate additional class recipes where needed: `python scripts/generate_class_recipes.py frontend/src/app/<target-folder>`.
+  - Team can iteratively fill descriptions in created stubs while keeping structure consistent.

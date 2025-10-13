@@ -1,38 +1,36 @@
-**What I Implemented**
-- Added a generator script to create per-file recipe stubs that match the existing convention in docs/recipes/README.md.
-- Seeded representative recipe files for key backend and frontend areas to demonstrate the pattern.
-- Updated the recipes README with simple usage instructions.
+**Summary**
+- Implemented per-component/class “recipe” docs for the Angular app with minimal impact.
+- Added an idempotent generator that creates one recipe per exported class under a mirrored docs path.
+- Seeded 3 representative class recipes.
 
-**Files Added**
-- `scripts/generate_file_recipes.py:1` – Python script that:
-  - Scans `backend/app/**/*.py` and `frontend/src/**/*.ts` (excludes tests and specs).
-  - Creates missing recipe stubs in `docs/recipes/` with the naming `relative_path` using `__` separators + `.recipe.md`.
-  - Extracts a best-effort list of top-level functions/variables (Python via `ast`, TypeScript via regex for `export function` and exported vars).
-  - Never overwrites existing recipes.
+**What Changed**
+- New generator: `scripts/generate_class_recipes.py:1`
+  - Scans `frontend/src/app/**.ts` (excludes `*.spec.ts`, `test.ts`).
+  - Finds `export class ...` and extracts a best‑effort list of public methods/properties.
+  - Writes one file per class under `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
+  - Idempotent: skips existing files; no overwrites.
+- Updated guide: `docs/recipes/README.md:1`
+  - Adds “Per-Class/Component Recipes (Angular)” section with convention and usage.
+- Seeded examples:
+  - `docs/recipes/classes/frontend/src/app/App.recipe.md:1`
+  - `docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md:1`
+  - `docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md:1`
 
-- `docs/recipes/backend__app__main.py.recipe.md:1` – Seeded stub for API entrypoint.
-- `docs/recipes/backend__app__routers__status_reports.py.recipe.md:1` – Seeded stub for status reports API router.
-- `docs/recipes/backend__app__services__status_reports.py.recipe.md:1` – Seeded stub for service orchestration.
-- `docs/recipes/frontend__src__app__app.ts.recipe.md:1` – Seeded stub for Angular root component.
-- `docs/recipes/frontend__src__app__core__api__status-reports-gateway.ts.recipe.md:1` – Seeded stub for gateway service.
-
-**File Updated**
-- `docs/recipes/README.md:1` – Added “Generator (optional)” section showing how to seed missing recipes.
-
-**How to Use**
-- Seed recipes for default scopes (backend/app and frontend/src):
-  - `python scripts/generate_file_recipes.py`
+**How To Use**
+- Generate all Angular class recipes:
+  - `python scripts/generate_class_recipes.py`
 - Limit to a folder:
-  - `python scripts/generate_file_recipes.py backend/app/routers`
-- Limit to a specific file:
-  - `python scripts/generate_file_recipes.py frontend/src/app/core/api/status-reports-gateway.ts`
+  - `python scripts/generate_class_recipes.py frontend/src/app/core/profile`
+- Edit the generated stubs to fill in descriptions for methods and properties.
 
-**Notes**
-- I aligned to the repo’s existing per-file recipe standard at `docs/recipes/README.md` rather than introducing a per-folder format, to avoid conflicts and minimize churn.
-- The generator is idempotent and will not overwrite existing recipe files.
-- Extraction is intentionally simple; it may miss complex/indirect exports (re-exports, multiline declarations). Stubs include clear TODOs for owners to fill in details.
+**Why This Fits The Request**
+- Aligns to “per component/class” preference while keeping changes small and additive.
+- Keeps existing per-file recipe tooling (`scripts/generate_file_recipes.py:1`) intact for backend and file-level docs.
 
-**Open Questions / Risks**
-- Scope breadth: The issue title mentions “per-folder,” while the repository standard is per-file. If per-folder summaries are also desired, I can add a lightweight folder-level `RECIPE.md` convention that references per-file recipes.
-- Depth of “variables”: I currently document top-level module variables (Python) and exported variables (TypeScript). If deeper coverage (e.g., class fields, method params) is required, the parser can be extended.
-- If you want me to run the generator repo-wide and add all missing recipes now, I can do that next.
+**Notes / Risks**
+- Extraction is regex-based and may miss edge cases (multiline signatures, complex getters/setters, decorators on separate lines).
+- Visibility filter is simple (skips `private`/`protected` on the same line).
+- Scope limited to Angular classes; does not generate for backend Python (covered by existing per-file generator).
+
+**Optional Next Steps**
+- If desired, I can run the class generator across `frontend/src/app` to pre-seed more recipes, or extend parsing to capture inputs/outputs and decorators.

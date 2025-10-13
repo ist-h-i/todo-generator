@@ -1,13 +1,8 @@
 {
   "steps": [
-    "coder"
+    "coder",
+    "code_quality_reviewer",
+    "integrator"
   ],
-  "source": "planner",
-  "planner_payload": {
-    "steps": [
-      "coder"
-    ],
-    "notes": "Adopt per-folder RECIPE.md convention under frontend/src/app/**. Implement a small Node script to parse exported functions/variables from .ts files (excluding tests) and generate RECIPE.md per folder. Seed docs and add a brief guide at docs/recipes/README.md. This minimizes diff and aligns with the issue title while staying within the 30-minute cap.",
-    "tests": "1) Run scripts/generate-folder-recipes.mjs. 2) Inspect RECIPE.md in frontend/src/app/core/api and frontend/src/app/features/board for correct listings. 3) Re-run script to confirm idempotency. 4) Spot-check that no test or non-TS files are included."
-  }
+  "source": "fallback"
 }

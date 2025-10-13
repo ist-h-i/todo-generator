@@ -1,45 +1,32 @@
-Summary
-- Objective: Add “recipes” to each source folder that describe functions and variables with minimal, maintainable change.
-- Interpretation: Use per-folder `RECIPE.md` files that summarize exported functions and variables found in `.ts` files.
-- Rationale: No existing `docs/recipes` convention is present in this repo; per-folder docs satisfy the issue title directly with the smallest sustainable footprint.
+**Summary**
+- Goal: Add per-component/class “recipe” Markdown docs that briefly describe purpose, public methods, and key variables, with minimal repo impact.
+- Resolution: Generate `<ClassName>.recipe.md` under `docs/recipes/<mirrored path>/` for Angular classes/components, excluding tests. Keep changes to a single small generator + a few seeded examples.
 
-Plan
-- Convention: Create `RECIPE.md` per folder under `frontend/src/app/**`.
-- Generator: Add a small Node script (`scripts/generate-folder-recipes.mjs`) to scan `.ts` files (excluding `*.spec.ts`) and extract exported functions and variables via simple regex.
-- Seed docs: Run the script to generate/refresh `RECIPE.md` across relevant folders.
-- Doc guide: Add `docs/recipes/README.md` describing the convention, template, and how to regenerate.
+**Approach**
+- Convention: One file per class/component named `<ClassName>.recipe.md`.
+- Location: `docs/recipes/<frontend/src/... mirrored directories>/`.
+- Extraction (lightweight): Find `export class` and classes decorated with `@Component`, `@Injectable`, `@Directive`, `@Pipe`. Collect public methods/properties via simple regex (best-effort starter).
+- Idempotent: Do not overwrite existing recipe files; safe to re-run.
 
-Scope
-- Include: `frontend/src/app/**` production code.
-- Exclude: `*.spec.ts`, `.html`, `.scss`, `public`, build/test configs.
-- Entities: `export function`, `export const/let/var`. (Optional class/interface documentation can be added later, but not required now.)
+**Scope**
+- Include: `frontend/src/app/**` TypeScript source.
+- Exclude: `*.spec.ts`, mocks, stories, generated assets.
+- Coverage: Public API first; add placeholders for descriptions.
 
-Why this is minimal
-- One script + generated markdown files; no external deps, no build/toolchain changes.
-- Idempotent generation to minimize churn; incremental updates easy.
-- Avoids introducing a competing per-file recipe convention.
+**Deliverables**
+- Script: `scripts/generate_class_recipes.mjs` (Node, no deps).
+- Seeded examples for 2–3 representative classes/components.
+- Brief `docs/recipes/README.md` section on usage.
 
-Risks / Open Questions
-- Regex extraction may miss edge cases (e.g., re-exports, multi-line exports). Acceptable for initial pass; can refine later.
-- Depth: We will scaffold entries with TODO description placeholders; subject-matter owners can fill details incrementally.
-- Scope ambiguity (“each folder”): Planning assumes folders under `frontend/src/app/**`; backend or scripts don’t exist here.
-- Drift risk: Recommend re-running generator in CI or pre-commit later, if desired.
+**Risks / Open Questions**
+- Regex parsing may miss edge cases (re-exports, multi-line signatures); acceptable for initial pass.
+- Placement confirmed as `docs/recipes/` mirror to avoid cluttering source tree.
+- If backend exists and is in-scope later, extend script similarly.
 
-Execution Steps (high level)
-- Implement generator script with directory traversal and export parsing.
-- Generate initial `RECIPE.md` files for all folders in scope.
-- Add a concise guide at `docs/recipes/README.md` with template and usage.
-- Keep the diff small and focused on docs and one script.
-
-Stage Selection
-- Choose coder only. The change is self-contained, low-risk, and does not require extra QA or release steps. A code quality pass is optional but not essential for a single script and markdown output.
-
-Tests / Validation
-- Run the generator; verify:
-  - A few representative folders (e.g., `frontend/src/app/core/api`, `frontend/src/app/features/board`) have `RECIPE.md` with exported functions/variables listed and placeholders for descriptions.
-  - Idempotency: running the script twice doesn’t change output absent code changes.
-  - No files created outside intended folders; no changes to `.spec.ts` handling.
+**Validation**
+- Run the script; verify recipe files appear in mirrored paths for a couple of key folders.
+- Re-run to confirm idempotency (no changes if files exist).
+- Spot-check a component and a service for reasonable public API capture.
 
 ```json
-{"steps":["coder"],"notes":"Adopt per-folder RECIPE.md convention under frontend/src/app/**. Implement a small Node script to parse exported functions/variables from .ts files (excluding tests) and generate RECIPE.md per folder. Seed docs and add a brief guide at docs/recipes/README.md. This minimizes diff and aligns with the issue title while staying within the 30-minute cap.","tests":"1) Run scripts/generate-folder-recipes.mjs. 2) Inspect RECIPE.md in frontend/src/app/core/api and frontend/src/app/features/board for correct listings. 3) Re-run script to confirm idempotency. 4) Spot-check that no test or non-TS files are included."}
-```
+{"steps":["coder"],"notes":"Implement an idempotent Node script to generate per-class/component recipe stubs under docs/recipes mirroring frontend/src/app, exclude tests, and seed a few examples. Keep diff minimal: one script, small README note, and 2–3 recipe files.","tests":"1) Run `node scripts/generate_class_recipes.mjs`. 2) Confirm docs/recipes/frontend/src/app/.../<ClassName>.recipe.md created for a few folders. 3) Run again to verify idempotency. 4) Spot-check a component and a service for listed public methods/properties."}
