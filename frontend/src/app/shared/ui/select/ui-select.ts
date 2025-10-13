@@ -14,6 +14,8 @@ import {
   NG_VALUE_ACCESSOR,
 } from '@angular/forms';
 
+type SelectValue = string | string[] | null;
+
 @Component({
   selector: 'app-ui-select',
   standalone: true,
@@ -184,7 +186,7 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   @Input() placeholder?: string;
 
   disabled = false;
-  value: any = '';
+  value: SelectValue = null;
   panelOpen = false;
   selectedLabel = '';
   activeIndex = -1;
@@ -194,7 +196,7 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
 
   options: Array<{ value: string; label: string; disabled: boolean }> = [];
 
-  private onChange: (val: string | string[] | null) => void = () => {};
+  private onChange: (val: SelectValue) => void = () => {};
   // Must be public to be callable from the template (blur) handler
   public onTouched: () => void = () => {};
 
@@ -203,11 +205,11 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
     this.syncLabelFromValue();
   }
 
-  writeValue(obj: any): void {
-    this.value = obj;
+  writeValue(value: SelectValue): void {
+    this.value = value;
     this.syncLabelFromValue();
   }
-  registerOnChange(fn: (val: string | string[] | null) => void): void {
+  registerOnChange(fn: (val: SelectValue) => void): void {
     this.onChange = fn;
   }
   registerOnTouched(fn: () => void): void {
