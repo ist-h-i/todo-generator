@@ -1,49 +1,38 @@
-**What I Changed**
-- Modernized the select options panel (custom dropdown) for the shared Angular component while keeping usage unchanged.
-- Single-selects now render a rounded, elevated, animated panel with clear hover/selected/disabled states and a simple chevron trigger.
-- Multi-selects and `size > 1` continue to use the native `<select>` unchanged (panel only applies to single-select to minimize scope).
+**What I Implemented**
+- Added a generator script to create per-file recipe stubs that match the existing convention in docs/recipes/README.md.
+- Seeded representative recipe files for key backend and frontend areas to demonstrate the pattern.
+- Updated the recipes README with simple usage instructions.
 
-**Files Updated**
-- frontend/src/app/shared/ui/select/ui-select.ts:1
-  - Added custom trigger + panel template for single-selects.
-  - Preserved native `<select>` for content projection and fallback; hidden only in single mode.
-  - Parsed projected `<option>` elements to build the custom list.
-  - Added keyboard support (ArrowUp/Down, Enter, Escape) and click-outside close.
-  - Styled the panel using existing design tokens (surface, border, accent, dark mode).
-  - Ensured `onTouched` remains public (fix for prior TS2341).
+**Files Added**
+- `scripts/generate_file_recipes.py:1` – Python script that:
+  - Scans `backend/app/**/*.py` and `frontend/src/**/*.ts` (excludes tests and specs).
+  - Creates missing recipe stubs in `docs/recipes/` with the naming `relative_path` using `__` separators + `.recipe.md`.
+  - Extracts a best-effort list of top-level functions/variables (Python via `ast`, TypeScript via regex for `export function` and exported vars).
+  - Never overwrites existing recipes.
 
-**Why This Approach**
-- Repo is Angular + SCSS; introducing React/shadcn would be high-impact and conflict with “minimal changes”.
-- Keeps the public API and usage (`<app-ui-select> ... <option>`) intact.
-- Uses existing styling tokens for consistent theming and dark mode.
+- `docs/recipes/backend__app__main.py.recipe.md:1` – Seeded stub for API entrypoint.
+- `docs/recipes/backend__app__routers__status_reports.py.recipe.md:1` – Seeded stub for status reports API router.
+- `docs/recipes/backend__app__services__status_reports.py.recipe.md:1` – Seeded stub for service orchestration.
+- `docs/recipes/frontend__src__app__app.ts.recipe.md:1` – Seeded stub for Angular root component.
+- `docs/recipes/frontend__src__app__core__api__status-reports-gateway.ts.recipe.md:1` – Seeded stub for gateway service.
 
-**Notes on Styling**
-- Trigger uses existing `.app-select` styling; the built-in chevron background is disabled for the button and replaced with a clean inline chevron.
-- Panel: rounded corners, subtle border, elevated shadow, max-height with smooth scroll, focus/active/selected visual states, dark theme parity.
+**File Updated**
+- `docs/recipes/README.md:1` – Added “Generator (optional)” section showing how to seed missing recipes.
 
-**How to Verify**
-- Build: `cd frontend && npm ci && npm run build`
-- Smoke test pages that use `<app-ui-select>`:
-  - frontend/src/app/features/admin/page.html
-  - frontend/src/app/features/reports/reports-page.component.html
-- Check:
-  - Trigger: simple down chevron, centered; spacing not cramped.
-  - Panel: appears under trigger, rounded + shadow, smooth entry animation.
-  - States: hover highlight, selected checkmark, disabled option subdued.
-  - Keyboard: ArrowUp/Down to navigate, Enter to select, Escape to close.
-  - Multi/size>1 still uses native select UI as before.
+**How to Use**
+- Seed recipes for default scopes (backend/app and frontend/src):
+  - `python scripts/generate_file_recipes.py`
+- Limit to a folder:
+  - `python scripts/generate_file_recipes.py backend/app/routers`
+- Limit to a specific file:
+  - `python scripts/generate_file_recipes.py frontend/src/app/core/api/status-reports-gateway.ts`
 
-**React/shadcn Guidance (for non-Angular projects)**
-- Default paths (React): components under `/components/ui`, utilities under `/lib/utils`, Tailwind styles at `app/globals.css`.
-- If your project is React with Tailwind and Typescript:
-  - Install: `npm i @radix-ui/react-select @radix-ui/react-icons`
-  - Place provided `select.tsx` at `components/ui/select.tsx` and `label.tsx` at `components/ui/label.tsx`.
-  - Ensure `@/lib/utils` exists (`cn` helper) and Tailwind is configured.
-- In this Angular repo, do not create `/components/ui`; keep shared UI under `frontend/src/app/shared/ui/` for consistency.
+**Notes**
+- I aligned to the repo’s existing per-file recipe standard at `docs/recipes/README.md` rather than introducing a per-folder format, to avoid conflicts and minimize churn.
+- The generator is idempotent and will not overwrite existing recipe files.
+- Extraction is intentionally simple; it may miss complex/indirect exports (re-exports, multiline declarations). Stubs include clear TODOs for owners to fill in details.
 
-**Open Questions**
-- Do you need grouped options, labels, or separators in the panel?
-- Any RTL requirements or additional animations?
-- Should we enable multi-select in the custom panel as well?
-
-If you want, I can apply this custom panel to any additional pages or extend it with groups/labels next.
+**Open Questions / Risks**
+- Scope breadth: The issue title mentions “per-folder,” while the repository standard is per-file. If per-folder summaries are also desired, I can add a lightweight folder-level `RECIPE.md` convention that references per-file recipes.
+- Depth of “variables”: I currently document top-level module variables (Python) and exported variables (TypeScript). If deeper coverage (e.g., class fields, method params) is required, the parser can be extended.
+- If you want me to run the generator repo-wide and add all missing recipes now, I can do that next.

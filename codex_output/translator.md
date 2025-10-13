@@ -1,52 +1,29 @@
 **Request Summary**
-- Modernize all app selectors: trigger and the options panel (dropdown content).
-- Provide a reusable UI component and apply it app‑wide.
-- A React/shadcn Select component was provided; use it if the stack supports it, otherwise give setup guidance.
-
-**Repo Reality (observed)**
-- The app is Angular (paths such as `frontend/src/app/...` and a prior Angular build error).
-- TypeScript is present (Angular).
-- Styling currently uses SCSS (e.g., `frontend/src/styles/pages/_base.scss`), Tailwind not confirmed.
-- Shared Angular UI components likely live under `frontend/src/app/shared/ui/...` (e.g., `.../ui/select/`).
+- Add “recipes” documenting source code. Specifically: create .md files that describe each function and variable. Title suggests per-folder recipes; body suggests per-source-file documentation.
 
 **Assumptions**
-- Introducing React + shadcn into an Angular app would be high-impact and conflicts with “minimal changes”.
-- Goal is visual/design parity (modern look) more than adopting a specific library.
-- “Modern options panel” implies custom-rendered dropdown content (radius, shadow, focus states, labels/separators, keyboard support), not the unstyleable native `<select>` dropdown.
+- Use the existing recipe standard in `docs/recipes/README.md` (per-file “recipe” docs with naming `docs/recipes/<relative_path with __>.recipe.md`).
+- Scope includes both backend (`backend/app/**`) and frontend Angular app (`frontend/src/**`), excluding tests and generated assets unless requested.
+- Focus on public-facing functions/classes and important variables; internal/private items documented when they materially affect behavior.
 
 **Constraints**
-- Keep scope minimal; avoid cross‑framework migration.
-- Deliver a complete, self‑contained outcome without breaking existing flows.
-- Respect existing theming/tokens and dark mode where applicable.
-
-**Approach Options**
-- Angular‑native (recommended for minimal impact):
-  - Provide/extend an Angular `UiSelectComponent` (in `frontend/src/app/shared/ui/select/`) that renders a custom panel (via CDK Overlay or existing solution), and style it to match the “modern” spec: rounded corners, subtle border, elevation, constrained max-height with smooth scrolling, focus/active highlights, separators/labels, disabled states.
-  - Continue centralized SCSS token usage (and any dark mode variants) in existing styles (e.g., `_base.scss`) or component-scoped styles.
-- React/shadcn path (only if the app is React or a new React area exists):
-  - Use shadcn project conventions with `@/components/ui/select` and `@/lib/utils`.
-  - Install `@radix-ui/react-select` and `@radix-ui/react-icons`.
-  - Add the provided `select.tsx`, `demo.tsx`, and `label` component under `/components/ui/` and wire Tailwind.
-
-**Default Paths**
-- shadcn (React): components under `/components/ui`, utilities under `/lib/utils`, global styles in `app/globals.css` (or Tailwind entry).
-- This repo (Angular): shared UI under `frontend/src/app/shared/ui/...`; shared styles in `frontend/src/styles/...` (e.g., `_base.scss`).
-- If `/components/ui` does not exist (Angular app), creating it for React components is not appropriate; instead keep Angular components under `frontend/src/app/shared/ui/` for consistency.
-
-**Dependencies**
-- React path: `@radix-ui/react-select`, `@radix-ui/react-icons` (and Tailwind + shadcn CLI).
-- Angular path: no React deps; if icons are needed, use inline SVG or an Angular-friendly icon set (lucide-angular or SVG assets) rather than `lucide-react`.
+- Minimize changes and churn; prefer a small, targeted set of docs or stubs that align with the existing recipe convention.
+- Fit within a 30-minute window; avoid attempting exhaustive coverage in one pass.
+- Keep consistent with the Development Governance Handbook and Angular guidelines linked in `docs/`.
 
 **Unknowns**
-- Is Tailwind already configured in this repo?
-- Is there an existing Angular overlay/select implementation we should extend rather than create anew?
-- Theming requirements for the panel (light/dark, density, animations).
-- Scope of rollout: global replacement vs. targeted modules.
+- Whether “per-folder” recipes are required in addition to (or instead of) the existing per-file recipe convention.
+- Exact coverage: all files vs. selected “core” files; include tests?
+- Depth: brief summaries vs. exhaustive descriptions for every variable.
+- Priority areas (e.g., critical services, APIs, or high-churn modules).
 
 **Clarifying Questions**
-- Confirm: this repository is Angular-only; should we avoid introducing React/shadcn and implement an Angular `UiSelectComponent` with a modern options panel?
-- If Tailwind is desired in Angular, is it already installed? If not, do you want Tailwind added, or should we stick to SCSS tokens?
-- Do we need keyboard navigation parity (arrow keys, typeahead) and ARIA roles for the custom panel?
-- Any must-have panel features (labels, separators, groups, scroll buttons, max height, animations)?
-- Pages to verify first (e.g., Settings, Board, Reports) and any exclusions from the new style?
-- Icon style specifics for the trigger and selected/active item (size/weight, chevron only)?
+- Should we follow the current per-file recipe convention in `docs/recipes/README.md`, or create per-folder recipes (or both)?
+- Which code areas are in-scope first: backend, frontend, or both? Any priority directories?
+- Do you want to include tests and scripts, or only production code?
+- What depth is expected for “variables”: only exported/public, or all locals where relevant?
+- Is an initial set of stubs acceptable (to minimize diff), with a plan to incrementally fill details?
+
+**Risks / Impacts**
+- Exhaustive documentation of every function/variable across the repo is large and time-consuming; high risk of drift if not incrementally maintained.
+- Introducing a new per-folder pattern may conflict with the existing per-file recipe standard unless explicitly aligned.
