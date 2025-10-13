@@ -98,6 +98,7 @@ declare -A STAGE_INSTRUCTIONS=(
   [code_quality_reviewer]="Validate correctness, readability, and edge cases. Supply lightweight fixes when needed to keep the implementation tight."
   [integrator]="Confirm all planned work is covered, note remaining follow-ups, and explain how to land the change safely."
   [release_manager]="State release readiness, outline minimal verification steps, and call out approvals or rollbacks if needed."
+  [work_report]="Draft the issue comment work report using sections for 背景, 変更概要, 影響, 検証, and レビュー観点. Synthesize prior stage outputs to fill each section with concise, actionable context."
 )
 
 PREVIOUS_CONTEXT=""
@@ -352,3 +353,5 @@ printf '%s\n' "${EXECUTION_PLAN[@]}" > codex_output/execution_plan_steps.txt
 for STEP in "${EXECUTION_PLAN[@]}"; do
   run_stage "${STEP}"
 done
+
+run_stage "work_report"
