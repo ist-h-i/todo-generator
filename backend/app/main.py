@@ -40,7 +40,6 @@ from .routers import (
 )
 
 FAVICON_PATH = Path(__file__).resolve().parent.parent / "favicon.svg"
-SWAGGER_UI_FAVICON_URL = "/favicon.svg"
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -72,7 +71,7 @@ app = FastAPI(
     description="API for transforming unstructured input into actionable task boards.",
     version="0.1.0",
     lifespan=lifespan,
-    swagger_ui_favicon_url=SWAGGER_UI_FAVICON_URL,
+    swagger_ui_favicon_url="/favicon.svg",
 )
 
 app.add_middleware(
