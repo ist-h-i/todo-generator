@@ -1,48 +1,52 @@
-Findings
-- The frontend is Angular (Angular workspace, TypeScript, Tailwind present: `frontend/angular.json`, `frontend/tailwind.config.js`).
-- App-wide select styling lives in `frontend/src/styles/pages/_base.scss:~85` and already centers a chevron via CSS gradients.
-- The current caret is rendered by overlapping gradients (triangles), which matches the complaint.
-- React + shadcn component structure (`/components/ui`) is not present (Angular app). Integrating a React component directly would be out-of-scope; we should provide copy-paste files and setup guidance instead.
+Summary
+- The frontend is Angular (standalone components), not React.
+- Tailwind CSS and TypeScript are already configured.
+- App-wide select styling is centralized in frontend/src/styles/pages/_base.scss and already implements a modern, vertically centered chevron.
+- No shadcn or React structure exists; adding React/Radix would be invasive here.
 
-Minimal Plan
-- CSS-only fix: Replace the gradient-based caret with a single, simple down-arrow (SVG data URI) and keep it vertically centered; preserve spacing, states, and dark-mode overrides.
-- Do not touch Angular templates/TS; apply changes only in `frontend/src/styles/pages/_base.scss`.
-- Provide React/shadcn Select + Label components as copy-paste files and installation instructions for React projects. Explain why `/components/ui` is the standard path.
+Default Paths
+- Components: frontend/src/app/shared/ui (existing shared UI components live here).
+- Styles: frontend/src/styles.scss (Tailwind layers), frontend/src/styles/pages/_base.scss (central form/select rules).
 
-What to change (Angular CSS)
-- In `frontend/src/styles/pages/_base.scss` under `.app-select, select.form-control`:
-  - Replace `background-image: linear-gradient(...), linear-gradient(...);` with a single chevron-down SVG data URI, e.g. a minimalist stroked path using `stroke='currentColor'`.
-  - Keep `background-position: right <offset> center;` and `background-size: 16px 16px` (or similar).
-  - In disabled and dark variants, either:
-    - Rely on `currentColor` by slightly adjusting `color` tokens for the control; or
-    - Provide a second data URI with muted color in `.dark` and `:disabled` overrides.
-  - Keep multi-select/size>1 rules to remove the caret (`background-image: none`).
-- Do not alter padding, radius, focus, or other tokens.
+Why not /components/ui
+- /components/ui is a shadcn (React) convention used by its CLI and Next.js/Vite setups.
+- In this Angular repo, creating /components/ui would fragment the UI layer and introduce React-only files that don’t compile. Keeping UI parts under frontend/src/app/shared/ui remains consistent, minimizes churn, and fits Angular’s module/standalone imports.
 
-React/shadcn Deliverables (instructions + files)
-- Default paths:
-  - Components: `/components/ui`
-  - Styles: Tailwind via globals and utility classes; no separate CSS needed.
-- Why `/components/ui` matters: shadcn’s generators, docs, and ecosystem expect this path for discoverability and cohesive UI primitives.
-- Copy-paste files (for React projects):
-  - `components/ui/select.tsx` (your provided Radix-based component)
-  - `components/ui/demo.tsx` (usage example)
-  - `components/ui/label.tsx` (Label dependency)
-- Ensure `@/lib/utils` exists with a `cn` helper:
-  - `lib/utils.ts`: `export function cn(...c: Array<string | false | null | undefined>) { return c.filter(Boolean).join(' '); }`
-- Ensure TS path alias `@/*` is configured in `tsconfig.json`.
-- Install deps (in the React project): `npm i @radix-ui/react-select @radix-ui/react-icons`
-- Tailwind must be installed and configured; if not, set it up (init config, add directives to globals, include paths).
+Minimal Integration Plan
+- Create Angular Select UI component: frontend/src/app/shared/ui/select/select.ts (standalone, ControlValueAccessor).
+  - Wraps native <select>, projects <option> children.
+  - Applies existing classes form-control app-select so it inherits the new design.
+  - Supports formControlName/ngModel, disabled, name, id, multiple.
+- Replace current native selects (4 instances) with <app-ui-select> while preserving options:
+  - frontend/src/app/features/reports/reports-page.component.html:255, frontend/src/app/features/reports/reports-page.component.html:274
+  - frontend/src/app/features/admin/page.html:129, frontend/src/app/features/admin/page.html:425
+  - Add UiSelectComponent to imports in their page .ts files.
+- Keep global style coverage so any untouched selects still look correct (already done in _base.scss).
 
-Risks/Notes
-- We avoid mixing React into Angular codebase; provide React components as documented assets only.
-- For the SVG caret, prefer `currentColor` for automatic light/dark theming; if contrast requires, adjust color tokens or provide theme-specific data URIs.
-- RTL not addressed to minimize scope; can be handled later by mirroring background-position with logical properties.
+Dependencies
+- Do not install @radix-ui/react-select or @radix-ui/react-icons (React-only).
+- No new NPM packages required for Angular implementation.
 
-Manual Verification (Angular)
-- Pages: Settings, Board, Reports (selectors using `.app-select` and `select.form-control`).
-- Check: single simple down-arrow (no layered triangles), vertical centering, balanced right padding, hover/focus/disabled, multi/size>1 hides caret, light/dark parity, no clipping at narrow widths.
+If React/shadcn is required later
+- Only applicable if a React app is present. Then:
+  - Setup shadcn CLI, ensure Tailwind and TS configured.
+  - Create /components/ui, add select.tsx and label.tsx, and @/lib/utils.ts (cn helper).
+  - Install @radix-ui/react-select and @radix-ui/react-icons.
+  - Not recommended in this Angular-only repo.
+
+Risks
+- Changing templates to use <app-ui-select> must maintain reactive forms behavior; CVA will address this.
+- Multi-select and size>1 behavior should match CSS variants (component should pass the attributes through).
+
+Questions
+- Any multi-select use cases to support now?
+- Should we add a size/density input (e.g., compact) or stick to current tokens?
+- Any pages that must retain current native <select> markup (no component swap)?
+
+Verification
+- Build and smoke test the two pages (Reports, Admin): default/hover/focus/disabled, values bind correctly, keyboard/focus ring present, options render, icon is centered.
+- Confirm any remaining native selects still look correct via the centralized CSS.
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Make a single, centralized CSS change in frontend/src/styles/pages/_base.scss to replace the gradient-based caret with a single simple down-arrow (SVG data URI), keeping vertical centering and spacing intact. Do not alter Angular templates/TS. Provide React/shadcn select.tsx, demo.tsx, label.tsx as copy-paste files and setup instructions (components under /components/ui, ensure @ alias and cn util, install @radix-ui/react-select and @radix-ui/react-icons) for React projects. Explain why /components/ui is important for shadcn.","tests":"Manual: in Angular app, open Settings, Board, Reports pages. Verify the select trigger shows a single minimalist down-arrow, vertically centered, with adequate right padding. Check states (default/hover/focus-visible/disabled), multi-select/size>1 (no caret), and light/dark parity. For React deliverables, confirm the files compile in a React+Tailwind+TS project with @ alias and that the demo renders with ChevronDown icon."}
+{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Implement an Angular Select UI component (standalone CVA) under frontend/src/app/shared/ui/select that wraps native <select> and applies existing classes (form-control app-select) to inherit the modern design already defined in _base.scss. Replace the 4 current native selects in Reports and Admin templates with the new component, preserving projected <option> content and reactive forms bindings. Do not introduce React/shadcn/Radix; this is an Angular repo with Tailwind and TS already set up. Keep centralized CSS so any remaining selects continue to match the new design.","tests":"- Compile frontend and run locally.\n- On Reports and Admin pages, verify: (1) component binds with formControlName (value/disabled/dirty/touched propagate), (2) options render and selection updates form state, (3) focus-visible ring and hover/disabled states match, (4) chevron icon remains vertically centered and spaced, (5) no regressions for any remaining native selects due to global styles."}
 ```
