@@ -165,6 +165,8 @@ import {
     .ui-select__label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .dark .ui-select__panel { background: color-mix(in srgb, var(--surface-layer-3) 96%, transparent); border-color: color-mix(in srgb, var(--border-overlay) 78%, transparent); }
+    /* Ensure trigger text and icon share a high-contrast color in dark mode */
+    .dark .ui-select__trigger { color: var(--text-primary); }
     .dark .ui-select__option:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
     .dark .ui-select__option.is-selected { background: color-mix(in srgb, var(--accent) 22%, transparent); }
     .dark .ui-select__option.is-active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
