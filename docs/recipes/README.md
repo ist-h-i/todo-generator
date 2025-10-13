@@ -16,3 +16,28 @@ Include the following sections for every recipe and update them whenever behavio
 5. **Change History** – Summarize notable updates with links to workflow logs and upstream/downstream recipe dependencies.
 
 Update recipes whenever the corresponding code changes or new context emerges. If a file has no recipe yet, create one using the naming convention above, and keep prior sections intact while appending new knowledge instead of overwriting history.
+
+## Generator (optional)
+You can seed missing recipes using a helper script:
+
+- Generate for defaults (backend/app and frontend/src):
+  - `python scripts/generate_file_recipes.py`
+- Limit to a specific folder or file:
+  - `python scripts/generate_file_recipes.py backend/app/routers`
+  - `python scripts/generate_file_recipes.py frontend/src/app/core/api/status-reports-gateway.ts`
+
+The generator creates recipe stubs only when missing and will not overwrite existing files.
+
+## Per-Class/Component Recipes (Angular)
+- Purpose: When documenting Angular, prefer per-class/component “recipes” focused on public APIs.
+- Location: `docs/recipes/classes/<frontend/src/... mirrored directories>/<ClassName>.recipe.md`.
+- Generate stubs (idempotent):
+  - All Angular classes: `python scripts/generate_class_recipes.py`
+  - Scoped path: `python scripts/generate_class_recipes.py frontend/src/app/core/profile`
+
+Each class recipe should include:
+1) Purpose & Responsibilities – one or two sentences.
+2) Public API – methods and properties with one-line explanations.
+3) Notable Dependencies – injected services, inputs/outputs.
+4) Usage Notes – typical call patterns and pitfalls.
+5) Change History – key modifications and rationale.
