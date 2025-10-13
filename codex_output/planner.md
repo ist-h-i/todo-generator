@@ -1,61 +1,45 @@
 Summary
-- Goal: Modernize the select trigger and the options panel with minimal, Angular‑native changes.
-- Repo reality: Angular + SCSS. Prior work already centralized trigger styling in `frontend/src/styles/pages/_base.scss` and introduced `UiSelectComponent` under `frontend/src/app/shared/ui/select/`.
-- Decision: Do NOT introduce React/shadcn into the Angular app. Ship an Angular UI select with a modern custom panel and apply it where `UiSelectComponent` is used, then add light‑touch SCSS to keep native `<select>`s visually aligned.
+- Objective: Add “recipes” to each source folder that describe functions and variables with minimal, maintainable change.
+- Interpretation: Use per-folder `RECIPE.md` files that summarize exported functions and variables found in `.ts` files.
+- Rationale: No existing `docs/recipes` convention is present in this repo; per-folder docs satisfy the issue title directly with the smallest sustainable footprint.
 
-What we will do
-- Keep component location and styles
-  - Components: `frontend/src/app/shared/ui/select/` (Angular shared UI).
-  - Global styles: `frontend/src/styles/pages/_base.scss` (already updated trigger).
-  - Component styles: co-located stylesheet for the custom panel (e.g., `ui-select.scss`).
-- Modernize the options panel (Angular)
-  - Panel container: rounded corners, subtle border, elevated shadow, max-height with smooth scroll, z-index above content, open/close animation.
-  - Items: spacious row height, hover/focus/active states, selected checkmark, disabled opacity, label/separator styles if present.
-  - Accessibility: `role="listbox"`/`role="option"`, `aria-selected`, keyboard focus state, keep or improve existing keyboard handling.
-  - Theming: light/dark parity using current tokens; no new design system required.
-- Apply component app‑wide pragmatically
-  - Ensure pages already converted to `UiSelectComponent` (Admin, Reports, any existing references) use the new panel styles.
-  - Keep native `<select>`s styled via `_base.scss` for trigger parity; the native OS dropdown remains (cannot be fully themed), which is acceptable where the custom panel is not required.
-- Fix known TS issue
-  - Ensure `ControlValueAccessor` hooks (`onTouched`) are public or invoked via a safe wrapper to avoid Angular compiler errors (TS2341).
+Plan
+- Convention: Create `RECIPE.md` per folder under `frontend/src/app/**`.
+- Generator: Add a small Node script (`scripts/generate-folder-recipes.mjs`) to scan `.ts` files (excluding `*.spec.ts`) and extract exported functions and variables via simple regex.
+- Seed docs: Run the script to generate/refresh `RECIPE.md` across relevant folders.
+- Doc guide: Add `docs/recipes/README.md` describing the convention, template, and how to regenerate.
 
-Non-goals (to keep scope minimal)
-- Do not add React/shadcn, Tailwind, or new icon packages.
-- Do not mass‑migrate every native `<select>`; focus on the shared Angular `UiSelectComponent` and leave a short migration note for future conversions.
+Scope
+- Include: `frontend/src/app/**` production code.
+- Exclude: `*.spec.ts`, `.html`, `.scss`, `public`, build/test configs.
+- Entities: `export function`, `export const/let/var`. (Optional class/interface documentation can be added later, but not required now.)
 
-If this were a React/shadcn project
-- Default paths: components under `/components/ui`, utilities under `/lib/utils`.
-- You’d place `select.tsx`, `demo.tsx`, and `label.tsx` into `/components/ui`, and install `@radix-ui/react-select` and `@radix-ui/react-icons`.
-- In this Angular repo, creating `/components/ui` is not appropriate; stick to `frontend/src/app/shared/ui/`.
+Why this is minimal
+- One script + generated markdown files; no external deps, no build/toolchain changes.
+- Idempotent generation to minimize churn; incremental updates easy.
+- Avoids introducing a competing per-file recipe convention.
 
-Key implementation notes for coder
-- `frontend/src/app/shared/ui/select/ui-select.ts`: verify `ControlValueAccessor` wiring, make `onTouched` callable from template, expose open state for CSS animations if needed.
-- `frontend/src/app/shared/ui/select/ui-select.html` (or template): wrap the options in a positioned panel element with `role="listbox"`; each option `role="option"`, `aria-selected`.
-- `frontend/src/app/shared/ui/select/ui-select.scss`: add new panel class styles:
-  - Panel: `border-radius`, `border`, `box-shadow`, `background`, `max-height: 24rem`, `overflow: auto`, `padding`, entry/exit animations.
-  - Item: spacing, hover/focus background (`accent`), selected checkmark, disabled style, high-contrast friendly focus outline.
-  - Dark mode variants to match existing tokens.
-- `frontend/src/styles/pages/_base.scss`: keep existing trigger improvements; optionally add a forced-colors safe fallback (hide gradient chevrons in high-contrast).
+Risks / Open Questions
+- Regex extraction may miss edge cases (e.g., re-exports, multi-line exports). Acceptable for initial pass; can refine later.
+- Depth: We will scaffold entries with TODO description placeholders; subject-matter owners can fill details incrementally.
+- Scope ambiguity (“each folder”): Planning assumes folders under `frontend/src/app/**`; backend or scripts don’t exist here.
+- Drift risk: Recommend re-running generator in CI or pre-commit later, if desired.
 
-Open questions (optional)
-- Any pages that must not change? Any additional panel features like grouped options or separators needed immediately?
-- Confirm dark theme target and RTL requirements.
+Execution Steps (high level)
+- Implement generator script with directory traversal and export parsing.
+- Generate initial `RECIPE.md` files for all folders in scope.
+- Add a concise guide at `docs/recipes/README.md` with template and usage.
+- Keep the diff small and focused on docs and one script.
 
-Manual tests
-- Build passes for production and dev.
-- Visual checks on Admin + Reports pages using the shared component:
-  - Panel opens aligned to trigger, with rounded corners, shadow, correct z-index, and no viewport clipping.
-  - Keyboard navigation works; focus ring visible; selected/active states clear.
-  - Long lists: smooth scroll, max-height respected.
-  - Light/dark parity; disabled items subdued.
-- Native `<select>`s keep the improved trigger; OS dropdown remains (by design).
+Stage Selection
+- Choose coder only. The change is self-contained, low-risk, and does not require extra QA or release steps. A code quality pass is optional but not essential for a single script and markdown output.
 
-Stage selection rationale
-- coder: implement panel styles/markup and minor TS fix.
-- code_quality_reviewer: verify minimal scope, control state/ARIA correctness, style cohesion, and no regressions.
-- integrator: wire into affected pages and ensure build succeeds; confirm styles load order.
-- release_manager: summarize changes and rollout instructions; no extra deps.
+Tests / Validation
+- Run the generator; verify:
+  - A few representative folders (e.g., `frontend/src/app/core/api`, `frontend/src/app/features/board`) have `RECIPE.md` with exported functions/variables listed and placeholders for descriptions.
+  - Idempotency: running the script twice doesn’t change output absent code changes.
+  - No files created outside intended folders; no changes to `.spec.ts` handling.
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator","release_manager"],"notes":"Angular app confirmed. Do not introduce React/shadcn. Enhance the existing shared UiSelectComponent under frontend/src/app/shared/ui/select/ with a modern custom options panel (rounded, shadowed, animated, accessible). Keep trigger improvements in frontend/src/styles/pages/_base.scss. Add a component-scoped SCSS for the panel with light/dark tokens. Fix ControlValueAccessor onTouched visibility. Apply the component where it already exists (Admin/Reports), leaving native selects styled for trigger parity and a short migration note for future conversions. No new dependencies.","tests":"1) ng build --configuration production. 2) Open Admin/Reports pages and verify: panel radius, shadow, border, max-height scroll, open/close animation, z-index, selected checkmark, hover/focus states, disabled styling, keyboard navigation and ARIA. 3) Check light/dark themes and high-contrast (forced-colors). 4) Confirm native selects still render improved trigger and no layout regressions."}
+{"steps":["coder"],"notes":"Adopt per-folder RECIPE.md convention under frontend/src/app/**. Implement a small Node script to parse exported functions/variables from .ts files (excluding tests) and generate RECIPE.md per folder. Seed docs and add a brief guide at docs/recipes/README.md. This minimizes diff and aligns with the issue title while staying within the 30-minute cap.","tests":"1) Run scripts/generate-folder-recipes.mjs. 2) Inspect RECIPE.md in frontend/src/app/core/api and frontend/src/app/features/board for correct listings. 3) Re-run script to confirm idempotency. 4) Spot-check that no test or non-TS files are included."}
 ```
