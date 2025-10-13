@@ -1,32 +1,49 @@
-Completed: removed rule text from READMEs, merged unique Angular guidance into the guidelines doc, and added index-style Quick Links.
+**What I Changed**
+- Modernized the select options panel (custom dropdown) for the shared Angular component while keeping usage unchanged.
+- Single-selects now render a rounded, elevated, animated panel with clear hover/selected/disabled states and a simple chevron trigger.
+- Multi-selects and `size > 1` continue to use the native `<select>` unchanged (panel only applies to single-select to minimize scope).
 
-What changed
-- Angular guidelines updated with unique rules from frontend README:
-  - `docs/guidelines/angular-coding-guidelines.md:11` TypeScript standards updated (arrow functions, avoid manual subscribe, union types).
-  - `docs/guidelines/angular-coding-guidelines.md:22` Naming & file conventions added (camelCase/PascalCase/UPPER_SNAKE_CASE, suffixes, import order, aliases).
-  - `docs/guidelines/angular-coding-guidelines.md:28` State/data flow expanded (Signal Store preference, Resource API/RxResource, error handling via LoggerService).
-  - `docs/guidelines/angular-coding-guidelines.md:65` Security added (DomSanitizer, HttpInterceptor, CSRF).
-- Frontend README: removed “Coding Guidelines” section; added Quick Links block so it acts as an index
-  - `frontend/README.md:50` Repository guidelines + usage bullets with `../docs/...` links.
-- Backend README: added the same Quick Links block near the top
-  - `backend/README.md:16` Repository guidelines + usage bullets with `../docs/...` links.
-- Root README: already index-oriented; no changes.
+**Files Updated**
+- frontend/src/app/shared/ui/select/ui-select.ts:1
+  - Added custom trigger + panel template for single-selects.
+  - Preserved native `<select>` for content projection and fallback; hidden only in single mode.
+  - Parsed projected `<option>` elements to build the custom list.
+  - Added keyboard support (ArrowUp/Down, Enter, Escape) and click-outside close.
+  - Styled the panel using existing design tokens (surface, border, accent, dark mode).
+  - Ensured `onTouched` remains public (fix for prior TS2341).
 
-Why this is minimal
-- Consolidates rules in a single authoritative place without duplicating governance/CI/commit policies (already covered in the handbook).
-- Keeps READMEs as searchable entry points without prescriptive guidance.
+**Why This Approach**
+- Repo is Angular + SCSS; introducing React/shadcn would be high-impact and conflict with “minimal changes”.
+- Keeps the public API and usage (`<app-ui-select> ... <option>`) intact.
+- Uses existing styling tokens for consistent theming and dark mode.
 
-Validation
-- No prescriptive rules remain in READMEs:
-  - `rg -n '\b(must|should|never|do not|guideline|ルール)\b' README.md frontend/README.md backend/README.md`
-- Links resolve:
-  - `docs/governance/development-governance-handbook.md`
-  - `docs/guidelines/angular-coding-guidelines.md`
-  - `docs/ui-design-system.md`
-  - `docs/ui-layout-requirements.md`
-- New Angular topics present:
-  - `RxResource`, `Signal Store`, `union types`, `DomSanitizer`, `LoggerService` in `docs/guidelines/angular-coding-guidelines.md`.
+**Notes on Styling**
+- Trigger uses existing `.app-select` styling; the built-in chevron background is disabled for the button and replaced with a clean inline chevron.
+- Panel: rounded corners, subtle border, elevated shadow, max-height with smooth scroll, focus/active/selected visual states, dark theme parity.
 
-Residual risks / notes
-- Minor duplication risk if future edits reintroduce similar bullets; current additions are scoped to unique items.
-- I intentionally did not migrate “Conventional Commits” or CI/CD bullets from the frontend README since the Governance Handbook already covers them. If you want explicit cross-links, I can add a sentence referencing the handbook sections.
+**How to Verify**
+- Build: `cd frontend && npm ci && npm run build`
+- Smoke test pages that use `<app-ui-select>`:
+  - frontend/src/app/features/admin/page.html
+  - frontend/src/app/features/reports/reports-page.component.html
+- Check:
+  - Trigger: simple down chevron, centered; spacing not cramped.
+  - Panel: appears under trigger, rounded + shadow, smooth entry animation.
+  - States: hover highlight, selected checkmark, disabled option subdued.
+  - Keyboard: ArrowUp/Down to navigate, Enter to select, Escape to close.
+  - Multi/size>1 still uses native select UI as before.
+
+**React/shadcn Guidance (for non-Angular projects)**
+- Default paths (React): components under `/components/ui`, utilities under `/lib/utils`, Tailwind styles at `app/globals.css`.
+- If your project is React with Tailwind and Typescript:
+  - Install: `npm i @radix-ui/react-select @radix-ui/react-icons`
+  - Place provided `select.tsx` at `components/ui/select.tsx` and `label.tsx` at `components/ui/label.tsx`.
+  - Ensure `@/lib/utils` exists (`cn` helper) and Tailwind is configured.
+- In this Angular repo, do not create `/components/ui`; keep shared UI under `frontend/src/app/shared/ui/` for consistency.
+
+**Open Questions**
+- Do you need grouped options, labels, or separators in the panel?
+- Any RTL requirements or additional animations?
+- Should we enable multi-select in the custom panel as well?
+
+If you want, I can apply this custom panel to any additional pages or extend it with groups/labels next.
