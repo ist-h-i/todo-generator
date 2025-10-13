@@ -16,3 +16,14 @@ Include the following sections for every recipe and update them whenever behavio
 5. **Change History** – Summarize notable updates with links to workflow logs and upstream/downstream recipe dependencies.
 
 Update recipes whenever the corresponding code changes or new context emerges. If a file has no recipe yet, create one using the naming convention above, and keep prior sections intact while appending new knowledge instead of overwriting history.
+
+## Generator (optional)
+You can seed missing recipes using a helper script:
+
+- Generate for defaults (backend/app and frontend/src):
+  - `python scripts/generate_file_recipes.py`
+- Limit to a specific folder or file:
+  - `python scripts/generate_file_recipes.py backend/app/routers`
+  - `python scripts/generate_file_recipes.py frontend/src/app/core/api/status-reports-gateway.ts`
+
+The generator creates recipe stubs only when missing and will not overwrite existing files.
