@@ -1,17 +1,15 @@
 {
   "steps": [
     "coder",
-    "code_quality_reviewer",
-    "integrator"
+    "code_quality_reviewer"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
       "coder",
-      "code_quality_reviewer",
-      "integrator"
+      "code_quality_reviewer"
     ],
-    "notes": "Implement a centralized SCSS-only update: extend .app-select styles to also target select.form-control and increase right padding + caret offset for modern spacing. No template or behavioral changes. Preserve tokens, dark mode, and focus states. Risk: minor visual changes for selects previously inheriting plain .form-control styling.",
-    "tests": "Build frontend and visually verify selectors on Settings, Board, and Reports pages. Confirm caret spacing, hover/focus/disabled states, dark-mode variants, multi-select behavior (no caret), and keyboard focus. Spot-check any selects lacking .app-select or .form-control usage."
+    "notes": "Add a Quick Links block to README and remove/move any coding-rule text if found. Given current repo, README contains no explicit rules; expect an additive Quick Links change only. If any rule-like lines are discovered, merge them into the Angular or Governance docs without duplication.",
+    "tests": "1) Link check: verify README links to docs/governance/development-governance-handbook.md, docs/guidelines/angular-coding-guidelines.md, docs/ui-design-system.md, docs/ui-layout-requirements.md. 2) Grep README for rule keywords (e.g., 'must', 'do not', 'coding', 'guideline', 'lint', 'style', 'naming', 'design tokens') and confirm no prescriptive rules remain. 3) Quick skim of modified docs to ensure headings remain coherent and no duplicate guidance was introduced."
   }
 }

@@ -1,41 +1,54 @@
-**Request Summary**
-- Redesign the app-wide “selector” (dropdown/select input) to a modern style.
-- Fix spacing: the “open” button/caret is flush to the edge; add sufficient padding.
-- Apply consistently across the app with minimal, targeted changes.
+**Restated Goal (English)**
+
+- Move any coding rules currently in `README` into the appropriate existing guidelines documents, merging them without duplication.
+- Update `README` so it no longer contains coding rules and instead serves as a concise, searchable entry point (an index to key project docs).
 
 **Assumptions**
-- “Selector” refers to dropdown inputs (native `<select>`, a shared custom component, or Angular Material `mat-select`).
-- Styling-only change; no behavior, API, or layout restructuring.
-- Centralized styling exists (design tokens/SCSS variables) and should be used.
-- Accessibility and keyboard/focus states must be preserved or improved.
-- Dark mode/theme support must remain consistent if present.
+
+- Existing guidelines already live under `docs/`, notably:
+  - `docs/governance/development-governance-handbook.md` (repo structure, backend, quality gates)
+  - `docs/guidelines/angular-coding-guidelines.md` (SPA coding + design)
+  - `docs/ui-design-system.md`, `docs/ui-layout-requirements.md`
+- The `README` currently includes some “coding rules” content that overlaps with those docs.
+- The desired `README` should highlight key links (i.e., act as a search/index hub) and keep non-guideline essentials (project overview, setup, contribution entry points).
 
 **Constraints**
-- Minimize scope and risk; prefer overriding shared component/theme styles.
-- Avoid breaking changes to component APIs or templates.
-- Keep within existing design system tokens (colors, spacing, radius, typography).
-- Maintain cross-browser support and responsive behavior.
+
+- Minimal, tightly scoped edits; smallest diff possible.
+- Fit within a short execution window; avoid broad refactors.
+- Do not introduce new guideline files if existing targets are appropriate.
+- Preserve existing document structure and style.
 
 **Unknowns**
-- Which selector implementations are in use (native, custom, Angular Material)?
-- Exact design direction for “modern” (radius, shadow, borders, density).
-- Target padding values around the caret/open button.
-- Required states (hover, focus, active, disabled, error) visual specs.
-- Theming requirements (light/dark), RTL support, and target browsers.
+
+- Exact sections in `README` that are considered “coding rules”.
+- Degree of overlap or conflict between `README` rules and `docs/guidelines/angular-coding-guidelines.md` or other docs.
+- Whether there are non-Angular (language-agnostic or backend) rules in `README` that should go into the Governance Handbook vs. Angular guidelines.
+- Any mandated `README` sections or formatting conventions for this repo.
+
+**Proposed Minimal Outcome**
+
+- Remove coding-rule sections from `README`.
+- Merge that content into:
+  - Angular-specific items → `docs/guidelines/angular-coding-guidelines.md`
+  - Repo-wide or backend/quality items → `docs/governance/development-governance-handbook.md`
+- Update `README` to a lean index: short project description + Quick Links to the above documents (and any existing essential links).
+
+**Definition of Done**
+
+- `README` contains no coding rules; acts as an index with clear links.
+- Coding rules from `README` are integrated into the appropriate existing documents without duplication.
+- Links work and headings remain coherent.
+- No unrelated files changed.
+
+**Risks**
+
+- Unintended duplication or contradictions if similar guidance already exists.
+- Misclassification of rules (e.g., moving backend items into Angular guidelines).
+- Breaking anchors or internal links if headings are altered during merge.
 
 **Clarifying Questions**
-- Which component(s) power selectors: native `<select>`, custom, `mat-select`, or mixed?
-- Do we have design tokens/specs for “modern” (radius, spacing, colors, focus ring)?
-- What padding should surround the caret/open button (e.g., 8–12px)?
-- Any size/density standard (e.g., 40–44px min touch target, 36/40/48px heights)?
-- Which states must be designed (default/hover/focus/disabled/error) and do we have examples?
-- Should we animate open/close or caret rotation? Any motion constraints?
-- Must this change apply app-wide automatically via theme overrides, or only to specific modules?
-- Are there screenshots or examples of the “broken” layout to confirm issues and scope?
-- What are the supported browsers and themes (light/dark, RTL)?
-- Are there existing regressions tests or visual baselines we must preserve?
 
-**Residual Risks**
-- Global CSS/theme overrides may cause regressions in edge cases.
-- Mixed selector implementations may require multiple targeted overrides.
-- Without precise design specs, “modern” could be interpreted inconsistently.
+- Please confirm which `README` sections should be treated as “coding rules”.
+- If a rule spans both Angular and general practices, should it be duplicated in both places or centralized in Governance and referenced from Angular?
+- Any required `README` template or mandatory sections we must keep (badges, install steps, contribution guide link)?

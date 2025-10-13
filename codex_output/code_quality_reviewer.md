@@ -1,53 +1,25 @@
 **Summary**
+- README now acts as an index and contains no prescriptive coding rules. The new “Repository guidelines” block with Quick Links is appropriate and minimal.
 
-- Centralized SCSS update is present and aligns with the minimal plan.
-- Styles now apply to both `.app-select` and `select.form-control` with increased right padding and adjusted caret offsets.
-- Hover, focus, disabled, options, multi/size variants, dark mode, and MS caret hiding are all covered.
+**Verification**
+- No rule-like language remains in `README.md` beyond link text (grep check ok).
+- Links resolve:
+  - `docs/governance/development-governance-handbook.md`
+  - `docs/guidelines/angular-coding-guidelines.md`
+  - `docs/ui-design-system.md`
+  - `docs/ui-layout-requirements.md`
+- New section is clearly scoped: `README.md:148` header “Repository guidelines” with links at `README.md:150-153` and usage bullets at `README.md:155-164`.
 
-**What I Checked**
+**Quality/Readability**
+- The section reads as a concise index; tone is consistent with the rest of the README.
+- No duplication introduced in guideline documents; no rewording needed there.
 
-- Base selector: `frontend/src/styles/pages/_base.scss:85` includes `.app-select, select.form-control` with:
-  - Padding set to `0.85rem calc(1.1rem + 2.25rem) 0.85rem 1.1rem`.
-  - Caret positions at `calc(100% - 1.85rem)` and `calc(100% - 1.35rem)`.
-- States and variants extended:
-  - Hover: `frontend/src/styles/pages/_base.scss:129`
-  - Focus-visible: `frontend/src/styles/pages/_base.scss:138`
-  - Disabled: `frontend/src/styles/pages/_base.scss:149`
-  - Options: `frontend/src/styles/pages/_base.scss:168`
-  - Multiple/size: `frontend/src/styles/pages/_base.scss:174`
-  - Dark theme variants: `frontend/src/styles/pages/_base.scss:184, 204, 213, 220`
-  - IE arrow: `frontend/src/styles/pages/_base.scss:225`
-- Coverage: All `<select>` usage spots are either `.app-select` or `.form-control` (including one `select.form-control` at `frontend/src/app/features/reports/reports-page.component.html:255`), so the extension achieves app-wide impact without template changes.
+**Minor Nits (non-blocking)**
+- Small duplication: “Development Governance Handbook” linked in both the quick list (`README.md:150`) and again in usage bullets (`README.md:162`). Consider dropping one to reduce redundancy.
+- Optional ToC tweak: if desired, add a nested ToC entry for “Repository guidelines” under “Documentation & knowledge base” to improve scanability.
 
-**Quality Notes**
+**Out of Scope Observations**
+- `README.md` environment-variable table formatting breaks between `DATABASE_URL` and `DEBUG` due to an inserted paragraph; not part of this change but worth a future tidy.
 
-- Readability: Clear comments annotate the padding and caret tweaks.
-- Consistency: Uses existing color tokens, transitions, and mirrors `.form-control` radius (1.25rem).
-- Accessibility: `:focus-visible` provides a visible outline and accent ring; disabled state communicates non-interactive affordance.
-- Density: `min-height: 3rem` (~48px) is appropriate for touch targets.
-
-**Edge Cases**
-
-- Multi-select/size > 1 correctly hides the caret and adjusts padding.
-- Specificity ensures select-specific focus styles override generic `.form-control` focus.
-- Dark theme inherits the outline color via `var(--accent)` and adds appropriate focus glow.
-
-**Residual Risks / Open Questions**
-
-- RTL: Current spacing uses physical sides (right). If RTL is required, consider logical properties to flip caret and padding automatically.
-- Visual drift: `select.form-control` on pages that previously used neutral input styling will now adopt the modern select look; audit critical forms.
-- Browser support: `color-mix()` requires modern browsers (already used elsewhere in the project).
-
-**Lightweight Suggestions (Optional, Non-blocking)**
-
-- RTL friendliness: Consider `padding-inline-end` and `background-position: right 1.85rem center, right 1.35rem center;` to adapt automatically in RTL contexts.
-- Tokens: If a consistent radius token is desired, align `1.25rem` to an existing variable (e.g., add `--radius-md`), but keep as-is if `.form-control` intentionally uses 1.25rem.
-
-**Verification Pointers**
-
-- Reports status select (no `.app-select`): `frontend/src/app/features/reports/reports-page.component.html:255`
-- App-select examples:
-  - Settings: `frontend/src/app/features/settings/page.html:247`, `frontend/src/app/features/settings/page.html:426`
-  - Board: `frontend/src/app/features/board/page.html:564`, `frontend/src/app/features/board/page.html:729`
-  - Admin/Analyze examples listed by rg results
-- Check default/hover/focus/disabled in light/dark, multi/size variants, and small widths for caret spacing.
+**Conclusion**
+- Definition of Done met with a minimal diff. No further action required.
