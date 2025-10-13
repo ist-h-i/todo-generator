@@ -1,47 +1,51 @@
-**Plan Summary**
-- Fix Angular TS error by making `onTouched` public where used in templates.
-- Keep selector redesign minimal and centralized (CSS-only).
-- Prepare shadcn React Select for projects that support React; provide setup instructions otherwise.
-- Maintain existing behaviors, states, and theming; avoid broad refactors.
+Plan summary
 
-**Critical Fix**
-- TS2341 root cause: Angular templates can only access public members.
-- Change in `src/app/shared/ui/select/ui-select.ts:34` implies `(blur)="onTouched()"`.
-- Minimal change: make the field public so templates can call it:
-  - Ensure `onTouched` is declared as `public onTouched: () => void = () => {};` and assigned in `registerOnTouched`.
-  - If you prefer no visibility change, add `public handleBlur() { this.onTouched(); }` and update template to `(blur)="handleBlur()"` (slightly larger impact).
-- Sanity check other template-accessed members like `onChange` for the same issue.
+- Scope is limited to READMEs: root, frontend, backend.
+- Root README already contains an index-style “Repository guidelines” block and no coding rules; no changes needed there.
+- frontend/README.md contains a large “Coding Guidelines” section; move its unique Angular guidance into docs/guidelines/angular-coding-guidelines.md, then remove the section and add a concise Quick Links block.
+- backend/README.md contains no prescriptive rules; add a minimal Quick Links block so it also works as a search/index entry point.
 
-**Selector Redesign Scope**
-- Keep CSS centralized; do not change templates where possible.
-- Goals:
-  - Simple down chevron, vertically centered.
-  - Adequate right padding so the icon isn’t flush.
-  - Preserve focus-visible, hover, disabled; multi/size>1 hides caret.
-  - Light/dark parity.
-- If not already present, update the shared select rule(s) that cover native `<select>` and shared Angular select wrapper.
+Minimal actions
 
-**React/shadcn Integration**
-- Default component and styles path: `components/ui` (shadcn convention).
-  - Why important: shadcn CLI scaffolds and docs assume `components/ui`, making primitives discoverable and consistent.
-- If a React app with Tailwind + shadcn + TS exists:
-  - Add `components/ui/select.tsx` and `components/ui/label.tsx` (provided code).
-  - Ensure `@/lib/utils` exports `cn`.
-  - Install: `@radix-ui/react-icons` and `@radix-ui/react-select`.
-  - Optional: add `demo.tsx` to a sandbox/story route.
-- If no React app:
-  - Provide setup instructions (Next.js TS, Tailwind, shadcn init, `@/` alias, add `cn` util) without modifying Angular app structure.
+- Merge unique Angular guidance from frontend’s “Coding Guidelines” into the existing Angular guidelines doc without duplicating existing bullets:
+  - Data fetching via Resource API (RxResource).
+  - Prefer Angular Signal Store for global state; reserve NgRx for existing/exceptional cases.
+  - Union types for resource states.
+  - Naming conventions (camelCase, PascalCase, UPPER_SNAKE_CASE; suffix patterns; kebab-case filenames).
+  - Avoid manual subscribe; integrate signals and takeUntilDestroyed.
+  - Error handling patterns (surface via Resource states or try/catch and LoggerService).
+  - Import order (Angular → third-party → application) and absolute aliases.
+  - Brief security note (sanitize innerHTML, centralize via HttpInterceptor, CSRF).
+- Do not copy governance items from frontend README (Conventional Commits, CI/CD) since handbook already covers them; avoids duplication.
+- Replace frontend “Coding Guidelines” section with a Quick Links block pointing to ../docs/… targets.
+- Add the same Quick Links block to backend/README.md using ../docs/… relative links.
 
-**Assumptions/Questions**
-- Are any other private members used in templates (`onChange`, etc.)?
-- Should the React select be integrated now, or prepped for future?
-- Any pages/components that must be excluded from the global CSS update?
-- RTL and older browser support requirements?
+Risks and mitigations
 
-**Risk Control**
-- Visibility change is safe and minimal; wrapper alternative is available.
-- CSS-only icon ensures no runtime risk; keep specificity modest to avoid regressions.
-- React component addition gated by project presence; otherwise, documented setup only.
+- Duplication in Angular guidelines: integrate as short bullets into existing sections; avoid repeating content already covered.
+- Broken relative links from subfolders: ensure links use ../docs/... in frontend and backend.
+- Tone/consistency: keep wording aligned with existing guideline style; avoid expanding scope.
+
+Selected stages
+
+- coder: implement doc moves and small README edits.
+- code_quality_reviewer: verify links, duplication, and that READMEs contain no prescriptive rules.
+
+Validation
+
+- Verify no prescriptive rules remain in READMEs:
+  - grep for rule-like keywords in README.md, frontend/README.md, backend/README.md.
+- Link checks:
+  - Confirm Quick Links resolve from subfolders: ../docs/governance/development-governance-handbook.md, ../docs/guidelines/angular-coding-guidelines.md, ../docs/ui-design-system.md, ../docs/ui-layout-requirements.md.
+- Angular doc merge sanity:
+  - Confirm presence of added topics: “RxResource”, “Signal Store”, “Naming”, “Security”.
+  - Skim to ensure no contradictory guidance.
+
+Open questions
+
+- Placement preference in sub-READMEs: top vs near the bottom; defaulting to a small “Repository guidelines” section near the docs/links area to minimize churn.
+- Language: repository is English-first; keeping edits in English.
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator"],"notes":"1) Fix TS2341 by making `onTouched` public in `src/app/shared/ui/select/ui-select.ts` (or add a public `handleBlur()` wrapper and update the template). Verify any other template-referenced members are public. 2) Centralize selector redesign via CSS: vertically centered simple down chevron, adequate right padding, preserve focus/hover/disabled and multi/size>1 rules, maintain light/dark parity. 3) React/shadcn: if a React app exists, add `components/ui/select.tsx` and `components/ui/label.tsx`, ensure `@/lib/utils` `cn` util, install `@radix-ui/react-select` and `@radix-ui/react-icons`, optionally add `demo.tsx`. If not, provide concise setup instructions (Next.js TS + Tailwind + shadcn) and rationale for `components/ui` path.","tests":"Angular: run `npm ci && npm run build` for the frontend; expect no TS2341. Manually verify select triggers across key pages: arrow is a single down chevron, vertically centered, with comfortable right padding; focus-visible ring, hover, disabled; multi/select size>1 hides caret; dark theme parity if applicable. If React app exists: `npm i @radix-ui/react-select @radix-ui/react-icons`, render the demo and verify keyboard navigation, focus ring, and viewport scrolling. Lint/type-check both stacks."}
+{"steps":["coder","code_quality_reviewer"],"notes":"Move unique Angular guidance from frontend/README.md into docs/guidelines/angular-coding-guidelines.md without duplicating existing bullets; remove the frontend 'Coding Guidelines' section and add a Quick Links block. Add the same Quick Links block to backend/README.md. Root README remains unchanged as it already acts as an index.","tests":"1) Ensure no prescriptive rules remain in any README: `rg -n '\\b(must|should|never|do not|guideline|ルール)\\b' README.md frontend/README.md backend/README.md`. 2) Validate subfolder Quick Links: check that ../docs/governance/development-governance-handbook.md, ../docs/guidelines/angular-coding-guidelines.md, ../docs/ui-design-system.md, ../docs/ui-layout-requirements.md exist. 3) Confirm Angular guidelines include merged topics by grepping for 'RxResource', 'Signal Store', 'Naming', 'innerHTML'. 4) Manual skim for tone/duplication in docs/guidelines/angular-coding-guidelines.md."}
+```

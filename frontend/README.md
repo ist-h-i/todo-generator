@@ -47,59 +47,14 @@ The application is served at `http://localhost:4200/` with hot reload enabled.
 
 Global styles in `src/styles.scss` expose variables for color, spacing, typography, and dark-mode variants. Layout landmarks (`banner`, `main`, `complementary`, `contentinfo`) aid navigation, focus rings remain visible, and dynamic regions use polite announcements.
 
-## Coding Guidelines
+## Repository guidelines
 
-Angular 20 code in this repository follows the standards below. Reference them when creating new
-components, utilities, and tests.
+- [Development Governance Handbook](../docs/governance/development-governance-handbook.md)
+- [Angular Coding & Design Guidelines](../docs/guidelines/angular-coding-guidelines.md)
+- [UI Design System](../docs/ui-design-system.md)
+- [UI Layout Requirements](../docs/ui-layout-requirements.md)
 
-1. **Project Structure** – Split features into standalone modules and prefer lazy loading. Organize
-   folders by `feature`, `shared`, and `core` domains.
-2. **Component Design** – Ensure single responsibility, default to `standalone: true`, use signals
-   for binding and forms via `signalForms`, and enable `ChangeDetectionStrategy.OnPush`.
-3. **Data Fetching** – Rely on the Resource API (`RxResource`) for remote data, handling lifecycle
-   and errors centrally. Wrap `HttpClient` calls with `Resource.from` rather than direct usage in
-   services.
-4. **State Management** – Prefer Signal Store for global state. Keep local UI state as component
-   signals, leverage `computed`/`effect`, and reserve NgRx only for existing large apps.
-5. **TypeScript Safety** – Compile with `"strict": true`, avoid `any`, define DTO types for API
-   responses, and express resource states via union types
-   (`'idle' | 'loading' | 'success' | 'error'`).
-6. **Function Rules** – Default to arrow functions with explicit parameter and return types (include
-   `void`). Nest helper functions when they serve a single caller and mark class members with access
-   modifiers.
-7. **Comments** – Use JSDoc for classes and public members. Document parameters, return values, and
-   rationale; avoid repeating obvious implementation details.
-8. **Naming** – Follow `camelCase` for variables/functions, `PascalCase` for types and classes,
-   `UPPER_SNAKE_CASE` for constants, suffix signals with `Signal`, and forms with `Form`. Name files
-   using kebab-case.
-9. **Class Design** – Apply single responsibility, use constructor injection for dependencies, and
-   declare access modifiers on members.
-10. **File Rules** – Keep one class/service/component per file with kebab-case filenames and limit
-    files to 400 lines.
-11. **Readability** – Enforce 2-space indents, limit lines to 100 characters, insert blank lines
-    after imports, between methods, and before `return` statements.
-12. **Styling** – Base UI on Tailwind CSS utilities, collect shared styles in `style.scss`, combine
-    utilities with SCSS mixins for composite patterns, and support dark mode via CSS variables.
-13. **RxJS & Async** – Avoid manual `subscribe`. Coordinate async workflows with `RxResource`,
-    integrate signals, and call `takeUntilDestroyed` for teardown logic.
-14. **Error Handling** – Surface errors through Resource states or explicit `try/catch`, log via
-    `LoggerService`, and propagate user-visible issues to the UI.
-15. **Extensibility** – Replace magic numbers with constants, prefer union types over enums, and
-    simplify branching with early returns.
-16. **Imports** – Order imports as Angular → third-party → application, remove unused entries, and
-    prefer absolute aliases (`@app/...`).
-17. **Testing** – Use Jest or Jasmine/Karma for unit tests and Playwright for E2E. Name specs with
-    `should + 動詞 + 条件` and maintain ≥80% coverage with mocks for HttpClient, Resource, and Signal
-    Store.
-18. **Accessibility** – Apply appropriate ARIA attributes, pair inputs with labels, and meet WCAG
-    2.1 AA contrast ratios.
-19. **Security** – Sanitize `[innerHTML]` via `DomSanitizer`, centralize auth/logging in
-    `HttpInterceptor`, and enforce CSRF protections.
-20. **Performance** – Embrace lazy loading, rely on Signals plus `RxResource` to reduce change
-    detection, and verify builds with `ng build --configuration production`.
-21. **Documentation** – Maintain Storybook entries, capture architecture decisions with ADRs, and
-    provide type-focused JSDoc.
-22. **Git & Review** – Use Conventional Commits (e.g., `feat: add user login form`) and keep PRs
-    under 200 lines with clear descriptions.
-23. **CI/CD** – Integrate lint/format/test into CI, require production builds per PR, and validate
-    performance and accessibility through Lighthouse before deployment.
+How to use these guides:
+- Start with the Development Governance Handbook for repository structure, backend practices, quality gates, and AI-driven expectations.
+- Apply the Angular Coding & Design Guidelines whenever you touch the SPA.
+- Keep design and workflow docs in sync when updating components, flows, or build tooling. Document intentional deviations.

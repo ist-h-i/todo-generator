@@ -1,8 +1,15 @@
 {
   "steps": [
     "coder",
-    "code_quality_reviewer",
-    "integrator"
+    "code_quality_reviewer"
   ],
-  "source": "fallback"
+  "source": "planner",
+  "planner_payload": {
+    "steps": [
+      "coder",
+      "code_quality_reviewer"
+    ],
+    "notes": "Move unique Angular guidance from frontend/README.md into docs/guidelines/angular-coding-guidelines.md without duplicating existing bullets; remove the frontend 'Coding Guidelines' section and add a Quick Links block. Add the same Quick Links block to backend/README.md. Root README remains unchanged as it already acts as an index.",
+    "tests": "1) Ensure no prescriptive rules remain in any README: `rg -n '\\b(must|should|never|do not|guideline|ルール)\\b' README.md frontend/README.md backend/README.md`. 2) Validate subfolder Quick Links: check that ../docs/governance/development-governance-handbook.md, ../docs/guidelines/angular-coding-guidelines.md, ../docs/ui-design-system.md, ../docs/ui-layout-requirements.md exist. 3) Confirm Angular guidelines include merged topics by grepping for 'RxResource', 'Signal Store', 'Naming', 'innerHTML'. 4) Manual skim for tone/duplication in docs/guidelines/angular-coding-guidelines.md."
+  }
 }
