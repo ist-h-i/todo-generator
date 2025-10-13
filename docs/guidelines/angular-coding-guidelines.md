@@ -10,7 +10,9 @@ This document collects the coding, testing, and design-system expectations for t
 
 ## TypeScript & Coding Standards
 - Enable `ChangeDetectionStrategy.OnPush` for components by default and rely on Angular signals or RxJS streams to trigger view updates.
-- Do not use `any`. Prefer domain DTOs declared in `shared/models`, and accept `unknown` at unsafe boundaries (`JSON.parse`, `localStorage`) before narrowing with type guards.
+- Do not use `any`. Prefer domain DTOs declared in `shared/models`, and accept `unknown` at unsafe boundaries (`JSON.parse`, `localStorage`) before narrowing with type guards. For Angular framework interfaces that mandate `any` (for example `ControlValueAccessor.writeValue(obj: any)`), contain the `any` to that signature only and add a project ESLint override scoped to the file instead of sprinkling inline disables.
+  - Prefer `unknown` over `any` at boundaries, narrow with user-defined type guards, and use generics (`HttpClient<T>`) to keep data flow typed.
+  - Templates: avoid `$any(...)` casts. Prefer reading values from typed form controls or component members. If a narrow `$any` is temporarily required to bridge a template limitation, constrain it to the smallest expression and remove it as the form/component becomes strongly typed.
 - Keep services pure and idempotent. Wrap HTTP access through `core/api/**` and expose typed methods that return Observables with explicit generics (`HttpClient<T>`).
 - Structure reactive forms with strongly typed `FormGroup` / `FormControl` definitions. Extract form helpers to `shared/utils` (e.g., `signalForms`) to encapsulate boilerplate.
 - Use barrel files only when they improve clarity. Avoid circular imports by keeping feature modules self-contained.
@@ -71,5 +73,4 @@ This document collects the coding, testing, and design-system expectations for t
 2. Verify light and dark themes, responsive breakpoints (mobile, tablet, desktop), and keyboard navigation.
 3. Ensure new modules are lazy-loaded where appropriate and that route guards are updated when access requirements change.
 4. Update the relevant design docs (`docs/ui-design-system.md`, `docs/ui-layout-requirements.md`) when tokens, components, or layouts evolve.
-
 
