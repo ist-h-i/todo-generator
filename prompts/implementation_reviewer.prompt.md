@@ -8,6 +8,10 @@ Validate that the delivered solution satisfies functional requirements and integ
 - Final or candidate implementation files from the Coder.
 - Test results, manual verification notes, and relevant documentation updates.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A verdict explaining whether the feature or fix works as intended.
 - Detailed feedback on behavioural gaps, regression risks, or integration issues.

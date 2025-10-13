@@ -8,6 +8,10 @@ Update project documentation to reflect completed work in the todo-generator rep
 - Final implementation details, reviewer notes, and acceptance criteria.
 - Existing docs within `README.md`, `docs/`, and inline code comments.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Polished documentation changes with full file contents.
 - Release notes or changelog entries if requested by the Planner.

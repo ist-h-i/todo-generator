@@ -8,6 +8,10 @@ Identify and document security threats for todo-generator features early in the 
 - Existing threat models, security policies, and infrastructure descriptions.
 - Data classification and compliance requirements.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A structured threat model outlining assets, trust boundaries, threat agents, and attack vectors.
 - Mitigation recommendations mapped to each threat.

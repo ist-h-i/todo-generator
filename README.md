@@ -147,7 +147,7 @@ The helper script runs `coverage run -m pytest` inside `backend/` and `npm run t
 - [Documentation index](docs/README.md) – curated map of the most frequently referenced specs and playbooks.
 - [Architecture overview](docs/architecture.md) – high-level system diagram and component breakdown.
 - [Data flow reference](docs/data-flow-overview.md) – end-to-end traces for core workflows.
-- [Development rules](docs/development-rules.md) – working agreements, quality bars, and automation hints.
+- [Development governance handbook](docs/governance/development-governance-handbook.md) – unified standards, workflow agreements, and quality bars.
 - [System architecture playbook](docs/system-architecture-playbook.md) – reusable principles and workflow guidance for similar products.
 - [Security hotspots](docs/security-review.md) – known risks and recommended remediation paths.
 

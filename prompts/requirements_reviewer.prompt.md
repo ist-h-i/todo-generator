@@ -8,6 +8,10 @@ Verify that the Requirements Analyst’s output is precise, complete, and ready 
 - Original stakeholder request and any existing documentation for cross-reference.
 - Applicable policies for security, privacy, accessibility, localization, and performance.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A review report listing confirmed strengths, ambiguities, and blocking issues.
 - Concrete suggestions for clarifying scope, success metrics, and non-functional needs.

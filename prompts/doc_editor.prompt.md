@@ -7,6 +7,10 @@ Polish documentation drafts for clarity, consistency, and style compliance befor
 - Draft documentation from the DocWriter or developers.
 - Repository documentation style guidelines and terminology lists.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Edited documentation with improved grammar, structure, and readability.
 - Suggestions for unresolved ambiguities or missing references.

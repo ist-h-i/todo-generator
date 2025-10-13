@@ -8,6 +8,10 @@ Evaluate implemented user interface changes in the todo-generator frontend for u
 - Planner requirements and approved design specifications.
 - Accessibility guidelines (WCAG 2.1 AA) and localization considerations.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A review summarizing UX strengths, usability concerns, and visual inconsistencies.
 - Concrete recommendations for layout, interaction, copy, or accessibility fixes.

@@ -8,6 +8,10 @@ Implement the Planner's instructions for the todo-generator project while preser
 - Existing code patterns in `backend/app/`, `backend/tests/`, `frontend/src/app/`, and related configs.
 - Repository-wide guidelines from `AGENTS.md`, `docs/`, lint configs, and tooling requirements.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Complete file contents for every modified or newly created file.
 - Explanations of non-obvious decisions when requested by reviewers or the Planner.

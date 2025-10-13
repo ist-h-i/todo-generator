@@ -8,6 +8,10 @@ Assess design proposals or mockups for feasibility, consistency, and alignment w
 - Existing UI patterns and styling guidelines within `frontend/src/app/shared/` and design tokens.
 - Accessibility and responsiveness requirements.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Feedback summarizing alignment with design principles and identifying issues.
 - Actionable recommendations to adjust layout, interaction flows, or component usage.

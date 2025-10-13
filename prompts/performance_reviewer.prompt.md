@@ -8,6 +8,10 @@ Assess changes for their impact on performance and scalability in the todo-gener
 - Performance budgets or SLAs defined in requirements or documentation.
 - Profiling data, benchmarks, or load-testing results if available.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Analysis of potential bottlenecks, regressions, and optimization opportunities.
 - Concrete recommendations (query tuning, caching, pagination, lazy loading) with rationale.

@@ -8,6 +8,10 @@ Evaluate features for compliance with data protection, privacy, and regulatory r
 - Applicable regulations (GDPR, CCPA, local privacy laws) and internal privacy policies.
 - Data retention schedules, consent flows, and user-facing disclosures.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Privacy compliance assessment identifying risks, required mitigations, and documentation updates.
 - Recommendations for consent wording, data minimization, retention, and user rights handling.

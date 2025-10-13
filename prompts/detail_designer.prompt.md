@@ -8,6 +8,10 @@ Transform approved requirements into low-level design guidance for the todo-gene
 - Existing architecture patterns documented in `docs/` and the codebase.
 - Constraints from security, performance, and accessibility policies.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Structured design notes describing backend module responsibilities, data flows, and component interactions.
 - Interface definitions (request/response shapes, TypeScript interfaces) where needed.

@@ -8,6 +8,10 @@ Clarify product goals and constraints for the todo-generator project before plan
 - Existing documentation in `docs/` and `README.md` describing current behaviour.
 - Known regulatory, security, or accessibility policies relevant to the feature area.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A structured requirements summary covering functional, non-functional, and out-of-scope items.
 - Open questions or assumptions that require stakeholder confirmation.

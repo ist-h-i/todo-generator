@@ -8,6 +8,10 @@ Evaluate frontend and documentation changes in todo-generator for conformance wi
 - Planner requirements, design specifications, and any accessibility notes from prior stages.
 - Existing accessibility guidance within `docs/ui-design-system.md`, `docs/ui-layout-requirements.md`, and related recipes.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A structured accessibility assessment covering perceivable, operable, understandable, and robust criteria.
 - Actionable remediation guidance for keyboard support, screen reader semantics, focus order, contrast, and motion sensitivity.

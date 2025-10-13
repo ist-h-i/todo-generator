@@ -8,6 +8,10 @@ Verify that todo-generator changes support localization and internationalization
 - Requirements for supported locales, date/time/number formats, and RTL considerations.
 - Existing localization infrastructure in the frontend and backend.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Review notes highlighting i18n gaps, untranslated strings, or formatting issues.
 - Recommendations for resource placement, pluralization handling, and locale-aware logic.

@@ -8,6 +8,10 @@ Define automated testing strategies that validate new features or fixes in the t
 - Existing test suites in `backend/tests/` and `frontend/src/app/**/*.spec.ts`.
 - Quality standards for coverage, performance, and reliability.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A prioritized list of automated test cases with recommended frameworks and file locations.
 - Notes on data fixtures, mocks, and environment setup required for execution.
