@@ -98,21 +98,10 @@ select.form-control {
   line-height: 1.35;
   color: var(--text-primary);
   background-color: color-mix(in srgb, var(--surface-card) 88%, transparent);
-  background-image:
-    linear-gradient(
-      45deg,
-      transparent 50%,
-      color-mix(in srgb, var(--text-secondary) 72%, transparent) 50%
-    ),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--text-secondary) 72%, transparent) 50%,
-      transparent 50%
-    );
+  /* Simple, single down-arrow using an inline SVG; uses currentColor */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
   /* Vertically center the trigger icon and keep modern right-side spacing */
-  background-position:
-    right 1.85rem center,
-    right 1.35rem center;
+  background-position: right 1.6rem center;
   background-size: 0.65rem 0.65rem;
   background-repeat: no-repeat;
   background-origin: border-box;
@@ -152,17 +141,8 @@ select.form-control:disabled {
   opacity: 0.7;
   border-color: color-mix(in srgb, var(--border-subtle) 60%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface-inverse) 4%, transparent);
-  background-image:
-    linear-gradient(
-      45deg,
-      transparent 50%,
-      color-mix(in srgb, var(--text-muted) 45%, transparent) 50%
-    ),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--text-muted) 45%, transparent) 50%,
-      transparent 50%
-    );
+  /* Keep the same simple arrow; opacity handles muted state */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
 }
 
 .app-select option,
@@ -188,17 +168,8 @@ select.form-control[size]:not([size='1']) {
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--surface-inverse) 20%, transparent),
     0 14px 28px -22px color-mix(in srgb, var(--surface-inverse) 50%, transparent);
-  background-image:
-    linear-gradient(
-      45deg,
-      transparent 50%,
-      color-mix(in srgb, var(--text-inverse-tertiary) 70%, transparent) 50%
-    ),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--text-inverse-tertiary) 70%, transparent) 50%,
-      transparent 50%
-    );
+  /* Use the same simple arrow; currentColor adapts in dark mode */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
 }
 
 .dark .app-select:hover:not(:disabled),
