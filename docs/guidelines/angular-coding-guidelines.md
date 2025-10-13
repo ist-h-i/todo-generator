@@ -1,7 +1,7 @@
 # Angular Coding & Design Guidelines
 
 ## Purpose & Scope
-This document collects the coding, testing, and design-system expectations for the Angular single-page application. It expands the general repository rules documented in `general-coding-guidelines.md` with client-side specifics and design guardrails.
+This document collects the coding, testing, and design-system expectations for the Angular single-page application. It expands the general repository rules documented in `../governance/development-governance-handbook.md` with client-side specifics and design guardrails.
 
 ## Project Structure
 - Keep shared infrastructure under `frontend/src/app/core`, reusable UI primitives under `shared`, and helpers under `lib`. Feature implementations belong to `features/<feature-name>` and use descriptive kebab-case folder names.

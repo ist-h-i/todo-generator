@@ -8,6 +8,10 @@ Evaluate code and configuration changes in todo-generator for security vulnerabi
 - Security policies covering authentication, authorization, data protection, and secure coding practices.
 - Threat models or prior security findings relevant to the feature area.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A security review highlighting vulnerabilities, misconfigurations, and required remediations.
 - Severity ratings and explicit instructions for mitigation.

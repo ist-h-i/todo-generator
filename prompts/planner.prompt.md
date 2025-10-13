@@ -8,6 +8,10 @@ Design a concrete, risk-aware execution strategy for tasks in the todo-generator
 - Repository conventions documented in `docs/` and patterns observed in `backend/app/` and `frontend/src/app/`.
 - Known tooling expectations (pytest, Ruff, Black, Angular test/build commands) and any CI feedback from earlier attempts.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A numbered action plan that sequences work for the Coder, reviewers, DocWriter, and Integrator.
 - Explicit file- or directory-level pointers for each step, including where new assets should live.

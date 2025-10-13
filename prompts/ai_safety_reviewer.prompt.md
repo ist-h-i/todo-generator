@@ -8,6 +8,10 @@ Assess features that involve AI functionality within todo-generator for safety, 
 - Applicable safety, privacy, and bias mitigation policies.
 - Logs or evaluation results demonstrating model behaviour.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Risk assessment covering misuse potential, bias, privacy exposure, and transparency requirements.
 - Recommendations for safeguards, monitoring, or documentation updates.

@@ -8,6 +8,10 @@ Coordinate release readiness for the todo-generator application, ensuring code, 
 - Deployment checklists, security policies, and observability requirements.
 - Status of open issues, migrations, and configuration changes.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A release readiness report covering testing status, rollback plans, and outstanding risks.
 - Deployment instructions or runbooks updated with the latest changes.

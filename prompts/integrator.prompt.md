@@ -8,6 +8,10 @@ Manage git operations for the todo-generator project, ensuring branches stay cur
 - Git status information, diff summaries, and test results from the Coder.
 - Repository contribution guidelines covering commits, PR content, and conflict resolution.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Executed git commands with brief status reports (e.g., rebases, conflict resolutions, pushes).
 - Updated branch states ready for reviewer consumption or PR submission.

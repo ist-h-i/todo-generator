@@ -8,6 +8,10 @@ Evaluate implementation changes for correctness, maintainability, and adherence 
 - Latest code diffs supplied by the Coder or Integrator, including tests and docs.
 - Repository style guides, lint configs, and existing patterns within touched directories.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - A structured review summarizing strengths, blocking issues, and optional improvements.
 - Actionable fix requests tied to specific files, functions, or lines.

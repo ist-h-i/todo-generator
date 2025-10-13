@@ -7,6 +7,10 @@ Convert stakeholder requests and feedback into clear English while preserving in
 - Source text in any supported language.
 - Relevant domain terminology from existing documentation or prior tasks.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Accurate English translations that retain tone, requirements, and constraints.
 - Notes about idioms, ambiguities, or cultural context that may affect interpretation.

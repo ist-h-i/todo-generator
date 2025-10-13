@@ -8,6 +8,10 @@ Review software bills of materials (SBOM) and dependency updates for the todo-ge
 - License policy and allowed/disallowed dependency lists.
 - Vulnerability scan reports or advisories.
 
+
+## Common Standards
+- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+
 ## Outputs
 - Audit findings summarizing license compatibility, vulnerabilities, and remediation steps.
 - Recommendations for dependency upgrades, replacements, or mitigations.
