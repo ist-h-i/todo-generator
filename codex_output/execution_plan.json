@@ -1,0 +1,17 @@
+{
+  "steps": [
+    "coder",
+    "code_quality_reviewer",
+    "integrator"
+  ],
+  "source": "planner",
+  "planner_payload": {
+    "steps": [
+      "coder",
+      "code_quality_reviewer",
+      "integrator"
+    ],
+    "notes": "Implement a centralized SCSS-only update: extend .app-select styles to also target select.form-control and increase right padding + caret offset for modern spacing. No template or behavioral changes. Preserve tokens, dark mode, and focus states. Risk: minor visual changes for selects previously inheriting plain .form-control styling.",
+    "tests": "Build frontend and visually verify selectors on Settings, Board, and Reports pages. Confirm caret spacing, hover/focus/disabled states, dark-mode variants, multi-select behavior (no caret), and keyboard focus. Spot-check any selects lacking .app-select or .form-control usage."
+  }
+}

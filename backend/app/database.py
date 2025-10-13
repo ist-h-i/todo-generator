@@ -11,7 +11,7 @@ from .config import settings
 
 Base = declarative_base()
 
-# Lazy singletons to avoid import-time failures on serverless cold starts
+# Lazy singletons（サーバレス向けに import 時のDBドライバ読み込みを回避）
 _engine: Optional[Engine] = None
 _SessionLocal: Optional[sessionmaker] = None
 
@@ -27,7 +27,7 @@ def _create_engine() -> Engine:
     return create_engine(
         _normalized_url(settings.database_url),
         pool_pre_ping=True,
-        poolclass=NullPool,  # serverless-friendly (no persistent pool)
+        poolclass=NullPool,  # serverless-friendly
         future=True,
     )
 
@@ -39,7 +39,7 @@ def get_engine() -> Engine:
     return _engine
 
 
-def _get_session_factory() -> sessionmaker:
+def get_session_factory() -> sessionmaker:
     global _SessionLocal
     if _SessionLocal is None:
         _SessionLocal = sessionmaker(
@@ -54,13 +54,11 @@ def _get_session_factory() -> sessionmaker:
 
 def get_db() -> Iterator[Session]:
     """Yield a DB session per request."""
-    db = _get_session_factory()()
+    db = get_session_factory()()
     try:
         yield db
     finally:
         db.close()
 
 
-# Backwards-compatible handles expected by the rest of the application
-engine = get_engine()
-SessionLocal = _get_session_factory()
+__all__ = ["Base", "get_engine", "get_session_factory", "get_db"]

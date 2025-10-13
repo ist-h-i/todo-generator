@@ -1,31 +1,16 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-- `backend/app` hosts FastAPI routers, services, models, and migrations, with `backend/tests` mirroring modules and fixtures under `backend/tests/utils`.
-- `frontend/src/app` splits shared infrastructure in `core`, `shared`, and `lib` from features under `features/*`; keep specs beside components.
-- `docs/` carries architecture and workflow rules, while `scripts/` holds automation such as `run_codex_pipeline.sh`.
+This repository keeps language-agnostic standards separate from Angular-specific rules so that each team can focus on the guidance that matters to them.
 
-## Build, Test, and Development Commands
-- `start-localhost.bat` seeds the virtualenv, installs npm packages, and launches the backend and Angular dev servers on Windows.
-- Backend flow: `pip install -r backend/requirements.txt` (plus `requirements-dev.txt` for tooling) and `uvicorn app.main:app --reload --app-dir backend`.
-- Quality checks: `pytest backend/tests`, `ruff check backend`, `black --check backend/app backend/tests`, then `cd frontend && npm install`, `npm start`, `npm test -- --watch=false`, `npm run lint`, `npm run format:check`, `npm run build`.
+## Quick Links
+- [General Coding Guidelines](docs/guidelines/general-coding-guidelines.md)
+- [Angular Coding & Design Guidelines](docs/guidelines/angular-coding-guidelines.md)
+- [Development Workflow Agreements](docs/development-rules.md)
+- [UI Design System](docs/ui-design-system.md)
+- [UI Layout Requirements](docs/ui-layout-requirements.md)
 
-## Coding Style & Naming Conventions
-- `.editorconfig` enforces UTF-8, two-space indentation, trimmed whitespace, and final newlines across languages.
-- Python uses Black (120 columns) and Ruff's double-quote rules; keep packages snake_case and Pydantic models in PascalCase.
-- Angular code relies on ESLint + Prettier with single quotes; favor kebab-case folders, keep selectors descriptive, and co-locate component assets.
+## How to Use These Guides
+- Start with the **General Coding Guidelines** for repository structure, backend practices, quality gates, and security expectations.
+- Apply the **Angular Coding & Design Guidelines** whenever you touch the SPA. They consolidate coding standards, state management rules, and the most important design-system requirements.
+- Keep design and workflow docs in sync when updating components, flows, or build tooling. Document intentional deviations so the next contributor inherits accurate context.
 
-## Testing Guidelines
-- Place backend coverage in `backend/tests/test_*.py`; reuse fixtures from `conftest.py` and guard new branches before merging.
-- Angular specs stay beside sources as `*.spec.ts`; disable watch mode in CI with `npm test -- --watch=false`.
-- Run lint and format checks alongside tests on logic changes; documentation-only edits may skip them per `docs/development-rules.md`.
-
-## Commit & Pull Request Guidelines
-- Write imperative, capitalized subjects (~65 chars) to match the existing `git log`, and squash noisy fixups.
-- Sync with `main`, rerun the relevant checks, and call out migrations or configuration updates in the PR body.
-- PRs should link issues, summarize behavior, and include screenshots for UI tweaks plus any manual verification notes.
-
-## Security & Configuration Tips
-- Preserve ownership scoping in `backend/app/routers/reports.py` and similar endpoints to prevent cross-admin escalation.
-- Store secrets through the admin console with a strong `SECRET_ENCRYPTION_KEY`, and override `DATABASE_URL` outside the default SQLite sandbox.
-- Align CORS settings with the deployed SPA and avoid verbose logging of sensitive payloads when `DEBUG` is enabled.
