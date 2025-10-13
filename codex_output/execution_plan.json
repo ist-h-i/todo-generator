@@ -2,18 +2,16 @@
   "steps": [
     "coder",
     "code_quality_reviewer",
-    "integrator",
-    "release_manager"
+    "integrator"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
       "coder",
       "code_quality_reviewer",
-      "integrator",
-      "release_manager"
+      "integrator"
     ],
-    "notes": "Angular + Tailwind + TS already present. React/shadcn/Radix integration is not suitable. The new CSS in frontend/src/styles/pages/_base.scss modernizes selects and vertically centers the trigger icon. Minimal work: ensure all <select> use class \"form-control app-select\", keep CSS, and document usage. No new dependencies.",
-    "tests": "Manual checks: 1) Verify selects across Settings, Reports, Analyze, Board, Admin pages render with centered chevron, adequate right padding, and consistent radius. 2) Hover/focus states show border/ring and subtle shadow; disabled state dims and locks cursor. 3) Dark mode: check chevron visibility, focus outline, and contrast. 4) Multi-selects: confirm chevrons are removed and layout is stable. 5) Mobile viewport: ensure no overflow and tap targets remain ≥44px."
+    "notes": "Make a single, centralized CSS change in frontend/src/styles/pages/_base.scss to replace the gradient-based caret with a single simple down-arrow (SVG data URI), keeping vertical centering and spacing intact. Do not alter Angular templates/TS. Provide React/shadcn select.tsx, demo.tsx, label.tsx as copy-paste files and setup instructions (components under /components/ui, ensure @ alias and cn util, install @radix-ui/react-select and @radix-ui/react-icons) for React projects. Explain why /components/ui is important for shadcn.",
+    "tests": "Manual: in Angular app, open Settings, Board, Reports pages. Verify the select trigger shows a single minimalist down-arrow, vertically centered, with adequate right padding. Check states (default/hover/focus-visible/disabled), multi-select/size>1 (no caret), and light/dark parity. For React deliverables, confirm the files compile in a React+Tailwind+TS project with @ alias and that the demo renders with ChevronDown icon."
   }
 }
