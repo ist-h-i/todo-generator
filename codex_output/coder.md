@@ -1,34 +1,32 @@
-I’ve located the failing code and applied a minimal, safe TypeScript fix to unblock CI.
+**Summary**
+- Applied minimal, surgical documentation fixes to improve clarity and formatting without restructuring.
+- Updated root README TOC label and repaired a broken table.
+- Cleaned artifacts in docs index and added a link to the Recipes index.
 
-What I changed
-- Fixed null-safe selection label derivation for multi-select
-  - frontend/src/app/shared/ui/select/ui-select.ts:279
-    - Normalize the current value to a string array and use that for label mapping to avoid calling includes on a possibly null value.
+**Changes Made**
+- README.md
+  - Fixed TOC label to match section header: Manual setup (macOS/Linux) (README.md:13).
+  - Repaired the environment variable table by moving an interjected note below the table to avoid breaking Markdown rendering (README.md:84).
+- docs/README.md
+  - Removed stray “ E” artifacts and unified list formatting using “ — ” separators (docs/README.md:6).
+  - Added a “Recipes index” link under Prompts & Automation pointing to docs/recipes/README.md (docs/README.md:36).
 
-Focused diff (explanation)
-- Before: Called this.value.includes(...) inside syncLabelFromValue for multiple mode, which triggered TS2531 when this.value could be null.
-- After: Create a safe array first and use it for filtering:
-  - selected = Array.isArray(this.value) ? this.value : this.value != null ? [String(this.value)] : []
-  - Use selected.includes(o.value) to derive labels.
+**Patch Overview**
+- README.md
+  - [Manual setup (macoslinux)] → [Manual setup (macOS/Linux)] with the same anchor.
+  - Moved the Neon credentials note to below the table, keeping content intact.
+- docs/README.md
+  - Replaced “ E” artifacts with “ — ” for all affected bullets.
+  - Added: “- [Recipes index](recipes/README.md) — How to write and maintain code recipes.”
 
-Other checks
-- onTouched is public and callable from the template: frontend/src/app/shared/ui/select/ui-select.ts:60
-- isSelected uses Array.isArray guard correctly for includes.
+**Verification Commands**
+- Confirm no stray artifacts remain:
+  - `rg -n " E" docs/README.md`
+- Validate key links exist:
+  - `test -f docs/governance/development-governance-handbook.md && test -f docs/guidelines/angular-coding-guidelines.md && test -f docs/ui-design-system.md && test -f docs/ui-layout-requirements.md && test -f docs/recipes/README.md && echo links_ok || echo links_missing`
+- Spot-check README wording:
+  - `rg -n "Manual setup \\(macOS/Linux\\)" README.md`
 
-Why this fixes CI
-- The TypeScript error (TS2531) came from calling includes on a possibly null value. Normalizing to selected: string[] eliminates that code path while preserving behavior.
-
-Paths to know
-- Shared UI select: frontend/src/app/shared/ui/select/ui-select.ts
-- Global styles: frontend/src/styles/pages/_base.scss
-
-How to verify locally
-- Build: cd frontend && ng build --configuration production
-- Tests: npm test (Karma) — confirm no load errors
-- Manual: open pages using the shared select (Reports/Admin/Settings) and confirm labels display for single/multi-select without console errors.
-
-Note on the React/shadcn request
-- This repo is Angular. Integrating the provided React/shadcn Select component is out of scope and would be invasive here. If you need a React app version, components would live under /components/ui with Tailwind/shadcn setup; I can provide a separate setup guide on request.
-
-Residual risks
-- None functional. We only normalized value handling; no API or behavior changes.
+**Residual Risks / Open Questions**
+- Full link audit across all docs not performed; focused on the touched files only.
+- Language remains English to minimize scope; advise if bilingual updates are required.
