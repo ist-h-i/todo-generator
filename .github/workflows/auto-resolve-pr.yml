@@ -170,6 +170,7 @@ jobs:
       - name: Upload test reports (best-effort)
         if: always()
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: test-artifacts
           path: |

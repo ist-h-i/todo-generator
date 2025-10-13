@@ -135,14 +135,23 @@ run_stage() {
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep it concise and scoped to this stage."
 
-  printf '%s' "${PROMPT}" | "${CODEX_CLI[@]}" exec \
+  local PROMPT_FILE
+  PROMPT_FILE=$(mktemp)
+  printf '%s' "${PROMPT}" > "${PROMPT_FILE}"
+
+  "${CODEX_CLI[@]}" exec \
     --full-auto \
     --cd "${GITHUB_WORKSPACE:-$(pwd)}" \
     --output-last-message "${OUTPUT_FILE}" \
     --config approval_policy=never \
     --config sandbox='"workspace-write"' \
     -- \
-    -
+    - < "${PROMPT_FILE}"
+  local STATUS=$?
+  rm -f "${PROMPT_FILE}"
+  if [ "${STATUS}" -ne 0 ]; then
+    return "${STATUS}"
+  fi
 
   local STEP_OUTPUT
   STEP_OUTPUT=$(cat "${OUTPUT_FILE}")
