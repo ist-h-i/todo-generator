@@ -367,7 +367,6 @@ jobs:
             data[issue] = out
             index_path.parent.mkdir(parents=True, exist_ok=True)
             index_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
-            print(str(index_path))
           PY
           echo "path=$state_dir/index.json" >> "$GITHUB_OUTPUT"
 
