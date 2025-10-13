@@ -176,6 +176,7 @@ These principles consolidate the AI-driven development guidelines into the prima
     // eslint-disable-next-line @typescript-eslint/no-explicit-any — 3rd-party callback type; see T-1234
     ```
   - Prefer containing any unavoidable `any` inside typed adapters so it doesn’t leak into app code.
+  - Angular ControlValueAccessor requires `writeValue(obj: any)`. Keep the `any` limited to that method signature and handle enforcement via an ESLint file override rather than pervasive inline disables.
 
 #### Examples
 ```ts

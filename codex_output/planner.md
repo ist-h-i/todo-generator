@@ -1,45 +1,31 @@
 Summary
-- Objective: Add “recipes” to each source folder that describe functions and variables with minimal, maintainable change.
-- Interpretation: Use per-folder `RECIPE.md` files that summarize exported functions and variables found in `.ts` files.
-- Rationale: No existing `docs/recipes` convention is present in this repo; per-folder docs satisfy the issue title directly with the smallest sustainable footprint.
+- Scope: Replace actual TypeScript any usages in SPA code, harden lint enforcement, and document the policy with minimal diffs.
+- Repo check confirms a single TS any in code (`ui-select.ts`) plus many template `$any(...)` casts. ESLint already has `@typescript-eslint/no-explicit-any: "error"`.
 
 Plan
-- Convention: Create `RECIPE.md` per folder under `frontend/src/app/**`.
-- Generator: Add a small Node script (`scripts/generate-folder-recipes.mjs`) to scan `.ts` files (excluding `*.spec.ts`) and extract exported functions and variables via simple regex.
-- Seed docs: Run the script to generate/refresh `RECIPE.md` across relevant folders.
-- Doc guide: Add `docs/recipes/README.md` describing the convention, template, and how to regenerate.
+- Tight code fix: Replace `value: any` with a safe union type; keep `writeValue(obj: any)` because Angular ControlValueAccessor requires it.
+- Enforce lint: Add a file-scoped ESLint override for `ui-select.ts` so `writeValue` doesn’t violate the rule.
+- Docs alignment: Update Angular guidelines to clarify “no explicit any” with `unknown` preference, generics, and template `$any` guidance. Update governance handbook with a narrow CVA exception.
 
-Scope
-- Include: `frontend/src/app/**` production code.
-- Exclude: `*.spec.ts`, `.html`, `.scss`, `public`, build/test configs.
-- Entities: `export function`, `export const/let/var`. (Optional class/interface documentation can be added later, but not required now.)
-
-Why this is minimal
-- One script + generated markdown files; no external deps, no build/toolchain changes.
-- Idempotent generation to minimize churn; incremental updates easy.
-- Avoids introducing a competing per-file recipe convention.
+Changes made (targeted)
+- frontend/src/app/shared/ui/select/ui-select.ts: Typed `value` as `string | string[] | null` and cast in `writeValue` to avoid leaking any internally.
+- frontend/.eslintrc.cjs: Added file-level override to disable `@typescript-eslint/no-explicit-any` only for `src/app/shared/ui/select/ui-select.ts` to permit `ControlValueAccessor.writeValue(obj: any)`.
+- docs/guidelines/angular-coding-guidelines.md: Clarified no-explicit-any policy, use of `unknown` and generics, and discouraged `$any(...)` in templates except as a narrow, temporary bridge.
+- docs/governance/development-governance-handbook.md: Noted the ControlValueAccessor `writeValue(obj: any)` exception and recommended handling via ESLint file override.
 
 Risks / Open Questions
-- Regex extraction may miss edge cases (e.g., re-exports, multi-line exports). Acceptable for initial pass; can refine later.
-- Depth: We will scaffold entries with TODO description placeholders; subject-matter owners can fill details incrementally.
-- Scope ambiguity (“each folder”): Planning assumes folders under `frontend/src/app/**`; backend or scripts don’t exist here.
-- Drift risk: Recommend re-running generator in CI or pre-commit later, if desired.
+- Template `$any(...)` casts remain; replacing them safely would exceed the 30-minute window. They are called out in guidelines as discouraged and should be incrementally removed.
+- Acceptance criteria: If “zero any” means across TypeScript sources, we meet it except for the framework-mandated interface parameter. If it includes template `$any`, that requires a broader follow-up.
+- If PR #507 intersects with these files or rules, confirm whether to rebase or open a new PR. Recommend a new, focused PR to keep diffs minimal.
 
-Execution Steps (high level)
-- Implement generator script with directory traversal and export parsing.
-- Generate initial `RECIPE.md` files for all folders in scope.
-- Add a concise guide at `docs/recipes/README.md` with template and usage.
-- Keep the diff small and focused on docs and one script.
+Why this route fits 30 minutes
+- Single-file code change plus one ESLint config override and small doc edits. No dependency updates or wide refactors.
+- Leaves templates untouched to minimize scope; policy clarifies future direction.
 
-Stage Selection
-- Choose coder only. The change is self-contained, low-risk, and does not require extra QA or release steps. A code quality pass is optional but not essential for a single script and markdown output.
-
-Tests / Validation
-- Run the generator; verify:
-  - A few representative folders (e.g., `frontend/src/app/core/api`, `frontend/src/app/features/board`) have `RECIPE.md` with exported functions/variables listed and placeholders for descriptions.
-  - Idempotency: running the script twice doesn’t change output absent code changes.
-  - No files created outside intended folders; no changes to `.spec.ts` handling.
+Validation
+- Static search: ensure no remaining explicit `any` in TypeScript aside from `writeValue`.
+- Lint: `cd frontend && npm run lint` should pass with the override in place.
+- Build/tests: `cd frontend && npm run build && npm test -- --watch=false` (if node_modules present in CI).
 
 ```json
-{"steps":["coder"],"notes":"Adopt per-folder RECIPE.md convention under frontend/src/app/**. Implement a small Node script to parse exported functions/variables from .ts files (excluding tests) and generate RECIPE.md per folder. Seed docs and add a brief guide at docs/recipes/README.md. This minimizes diff and aligns with the issue title while staying within the 30-minute cap.","tests":"1) Run scripts/generate-folder-recipes.mjs. 2) Inspect RECIPE.md in frontend/src/app/core/api and frontend/src/app/features/board for correct listings. 3) Re-run script to confirm idempotency. 4) Spot-check that no test or non-TS files are included."}
-```
+{"steps":["coder","integrator"],"notes":"Replace the only TS-level any with a safe union in ui-select, allow the framework-required writeValue(any) via a file-scoped ESLint override, and document the no-explicit-any policy (unknown/generics, template $any guidance). Keep scope minimal; do not refactor templates. Residual risk: numerous template $any casts remain; flagged for incremental cleanup.","tests":"- rg -n \"\\bany\\b\" frontend/src | rg -v \"\\.html:\" returns only writeValue signature.\n- cd frontend && npm run lint (should pass due to override).\n- cd frontend && npm run build && npm test -- --watch=false (sanity check in CI).\n"}```
