@@ -1,36 +1,43 @@
 **背景**
-- 目的: セレクターのホバー時に背景が白っぽくなる不整合を解消し、他の input と統一
-- 併せて: 下向きアローをシンプル化し、ダークモードでも文字色と同一で視認性を確保
-- 前提: リポジトリは Angular 構成。最小変更方針でスタイル中心に対応
+- 目的: 新規参画者が迷わず目的のコード/ドキュメントへ到達できるよう、リポジトリ全体の索引を追加。
+- 方針: 既存構造は変更せず、最小差分で横断的な導線を整備（1ファイル追加 + 2つの小さなリンク追記）。
+- 前提: 英語ドキュメント維持、リンク安定性重視、30分枠・小さな変更で完結。
 
 **変更概要**
-- ホバー統一: セレクターの hover 背景色をベースと同一にし「白浮き」を解消
-  - 対象: `.app-select`, `select.form-control`（中央スタイルで全体適用）
-  - 反応性は維持: 境界色/影の微変更でホバーの手触りは残す
-- アイコン統一: 下向きアローは `currentColor` で描画し、文字色と常に一致（ライト/ダーク両対応）
-- 型安全性（ビルド安定化）: `this.value` の null 安全化（配列正規化）と `onTouched()` の公開化
-- 代表ファイル
-  - ホバー調整: `frontend/src/styles/pages/_base.scss:129`
-  - 型安全/公開化: `frontend/src/app/shared/ui/select/ui-select.ts:278`, `frontend/src/app/shared/ui/select/ui-select.ts:34`
+- リポジトリ索引を新規追加: `docs/INDEX.md`
+  - 主要ディレクトリの役割と入口を一覧化（例: フロント/バックエンド、ドキュメント、スクリプト、CI/設定）。
+  - 重要ドキュメントへのショートカットを集約:
+    - `docs/governance/development-governance-handbook.md`
+    - `docs/guidelines/angular-coding-guidelines.md`
+    - `docs/ui-design-system.md`
+    - `docs/ui-layout-requirements.md`
+- クロスリンクを追加（小変更のみ）:
+  - ルート `README.md` に索引への導線を1行追記（例: “Repository Index & Map” → `docs/INDEX.md`）。
+  - `docs/README.md` に相互参照リンクを1行追記（例: “Repository Index & Map” → `docs/INDEX.md`）。
+- 構造変更（改名/移動/分割/統合）は未実施。既存リンク/アンカーを温存。
 
 **影響**
-- アプリ全体でセレクターの見た目が input と統一（ライト/ダーク両方）
-- 下向きアローが背景に溶けず、常にテキストと同コントラストで可読
-- 機能/API/テンプレート変更なし。影響範囲は CSS と最小の TS 安全化のみ
+- 新規参画者の初期探索コストを削減（2–3クリックで主要コード/ガイドへ到達）。
+- 変更範囲は限定的（新規1ファイル + 追記2行程度）。既存の相対リンクに影響なし。
+- コード/ビルド/依存関係には非影響。リスクは低く、ロールバック容易。
 
 **検証**
-- ビルド: `cd frontend && npm ci && npm run build`（または `ng build --configuration production`）
-- 手動確認（ライト/ダーク）
-  - ホバーで背景が白っぽくならず、他の input と同じ挙動
-  - フォーカスリングの可視性、無効状態の見た目を維持
-  - 矢印アイコンが文字色と一致し視認性良好
-  - マルチ/`size>1` はキャレット非表示のまま
-- 代表画面
-  - `frontend/src/app/features/settings/page.html:249`
-  - `frontend/src/app/features/board/page.html:565`
-  - `frontend/src/app/features/reports/reports-page.component.html:274`
+- 追加物の存在確認:
+  - `test -f docs/INDEX.md`
+- クロスリンクの存在確認:
+  - `rg -n "\[Repository Index & Map\]\(docs/INDEX.md\)" README.md`
+  - `rg -n "\[Repository Index & Map\]\(INDEX.md\)" docs/README.md`
+- キードキュメントの存在確認:
+  - `test -f docs/governance/development-governance-handbook.md`
+  - `test -f docs/guidelines/angular-coding-guidelines.md`
+  - `test -f docs/ui-design-system.md`
+  - `test -f docs/ui-layout-requirements.md`
+- 目視レンダリング確認（GitHub 等）:
+  - 箇条書き/相対リンクが正しく機能し、崩れがないこと。
 
 **レビュー観点**
-- 局所オーバーライドがあれば見た目差分が出ないか（最小の特異性で中央スタイルが勝つはず）
-- RTL/forced-colors は本対応の対象外（必要ならフォローアップで対応可）
-- React/shadcn 提供コードは本リポ構成（Angular）と不一致のため未採用。必要なら別タスクでセットアップ方針を提示可能
+- 索引の粒度は十分か（トップレベル中心で良いか、主要機能単位をもう1段追加するか）。
+- 索引ファイル名の妥当性（`docs/INDEX.md` で問題ないか、`docs/00-index.md` を好むか）。
+- 英語のみでよいか（見出しのみ日英併記の要否）。
+- CI/インフラ（`.github/workflows/`、Docker 等）導線を含める範囲の妥当性。
+- 今後の拡張方針（新ディレクトリ追加時に `docs/INDEX.md` に1行追記する運用で合意できるか）。

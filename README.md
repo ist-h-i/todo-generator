@@ -10,7 +10,7 @@ Verbalize Yourself is an AI-assisted operations workspace that turns free-form s
   - [Prerequisites](#prerequisites)
   - [Configure environment variables](#configure-environment-variables)
   - [One-click startup on Windows](#one-click-startup-on-windows)
-  - [Manual setup (macoslinux)](#manual-setup-macoslinux)
+  - [Manual setup (macOS/Linux)](#manual-setup-macoslinux)
   - [Run the stack](#run-the-stack)
 - [Quality and automation](#quality-and-automation)
   - [Backend commands](#backend-commands)
@@ -73,8 +73,6 @@ Create a `.env` file in the repository root or export variables before launching
 | Variable | Description | Default |
 | --- | --- | --- |
 | `DATABASE_URL` | SQLAlchemy connection string. Supply the pooled Neon connection string via environment variables. | (required) |
-
-Store the Neon credentials outside the repository (for example, in a `.env` file that is excluded from version control) and inject them through `DATABASE_URL` before starting the backend service.
 | `DEBUG` | Enables verbose logging and exception responses. | `False` |
 | `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `models/gemini-2.0-flash` |
 | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | Gemini API key. Provide before enabling analyzer or report AI flows. | (required for AI features) |
@@ -82,6 +80,8 @@ Store the Neon credentials outside the repository (for example, in a `.env` file
 | `RECOMMENDATION_WEIGHT_LABEL` | Weight applied to label correlation when computing `ai_confidence`. | `0.6` |
 | `RECOMMENDATION_WEIGHT_PROFILE` | Weight applied to profile alignment when computing `ai_confidence`. | `0.4` |
 | `ALLOWED_ORIGINS` | Comma-separated list of CORS origins for the SPA. | `http://localhost:4200` |
+
+Store the Neon credentials outside the repository (for example, in a `.env` file that is excluded from version control) and inject them through `DATABASE_URL` before starting the backend service.
 
 ### One-click startup on Windows
 Run the bundled script from the repository root. It creates a virtual environment, installs Python and npm dependencies, and launches both servers in separate terminals.
@@ -147,6 +147,7 @@ The helper script runs `coverage run -m pytest` inside `backend/` and `npm run t
 
 ### Repository guidelines
 
+- [Repository Index & Map](docs/INDEX.md)
 - [Development Governance Handbook](docs/governance/development-governance-handbook.md)
 - [Angular Coding & Design Guidelines](docs/guidelines/angular-coding-guidelines.md)
 - [UI Design System](docs/ui-design-system.md)

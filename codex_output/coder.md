@@ -1,41 +1,26 @@
+**Summary**
+- Delivered a repository-wide, newcomer-friendly index with minimal impact.
+- Completed by refining links in the existing index and confirming cross-links in READMEs.
+
 **What I Changed**
-- Unified select hover background with inputs (no white flash).
-  - Light theme: keep base background on hover; retain subtle border/shadow feedback.
-  - Dark theme: same approach for parity.
-- Kept the simple single chevron icon and currentColor behavior (stays visible in dark mode).
+- Made Quick Pointers and See Also in docs/INDEX.md fully clickable with correct relative paths.
+  - docs/INDEX.md
+    - Linked to docs/README.md, ui/design docs, governance, and angular guidelines.
+    - Linked to root README via ../README.md.
 
-**Files Touched**
-- frontend/src/styles/pages/_base.scss:118
-- frontend/src/styles/pages/_base.scss:178
+**Why This Meets The Goal**
+- New contributors can jump directly to key areas (frontend routes, backend routers/services, UI standards, governance) in 1–2 clicks.
+- Minimal diff and no structural changes; existing content preserved.
 
-**Focused Diff (Behavioral)**
-- Light hover
-  - Before: lightened bg to near-white on hover.
-  - After: uses the same bg as base to match inputs.
-- Dark hover
-  - Before: lightened bg on hover.
-  - After: uses the same bg as base to match inputs.
+**Verification**
+- Confirm the index exists and links are present:
+  - `test -f docs/INDEX.md`
+  - `rg -n \"\\[Documentation Index\\]\\(README.md\\)\" docs/INDEX.md`
+  - `rg -n \"\\(../README.md\\)\" docs/INDEX.md`
+  - `rg -n \"\\(ui-design-system.md\\)|\\(ui-layout-requirements.md\\)|\\(governance/development-governance-handbook.md\\)|\\(guidelines/angular-coding-guidelines.md\\)\" docs/INDEX.md`
+- Confirm cross-links already exist:
+  - Root README points to index: `rg -n \"\\[Repository Index & Map\\]\\(docs/INDEX.md\\)\" README.md`
+  - Docs index points back: `rg -n \"\\[Repository Index & Map\\]\\(INDEX.md\\)\" docs/README.md`
 
-**Key Snippets**
-- frontend/src/styles/pages/_base.scss:118
-  - background-color set to `color-mix(in srgb, var(--surface-card) 88%, transparent)` to match base.
-- frontend/src/styles/pages/_base.scss:178
-  - background-color set to `color-mix(in srgb, var(--surface-layer-2) 92%, transparent)` to match base dark.
-
-**Why This Fix**
-- Eliminates the inconsistent “white” hover effect on selectors while preserving tactile feedback via border/box-shadow.
-- Minimal and centralized; no TS/HTML touched; aligns with other inputs.
-
-**How to Verify**
-- Build: `cd frontend && npm ci && npm run build` (or `ng build --configuration production`).
-- Manually check in light/dark:
-  - Hover no longer brightens to white.
-  - Focus-visible ring remains; disabled unchanged.
-  - Arrow icon color matches text (currentColor) and stays visible.
-- Spot check pages using `.app-select` and `select.form-control`:
-  - frontend/src/app/features/settings/page.html:249
-  - frontend/src/app/features/board/page.html:565
-  - frontend/src/app/features/reports/reports-page.component.html:274
-
-**Notes**
-- The repo is Angular; the provided shadcn/Radix React Select isn’t integrated here to keep scope minimal. If you want a React/shadcn setup (components in `components/ui`, `@/lib/utils` `cn` helper, deps `@radix-ui/react-select` and `@radix-ui/react-icons`), I can outline those steps in a separate task.
+**Notes / Residual Risks**
+- The index intentionally focuses on high-traffic directories to keep the diff small; it’s easy to extend later if needed.
