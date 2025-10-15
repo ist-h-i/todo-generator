@@ -1,29 +1,36 @@
-I reviewed the failing select component and applied a minimal, type-safe fix to unblock CI.
+**What I Changed**
 
-What I changed
-- Normalized value handling everywhere we do selection checks to avoid calling includes on a possibly null value.
-  - Updated selection predicate to use a safe array for both single and multiple modes:
-    - frontend/src/app/shared/ui/select/ui-select.ts:256
-- Kept the previous null-safe label derivation intact for the multiple-select label join.
+- Unified the select trigger text and down-arrow color in dark mode for the custom Angular select:
+  - Ensures the icon inherits a high-contrast color identical to the trigger text.
+  - Minimal, component-scoped CSS change; no behavior or template changes.
 
-Why this fixes the error
-- The prior error came from calling includes on a possibly null value (TS2531). By normalizing to a string array first, includes is always safe, and the logic remains consistent for both single and multi-select.
+**Files Updated**
 
-Key references
-- Selection check now uses a normalized array:
-  - frontend/src/app/shared/ui/select/ui-select.ts:256
-- Multiple mode label derivation already safe:
-  - frontend/src/app/shared/ui/select/ui-select.ts:286
+- frontend/src/app/shared/ui/select/ui-select.ts:171
+  - Added a dark-mode rule to align the trigger’s text and icon color:
+    - `.dark .ui-select__trigger { color: var(--text-primary); }`
 
-Impact
-- Behavior unchanged; only safer type handling.
-- Styles and the modernized arrow/currentColor alignment remain intact.
-- Scope is a single-file, minimal change.
+**Why This Fixes It**
 
-How to verify
-- Build: cd frontend && ng build --configuration production
-- Tests: cd frontend && npm test (Karma should start with 0 load errors)
-- Manual: Confirm selects show correct labels for single/multi, and no console errors. Dark mode arrow remains visible and matches text color.
+- The custom trigger’s arrow is an inline SVG with `stroke="currentColor"`, and `.ui-select__icon` already uses `color: currentColor`. By explicitly setting the trigger’s color to `var(--text-primary)` in dark mode, both the text and the icon adopt the same visible, high-contrast color.
+- Native `<select>` arrows are already rendered via a CSS background SVG using `currentColor` and are covered by global styles:
+  - frontend/src/styles/pages/_base.scss:85
+  - frontend/src/styles/pages/_base.scss:164
 
-Note on React/shadcn request
-- This repo is Angular. The provided React/shadcn component path (/components/ui) doesn’t apply here. We retained the Angular shared select (frontend/src/app/shared/ui/select/ui-select.ts) and centralized SCSS updates for minimal impact and full app coverage. If you need a separate React setup, I can provide a shadcn/Tailwind guide and component placement under /components/ui in a React app.
+**Scope and Risk**
+
+- Scope is minimal and targeted to the shared select trigger in dark mode.
+- No logic changes, no dependency changes, no React/shadcn added (repo is Angular).
+- Existing states (hover/focus/disabled) remain unchanged.
+
+**How to Verify**
+
+- In dark mode, check any screen using the custom select (e.g., Admin/Reports/Settings):
+  - The down-arrow inside the select trigger matches the text color and remains clearly visible.
+  - Hover/focus/disabled states look consistent.
+- For native selects (`.app-select`, `select.form-control`), confirm arrows are also visible; they inherit `currentColor` from:
+  - frontend/src/styles/pages/_base.scss:164
+
+**Notes**
+
+- If any page intentionally changes the trigger text color, the arrow will follow (as requested: match text and icon colors).
