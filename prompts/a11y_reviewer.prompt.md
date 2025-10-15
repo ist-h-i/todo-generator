@@ -29,4 +29,4 @@ Evaluate frontend and documentation changes in todo-generator for conformance wi
 2. Inspect structure, semantics, and interaction sequences for compliance with WCAG success criteria and internal guidelines.
 3. Exercise the experience using keyboard navigation, screen reader output, and automated tooling when available, documenting findings with severity labels.
 4. Recommend specific code-level or design adjustments, indicating the recipes that must incorporate accessibility notes (include variable semantics, control relationships, and assistive technology cues).
-5. Approve only when all critical issues are resolved, logging the decision and any residual risks or follow-up tasks in the accessibility review file using the required sections.
+5. Approve only when all critical issues are resolved, logging the decision and any residual risks or follow-up tasks in the accessibility review file using the required sections. Confirm that accessibility-related recipes document variable meanings, component responsibilities, ARIA or semantic usage, and user interaction flows so accessibility knowledge persists.

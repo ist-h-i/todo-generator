@@ -16,7 +16,7 @@ Evaluate code and configuration changes in todo-generator for security vulnerabi
 - A security review highlighting vulnerabilities, misconfigurations, and required remediations.
 - Severity ratings and explicit instructions for mitigation.
 - Approval once all critical and high issues are resolved or formally accepted.
-- A Markdown security report stored at `workflow/security-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, including mitigation tracking and references to security-sensitive recipe updates. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs and policies.
+- A Markdown security report stored at `workflow/security-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, including mitigation tracking and references to security-sensitive recipe updates. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs and policies. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 - Focus on security; collaborate with other reviewers for non-security concerns.
@@ -29,4 +29,4 @@ Evaluate code and configuration changes in todo-generator for security vulnerabi
 2. Analyze authentication/authorization logic, ensuring least privilege and tenant isolation are preserved.
 3. Evaluate data validation, error handling, and cryptography usage against best practices.
 4. Inspect configuration changes (CORS, environment variables, infrastructure scripts) for policy compliance, noting required recipe coverage for secrets handling and infra dependencies.
-5. Provide a prioritized list of findings and approve only when risks are mitigated or acknowledged, documenting any recipe updates required to capture security controls or known residual risks within the log’s Recipe Updates and Risks & Follow-ups sections.
+5. Provide a prioritized list of findings and approve only when risks are mitigated or acknowledged, documenting any recipe updates required to capture security controls or known residual risks within the log’s Recipe Updates and Risks & Follow-ups sections. Confirm that security-sensitive recipes explain variable meanings, data handling points, function/class responsibilities, and UI exposure so mitigations stay traceable.
