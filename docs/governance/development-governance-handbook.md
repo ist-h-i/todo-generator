@@ -61,6 +61,8 @@ The Angular single-page application follows the complementary guidance in [`guid
 ### AI-Driven Development Common Standards
 These principles consolidate the AI-driven development guidelines into the primary repository playbook. They apply to every role alongside the practices above.
 
+Refer to the detailed [AI Agent Development Guidelines](../../.codex/policies/ai_dev_guidelines.md) for cost-optimized execution rules, task scope constraints, and validation requirements that govern Codex pipelines and GitHub Actions.
+
 #### Core Development Philosophy
 - Deliver more than working code by keeping quality, maintainability, and safety front of mind.
 - Balance scope, speed, and rigour according to the project phase (prototype, MVP, production).
