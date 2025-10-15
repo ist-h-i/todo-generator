@@ -39,4 +39,4 @@ Use this index to locate the specs, playbooks, and references that keep Verbaliz
 - Sync with `README.md` for setup instructions spanning both Angular and FastAPI stacks.
 - When introducing or modifying features, update the relevant requirements and detail design documents listed above to keep this index accurate.
 - Capture architecture or workflow changes in the playbooks so the next contributor inherits the latest rationale.
-
+- See the [Repository Index & Map](INDEX.md) for a quick tour of code layout and entry points.
