@@ -1,41 +1,47 @@
-## Restated Request (English)
-- Replace the “5 Whys” analysis with an Immunity Map structure.
-- Introduce and visualize the Immunity Map as a Mermaid flow diagram that can be viewed in Mermaid Live Editor.
-- Build a retrospective diagram with three levels:
-  - Level 1 (A): “Things to do,” “Things I can’t do,” “Things I want to do.”
-  - Level 2: 
-    - B: Inhibitors (draw lines from A to B)
-    - C: Shadow goals / ideal self / goals (draw lines from A to C)
-  - Level 3:
-    - D: Deep psychology/bias causing inhibitors (draw lines from B to D)
-    - E: True needs (draw lines from B and C to E)
-    - F: Fundamental fixed concepts (draw lines from C to F)
-- Hide any nodes and edges that have no content (do not render empty items).
+**Summary**
+- Introduce “Channels” to team‑scope boards. Convert each user’s existing board workspace into their own private channel. Only board-related features live inside channels. Card creation must specify a channel. Members of a channel share visibility of cards and subtasks. Support inviting users to a channel and leaving/kicking from a channel.
 
-## Assumptions
-- The output is a single Mermaid flowchart snippet that renders correctly in Mermaid Live Editor.
-- Mermaid “flowchart” syntax with subgraphs will be used to represent Levels 1–3.
-- Letters A–F are structural categories; actual node labels will be user-provided content.
-- Edges follow: A→B, A→C, B→D, B→E, C→E, C→F.
-- This change is documentation-only (no app or build changes).
+**Objectives**
+- Add a Channel concept with membership.
+- Scope boards/cards/subtasks to a channel.
+- Require channel selection on card creation.
+- Enable invite, leave, and kick actions.
 
-## Constraints
-- Keep edits minimal and tightly scoped; prefer a single new/updated doc with Mermaid content.
-- Fit in a 30-minute window; smallest viable diff.
-- Deliver a finished, self-contained snippet that requires no extra tooling.
+**Non‑Goals**
+- Do not move non‑board features into channels.
+- No broad refactors beyond what’s needed to support channels.
 
-## Unknowns
-- Exact content for each category (A–F) and how many items per category.
-- Whether to keep A–F letters visible in labels or only use descriptive text.
-- Desired diagram direction (e.g., `flowchart TD` vs `LR`) and styling (colors, classes).
-- Target repository path/filename for the diagram (e.g., `docs/analysis/immune-map.md`).
-- Whether to remove or deprecate any existing “5 Whys” docs.
+**Assumptions**
+- Existing “board workspace” equals a per‑user area that maps 1:1 to a new private channel.
+- Cards and subtasks already exist; we only add channel scoping.
+- Minimal permission model is acceptable for MVP (e.g., owner/moderator).
+- Existing cards can be automatically migrated to a user’s private channel.
 
-## Clarifying Questions
-- Do you want the letters A–F shown in node labels, or only descriptive text?
-- Which flow direction do you prefer: top-to-down (`TD`) or left-to-right (`LR`)?
-- Do you want level grouping via Mermaid subgraphs labeled “Level 1/2/3”?
-- Where should this live in the repo (proposed: `docs/analysis/immune-map.md`)?
-- Should we deprecate or remove any existing 5 Whys documentation, and if so, where is it?
-- Any preferred styling (colors, classes) or is default Mermaid styling fine?
-- Will you provide the actual content for each node now, or should we deliver a blank template that omits empty nodes by default?
+**Constraints**
+- Minimize diffs and UX disruption.
+- Backward compatible where possible (e.g., default channel preselected).
+- Complete within a small, incremental change set.
+- No channelization of non‑board modules.
+
+**Unknowns**
+- Precise data model for channels and membership roles.
+- How boards relate to channels (one channel → many boards, or cards directly in channels without boards?).
+- Organization/tenant boundaries for channels.
+- Invitation mechanism (username vs email) and approval flow.
+- Who can kick whom; quorum rules (any member vs owner only).
+- Default channel naming/visibility and discoverability.
+- Migration details for shared cards across users.
+- Moving cards between channels and audit implications.
+- API and UI surfaces that must change (endpoints, forms, filters).
+
+## Clarifying questions
+- Should a channel contain multiple boards, or are cards directly associated to a channel independent of boards?
+- Are channels scoped within an organization/team, or globally across the app?
+- What roles exist in a channel (owner, admin, member), and who can invite/kick?
+- How should invitations work (by username, email, link), and is acceptance required?
+- Can cards be moved between channels? If yes, who is authorized to do so?
+- How should existing shared boards/cards be migrated when multiple users currently see them?
+- What is the default behavior for new users (auto‑create a private channel with a specific name)?
+- Do we need UI filters/switchers for “current channel” across board/card views?
+- Any auditing/notifications required for invites, joins, leaves, and kicks?
+- Are there retention or access constraints for users removed from a channel (e.g., read‑only history)?

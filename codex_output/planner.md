@@ -1,85 +1,71 @@
-Plan Summary
-- Create a single documentation file with a Mermaid “Immunity Map” template that renders in Mermaid Live Editor and omits empty nodes/edges by default.
-- Keep scope to one new doc, no other file changes.
-- Provide clear usage notes so contributors only add nodes/edges with content.
+**Approach**
 
-Proposed Minimal Change
-- New file: docs/analysis/immune-map.md
-- Contents:
-  - Short intro explaining Immunity Map vs. 5 Whys (no migration of old docs).
-  - Ready-to-render Mermaid snippet with three levels (A–F categories), using subgraphs.
-  - Example nodes and edges are commented out; users only uncomment/populate items that have content, which naturally hides empty elements.
+Introduce a lightweight “Channel” model with membership and scope cards to a channel with minimal UI/API changes. Default every user to an auto-created private channel. Require a channel on card creation with a preselected default. Add simple invite/leave/kick actions with a minimal role model.
 
-Exact Mermaid Snippet (to implement)
-```mermaid
-flowchart TD
-  %% Immunity Map Template (A–F)
-  %% Direction: top-down (TD). Switch to LR if preferred (flowchart LR).
+**Assumptions (to unblock work)**
 
-  %% Level 1 (A): Things to do / Can't do / Want to do
-  subgraph A["Level 1 – Actions & Constraints (Do / Can't / Want)"]
-    %% Uncomment and edit actual items:
-    %% A1["Do: <text>"]
-    %% A2["Can't: <text>"]
-    %% A3["Want: <text>"]
-  end
+- Cards associate directly to a `channel` (not via board). Boards remain as-is and continue to work; their views filter cards by the selected/current channel.
+- Channel roles: `owner` and `member`. Owner can kick; any member can invite; invite auto-joins by username (no approval flow).
+- Existing cards migrate to the creator’s private channel. Shared cards (if any) also migrate to the creator’s channel.
+- New users get a private channel named “My Channel” at first login or user creation.
+- Non-board modules are unaffected.
 
-  %% Level 2 (B, C)
-  subgraph B["Level 2 – Inhibitors"]
-    %% B1["<inhibitor>"]
-    %% B2["<inhibitor>"]
-  end
+**Minimal Data Model**
 
-  subgraph C["Level 2 – Shadow Goals / Ideals / Goals"]
-    %% C1["<shadow goal / ideal>"]
-    %% C2["<goal>"]
-  end
+- `channels(id, name, owner_user_id, is_private, created_at)`
+- `channel_members(channel_id, user_id, role[owner|member], joined_at)` with unique(channel_id, user_id)
+- Add `cards.channel_id` (non-null after backfill); index on `(channel_id)`
 
-  %% Level 3 (D, E, F)
-  subgraph D["Level 3 – Deep Psychology / Bias (causing B)"]
-    %% D1["<deep cause / bias>"]
-  end
+**API Changes (focused)**
 
-  subgraph E["Level 3 – True Needs (from B & C)"]
-    %% E1["<true need>"]
-  end
+- `GET /channels/mine` → list channels where caller is a member.
+- `POST /cards` → require `channelId`; validate caller is member.
+- Query endpoints that return cards must filter by channels the caller is member of (via `cards.channel_id IN (…member channels…)`).
+- Membership actions:
+  - `POST /channels/:id/invite { username }` → add member (any member can invite).
+  - `POST /channels/:id/leave` → remove self if not owner with sole ownership (owner can leave if other owners or transfer out of scope for MVP).
+  - `POST /channels/:id/kick { userId }` → owner only.
 
-  subgraph F["Level 3 – Fundamental Fixed Concepts (from C)"]
-    %% F1["<fixed concept>"]
-  end
+Optional for MVP: `GET /channels/:id` basic details (not required if UI uses `mine`).
 
-  %% Edges (add only when both referenced nodes exist):
-  %% A1 --> B1
-  %% A1 --> C1
-  %% A2 --> B2
-  %% A3 --> C2
-  %% B1 --> D1
-  %% B1 --> E1
-  %% C1 --> E1
-  %% C1 --> F1
-```
+**UI Changes (Angular, minimal)**
 
-Why this fits constraints
-- Single-file, documentation-only change; no code or build impact.
-- Renders in Mermaid Live Editor immediately.
-- Hides empty nodes/edges because nothing is uncommented by default.
-- Clear mapping of edges as required: A→B, A→C, B→D, B→E, C→E, C→F.
+- Card create/edit dialog: add a `Channel` select fed by `GET /channels/mine`; preselect caller’s private channel; hide selector if only one channel.
+- Card lists/boards views: add a lightweight channel filter/switcher (dropdown) at view level; default to last-used or private channel. If too costly, pass `channelId` via query params/state when navigating from the create dialog and default listing to “my channels” aggregation.
+- Channel actions: simple menu in header/user menu:
+  - “Invite to channel” (username input → call invite)
+  - “Leave channel”
+  - “Kick member” (owner-only: basic list with remove buttons or reuse existing member list UI if any)
 
-Open Questions
-- Keep letters A–F visible in subgraph titles? (Current template shows them in subgraph names only.)
-- Preferred direction: TD (current) vs LR.
-- Do you want a link added in docs/INDEX.md for discoverability? (Would add one more small change.)
-- Should we deprecate mentions of “Why-Why analysis” in docs/features/analytics-insights/requirements.md now, or in a later pass?
+**Migration Strategy**
 
-Risks
-- Empty subgraphs still display their labeled headers; requirement focuses on nodes/edges, which this template hides by default. If full invisibility of empty groups is required, we’d need conditional generation (out of scope for Mermaid alone).
-- Existing references to 5 Whys remain; not changing them keeps scope minimal but may cause inconsistency until follow-up.
+- Create a private channel per user and membership(owner).
+- Backfill: set `cards.channel_id` to the card creator’s private channel.
+- Enforce NOT NULL on `cards.channel_id` post-backfill.
+- Add read filters immediately; ensure old UI paths always pass/derive a valid `channelId`.
 
-Validation
-- Paste the snippet into Mermaid Live Editor; confirm it renders.
-- Uncomment a minimal pair like A1, B1, C1 and corresponding edges; confirm layout and connections render as expected.
-- Confirm that leaving any item commented omits its node/edge.
+**Sequence (30-minute-fit, smallest diff)**
+
+1) Migrations: create `channels`, `channel_members`, add `cards.channel_id`, backfill, add constraints/indexes.  
+2) Backend: add membership check helpers; enforce channel scoping on card queries; require `channelId` on create; implement `GET /channels/mine` and membership actions.  
+3) UI: add channel dropdown to card create dialog (default preselected); wire to `POST /cards`; add a simple channel filter for card lists or default to “all my channels”.  
+4) Docs: brief notes in `docs/governance/development-governance-handbook.md` and `docs/guidelines/angular-coding-guidelines.md` about channel requirement for cards.  
+5) Smoke tests: minimally cover card create with channel, filtered listing, invite/leave/kick.
+
+**Critical Risks / Open Questions**
+
+- Migration of already shared cards could change visibility unexpectedly; flagged as risk.
+- Owner-leave edge cases (sole owner) need a policy; temporarily block leave if sole owner.
+- Kicking the sole owner not allowed; owner transfer out-of-scope.
+- Invitation by username assumes uniqueness and existing user; no email/link flow.
+- Board-channel relationship remains implicit; boards show cards filtered by selected channel only, which may hide cards users expect. Consider a small banner explaining filters.
+
+**Why this route fits 30 minutes**
+
+- Adds the smallest new tables/columns and the narrowest API surface.
+- UI impact limited to a dropdown and two simple actions.
+- Invitations are immediate (no approval/notifications).
 
 ```json
-{"steps":["coder"],"notes":"One-file documentation update: add docs/analysis/immune-map.md with a ready-to-render Mermaid Immunity Map template. No other files changed to minimize scope. Template uses commented example nodes/edges so only contentful items are shown, satisfying the hide-empty requirement.","tests":"Manual: 1) Open Mermaid Live Editor and paste the snippet; verify it renders with empty groups only. 2) Uncomment A1, B1, C1, D1, E1, F1 progressively and add edges A1->B1, A1->C1, B1->D1, B1->E1, C1->E1, C1->F1; verify edges render correctly. 3) Re-comment nodes/edges to confirm they disappear without errors."}
+{"steps":["coder","integrator"],"notes":"Coder implements minimal channel model, membership, card.channel_id, scoped queries, and small UI additions (channel select on card create, simple filter). Integrator runs migrations, wires config, and verifies endpoints/UI load. Owner/member role kept minimal; invites by username auto-join. Existing cards backfilled to creator’s private channel.","tests":"Backend: (1) Create card with invalid channel → 403. (2) Create card in member channel → 201, channelId stored. (3) List cards returns only member-channel cards. (4) Invite adds membership; invitee can list/create. (5) Leave removes membership; access revoked. (6) Kick by owner removes member; member loses access. UI: (1) Card create shows channel dropdown with default. (2) Creating a card without changing selection succeeds. (3) Switching channel filter changes visible cards. Migration: After migration, existing cards have non-null channel_id and are visible in private channel."}
 ```
