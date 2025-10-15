@@ -1,26 +1,55 @@
 **Summary**
-- Delivered a repository-wide, newcomer-friendly index with minimal impact.
-- Completed by refining links in the existing index and confirming cross-links in READMEs.
+Implemented a dedicated HoverMessageService and refactored Shell to use it. This centralizes queueing, durations, and dismissal/animation logic for right-side, top-stacked hover/toast notifications with correct timing per severity.
 
-**What I Changed**
-- Made Quick Pointers and See Also in docs/INDEX.md fully clickable with correct relative paths.
-  - docs/INDEX.md
-    - Linked to docs/README.md, ui/design docs, governance, and angular guidelines.
-    - Linked to root README via ../README.md.
+**What Changed**
+- Added a global service managing the message queue, timers, and API.
+- Rewired Shell to read messages from the service and to publish notifications via the service.
+- Preserved existing UI components and styles, including entry (drop-in) and exit (slide-out-right) animations, colors, and stacking.
 
-**Why This Meets The Goal**
-- New contributors can jump directly to key areas (frontend routes, backend routers/services, UI standards, governance) in 1–2 clicks.
-- Minimal diff and no structural changes; existing content preserved.
+**Files Touched**
+- Added: frontend/src/app/core/layout/hover-messages/hover-message.service.ts:1
+  - API:
+    - `show(text, severity)`; convenience: `notify()`, `warn()`, `error()`, `loading()`, `system()`
+    - `dismiss(id)`, `clearAll()`
+    - `messages()` signal for rendering
+  - Behavior:
+    - Newest first (top)
+    - Durations: error sticky, warning 10s, notification 5s, system 3s, loading sticky
+    - Exit animation timing: 220ms, removal after animation
+- Updated: frontend/src/app/core/layout/shell/shell.ts:20
+  - Import service: `HoverMessageService`
+  - Inject service: line 64
+  - Expose messages: `hoverMessageList` reads from `this.hoverMessages.messages()` (line 109 before refactor; now resolved to service)
+  - Replace internal toast logic with service:
+    - Removed local queue, timers, and constants
+    - `showProfileToast()` now calls `this.hoverMessages.notify(message)` (frontend/src/app/core/layout/shell/shell.ts:339)
+    - Removed cleanup hook for local timers (service manages its own)
 
-**Verification**
-- Confirm the index exists and links are present:
-  - `test -f docs/INDEX.md`
-  - `rg -n \"\\[Documentation Index\\]\\(README.md\\)\" docs/INDEX.md`
-  - `rg -n \"\\(../README.md\\)\" docs/INDEX.md`
-  - `rg -n \"\\(ui-design-system.md\\)|\\(ui-layout-requirements.md\\)|\\(governance/development-governance-handbook.md\\)|\\(guidelines/angular-coding-guidelines.md\\)\" docs/INDEX.md`
-- Confirm cross-links already exist:
-  - Root README points to index: `rg -n \"\\[Repository Index & Map\\]\\(docs/INDEX.md\\)\" README.md`
-  - Docs index points back: `rg -n \"\\[Repository Index & Map\\]\\(INDEX.md\\)\" docs/README.md`
+**Why This Meets The Issue**
+- Right-side placement and vertical stacking are already implemented by existing components and styles.
+- Entrance animation drops in from above; exit animation slides to the right per requirement.
+- Queue is array-based; newest at top.
+- Durations match:
+  - Error: persistent (red shadow)
+  - Warning: 10s (yellow shadow)
+  - Notification: 5s (green shadow)
+  - System/Loading: ≥3s (loading persists; blue shadow)
+- Management class now exists and owns the logic (service), making it reusable across the app.
 
-**Notes / Residual Risks**
-- The index intentionally focuses on high-traffic directories to keep the diff small; it’s easy to extend later if needed.
+**Usage**
+- Inject `HoverMessageService` and call:
+  - `hoverMessages.notify('保存しました。')`
+  - `hoverMessages.warn('注意が必要です。')`
+  - `hoverMessages.error('エラーが発生しました。')` (sticky)
+  - `const id = hoverMessages.loading('作成中…'); /* later */ hoverMessages.dismiss(id);`
+
+**Commands (optional)**
+- Build frontend: `cd frontend && npm run build`
+- Dev server: `cd frontend && npm start`
+- Tests: `cd frontend && npm test`
+
+**Residual Risks / Open Questions**
+- Manual dismissal UI for sticky errors is not present; currently requires programmatic dismissal. Do you want a close button per toast?
+- Max visible toasts not enforced (all are shown). Should we cap (e.g., 4) and queue the rest?
+- Exact design tokens (colors/shadows) assumed from existing CSS variables; verify they match DS expectations.
+- Pause-on-hover and accessibility beyond current ARIA roles are not implemented; confirm if needed.
