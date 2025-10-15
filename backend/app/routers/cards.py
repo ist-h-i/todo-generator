@@ -49,7 +49,16 @@ def _next_label_colour(index: int) -> str:
     return _FALLBACK_LABEL_COLOURS[index % len(_FALLBACK_LABEL_COLOURS)]
 
 
-def _card_query(db: Session, *, owner_id: str | None = None):
+def _member_channel_ids(db: Session, *, user_id: str) -> list[str]:
+    return [
+        row[0]
+        for row in db.query(models.ChannelMember.channel_id)
+        .filter(models.ChannelMember.user_id == user_id)
+        .all()
+    ]
+
+
+def _card_query(db: Session, *, owner_id: str | None = None, member_user_id: str | None = None):
     query = db.query(models.Card).options(
         selectinload(models.Card.subtasks),
         selectinload(models.Card.labels),
@@ -58,7 +67,14 @@ def _card_query(db: Session, *, owner_id: str | None = None):
         joinedload(models.Card.initiative),
     )
 
-    if owner_id:
+    if member_user_id:
+        channel_ids = _member_channel_ids(db, user_id=member_user_id)
+        if channel_ids:
+            query = query.filter(models.Card.channel_id.in_(channel_ids))
+        else:
+            # No memberships: return empty set by filtering impossible condition
+            query = query.filter(models.Card.id == "__none__")
+    elif owner_id:
         query = query.filter(models.Card.owner_id == owner_id)
 
     return query
@@ -241,9 +257,9 @@ def _validate_related_entities(
     )
 
 
-def _get_owned_card(db: Session, *, owner_id: str, card_id: str) -> models.Card:
+def _get_accessible_card(db: Session, *, user_id: str, card_id: str) -> models.Card:
     card = (
-        _card_query(db, owner_id=owner_id)
+        _card_query(db, member_user_id=user_id)
         .filter(models.Card.id == card_id)
         .order_by(models.Card.created_at.desc())
         .first()
@@ -353,7 +369,7 @@ def list_cards(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> list[models.Card]:
-    query = _card_query(db, owner_id=current_user.id)
+    query = _card_query(db, member_user_id=current_user.id)
 
     effective_status_ids = set(status_ids or [])
     if status_id:
@@ -471,11 +487,28 @@ def create_card(
         profile=profile,
     )
 
+    # Determine channel
+    channel_id = payload.channel_id
+    if channel_id:
+        # Validate membership in specified channel
+        member_channels = set(_member_channel_ids(db, user_id=current_user.id))
+        if channel_id not in member_channels:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of channel")
+    else:
+        # Default to user's private channel
+        private = (
+            db.query(models.Channel)
+            .filter(models.Channel.owner_user_id == current_user.id, models.Channel.is_private.is_(True))
+            .first()
+        )
+        channel_id = private.id if private else None
+
     card = models.Card(
         title=payload.title,
         summary=payload.summary,
         description=payload.description,
         status_id=payload.status_id,
+        channel_id=channel_id,
         priority=payload.priority,
         story_points=payload.story_points,
         estimate_hours=payload.estimate_hours,
@@ -520,7 +553,7 @@ def get_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Card:
-    return _get_owned_card(db, owner_id=current_user.id, card_id=card_id)
+    return _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
 
 @router.put("/{card_id}", response_model=schemas.CardRead)
@@ -530,9 +563,15 @@ def update_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Card:
-    card = _get_owned_card(db, owner_id=current_user.id, card_id=card_id)
+    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     update_data = payload.model_dump(exclude_unset=True)
+    # Block channel changes for MVP to avoid unauthorized moves
+    if "channel_id" in update_data:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Changing channel is not supported",
+        )
     label_ids = update_data.pop("label_ids", None)
     update_data.pop("ai_confidence", None)
     update_data.pop("ai_notes", None)
@@ -595,13 +634,7 @@ def delete_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    card = get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     record_activity(db, action="card_deleted", card_id=card.id, actor_id=current_user.id)
     delete_model(db, card)
@@ -614,13 +647,7 @@ def list_subtasks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> list[models.Subtask]:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     return db.query(models.Subtask).filter(models.Subtask.card_id == card_id).order_by(models.Subtask.created_at).all()
 
@@ -636,13 +663,7 @@ def create_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Subtask:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     subtask = models.Subtask(card_id=card_id, **payload.model_dump())
     if _subtask_status_is_done(subtask.status):
@@ -799,10 +820,10 @@ def get_similar_items(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> schemas.SimilarItemsResponse:
-    base_card = _get_owned_card(db, owner_id=current_user.id, card_id=card_id)
+    base_card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     candidates = (
-        _card_query(db, owner_id=current_user.id)
+        _card_query(db, member_user_id=current_user.id)
         .filter(models.Card.id != card_id)
         .order_by(models.Card.created_at.desc())
         .all()
@@ -823,22 +844,10 @@ def record_similarity_feedback(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     if payload.related_type == "card":
-        get_owned_resource_or_404(
-            db,
-            models.Card,
-            related_id,
-            owner_id=current_user.id,
-            detail="Related card not found",
-        )
+        _get_accessible_card(db, user_id=current_user.id, card_id=related_id)
     elif payload.related_type == "subtask":
         subtask = get_resource_or_404(
             db,
@@ -846,13 +855,7 @@ def record_similarity_feedback(
             related_id,
             detail="Related subtask not found",
         )
-        get_owned_resource_or_404(
-            db,
-            models.Card,
-            subtask.card_id,
-            owner_id=current_user.id,
-            detail="Related subtask not found",
-        )
+        _get_accessible_card(db, user_id=current_user.id, card_id=subtask.card_id)
 
     feedback = models.SimilarityFeedback(
         card_id=card_id,

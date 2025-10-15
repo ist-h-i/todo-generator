@@ -22,6 +22,7 @@ from .routers import (
     analytics,
     appeals,
     auth,
+    channels,
     cards,
     comments,
     competencies,
@@ -181,6 +182,7 @@ app.include_router(analysis.router)
 app.include_router(analytics.router)
 app.include_router(appeals.router)
 app.include_router(auth.router)
+app.include_router(channels.router)
 app.include_router(cards.router)
 app.include_router(status_reports.router)
 app.include_router(labels.router)
