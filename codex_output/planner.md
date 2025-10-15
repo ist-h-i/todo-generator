@@ -1,30 +1,23 @@
-**Scope And Intent**
-- Target only root `README.md` and `docs/README.md` for small, safe edits.
-- Focus on correctness and clarity; avoid renames/restructures to preserve links.
+Plan summary
+- Add a single repository-wide index at docs/INDEX.md mapping top-level directories, key entry points, and search tips.
+- Insert one link in README.md under “Documentation & knowledge base”.
+- Insert one link in docs/README.md under “Contribution Tips”.
+- Keep scope minimal: 1 new file + 2 one-line edits, no renames/restructures.
 
-**Proposed Minimal Changes**
-- Root `README.md`
-  - Fix minor wording: “Manual setup (macOS/Linux)”.
-  - Scan for obvious typo/formatting inconsistencies; do not reorder sections.
-- `docs/README.md`
-  - Remove stray “ E” artifacts and unify list formatting.
-  - Add a link to `docs/recipes/README.md` under “Prompts & Automation” or a short “Recipes” line.
-  - Keep section order and link text stable to minimize diff.
+Why this fits the constraints
+- Minimal, safe diff; no link churn or structural changes.
+- Clear navigation for newcomers to backend/frontend entry points and key docs.
+- Extensible if deeper coverage is needed later.
 
-**Why This Fits 30 Minutes**
-- Two files, surgical edits, no renames or structural moves.
-- No external tools; simple content changes and local link checks only.
+Risks / Open questions
+- Coverage is intentionally shallow to keep the diff small; maintainers can extend sections per feature area.
+- English-only; add bilingual notes later if required.
+- Future folder renames may require updating the index (kept directory-focused to reduce drift).
 
-**Risks / Open Questions**
-- Language preference: Issue is Japanese, current docs are English. Proceeding in English to minimize scope.
-- Hidden consumers may depend on exact wording; keeping changes minimal mitigates this.
-- We’re not performing a full link audit across all docs (out of scope for 30 min).
-
-**Acceptance Criteria**
-- `README.md` reads cleanly with corrected “macOS/Linux”.
-- `docs/README.md` has no stray “ E” artifacts, all listed links resolve to existing local files.
-- No file renames; existing inbound links continue to work.
+Verification notes
+- All links point to existing in-repo files/dirs.
+- README and docs index both cross-link the new repository map.
 
 ```json
-{"steps":["coder"],"notes":"Apply small, targeted edits to README.md and docs/README.md: fix macOS/Linux wording, remove stray artifacts in docs index, and add a single missing link to the recipes index. Avoid restructures and renames to keep the diff minimal and safe.","tests":"- Verify no stray artifacts: `rg -n \" E\" docs/README.md` returns no results.\n- Validate key links exist: `test -f docs/governance/development-governance-handbook.md && test -f docs/guidelines/angular-coding-guidelines.md && test -f docs/ui-design-system.md && test -f docs/ui-layout-requirements.md && test -f docs/recipes/README.md`.\n- Spot-check README wording: confirm it contains \"Manual setup (macOS/Linux)\"."}
+{"steps":["coder"],"notes":"Create docs/INDEX.md with a concise repository map (frontend routes/stores/APIs, backend routers/services/schemas/tests, docs, scripts, CI). Add one link in README.md under Documentation & knowledge base and one link in docs/README.md under Contribution Tips. No restructures; smallest viable diff.","tests":"- Verify new index exists: test -f docs/INDEX.md\n- Check README link added: rg -n \"Repository Index & Map\\]\\(docs/INDEX.md\\)\" README.md\n- Check docs index link added: rg -n \"Repository Index & Map\\]\\(INDEX.md\\)\" docs/README.md\n- Spot-check key references exist:\n  - test -f frontend/src/app/app.routes.ts\n  - test -f backend/app/main.py && test -d backend/app/routers && test -d backend/app/services\n  - test -f docs/guidelines/angular-coding-guidelines.md && test -f docs/governance/development-governance-handbook.md && test -f docs/ui-design-system.md && test -f docs/ui-layout-requirements.md"}
 ```
