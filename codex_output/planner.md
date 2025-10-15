@@ -1,52 +1,85 @@
-**Approach**
-Implement a minimal, self-contained toast manager: one Angular service to manage a queue and one host component to render toasts on the right with CSS-only animations. Newest appears at the top; auto-dismiss per severity; errors persist; loading returns an id and persists until dismissed/updated. Keep styling token-friendly and avoid new dependencies.
+Plan Summary
+- Create a single documentation file with a Mermaid “Immunity Map” template that renders in Mermaid Live Editor and omits empty nodes/edges by default.
+- Keep scope to one new doc, no other file changes.
+- Provide clear usage notes so contributors only add nodes/edges with content.
 
-**Minimal Change Plan**
-- Add `ToastService` with in-memory queue and simple API.
-- Add `ToastHostComponent` to subscribe and render the queue.
-- Add lightweight CSS animations and severity styles (shadow/colors).
-- Wire host into the root app template; no global refactors.
-- Provide usage examples and short inline docs in the service.
+Proposed Minimal Change
+- New file: docs/analysis/immune-map.md
+- Contents:
+  - Short intro explaining Immunity Map vs. 5 Whys (no migration of old docs).
+  - Ready-to-render Mermaid snippet with three levels (A–F categories), using subgraphs.
+  - Example nodes and edges are commented out; users only uncomment/populate items that have content, which naturally hides empty elements.
 
-**Deliverables**
-- `ToastService`:
-  - API: `showError(text, opts?)`, `showWarning(text, opts?)`, `showNotice(text, opts?)`, `showLoading(text, opts?) -> id`, `update(id, patch)`, `dismiss(id)`, `clearAll()`, generic `show(input)`.
-  - Queue: newest unshifted; maintains `messages$` BehaviorSubject.
-  - Durations: error `sticky`, warning `10s`, notice `5s`, system/loading `>=3s` (loading sticky until completion).
-  - Max visible (e.g., `maxVisible = 4`) to prevent overflow.
-  - Returns ids for programmatic dismissal.
-- `ToastHostComponent`:
-  - Fixed position, right side, top-aligned column.
-  - Entrance `slide-in-right` (fade/translateX), exit `slide-out-right`.
-  - Close button for manual dismissal; click-to-dismiss optional for non-loading types.
-  - ARIA: container `aria-live="polite"`, per-message role: error/warn `alert`, notice/info `status`, loading `status` optionally with `aria-busy`.
-- Styles:
-  - Use CSS variables where available with sane fallbacks: `--color-error`, `--color-warn`, `--color-success`, `--color-info`, elevation shadows.
-  - Shadow color and intensity vary by severity.
-- Integration:
-  - Add `<app-toast-host></app-toast-host>` into root shell template.
-  - No external libs; pure Angular + CSS.
+Exact Mermaid Snippet (to implement)
+```mermaid
+flowchart TD
+  %% Immunity Map Template (A–F)
+  %% Direction: top-down (TD). Switch to LR if preferred (flowchart LR).
 
-**Key Decisions**
-- CSS animations over Angular animations to minimize diff and dependencies.
-- Timers managed in the service; hover pause omitted to keep scope minimal.
-- Severity mapping hardcoded with clear constants; colors via tokens with fallback.
-- Errors require explicit dismiss; loading returns id and persists.
+  %% Level 1 (A): Things to do / Can't do / Want to do
+  subgraph A["Level 1 – Actions & Constraints (Do / Can't / Want)"]
+    %% Uncomment and edit actual items:
+    %% A1["Do: <text>"]
+    %% A2["Can't: <text>"]
+    %% A3["Want: <text>"]
+  end
 
-**Risks / Open Questions**
-- Existing notification system may conflict (double toasts). Needs confirmation.
-- Exact design tokens (colors/shadows) unknown; will use conservative defaults with token hooks.
-- Accessibility depth (focus management, keyboard shortcuts) beyond basics not defined.
-- Mobile/safe-area behavior unspecified; default positions may need later adjustment.
+  %% Level 2 (B, C)
+  subgraph B["Level 2 – Inhibitors"]
+    %% B1["<inhibitor>"]
+    %% B2["<inhibitor>"]
+  end
 
-**Verification (Tests)**
-- Unit: service queue ordering (newest first), duration scheduling per severity, manual dismissal, loading lifecycle (show → update/dismiss), exit animation flagging.
-- Manual smoke:
-  - Trigger one of each severity; confirm colors, shadow, and timers: warning ~10s, notice ~5s, loading persists, error persists.
-  - Confirm newest appears on top; exit animates to the right.
-  - Dismiss error via close button; dismiss loading via API; verify removal after exit animation.
-  - Add >4 toasts; ensure max visible behavior is sane.
+  subgraph C["Level 2 – Shadow Goals / Ideals / Goals"]
+    %% C1["<shadow goal / ideal>"]
+    %% C2["<goal>"]
+  end
+
+  %% Level 3 (D, E, F)
+  subgraph D["Level 3 – Deep Psychology / Bias (causing B)"]
+    %% D1["<deep cause / bias>"]
+  end
+
+  subgraph E["Level 3 – True Needs (from B & C)"]
+    %% E1["<true need>"]
+  end
+
+  subgraph F["Level 3 – Fundamental Fixed Concepts (from C)"]
+    %% F1["<fixed concept>"]
+  end
+
+  %% Edges (add only when both referenced nodes exist):
+  %% A1 --> B1
+  %% A1 --> C1
+  %% A2 --> B2
+  %% A3 --> C2
+  %% B1 --> D1
+  %% B1 --> E1
+  %% C1 --> E1
+  %% C1 --> F1
+```
+
+Why this fits constraints
+- Single-file, documentation-only change; no code or build impact.
+- Renders in Mermaid Live Editor immediately.
+- Hides empty nodes/edges because nothing is uncommented by default.
+- Clear mapping of edges as required: A→B, A→C, B→D, B→E, C→E, C→F.
+
+Open Questions
+- Keep letters A–F visible in subgraph titles? (Current template shows them in subgraph names only.)
+- Preferred direction: TD (current) vs LR.
+- Do you want a link added in docs/INDEX.md for discoverability? (Would add one more small change.)
+- Should we deprecate mentions of “Why-Why analysis” in docs/features/analytics-insights/requirements.md now, or in a later pass?
+
+Risks
+- Empty subgraphs still display their labeled headers; requirement focuses on nodes/edges, which this template hides by default. If full invisibility of empty groups is required, we’d need conditional generation (out of scope for Mermaid alone).
+- Existing references to 5 Whys remain; not changing them keeps scope minimal but may cause inconsistency until follow-up.
+
+Validation
+- Paste the snippet into Mermaid Live Editor; confirm it renders.
+- Uncomment a minimal pair like A1, B1, C1 and corresponding edges; confirm layout and connections render as expected.
+- Confirm that leaving any item commented omits its node/edge.
 
 ```json
-{"steps":["coder"],"notes":"Single-stage (coder) is sufficient to add a service + host component, CSS animations, and wire into the app with a minimal diff. No new deps or refactors. If an existing toast system exists, coder will adapt to extend it instead of replacing.","tests":"Add unit tests for ToastService: (1) newest-first order, (2) per-severity durations and sticky error, (3) loading returns id and persists until dismiss/update, (4) dismissal triggers exit state then removal. Manual QA: visually confirm right-side stack, colors/shadows per severity, timers (10s/5s/sticky), slide-in/out animations, and close behavior."}
+{"steps":["coder"],"notes":"One-file documentation update: add docs/analysis/immune-map.md with a ready-to-render Mermaid Immunity Map template. No other files changed to minimize scope. Template uses commented example nodes/edges so only contentful items are shown, satisfying the hide-empty requirement.","tests":"Manual: 1) Open Mermaid Live Editor and paste the snippet; verify it renders with empty groups only. 2) Uncomment A1, B1, C1, D1, E1, F1 progressively and add edges A1->B1, A1->C1, B1->D1, B1->E1, C1->E1, C1->F1; verify edges render correctly. 3) Re-comment nodes/edges to confirm they disappear without errors."}
 ```
