@@ -7,7 +7,7 @@
     "steps": [
       "coder"
     ],
-    "notes": "Create docs/INDEX.md with a concise repository map (frontend routes/stores/APIs, backend routers/services/schemas/tests, docs, scripts, CI). Add one link in README.md under Documentation & knowledge base and one link in docs/README.md under Contribution Tips. No restructures; smallest viable diff.",
-    "tests": "- Verify new index exists: test -f docs/INDEX.md\n- Check README link added: rg -n \"Repository Index & Map\\]\\(docs/INDEX.md\\)\" README.md\n- Check docs index link added: rg -n \"Repository Index & Map\\]\\(INDEX.md\\)\" docs/README.md\n- Spot-check key references exist:\n  - test -f frontend/src/app/app.routes.ts\n  - test -f backend/app/main.py && test -d backend/app/routers && test -d backend/app/services\n  - test -f docs/guidelines/angular-coding-guidelines.md && test -f docs/governance/development-governance-handbook.md && test -f docs/ui-design-system.md && test -f docs/ui-layout-requirements.md"
+    "notes": "Single-stage (coder) is sufficient to add a service + host component, CSS animations, and wire into the app with a minimal diff. No new deps or refactors. If an existing toast system exists, coder will adapt to extend it instead of replacing.",
+    "tests": "Add unit tests for ToastService: (1) newest-first order, (2) per-severity durations and sticky error, (3) loading returns id and persists until dismiss/update, (4) dismissal triggers exit state then removal. Manual QA: visually confirm right-side stack, colors/shadows per severity, timers (10s/5s/sticky), slide-in/out animations, and close behavior."
   }
 }
