@@ -1,46 +1,41 @@
-**English Summary**
-Implement a lightweight “toast/notification” manager class that displays messages on the right side with animations, stacking newest at the top. Messages auto-dismiss based on severity with colored shadows; errors persist until dismissed, warnings after 10s, notices after 5s, and system/loading after ≥3s (loading persists until completion). Exit animation slides out to the right.
+## Restated Request (English)
+- Replace the “5 Whys” analysis with an Immunity Map structure.
+- Introduce and visualize the Immunity Map as a Mermaid flow diagram that can be viewed in Mermaid Live Editor.
+- Build a retrospective diagram with three levels:
+  - Level 1 (A): “Things to do,” “Things I can’t do,” “Things I want to do.”
+  - Level 2: 
+    - B: Inhibitors (draw lines from A to B)
+    - C: Shadow goals / ideal self / goals (draw lines from A to C)
+  - Level 3:
+    - D: Deep psychology/bias causing inhibitors (draw lines from B to D)
+    - E: True needs (draw lines from B and C to E)
+    - F: Fundamental fixed concepts (draw lines from C to F)
+- Hide any nodes and edges that have no content (do not render empty items).
 
-**Assumptions**
-- “Hover message” refers to floating toast notifications, not hover-triggered UI.
-- Angular SPA with a service + single host component is acceptable and minimal-impact.
-- Visuals use existing design-system tokens (colors, spacing, elevation) where possible.
-- Entrance: slide/fade-in; Stack: vertical, top-aligned; Exit: slide-out to right.
-- Queue is an in-memory array; newest prepended; oldest visually lowest.
-- Errors require manual dismissal (close button or API call).
-- Loading messages return an ID so the caller can complete/dismiss/update them.
-- Reasonable defaults: animation ~200–300ms; max concurrent toasts (e.g., 3–5) to avoid overflow.
+## Assumptions
+- The output is a single Mermaid flowchart snippet that renders correctly in Mermaid Live Editor.
+- Mermaid “flowchart” syntax with subgraphs will be used to represent Levels 1–3.
+- Letters A–F are structural categories; actual node labels will be user-provided content.
+- Edges follow: A→B, A→C, B→D, B→E, C→E, C→F.
+- This change is documentation-only (no app or build changes).
 
-**Constraints**
-- Minimal diff; avoid broad refactors.
-- Self-contained: works without extra infra; no network or new deps.
-- Complete within ~30 minutes of implementation scope.
-- Reuse design system styles; avoid custom theme sprawl.
+## Constraints
+- Keep edits minimal and tightly scoped; prefer a single new/updated doc with Mermaid content.
+- Fit in a 30-minute window; smallest viable diff.
+- Deliver a finished, self-contained snippet that requires no extra tooling.
 
-**Unknowns**
-- Existing toast/notification system in the app (to extend vs replace).
-- Exact color tokens for red/yellow/green/blue and shadow usage.
-- Max visible toasts and overflow behavior (queue vs drop oldest).
-- Close affordance requirements (icon, click-to-dismiss, keyboard).
-- Pause-on-hover requirement for auto-dismiss timers.
-- Accessibility targets (ARIA roles: `alert`, `status`, `progressbar`; focus, screen readers).
-- Mobile/responsive behavior, safe-area insets, and z-index layering.
-- Internationalization and message content sources.
-- Animation library preferences (pure CSS vs Angular animations).
+## Unknowns
+- Exact content for each category (A–F) and how many items per category.
+- Whether to keep A–F letters visible in labels or only use descriptive text.
+- Desired diagram direction (e.g., `flowchart TD` vs `LR`) and styling (colors, classes).
+- Target repository path/filename for the diagram (e.g., `docs/analysis/immune-map.md`).
+- Whether to remove or deprecate any existing “5 Whys” docs.
 
-**Clarifying questions**
-- Can we confirm this is a toast system (not hover-triggered) and agree on the name (e.g., NotificationManager/ToastService)?
-- Should we extend/replace any existing notification mechanism in the app?
-- What design tokens (color, shadow/elevation) map to error/warn/info/loading?
-- Do errors require a visible close button, or only programmatic dismissal?
-- Should timers pause on user hover/focus for warnings/notices?
-- What is the maximum number of on-screen messages before queuing?
-- Any accessibility requirements to meet (roles, focus behavior, keyboard dismissal)?
-- Do you want a simple service API like: showError, showWarning, showNotice, showLoading (returns id), update(id), dismiss(id)?
-- Any mobile-specific placement or safe-area padding requirements?
-- Preferred animation duration/easing and whether to use CSS only or Angular animations?
-
-**Risks / Notes**
-- Misalignment on design tokens or naming could cause rework.
-- Replacing an existing toast system may introduce regressions without an audit.
-- Accessibility and mobile behavior need explicit acceptance to avoid follow-up work.
+## Clarifying Questions
+- Do you want the letters A–F shown in node labels, or only descriptive text?
+- Which flow direction do you prefer: top-to-down (`TD`) or left-to-right (`LR`)?
+- Do you want level grouping via Mermaid subgraphs labeled “Level 1/2/3”?
+- Where should this live in the repo (proposed: `docs/analysis/immune-map.md`)?
+- Should we deprecate or remove any existing 5 Whys documentation, and if so, where is it?
+- Any preferred styling (colors, classes) or is default Mermaid styling fine?
+- Will you provide the actual content for each node now, or should we deliver a blank template that omits empty nodes by default?
