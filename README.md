@@ -147,6 +147,7 @@ The helper script runs `coverage run -m pytest` inside `backend/` and `npm run t
 
 ### Repository guidelines
 
+- [Repository Index & Map](docs/INDEX.md)
 - [Development Governance Handbook](docs/governance/development-governance-handbook.md)
 - [Angular Coding & Design Guidelines](docs/guidelines/angular-coding-guidelines.md)
 - [UI Design System](docs/ui-design-system.md)

@@ -1,32 +1,26 @@
 **Summary**
-- Applied minimal, surgical documentation fixes to improve clarity and formatting without restructuring.
-- Updated root README TOC label and repaired a broken table.
-- Cleaned artifacts in docs index and added a link to the Recipes index.
+- Delivered a repository-wide, newcomer-friendly index with minimal impact.
+- Completed by refining links in the existing index and confirming cross-links in READMEs.
 
-**Changes Made**
-- README.md
-  - Fixed TOC label to match section header: Manual setup (macOS/Linux) (README.md:13).
-  - Repaired the environment variable table by moving an interjected note below the table to avoid breaking Markdown rendering (README.md:84).
-- docs/README.md
-  - Removed stray “ E” artifacts and unified list formatting using “ — ” separators (docs/README.md:6).
-  - Added a “Recipes index” link under Prompts & Automation pointing to docs/recipes/README.md (docs/README.md:36).
+**What I Changed**
+- Made Quick Pointers and See Also in docs/INDEX.md fully clickable with correct relative paths.
+  - docs/INDEX.md
+    - Linked to docs/README.md, ui/design docs, governance, and angular guidelines.
+    - Linked to root README via ../README.md.
 
-**Patch Overview**
-- README.md
-  - [Manual setup (macoslinux)] → [Manual setup (macOS/Linux)] with the same anchor.
-  - Moved the Neon credentials note to below the table, keeping content intact.
-- docs/README.md
-  - Replaced “ E” artifacts with “ — ” for all affected bullets.
-  - Added: “- [Recipes index](recipes/README.md) — How to write and maintain code recipes.”
+**Why This Meets The Goal**
+- New contributors can jump directly to key areas (frontend routes, backend routers/services, UI standards, governance) in 1–2 clicks.
+- Minimal diff and no structural changes; existing content preserved.
 
-**Verification Commands**
-- Confirm no stray artifacts remain:
-  - `rg -n " E" docs/README.md`
-- Validate key links exist:
-  - `test -f docs/governance/development-governance-handbook.md && test -f docs/guidelines/angular-coding-guidelines.md && test -f docs/ui-design-system.md && test -f docs/ui-layout-requirements.md && test -f docs/recipes/README.md && echo links_ok || echo links_missing`
-- Spot-check README wording:
-  - `rg -n "Manual setup \\(macOS/Linux\\)" README.md`
+**Verification**
+- Confirm the index exists and links are present:
+  - `test -f docs/INDEX.md`
+  - `rg -n \"\\[Documentation Index\\]\\(README.md\\)\" docs/INDEX.md`
+  - `rg -n \"\\(../README.md\\)\" docs/INDEX.md`
+  - `rg -n \"\\(ui-design-system.md\\)|\\(ui-layout-requirements.md\\)|\\(governance/development-governance-handbook.md\\)|\\(guidelines/angular-coding-guidelines.md\\)\" docs/INDEX.md`
+- Confirm cross-links already exist:
+  - Root README points to index: `rg -n \"\\[Repository Index & Map\\]\\(docs/INDEX.md\\)\" README.md`
+  - Docs index points back: `rg -n \"\\[Repository Index & Map\\]\\(INDEX.md\\)\" docs/README.md`
 
-**Residual Risks / Open Questions**
-- Full link audit across all docs not performed; focused on the touched files only.
-- Language remains English to minimize scope; advise if bilingual updates are required.
+**Notes / Residual Risks**
+- The index intentionally focuses on high-traffic directories to keep the diff small; it’s easy to extend later if needed.
