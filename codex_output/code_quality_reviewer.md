@@ -1,42 +1,28 @@
 **Summary**
-- Fixed TypeScript error TS2531 in the shared select by making value handling null-safe.
-- Kept scope minimal and behavior unchanged; preserves prior design updates (modern chevron, dark-mode parity).
+- Fix meets goal: dark-mode arrow inherits text color and remains visible.
+- Scope is minimal (SCSS + existing Angular component styles), no behavior changes.
 
-**Root Cause**
-- In multiple-select label sync, `includes` was called on `this.value` which can be `null` or a primitive in single-select mode, triggering TS2531 (Object possibly 'null').
+**What I Checked**
+- Native/select styles use inline SVG caret with `stroke='currentColor'`: frontend/src/styles/pages/_base.scss:102
+- Dark-mode sets `color` so caret inherits high-contrast text: frontend/src/styles/pages/_base.scss:164
+- Caret positioning and spacing remain modern and centered: frontend/src/styles/pages/_base.scss:85, frontend/src/styles/pages/_base.scss:101
+- Custom Angular select icon inherits `currentColor`: frontend/src/app/shared/ui/select/ui-select.ts:122
+- Inline SVGs for trigger/check use `stroke='currentColor'`: frontend/src/app/shared/ui/select/ui-select.ts:56, frontend/src/app/shared/ui/select/ui-select.ts:86
+- Multi/size variants hide caret: frontend/src/styles/pages/_base.scss:154
 
-**What Changed**
-- Normalize the current value to a safe string array before any `includes` calls.
-  - `frontend/src/app/shared/ui/select/ui-select.ts:275`
-  - `frontend/src/app/shared/ui/select/ui-select.ts:286`
-- Kept `onTouched` public so it remains callable from the template.
-  - `frontend/src/app/shared/ui/select/ui-select.ts:60`
+**Findings**
+- In dark mode, `color: var(--text-primary)` ensures both text and caret use the same, high-contrast token: frontend/src/styles/pages/_base.scss:167
+- The caret data-URI explicitly uses `currentColor` in both normal and dark modes, so it follows theme text color: frontend/src/styles/pages/_base.scss:102, frontend/src/styles/pages/_base.scss:174
+- The Angular UI select trigger icon is styled with `color: currentColor`; SVG uses `stroke='currentColor'`, so it tracks text color as intended: frontend/src/app/shared/ui/select/ui-select.ts:122, frontend/src/app/shared/ui/select/ui-select.ts:56
 
-**Key References**
-- Guarded selection check (already safe):
-  - `frontend/src/app/shared/ui/select/ui-select.ts:262`
-- Null-safe label derivation (fix for TS2531):
-  - `frontend/src/app/shared/ui/select/ui-select.ts:275`
-  - `frontend/src/app/shared/ui/select/ui-select.ts:286`
+**Edge Cases**
+- Disabled state reduces opacity for the entire control, which will also dim the caret—consistent and acceptable: frontend/src/styles/pages/_base.scss:138
+- Multi-select/size>1 removes the caret; unaffected by the change: frontend/src/styles/pages/_base.scss:154
+- Focus-visible and hover states preserved in both light/dark modes: frontend/src/styles/pages/_base.scss:127, frontend/src/styles/pages/_base.scss:177, frontend/src/styles/pages/_base.scss:186
 
-**Why This Works**
-- `selected` is always an array:
-  - `const selected = Array.isArray(this.value) ? this.value : this.value != null ? [String(this.value)] : [];`
-- Filtering now uses `selected.includes(...)`, eliminating the risk of calling methods on `null`.
+**Lightweight Suggestions (Optional)**
+- High-contrast mode: consider hiding the background-image caret to avoid UA overrides causing poor visibility similar to the custom icon rule already present: add an equivalent `@media (forced-colors: active)` rule for `.app-select, select.form-control`.
+- RTL: current `background-position: right 1.6rem center` is physical; if RTL is needed, add a small `[dir='rtl']` override to position the caret on the left.
 
-**Validation**
-- Build: `cd frontend && ng build --configuration production`
-- Tests: `npm test` (Karma should start without load errors)
-- Manual: verify single and multiple selects render correct labels with no console errors.
-
-**Impact**
-- Behavior: unchanged; only safer value normalization.
-- Styling: no changes in this pass; existing improvements remain (arrow uses `currentColor`, modern option panel styling).
-- Scope: single file edit, no API changes.
-
-**Residual Risks / Notes**
-- Types remain `string | string[] | null`; normalization prevents runtime/compile errors across modes.
-- If any consumers pass non-string values, `String(...)` ensures stable comparison for labels.
-
-**Out of Scope (FYI)**
-- The provided React/shadcn Select is not applicable to this Angular app. If a React app is introduced later, UI primitives should live under `/components/ui` with shadcn/Tailwind setup.
+**Verdict**
+- Approve. The dark-mode arrow now matches the text color via `currentColor`, fixing visibility while keeping the change minimal and centralized.

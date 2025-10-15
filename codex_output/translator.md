@@ -1,50 +1,49 @@
 **Request Summary**
-- Modernize all app selectors (dropdowns) with a simple, clean down-arrow.
-- Update the option panel to a modern look and ensure dark mode parity.
-- Provide/centralize a reusable UI select component and apply it app‑wide.
-- Fix current build errors blocking CI.
-
-**Current Stack**
-- Framework: Angular (not React/shadcn).
-- Styles: SCSS; central overrides live in `frontend/src/styles/pages/_base.scss`.
-- Shared select component exists: `frontend/src/app/shared/ui/select/ui-select.ts`.
-- Tests via Karma; CI shows TypeScript errors.
-
-**Target Changes**
-- Replace outdated arrow with a minimalist down chevron.
-- Ensure arrow uses `currentColor` so it matches text in dark/light modes.
-- Modernize the dropdown menu (spacing, radius, elevation, focus states).
-- Apply consistently across native `<select>` and shared Angular select component.
-
-**Errors To Fix (Blocking)**
-- `frontend/src/app/shared/ui/select/ui-select.ts:278`: TS2531 (Object possibly 'null') — `this.value.includes(...)` where `this.value` can be `null`. Guard or default to an empty array before calling `includes`.
-- Previous error (now addressed): `onTouched` used in template while private.
-
-**Default Paths**
-- Angular components: `frontend/src/app/shared/ui/...` (current select is here).
-- Global styles: `frontend/src/styles/pages/_base.scss`.
-- Note on shadcn/React: The repo is Angular, so `/components/ui` does not exist. If this were a React/shadcn app, UI primitives should live in `/components/ui` to standardize imports and theming; not applicable here.
+- Redesign all app selectors to a modern, simple style.
+- Unify visuals with other inputs: fix hover background turning white.
+- Simplify the trigger icon to a single down chevron.
+- Ensure dark mode parity: arrow and text remain visible.
+- Modernize the options panel (radius, shadow, spacing).
 
 **Assumptions**
-- We will not introduce React/shadcn; we will deliver the design via Angular + SCSS for minimal impact.
-- No state management changes are required; purely presentational + minor TS fix.
-- Dark mode tokens already exist; aligning icon color to text is sufficient.
+- “Selectors” are dropdown inputs (native select and/or a shared custom select).
+- Behavior and APIs stay unchanged; this is a styling-focused update.
+- Design should match existing input tokens (colors, radius, borders, focus).
+- Minimal-impact approach is preferred (centralized styling over component rewrites).
 
 **Constraints**
-- Minimize scope and diffs; avoid framework or build changes.
-- Fit within a short execution window; focus on one shared component and SCSS.
-- Keep behavior and APIs stable; style-only plus the null‑guard TS fix.
+- Keep scope minimal; avoid unnecessary refactors.
+- Provide a finished, self-contained outcome.
+- Prefer centralized CSS/SCSS changes unless a new component is explicitly required.
+- If the stack is React/shadcn is desired, set up must be justified; otherwise, stick to current stack.
+
+**Observed Context**
+- The current repository appears Angular-based; prior CI logs and paths reference Angular files.
+- The provided Select component is React/shadcn (Radix + Tailwind), which does not match Angular without a stack change.
+
+**Two Viable Paths**
+- Angular-first (minimal change): Update shared select component and global select styles to align hover/background, icon (simple chevron via CSS or SVG), and dark mode, plus modernize the dropdown panel styles.
+- React/shadcn path (higher impact): Set up Tailwind + shadcn + Radix; add `components/ui/select.tsx` and `components/ui/label.tsx`; install `@radix-ui/react-select` and `@radix-ui/react-icons`; ensure `@/lib/utils` `cn` helper exists and `components/ui` is the default path. Only if the app is React/Next.
+
+**Success Criteria**
+- Hover state matches other inputs; no white-background mismatch.
+- Trigger icon is a single down chevron, vertically centered, not “stacked triangles”.
+- Icon uses currentColor so it matches text and is visible in dark mode.
+- Options panel looks modern (rounded, subtle border/shadow, clear item hover).
+- Accessibility intact: focus-visible, keyboard navigation, disabled states.
+- No TS/CI errors; no regressions in multi-select or `size > 1`.
 
 **Unknowns**
-- Exact visual spec for the option panel (menu item density, dividers, hover/active colors).
-- The full set of selector variants in use (single/multi, disabled, error state).
-- Whether high-contrast/RTL support is required in this iteration.
+- Actual framework in use for the target UI (Angular vs React).
+- Which selector implementations are present (native select, custom Angular component, Angular Material).
+- Exact design tokens to match (hover bg/border, radii, shadows).
+- Whether RTL or high-contrast/forced-colors support is required.
 
 **Clarifying Questions**
-- Do we need specific dimensions for the option panel (max height, spacing, radius)?
-- Should multi-selects show check icons in the menu items?
-- Any pages/components that must retain current selector styling (opt-out)?
-- Do we need RTL adjustments now, or can that be a follow-up?
-
-**Notes on Provided React/shadcn Spec**
-- The given `@radix-ui/react-select` component and `/components/ui/select.tsx` path target a React/shadcn/Tailwind setup, which this Angular repo does not use. Implementing that would exceed minimal-change constraints. We will mirror the look/feel in the Angular select and global SCSS instead. If a separate React app needs this, we can supply shadcn/Tailwind setup and place the component under `/components/ui`.
+- Is the UI stack Angular (current repo) or React/Next with shadcn as in the snippet?
+- Which selector(s) should be standardized: native `<select>`, a shared Angular `ui-select`, `mat-select`, or all?
+- Should selector hover match input hover exactly (no background change, only border/ring), or use a subtle tinted bg?
+- Provide the canonical tokens for text, background, border, radius, shadow for light/dark to ensure perfect match?
+- Do we need RTL and forced-colors support in this change?
+- If React is indeed the target, should we create `components/ui`, add `@/lib/utils` with `cn`, and install `@radix-ui/react-select` and `@radix-ui/react-icons` now?
+- Any screens/components that must be excluded from the new styles?

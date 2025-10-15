@@ -1,33 +1,56 @@
-Summary
-- Goal: Unblock CI by fixing TS2531 in the shared select component while keeping prior selector design changes intact (modern arrow, dark-mode parity).
-- Context: Angular app, shared select at frontend/src/app/shared/ui/select/ui-select.ts. Error arises from calling includes on possibly null value.
-- Approach: Minimal, targeted TypeScript fix to safely handle null/primitive vs array; no behavioral or template changes.
+Plan summary
 
-Root Cause
-- In ui-select.ts:278, code assumes this.value is an array and calls this.value.includes(o.value). At runtime/typing, this.value can be null (or a non-array for single-select), triggering TS2531 and potential runtime errors.
+- Stack confirmation: The repo is Angular, not React. The provided shadcn/Radix React Select is not applicable here without a stack shift. We’ll implement a minimal, centralized SCSS fix.
+- Problem focus: On hover, the select background turns too light (perceived “white”), diverging from other inputs. Unify hover behavior to match inputs with minimal UI drift.
+- Scope control: Single-file SCSS changes, no TS/template edits, no deps, no React setup.
 
-Targeted Fix
-- Normalize the value before filtering:
-  - Create a safe array: const selected = Array.isArray(this.value) ? this.value : this.value != null ? [this.value] : [];
-  - Use selected.includes(o.value) for label derivation.
-- Keep onTouched non-private (previously fixed) to avoid TS2341 regression.
-- No changes to inputs/outputs or public API; zero impact on consumers.
+What to change
 
-Scope
-- Single-file edit in frontend/src/app/shared/ui/select/ui-select.ts.
-- No template/scss refactors. Existing modern styles and icon currentColor alignment remain.
+- Keep select hover background consistent with inputs:
+  - Light theme: Remove or reduce the hover background lightening so it no longer jumps to white-ish; keep subtle border/box-shadow refinement only.
+  - Dark theme: Do the same (avoid brightening the background on hover).
+- Preserve existing tokens:
+  - Radius, border, focus ring, transitions, and currentColor-driven caret remain unchanged.
+- No changes to Angular component logic or assets.
 
-Risks
-- Value typing (string | number | string[] | null) mismatches; normalize carefully.
-- Ensure options array exists; if it can be null in some flows, guard with optional chaining or default to [].
+Where to change
 
-Validation
-- Build: cd frontend && npm ci && npm run build
-- Tests: npm test (Karma) to confirm no load errors.
-- Manual: verify selects render, labels show correctly for single/multi-select, and no console errors.
+- Update the select hover rules in the central stylesheet:
+  - frontend/src/styles/pages/_base.scss:118
+  - frontend/src/styles/pages/_base.scss:177
+- Optional alignment (if needed for total parity): If inputs use no hover background change at all, set the select hover background-color equal to its base background or remove the hover-specific background-color line entirely; keep border-color/box-shadow adjustments for tactile feedback.
 
-Why not React/shadcn integration?
-- Repo is Angular. Introducing React/Tailwind/shadcn would exceed “minimal impact” and time constraints. The existing Angular shared select and centralized SCSS already deliver the requested design updates.
+Why this is minimal and safe
+
+- Single-point change applied across `.app-select` and `select.form-control`.
+- No behavior or API changes; no component churning.
+- Matches existing design tokens and keeps dark mode parity.
+- Leaves the modern, simple chevron (currentColor) intact, protecting the earlier fixes for icon visibility.
+
+Risks and mitigations
+
+- Risk: Some screens might have local overrides. Mitigation: central change should dominate; if conflicts surface, adjust specificity minimally.
+- Risk: Perception of reduced hover affordance if background no longer brightens. Mitigation: keep subtle border/box-shadow change on hover for feedback.
+
+Test plan
+
+- Build: `cd frontend && npm ci && npm run build` or `ng build --configuration production`.
+- Manual checks (light/dark):
+  - Hover no longer jumps to white; background remains aligned with inputs.
+  - Focus-visible ring shows correctly; disabled state unchanged.
+  - Icon remains visible and matches text color (currentColor).
+- Pages to spot-check:
+  - frontend/src/app/features/settings/page.html:249
+  - frontend/src/app/features/settings/page.html:428
+  - frontend/src/app/features/board/page.html:565
+  - frontend/src/app/features/board/page.html:730
+  - frontend/src/app/features/reports/reports-page.component.html:274
+
+Note on shadcn/React path
+
+- Current repo is Angular. If you want the shadcn/Radix Select:
+  - Requires a React + Tailwind + shadcn setup, `components/ui` convention, `@/lib/utils` `cn` helper, and packages `@radix-ui/react-select` and `@radix-ui/react-icons`.
+  - This would be a separate, larger change, not advisable under the “minimal impact” and 30-minute constraints.
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Fix TS2531 by normalizing the select value before calling `includes`: derive `selected = Array.isArray(this.value) ? this.value : this.value != null ? [this.value] : []` and use it for filtering labels. Keep `onTouched` non-private. No API or template changes; retain existing modern styling and dark-mode behavior. Single-file change: `frontend/src/app/shared/ui/select/ui-select.ts`.","tests":"1) Build: `cd frontend && npm ci && npm run build` (or `ng build --configuration production`) 2) Unit tests: `npm test` to confirm Karma starts with 0 load errors 3) Manual: open pages with selects (Reports, Admin, Settings) and verify that labels render correctly for single/multi-select and there are no console errors. Dark mode still shows visible arrow (currentColor)."}```
+{"steps":["coder"],"notes":"Centralize the fix by adjusting select hover styles in frontend/src/styles/pages/_base.scss to stop the background from turning white. Align hover behavior with inputs: keep subtle border/box-shadow feedback, remove or reduce hover background lightening in both light and dark themes. No TS/template changes, no new deps, retain currentColor chevron.","tests":"Build the frontend and manually verify on Settings, Board, and Reports pages that: (1) hover background no longer turns white; (2) focus-visible ring and disabled states remain correct; (3) dark mode remains readable; (4) caret icon color matches text (currentColor) and remains visible; (5) no regressions for multi-select/size>1."}```

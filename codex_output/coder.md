@@ -1,34 +1,41 @@
-I’ve located the failing code and applied a minimal, safe TypeScript fix to unblock CI.
+**What I Changed**
+- Unified select hover background with inputs (no white flash).
+  - Light theme: keep base background on hover; retain subtle border/shadow feedback.
+  - Dark theme: same approach for parity.
+- Kept the simple single chevron icon and currentColor behavior (stays visible in dark mode).
 
-What I changed
-- Fixed null-safe selection label derivation for multi-select
-  - frontend/src/app/shared/ui/select/ui-select.ts:279
-    - Normalize the current value to a string array and use that for label mapping to avoid calling includes on a possibly null value.
+**Files Touched**
+- frontend/src/styles/pages/_base.scss:118
+- frontend/src/styles/pages/_base.scss:178
 
-Focused diff (explanation)
-- Before: Called this.value.includes(...) inside syncLabelFromValue for multiple mode, which triggered TS2531 when this.value could be null.
-- After: Create a safe array first and use it for filtering:
-  - selected = Array.isArray(this.value) ? this.value : this.value != null ? [String(this.value)] : []
-  - Use selected.includes(o.value) to derive labels.
+**Focused Diff (Behavioral)**
+- Light hover
+  - Before: lightened bg to near-white on hover.
+  - After: uses the same bg as base to match inputs.
+- Dark hover
+  - Before: lightened bg on hover.
+  - After: uses the same bg as base to match inputs.
 
-Other checks
-- onTouched is public and callable from the template: frontend/src/app/shared/ui/select/ui-select.ts:60
-- isSelected uses Array.isArray guard correctly for includes.
+**Key Snippets**
+- frontend/src/styles/pages/_base.scss:118
+  - background-color set to `color-mix(in srgb, var(--surface-card) 88%, transparent)` to match base.
+- frontend/src/styles/pages/_base.scss:178
+  - background-color set to `color-mix(in srgb, var(--surface-layer-2) 92%, transparent)` to match base dark.
 
-Why this fixes CI
-- The TypeScript error (TS2531) came from calling includes on a possibly null value. Normalizing to selected: string[] eliminates that code path while preserving behavior.
+**Why This Fix**
+- Eliminates the inconsistent “white” hover effect on selectors while preserving tactile feedback via border/box-shadow.
+- Minimal and centralized; no TS/HTML touched; aligns with other inputs.
 
-Paths to know
-- Shared UI select: frontend/src/app/shared/ui/select/ui-select.ts
-- Global styles: frontend/src/styles/pages/_base.scss
+**How to Verify**
+- Build: `cd frontend && npm ci && npm run build` (or `ng build --configuration production`).
+- Manually check in light/dark:
+  - Hover no longer brightens to white.
+  - Focus-visible ring remains; disabled unchanged.
+  - Arrow icon color matches text (currentColor) and stays visible.
+- Spot check pages using `.app-select` and `select.form-control`:
+  - frontend/src/app/features/settings/page.html:249
+  - frontend/src/app/features/board/page.html:565
+  - frontend/src/app/features/reports/reports-page.component.html:274
 
-How to verify locally
-- Build: cd frontend && ng build --configuration production
-- Tests: npm test (Karma) — confirm no load errors
-- Manual: open pages using the shared select (Reports/Admin/Settings) and confirm labels display for single/multi-select without console errors.
-
-Note on the React/shadcn request
-- This repo is Angular. Integrating the provided React/shadcn Select component is out of scope and would be invasive here. If you need a React app version, components would live under /components/ui with Tailwind/shadcn setup; I can provide a separate setup guide on request.
-
-Residual risks
-- None functional. We only normalized value handling; no API or behavior changes.
+**Notes**
+- The repo is Angular; the provided shadcn/Radix React Select isn’t integrated here to keep scope minimal. If you want a React/shadcn setup (components in `components/ui`, `@/lib/utils` `cn` helper, deps `@radix-ui/react-select` and `@radix-ui/react-icons`), I can outline those steps in a separate task.

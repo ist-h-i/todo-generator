@@ -1,17 +1,13 @@
 {
   "steps": [
-    "coder",
-    "code_quality_reviewer",
-    "integrator"
+    "coder"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder",
-      "code_quality_reviewer",
-      "integrator"
+      "coder"
     ],
-    "notes": "Fix TS2531 by normalizing the select value before calling `includes`: derive `selected = Array.isArray(this.value) ? this.value : this.value != null ? [this.value] : []` and use it for filtering labels. Keep `onTouched` non-private. No API or template changes; retain existing modern styling and dark-mode behavior. Single-file change: `frontend/src/app/shared/ui/select/ui-select.ts`.",
-    "tests": "1) Build: `cd frontend && npm ci && npm run build` (or `ng build --configuration production`) 2) Unit tests: `npm test` to confirm Karma starts with 0 load errors 3) Manual: open pages with selects (Reports, Admin, Settings) and verify that labels render correctly for single/multi-select and there are no console errors. Dark mode still shows visible arrow (currentColor)."
+    "notes": "Centralize the fix by adjusting select hover styles in frontend/src/styles/pages/_base.scss to stop the background from turning white. Align hover behavior with inputs: keep subtle border/box-shadow feedback, remove or reduce hover background lightening in both light and dark themes. No TS/template changes, no new deps, retain currentColor chevron.",
+    "tests": "Build the frontend and manually verify on Settings, Board, and Reports pages that: (1) hover background no longer turns white; (2) focus-visible ring and disabled states remain correct; (3) dark mode remains readable; (4) caret icon color matches text (currentColor) and remains visible; (5) no regressions for multi-select/size>1."
   }
 }
