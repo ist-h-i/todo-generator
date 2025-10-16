@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- single-line logger: replace newlines with \n (no pipes) ---
+oneline() {
+  # $1 の改行を \n に変換して1行で出力
+  local s="${1//$'\n'/\\n}"
+  printf '%s\n' "$s"
+}
+
 # ---------- Guard by env.RUN_CODEX ----------
 if [ "${RUN_CODEX:-}" != "true" ]; then
-  echo "::notice::RUN_CODEX!=true; skipping Codex pipeline"
+  oneline "::notice::RUN_CODEX!=true; skipping Codex pipeline"
   exit 0
 fi
 
@@ -16,7 +23,7 @@ fi
 TASK_INPUT="${TASK_INPUT#${TASK_INPUT%%[![:space:]]*}}"
 TASK_INPUT="${TASK_INPUT%${TASK_INPUT##*[![:space:]]}}"
 if [ -z "${TASK_INPUT}" ]; then
-  echo "Usage: RUN_CODEX=true TASK_INPUT='<task description or JSON>' $0" >&2
+  oneline "Usage: RUN_CODEX=true TASK_INPUT='<task description or JSON>' $0"
   exit 1
 fi
 
@@ -31,7 +38,7 @@ elif command -v npx >/dev/null 2>&1; then
 elif command -v python3 >/dev/null 2>&1 && python3 -c "import codex" >/dev/null 2>&1; then
   CODEX_CLI=(python3 -m codex)
 else
-  echo "Error: codex CLI not found (checked codex, codex-cli, npx @openai/codex, python3 -m codex)." >&2
+  oneline "Error: codex CLI not found (checked codex, codex-cli, npx @openai/codex, python3 -m codex)."
   exit 1
 fi
 
@@ -53,7 +60,7 @@ out.parent.mkdir(parents=True, exist_ok=True)
 out.write_bytes(base64.b64decode(b64))
 PY
       else
-        echo "Error: failed to decode CODEX_AUTH_JSON_B64" >&2
+        oneline "Error: failed to decode CODEX_AUTH_JSON_B64"
         exit 1
       fi
     fi
@@ -63,8 +70,8 @@ fi
 
 # Ensure ChatGPT auth exists
 if [ ! -f "${AUTH_FILE}" ]; then
-  echo "Error: ChatGPT authentication not found (~/.codex/auth.json)." >&2
-  echo "Run 'codex login' locally and set CODEX_AUTH_JSON_B64 in CI." >&2
+  oneline "Error: ChatGPT authentication not found (~/.codex/auth.json)."
+  oneline "Run 'codex login' locally and set CODEX_AUTH_JSON_B64 in CI."
   exit 1
 fi
 
@@ -250,7 +257,7 @@ PY
       cat <<'JSON' > codex_output/status.json
 {"status":"needs_clarification"}
 JSON
-      echo "::notice::Translator stage requested clarifications. Stopping pipeline early."
+      oneline "::notice::Translator stage requested clarifications. Stopping pipeline early."
       exit 0
     fi
   fi
@@ -356,7 +363,7 @@ if [ ${#EXECUTION_PLAN[@]} -eq 0 ]; then
   EXECUTION_PLAN=("${DEFAULT_POST_PLAN_STEPS[@]}")
 fi
 
-printf '::notice::Planner selected stages: %s\n' "$(IFS=', '; echo "${EXECUTION_PLAN[*]}")"
+oneline "$(printf '::notice::Planner selected stages: %s' "$(IFS=', '; echo "${EXECUTION_PLAN[*]}")")"
 printf '%s\n' "${EXECUTION_PLAN[@]}" > codex_output/execution_plan_steps.txt
 
 for STEP in "${EXECUTION_PLAN[@]}"; do
