@@ -120,6 +120,7 @@ class Card(Base, TimestampMixin):
     summary: Mapped[str | None] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(Text)
     status_id: Mapped[str | None] = mapped_column(String, ForeignKey("statuses.id"))
+    channel_id: Mapped[str | None] = mapped_column(String, ForeignKey("channels.id", ondelete="SET NULL"))
     priority: Mapped[str | None] = mapped_column(String)
     story_points: Mapped[int | None] = mapped_column(Integer)
     estimate_hours: Mapped[float | None] = mapped_column(Float)
@@ -162,6 +163,7 @@ class Card(Base, TimestampMixin):
         "SuggestedAction", back_populates="created_card", uselist=False
     )
     owner: Mapped[User] = relationship("User", back_populates="cards")
+    channel: Mapped[Optional["Channel"]] = relationship("Channel", back_populates="cards")
     status_report_links: Mapped[list["StatusReportCardLink"]] = relationship(
         "StatusReportCardLink", back_populates="card", cascade="all, delete-orphan"
     )
@@ -249,6 +251,34 @@ class Label(Base):
 
     cards: Mapped[list[Card]] = relationship("Card", secondary=card_labels, back_populates="labels")
     owner: Mapped[User] = relationship("User", back_populates="labels")
+
+
+class Channel(Base, TimestampMixin):
+    __tablename__ = "channels"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    owner_user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    is_private: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    owner_user: Mapped[User] = relationship("User")
+    members: Mapped[list["ChannelMember"]] = relationship(
+        "ChannelMember", back_populates="channel", cascade="all, delete-orphan"
+    )
+    cards: Mapped[list[Card]] = relationship("Card", back_populates="channel")
+
+
+class ChannelMember(Base, TimestampMixin):
+    __tablename__ = "channel_members"
+    __table_args__ = (UniqueConstraint("channel_id", "user_id", name="uq_channel_user"),)
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    channel_id: Mapped[str] = mapped_column(String, ForeignKey("channels.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    role: Mapped[str] = mapped_column(String, default="member")
+
+    channel: Mapped[Channel] = relationship("Channel", back_populates="members")
+    user: Mapped[User] = relationship("User")
 
 
 class Status(Base):

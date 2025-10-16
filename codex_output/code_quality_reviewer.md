@@ -1,33 +1,42 @@
-**Summary**
-- Per-class/component recipe generator added and seeded with examples; aligns with “per component/class” request.
-- Docs clarify both per-file (general) and per-class (Angular) conventions.
+Summary
+- Backend middleware sets safe security headers on all non-OPTIONS responses. Implementation is correct, minimal, and preserves existing headers via setdefault.
+- Tests validate headers on GET /health using existing fixture patterns; consistent with repo style.
+- Documentation updated to reflect actual crypto state (hardened with Fernet + legacy auto-rotate) and correct secret masking behavior.
 
-**What Looks Good**
-- Clear, minimal tooling with idempotent behavior; no overwrites.
-  - `scripts/generate_class_recipes.py:1` mirrors paths under `docs/recipes/classes/` and lists public API.
-  - `scripts/generate_file_recipes.py:1` supports per-file stubs for backend/frontend.
-- Concise README guidance and commands.
-  - `docs/recipes/README.md:1` documents both generators and when to use them.
-- Seeded class recipes are practical and readable.
-  - `docs/recipes/classes/frontend/src/app/App.recipe.md:1`
-  - `docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md:1`
-  - `docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md:1`
+What I Reviewed
+- backend/app/main.py: Security headers middleware
+  - Correctly after CORS preflight middleware; non-OPTIONS responses get:
+    - Strict-Transport-Security: max-age=15552000; includeSubDomains
+    - X-Content-Type-Options: nosniff
+    - Referrer-Policy: no-referrer
+    - X-Frame-Options: DENY
+    - Permissions-Policy: camera=(), microphone=(), geolocation=()
+    - Cross-Origin-Opener-Policy: same-origin
+    - Cross-Origin-Resource-Policy: same-origin
+  - Uses response.headers.setdefault to avoid clobbering upstream values.
+  - OPTIONS handling is harmless even if preflight short-circuits earlier.
+- backend/tests/test_security_headers.py: Focused header assertions
+  - Aligns with existing TestCase/assertTrue style used elsewhere.
+  - Leverages standard TestClient fixture from backend/tests/conftest.py.
+- Crypto and secrets utilities (sanity check):
+  - backend/app/utils/crypto.py implements Fernet with legacy auto-rotation. Tests cover re-encryption and error cases.
+  - backend/app/utils/secrets.py masking logic protects short secrets; tests confirm.
 
-**Meets Request**
-- “Per component/class” is satisfied via `scripts/generate_class_recipes.py` and seeded outputs.
-- Scope minimized to docs + scripts; no runtime changes.
+Tiny Nits / Edge Cases
+- The middleware’s OPTIONS branch delegates to downstream middleware; it’s fine given the earlier preflight middleware, but could return early for symmetry. No change needed.
+- Referrer-Policy: no-referrer is strict. If any flow relies on referrers, consider strict-origin-when-cross-origin in a later pass.
 
-**Small, High-Value Improvements**
-- Capture static members: extend matchers to include `static` (e.g., allow `(?:public\\s+)?(?:static\\s+)?`).
-  - Methods: update `METHOD_RE` in `scripts/generate_class_recipes.py:68`.
-  - Properties: update `PROPERTY_RE` in `scripts/generate_class_recipes.py:72`.
-- Count skipped files for visibility: print “Skipped existing” in `scripts/generate_class_recipes.py:208` for parity with file generator.
-- Optional: detect default-exported classes (`export default class`) to increase coverage.
-- Optional: basic awareness of decorators to better capture `@Input/@Output` names when split across lines (current heuristic already catches most properties).
+Applied Fixes
+- docs/security-review.md
+  - Replaced outdated “Weak secret storage cipher” with “Secret storage (Hardened)” describing Fernet + legacy rotation path.
+  - Updated “Secret hint” section to reflect current, safe masking behavior.
+  - Scope-limited doc edits only; no runtime impact.
 
-**Risks / Limitations**
-- Regex parsing can miss edge cases (multiline syntax, nested braces in strings/comments). Acceptable for initial pass.
-- Dual conventions (per-file vs per-class) are both present; README already positions Angular to use per-class, backend to use per-file—keep this distinction consistent in practice.
+Residual Risks
+- HSTS requires HTTPS in production to be effective.
+- COOP/CORP are safe for APIs; keep an eye on any cross-origin embedding needs.
+- SPA tokens remain in localStorage; migration to secure, httpOnly cookies is still recommended in a future coordinated cycle.
 
-**Verdict**
-- Approve as delivered. No required fixes. The optional improvements above are small, safe, and would increase coverage and ergonomics.
+Validation
+- Suggest running: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck
+- Full suite: pytest -q backend/tests (tests appear self-contained and should not require network).

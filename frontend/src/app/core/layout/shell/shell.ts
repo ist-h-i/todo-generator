@@ -17,17 +17,7 @@ import { ProfileDialogComponent } from '@core/profile/profile-dialog';
 import { UserProfile } from '@core/profile/profile.models';
 import { HelpDialogComponent } from './help-dialog';
 import { HoverMessageStackComponent } from '../hover-messages/hover-message-stack.component';
-import { HoverMessageSeverity, HoverMessageView } from '../hover-messages/hover-message.types';
-
-const HOVER_MESSAGE_EXIT_DURATION_MS = 220;
-
-const HOVER_MESSAGE_DURATIONS: Record<HoverMessageSeverity, number | null> = {
-  error: null,
-  warning: 10_000,
-  notification: 5_000,
-  system: 3_000,
-  loading: null,
-};
+import { HoverMessageService } from '../hover-messages/hover-message.service';
 
 function extractRoleLabel(role: string): string {
   const separator = ' / ';
@@ -71,13 +61,11 @@ export class Shell {
   private readonly destroyRef = inject(DestroyRef);
   private readonly errorNotifier = inject(HttpErrorNotifierService);
   private readonly loadingStore = inject(HttpLoadingStore);
+  private readonly hoverMessages = inject(HoverMessageService);
   private readonly themeStorageKey = 'verbalize-yourself:theme-preference';
   private readonly legacyThemeStorageKey = 'todo-generator:theme-preference';
   private readonly helpDialogVisible = signal(false);
   private readonly profileDialogVisible = signal(false);
-  private readonly hoverMessageStore = signal<readonly HoverMessageView[]>([]);
-  private readonly hoverMessageTimers = new Map<number, { autoClose: number | null; removal: number | null }>();
-  private hoverMessageSequence = 0;
 
   private readonly themeLabels: Record<ThemePreference, string> = {
     light: 'ライトモード',
@@ -106,7 +94,7 @@ export class Shell {
   );
   public readonly isHelpDialogOpen = computed(() => this.helpDialogVisible());
   public readonly isProfileDialogOpen = computed(() => this.profileDialogVisible());
-  public readonly hoverMessageList = computed(() => this.hoverMessageStore());
+  public readonly hoverMessageList = computed(() => this.hoverMessages.messages());
   private readonly errorMessage = this.errorNotifier.message;
   private readonly loadingState = this.loadingStore.isLoading;
   private readonly loadingMessageState = this.loadingStore.message;
@@ -222,9 +210,7 @@ export class Shell {
 
   public constructor() {
     this.setupSystemThemeListener();
-    this.destroyRef.onDestroy(() => {
-      this.clearHoverMessageTimers();
-    });
+    // No-op: HoverMessageService manages its own timers; nothing to tear down here.
   }
 
   private resolveInitialTheme(): ThemePreference {
@@ -351,107 +337,6 @@ export class Shell {
   }
 
   private showProfileToast(message: string): void {
-    this.enqueueHoverMessage(message, 'notification');
-  }
-
-  private enqueueHoverMessage(text: string, severity: HoverMessageSeverity = 'system'): number {
-    const entry: HoverMessageView = {
-      id: ++this.hoverMessageSequence,
-      text,
-      severity,
-      dismissing: false,
-    };
-
-    this.hoverMessageStore.update((messages) => [entry, ...messages]);
-
-    if (typeof window === 'undefined') {
-      return entry.id;
-    }
-
-    const timers = { autoClose: null as number | null, removal: null as number | null };
-
-    const duration = HOVER_MESSAGE_DURATIONS[severity] ?? null;
-
-    if (duration !== null) {
-      timers.autoClose = window.setTimeout(() => {
-        this.dismissHoverMessage(entry.id);
-      }, duration);
-    }
-
-    this.hoverMessageTimers.set(entry.id, timers);
-
-    return entry.id;
-  }
-
-  private dismissHoverMessage(id: number): void {
-    if (typeof window === 'undefined') {
-      this.finalizeHoverMessageRemoval(id);
-      return;
-    }
-
-    const timers = this.hoverMessageTimers.get(id);
-
-    if (!timers || timers.removal !== null) {
-      return;
-    }
-
-    if (timers.autoClose !== null) {
-      window.clearTimeout(timers.autoClose);
-      timers.autoClose = null;
-    }
-
-    this.hoverMessageStore.update((messages) =>
-      messages.map((message) =>
-        message.id === id ? { ...message, dismissing: true } : message,
-      ),
-    );
-
-    timers.removal = window.setTimeout(() => {
-      this.finalizeHoverMessageRemoval(id);
-    }, HOVER_MESSAGE_EXIT_DURATION_MS);
-  }
-
-  private finalizeHoverMessageRemoval(id: number): void {
-    this.hoverMessageStore.update((messages) =>
-      messages.filter((message) => message.id !== id),
-    );
-
-    if (typeof window === 'undefined') {
-      this.hoverMessageTimers.delete(id);
-      return;
-    }
-
-    const timers = this.hoverMessageTimers.get(id);
-
-    if (timers) {
-      if (timers.autoClose !== null) {
-        window.clearTimeout(timers.autoClose);
-      }
-
-      if (timers.removal !== null) {
-        window.clearTimeout(timers.removal);
-      }
-    }
-
-    this.hoverMessageTimers.delete(id);
-  }
-
-  private clearHoverMessageTimers(): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    for (const timers of this.hoverMessageTimers.values()) {
-      if (timers.autoClose !== null) {
-        window.clearTimeout(timers.autoClose);
-      }
-
-      if (timers.removal !== null) {
-        window.clearTimeout(timers.removal);
-      }
-    }
-
-    this.hoverMessageTimers.clear();
-    this.hoverMessageStore.set([]);
+    this.hoverMessages.notify(message);
   }
 }
