@@ -9,7 +9,7 @@ from fastapi import HTTPException, UploadFile, status
 
 from .. import models, schemas
 
-_MAX_NICKNAME_LENGTH = 30
+_MAX_NICKNAME_LENGTH = 100
 _MAX_BIO_LENGTH = 500
 _MAX_ROLES = 10
 _MAX_ROLE_LENGTH = 200
