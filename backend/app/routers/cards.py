@@ -584,7 +584,7 @@ def update_card(
 
     _validate_related_entities(
         db,
-        owner_id=current_user.id,
+        owner_id=card.owner_id,
         status_id=update_data.get("status_id"),
         error_category_id=update_data.get("error_category_id"),
         initiative_id=update_data.get("initiative_id"),
@@ -598,7 +598,7 @@ def update_card(
     apply_updates(card, update_data)
 
     if label_ids is not None:
-        labels = _load_owned_labels(db, label_ids=list(label_ids or []), owner_id=current_user.id)
+        labels = _load_owned_labels(db, label_ids=list(label_ids or []), owner_id=card.owner_id)
         card.labels = labels
 
     if "status_id" in update_data:
@@ -689,13 +689,7 @@ def update_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Subtask:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     subtask = get_resource_or_404(
         db,
@@ -703,7 +697,7 @@ def update_subtask(
         subtask_id,
         detail="Subtask not found",
     )
-    if subtask.card_id != card_id:
+    if subtask.card_id != card.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
     previous_status = subtask.status
@@ -742,13 +736,7 @@ def delete_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     subtask = get_resource_or_404(
         db,
@@ -756,7 +744,7 @@ def delete_subtask(
         subtask_id,
         detail="Subtask not found",
     )
-    if subtask.card_id != card_id:
+    if subtask.card_id != card.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
     record_activity(
