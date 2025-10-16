@@ -1,31 +1,44 @@
-**背景**
-- 「なぜなぜ分析」を廃止し、免疫マップ構造へ置換する要望。
-- Mermaid Live Editor で可視化できるフローチャートを単一ドキュメントとして提供。
-- 変更はドキュメント限定で、最小差分・低リスク・30分以内を重視。
+## 背景
+- Introduced “Channels” to team-scope boards while keeping non-board modules untouched.
+- Each user gets a private channel; cards and subtasks are scoped by channel membership.
+- Card creation now requires a channel (defaults to caller’s private channel to preserve UX).
 
-**変更概要**
-- 新規ドキュメントを追加: `docs/analysis/immune-map.md`
-- 免疫マップのテンプレートを Mermaid フローチャートで提供（3階層・A〜Fカテゴリ）。
-- 既定の向きは `TD`（上→下）。`LR` へ切替可能。
-- ノード/エッジはサンプルをコメントアウトし、内容がある場合のみ追記・アンコメントで表示（空要素は非表示を満たす）。
-- エッジ設計: A→B、A→C、B→D、B→E、C→E、C→F（必要時のみ記述）。
+## 変更概要
+- Data model: Added `channels`, `channel_members`; added `cards.channel_id` (backfilled, enforced non-null), planned index on `cards.channel_id`.
+- Migrations: Auto-create a private channel and owner membership per user; backfill existing cards to the creator’s private channel; idempotent startup hooks.
+- Backend:
+  - Scoped card queries to channels where caller is a member.
+  - `POST /cards` requires membership; defaults to private channel when omitted.
+  - Block changing `channel_id` on update (avoid uncontrolled moves).
+  - Channels API: `GET /channels/mine`, `POST /channels/{id}/invite`, `POST /channels/{id}/leave`, `POST /channels/{id}/kick`.
+  - On registration: auto-create private channel + owner membership.
+- Schemas/Docs: Card DTOs include `channel_id`; lightweight docs note channel requirement.
+- UI: No breaking change; channel selector deferred. Backend default preserves current flows.
 
-**影響**
-- アプリ/ビルドへの影響なし（ドキュメントのみ）。
-- Mermaid Live Editor へそのまま貼り付けて閲覧可能。
-- 既存の「なぜなぜ分析」記載は未改修のため、一時的に表現の不整合が残る可能性。
-- 制約事項: Mermaid の仕様上、空のサブグラフ見出しは表示される（ノード/エッジは表示されない）。
+## 影響
+- Visibility: Users now see only cards in channels they belong to; prior implicit sharing may narrow.
+- Permissions: Invite allowed for members; kick restricted to owner; sole owner cannot leave.
+- API: Card reads/writes are channel-scoped; some calls may now return 403 if not a member.
+- Compatibility: Creating cards without specifying `channel_id` still works (defaults applied).
+- Performance: Channel filter adds a predicate; add `cards.channel_id` index if volume grows.
 
-**検証**
-- `docs/analysis/immune-map.md` のスニペットを Mermaid Live Editor に貼付し、表示を確認。
-- A1/B1/C1 を追加し、A1→B1・A1→C1 を接続してレイアウトを確認。
-- B1→D1/E1、C1→E1/F1 を順に追加し、接続・整列を確認。
-- ノード/エッジを再度コメントアウトし、非表示化を確認。
+## 検証
+- Channels
+  - `GET /channels/mine` returns private channel after registration.
+  - Invite adds membership; leave removes self (blocked if sole owner); kick works for owner.
+- Cards
+  - Create with invalid `channel_id` → 403; with member channel → 201 storing `channel_id`.
+  - List endpoints return only member-channel cards.
+  - Update with `channel_id` change → 409 (blocked).
+- Migration
+  - Existing users have private channels and memberships.
+  - All existing cards have non-null `channel_id` pointing to creator’s private channel.
 
-**レビュー観点**
-- サブグラフ名に A〜F の表記を残すか、説明テキストのみとするか。
-- 図の方向: `TD` と `LR` のどちらを既定とするか。
-- レベル見出し（Level 1/2/3）を残すか（空見出し許容可否）。
-- 参照性向上のため、`docs/INDEX.md` 等へのリンク追加の要否。
-- 既存の「なぜなぜ分析」関連ドキュメントの廃止/改訂タイミングと対象範囲。
-- 追加の配色/クラスなどスタイル指定の要否（既定スタイルで問題ないか）。
+## レビュー観点
+- Authorization coverage: Ensure every card/subtask endpoint uses channel membership checks.
+- Owner edge cases: Sole owner leave policy; no owner transfer in MVP (acceptable?).
+- Invitation flow: Email/username uniqueness and lack of approval—confirm product intent.
+- Migration impact: Previously shared artifacts now private—confirm acceptable or flag exceptions.
+- Indexing: Add/verify index on `cards.channel_id` for list performance.
+- API contract: Frontend tolerance to added `channel_id` fields; no regressions without selector.
+- Error semantics: Consistent 403/409 responses and idempotent membership endpoints.

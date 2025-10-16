@@ -18,6 +18,7 @@ The Angular single-page application follows the complementary guidance in [`guid
 - Model persistence with SQLAlchemy in `app/models.py` (or adjacent modules) and expose strict Pydantic schemas under `app/schemas/**`. Use PascalCase for schema classes and snake_case for packages and modules.
 - Use repository helpers or service classes to isolate side effects (database writes, external APIs, encryption) so they are unit-test friendly.
 - Keep migrations additive and idempotent. Startup migrations run through `run_startup_migrations`, so guard destructive changes with explicit operator instructions.
+  - Channels: the backend introduces `channels` and `channel_members` tables and adds `cards.channel_id`. On startup, each user gets a private channel and existing cards are backfilled. New cards default to the caller’s private channel if `channel_id` is omitted.
 - Log sensitive events with structured logging but avoid copying secrets or personally identifiable information into logs. Respect `settings.allowed_origins` for CORS and keep default logging levels at INFO.
 
 ### Shared Tooling & Formatting

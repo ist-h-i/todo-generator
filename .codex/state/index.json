@@ -952,5 +952,142 @@
         "preview": ""
       }
     ]
+  },
+  "499": {
+    "issue": "499",
+    "run_id": "18544996829",
+    "timestamp": "2025-10-15T23:13:11Z",
+    "files": [
+      {
+        "path": "codex_output/requirements_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/release_manager.md",
+        "size": 3164,
+        "preview": "**Release Summary**\n\n- Modernized select trigger and options panel across Angular app, keeping changes minimal and scoped.\n- Global native `<select>` triggers updated; shared Angular `UiSelectComponent` now renders a custom, modern dropdown panel.\n\n**What Changed**\n\n- Global styles: modern, centered chevron and spacing for selects.\n  - `frontend/src/styles/pages/_base.scss:1`\n- Shared Angular select component: custom panel with rounded corners, shadow, max-height + scroll, hover/selected/active states, keyboard support; fixed `onTouched` visibility.\n  - `frontend/src/app/shared/ui/select/ui-select.ts:1`\n\n**Scope & Compatibility**\n\n- No new dependencies; Angular-only solution.\n- Usage of `<app-ui-select>` remains the same in Admin and Reports pages.\n- Native `<select>`s retain improved trigger visuals; their OS dropdown remains by design.\n- Single-selects use the custom panel; multi/size>1 continue using native control for minimal impact.\n\n**A11y & UX**\n\n- Trigger: simple down chevron, vertically centered; comfortable right padding.\n- Panel: `role=\"listbox\"` and `role=\"option\"` with `aria-selected`; keyboard navigation (ArrowUp/Down, Enter, Esc).\n- Hidden native select in single mode is unfocusable and hidden from AT (`tabindex=\"-1\"`, `aria-hidden=\"true\"`, `inert`).\n\n**Risks**\n\n- Stacking context: confirm `z-index: 1000` clears headers/overlays in all layouts.\n- CSS `color-mix()` usage mirrors existing styles; older browsers might lack support (pre-existing risk).\n- RTL not explicitly handled (kept minimal to meet scope).\n\n**Verification Steps**\n\n- Build: from `frontend/`, run `npm ci && npm run build` (or `ng build --configuration production`).\n- Pages to check:\n  - Admin: `frontend/src/app/features/admin/page.html:1`\n  - Reports: `frontend/src/app/features/reports/reports-page.component.html:1`\n- Validate:\n  - Trigger chevron is centered; spacing balanced; focus-visible outline appears.\n  - Panel opens under trigger with rounded corners, subtle border, shadow, smooth entry animation.\n  - States: hover highlight, selected checkmark, disabled item styling.\n  - Keyboard: ArrowUp/Down moves active item, Enter selects, Esc closes.\n  - Long lists: scroll within the panel; max-height respected.\n  - Light/dark theme parity; no clipping; no scroll bleed.\n\n**Rollback Plan**\n\n- Revert the two touched files if needed:\n  - `frontend/src/styles/pages/_base.scss:1`\n  - `frontend/src/app/shared/ui/select/ui-select.ts:1`\n- Temporary disable custom panel by switching affected instances to multi/size>1 (forces native select), if a hotfix is needed without code changes.\n\n**Notes on React/shadcn Request**\n\n- Repo is Angular + SCSS; introducing React/shadcn/Tailwind would be high-impact and out of scope for minimal change.\n- If a React/shadcn project is desired elsewhere, place components under `/components/ui` and install `@radix-ui/react-select` and `@radix-ui/react-icons`. Not applied here.\n\n**Release Verdict**\n\n- Ready to ship. Changes are minimal, self-contained, and meet the “modern trigger + modern options panel” requirement, with no new deps. Recommended to complete the verification checklist above prior to tagging."
+      },
+      {
+        "path": "codex_output/work_report.md",
+        "size": 2912,
+        "preview": "## 背景\n- Introduced “Channels” to team-scope boards while keeping non-board modules untouched.\n- Each user gets a private channel; cards and subtasks are scoped by channel membership.\n- Card creation now requires a channel (defaults to caller’s private channel to preserve UX).\n\n## 変更概要\n- Data model: Added `channels`, `channel_members`; added `cards.channel_id` (backfilled, enforced non-null), planned index on `cards.channel_id`.\n- Migrations: Auto-create a private channel and owner membership per user; backfill existing cards to the creator’s private channel; idempotent startup hooks.\n- Backend:\n  - Scoped card queries to channels where caller is a member.\n  - `POST /cards` requires membership; defaults to private channel when omitted.\n  - Block changing `channel_id` on update (avoid uncontrolled moves).\n  - Channels API: `GET /channels/mine`, `POST /channels/{id}/invite`, `POST /channels/{id}/leave`, `POST /channels/{id}/kick`.\n  - On registration: auto-create private channel + owner membership.\n- Schemas/Docs: Card DTOs include `channel_id`; lightweight docs note channel requirement.\n- UI: No breaking change; channel selector deferred. Backend default preserves current flows.\n\n## 影響\n- Visibility: Users now see only cards in channels they belong to; prior implicit sharing may narrow.\n- Permissions: Invite allowed for members; kick restricted to owner; sole owner cannot leave.\n- API: Card reads/writes are channel-scoped; some calls may now return 403 if not a member.\n- Compatibility: Creating cards without specifying `channel_id` still works (defaults applied).\n- Performance: Channel filter adds a predicate; add `cards.channel_id` index if volume grows.\n\n## 検証\n- Channels\n  - `GET /channels/mine` returns private channel after registration.\n  - Invite adds membership; leave removes self (blocked if sole owner); kick works for owner.\n- Cards\n  - Create with invalid `channel_id` → 403; with member channel → 201 storing `channel_id`.\n  - List endpoints return only member-channel cards.\n  - Update with `channel_id` change → 409 (blocked).\n- Migration\n  - Existing users have private channels and memberships.\n  - All existing cards have non-null `channel_id` pointing to creator’s private channel.\n\n## レビュー観点\n- Authorization coverage: Ensure every card/subtask endpoint uses channel membership checks.\n- Owner edge cases: Sole owner leave policy; no owner transfer in MVP (acceptable?).\n- Invitation flow: Email/username uniqueness and lack of approval—confirm product intent.\n- Migration impact: Previously shared artifacts now private—confirm acceptable or flag exceptions.\n- Indexing: Add/verify index on `cards.channel_id` for list performance.\n- API contract: Frontend tolerance to added `channel_id` fields; no regressions without selector.\n- Error semantics: Consistent 403/409 responses and idempotent membership endpoints."
+      },
+      {
+        "path": "codex_output/implementation_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/docwriter.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/qa_automation_planner.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/code_quality_reviewer.md",
+        "size": 2591,
+        "preview": "**Summary**\n- Fix meets goal: dark-mode arrow inherits text color and remains visible.\n- Scope is minimal (SCSS + existing Angular component styles), no behavior changes.\n\n**What I Checked**\n- Native/select styles use inline SVG caret with `stroke='currentColor'`: frontend/src/styles/pages/_base.scss:102\n- Dark-mode sets `color` so caret inherits high-contrast text: frontend/src/styles/pages/_base.scss:164\n- Caret positioning and spacing remain modern and centered: frontend/src/styles/pages/_base.scss:85, frontend/src/styles/pages/_base.scss:101\n- Custom Angular select icon inherits `currentColor`: frontend/src/app/shared/ui/select/ui-select.ts:122\n- Inline SVGs for trigger/check use `stroke='currentColor'`: frontend/src/app/shared/ui/select/ui-select.ts:56, frontend/src/app/shared/ui/select/ui-select.ts:86\n- Multi/size variants hide caret: frontend/src/styles/pages/_base.scss:154\n\n**Findings**\n- In dark mode, `color: var(--text-primary)` ensures both text and caret use the same, high-contrast token: frontend/src/styles/pages/_base.scss:167\n- The caret data-URI explicitly uses `currentColor` in both normal and dark modes, so it follows theme text color: frontend/src/styles/pages/_base.scss:102, frontend/src/styles/pages/_base.scss:174\n- The Angular UI select trigger icon is styled with `color: currentColor`; SVG uses `stroke='currentColor'`, so it tracks text color as intended: frontend/src/app/shared/ui/select/ui-select.ts:122, frontend/src/app/shared/ui/select/ui-select.ts:56\n\n**Edge Cases**\n- Disabled state reduces opacity for the entire control, which will also dim the caret—consistent and acceptable: frontend/src/styles/pages/_base.scss:138\n- Multi-select/size>1 removes the caret; unaffected by the change: frontend/src/styles/pages/_base.scss:154\n- Focus-visible and hover states preserved in both light/dark modes: frontend/src/styles/pages/_base.scss:127, frontend/src/styles/pages/_base.scss:177, frontend/src/styles/pages/_base.scss:186\n\n**Lightweight Suggestions (Optional)**\n- High-contrast mode: consider hiding the background-image caret to avoid UA overrides causing poor visibility similar to the custom icon rule already present: add an equivalent `@media (forced-colors: active)` rule for `.app-select, select.form-control`.\n- RTL: current `background-position: right 1.6rem center` is physical; if RTL is needed, add a small `[dir='rtl']` override to position the caret on the left.\n\n**Verdict**\n- Approve. The dark-mode arrow now matches the text color via `currentColor`, fixing visibility while keeping the change minimal and centralized."
+      },
+      {
+        "path": "codex_output/execution_plan.json",
+        "size": 1129,
+        "preview": "{\n  \"steps\": [\n    \"coder\",\n    \"integrator\"\n  ],\n  \"source\": \"planner\",\n  \"planner_payload\": {\n    \"steps\": [\n      \"coder\",\n      \"integrator\"\n    ],\n    \"notes\": \"Coder implements minimal channel model, membership, card.channel_id, scoped queries, and small UI additions (channel select on card create, simple filter). Integrator runs migrations, wires config, and verifies endpoints/UI load. Owner/member role kept minimal; invites by username auto-join. Existing cards backfilled to creator’s private channel.\",\n    \"tests\": \"Backend: (1) Create card with invalid channel → 403. (2) Create card in member channel → 201, channelId stored. (3) List cards returns only member-channel cards. (4) Invite adds membership; invitee can list/create. (5) Leave removes membership; access revoked. (6) Kick by owner removes member; member loses access. UI: (1) Card create shows channel dropdown with default. (2) Creating a card without changing selection succeeds. (3) Switching channel filter changes visible cards. Migration: After migration, existing cards have non-null channel_id and are visible in private channel.\"\n  }\n}"
+      },
+      {
+        "path": "codex_output/design_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/threat_modeler.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/requirements_analyst.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/ai_safety_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/dpo_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/translator.md",
+        "size": 2742,
+        "preview": "**Summary**\n- Introduce “Channels” to team‑scope boards. Convert each user’s existing board workspace into their own private channel. Only board-related features live inside channels. Card creation must specify a channel. Members of a channel share visibility of cards and subtasks. Support inviting users to a channel and leaving/kicking from a channel.\n\n**Objectives**\n- Add a Channel concept with membership.\n- Scope boards/cards/subtasks to a channel.\n- Require channel selection on card creation.\n- Enable invite, leave, and kick actions.\n\n**Non‑Goals**\n- Do not move non‑board features into channels.\n- No broad refactors beyond what’s needed to support channels.\n\n**Assumptions**\n- Existing “board workspace” equals a per‑user area that maps 1:1 to a new private channel.\n- Cards and subtasks already exist; we only add channel scoping.\n- Minimal permission model is acceptable for MVP (e.g., owner/moderator).\n- Existing cards can be automatically migrated to a user’s private channel.\n\n**Constraints**\n- Minimize diffs and UX disruption.\n- Backward compatible where possible (e.g., default channel preselected).\n- Complete within a small, incremental change set.\n- No channelization of non‑board modules.\n\n**Unknowns**\n- Precise data model for channels and membership roles.\n- How boards relate to channels (one channel → many boards, or cards directly in channels without boards?).\n- Organization/tenant boundaries for channels.\n- Invitation mechanism (username vs email) and approval flow.\n- Who can kick whom; quorum rules (any member vs owner only).\n- Default channel naming/visibility and discoverability.\n- Migration details for shared cards across users.\n- Moving cards between channels and audit implications.\n- API and UI surfaces that must change (endpoints, forms, filters).\n\n## Clarifying questions\n- Should a channel contain multiple boards, or are cards directly associated to a channel independent of boards?\n- Are channels scoped within an organization/team, or globally across the app?\n- What roles exist in a channel (owner, admin, member), and who can invite/kick?\n- How should invitations work (by username, email, link), and is acceptance required?\n- Can cards be moved between channels? If yes, who is authorized to do so?\n- How should existing shared boards/cards be migrated when multiple users currently see them?\n- What is the default behavior for new users (auto‑create a private channel with a specific name)?\n- Do we need UI filters/switchers for “current channel” across board/card views?\n- Any auditing/notifications required for invites, joins, leaves, and kicks?\n- Are there retention or access constraints for users removed from a channel (e.g., read‑only history)?"
+      },
+      {
+        "path": "codex_output/detail_designer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/performance_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/a11y_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/doc_editor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/oss_sbom_auditor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/integrator.md",
+        "size": 3909,
+        "preview": "**Integration Summary**\n\n- Models and migrations\n  - `channels` and `channel_members` tables exist with relationships wired in `backend/app/models.py:256` and `backend/app/models.py:271`.\n  - `cards.channel_id` added and related to `Channel` (`backend/app/models.py:123`, `backend/app/models.py:166`).\n  - Startup migrations create channel tables, add `cards.channel_id`, and backfill private channels + memberships + card associations (`backend/app/migrations.py:296`, `backend/app/migrations.py:364`, `backend/app/migrations.py:392`, `backend/app/migrations.py:947`).\n  - `run_startup_migrations` calls are in `backend/app/main.py` and run during app lifespan; ORM `create_all` follows to ensure schema.\n\n- Routers and behavior\n  - Channel endpoints implemented and registered:\n    - `GET /channels/mine` (`backend/app/routers/channels.py:14`)\n    - `POST /channels/{channel_id}/invite` by email (`backend/app/routers/channels.py:35`)\n    - `POST /channels/{channel_id}/leave` with sole-owner guard (`backend/app/routers/channels.py:73`)\n    - `POST /channels/{channel_id}/kick` owner-only (`backend/app/routers/channels.py:105`)\n    - Router included in `backend/app/main.py:185`.\n  - Card scoping by channel membership:\n    - Helper `_member_channel_ids` (`backend/app/routers/cards.py:52`)\n    - Query scoping via `_card_query(..., member_user_id=...)` for list/details/similar, etc. (calls at `backend/app/routers/cards.py:372`, `backend/app/routers/cards.py:551`, `backend/app/routers/cards.py:820`).\n    - Card creation requires membership if `channel_id` provided; defaults to user’s private channel (`backend/app/routers/cards.py:491`–`511`).\n  - Registration auto-creates a private channel + owner membership (`backend/app/routers/auth.py:60`–`63`).\n\n- Schemas and docs\n  - Card schemas include `channel_id` (`backend/app/schemas.py:283`, `backend/app/schemas.py:310`) and channel DTOs added (`backend/app/schemas.py:687`–`700`).\n  - Docs updated to note channel model and card default channel (`docs/governance/development-governance-handbook.md:21`) and UI guidance for future selector (`docs/guidelines/angular-coding-guidelines.md:33`).\n\n**Integrator Fix (MVP safety)**\n- Block changing a card’s `channel_id` during update to avoid unauthorized or accidental cross-channel moves until policies/UI are defined.\n  - Change: `backend/app/routers/cards.py:...` raises 409 if `channel_id` is present in update payload.\n\n**Landing Plan**\n\n- No extra ops steps: migrations run automatically at startup; ORM ensures tables.\n- Start backend: `uvicorn app.main:app --reload --app-dir backend`\n- Quick smoke checks (manual or via API client):\n  - Register/login → ensure `GET /channels/mine` returns one private channel.\n  - Create a card without `channel_id` → verify response includes `channel_id`.\n  - List cards → only cards from member channels are returned.\n  - Invite a second user via `/channels/{id}/invite` → login as invitee and confirm listing/creation works.\n  - Attempt to update a card with `channel_id` change → expect 409.\n\n**Residual Risks / Open Questions**\n\n- Index: no explicit index on `cards.channel_id`; consider adding if listing grows.\n- Invitation: email-based, assumes unique emails; no approval/notifications included.\n- Sole-owner edge cases: owner cannot leave; ownership transfer is out of scope.\n- Migration of pre-existing shared artifacts: all cards backfilled to creator’s private channel; visibility may narrow.\n- Frontend: UI lacks a channel selector; backend defaults preserve current UX. Add selector later using `GET /channels/mine`.\n\n**Follow-ups (minimal)**\n- Add DB index for `cards.channel_id` when performance requires.\n- Define and implement channel transfer policy (owner-only? audit?) and enable controlled channel updates.\n- Add basic frontend dropdown for `Channel` in card creation with default selection; hide if only one channel."
+      },
+      {
+        "path": "codex_output/execution_plan_steps.txt",
+        "size": 17,
+        "preview": "coder\nintegrator\n"
+      },
+      {
+        "path": "codex_output/coder.md",
+        "size": 4796,
+        "preview": "**Scope**\nAdds a minimal “Channel” concept to backend with membership and scopes cards to channels while preserving existing UX. Cards default to the user’s private channel if not specified. UI is unchanged for now to minimize diffs.\n\n**Backend Changes**\n- Models\n  - Added `Channel` and `ChannelMember` and linked to cards.\n    - `backend/app/models.py:115` Card gains `channel_id` FK and relationship; `backend/app/models.py:256` new `Channel`; `backend/app/models.py:272` new `ChannelMember`.\n- Migrations\n  - Startup migrations create channel tables (idempotent), add `cards.channel_id`, create a private channel per user with membership, and backfill existing cards.\n    - Ensure tables: `backend/app/migrations.py:296`\n    - Add `cards.channel_id`: `backend/app/migrations.py:364`\n    - Backfill + ensure memberships: `backend/app/migrations.py:392`\n    - Hooked into startup: `backend/app/migrations.py:740` (append calls to the end of `run_startup_migrations`)\n- Auth (new users)\n  - On registration, auto-create private channel and owner membership.\n    - `backend/app/routers/auth.py:...` after `ensure_default_workspace_template` add `Channel` and `ChannelMember` inserts.\n- Cards router (scoping + creation)\n  - Card queries filter by channels the current user is a member of.\n  - New cards require channel membership if `channel_id` is provided; otherwise default to caller’s private channel.\n  - All card/subtask access gates migrated from strict owner to “accessible via channel membership.”\n    - Member channel IDs helper: `backend/app/routers/cards.py:52`\n    - `_card_query` updated: `backend/app/routers/cards.py:61`\n    - Accessor `_get_accessible_card`: `backend/app/routers/cards.py:260`\n    - Apply scoping to list/detail/update/delete/subtasks/similar/feedback paths accordingly (multiple blocks updated within the file).\n- Channels router (minimal MVP)\n  - `GET /channels/mine` → list channels where caller is member.\n  - `POST /channels/:id/invite { email }` → add a user to channel (any member can invite).\n  - `POST /channels/:id/leave` → leave channel (block if sole owner).\n  - `POST /channels/:id/kick { user_id }` → owner-only.\n    - `backend/app/routers/channels.py:1`\n  - Router registered in app: `backend/app/main.py` added import and `app.include_router`.\n- Schemas\n  - Cards: add `channel_id` to `CardBase`, `CardCreate`, `CardUpdate`, `CardRead`.\n    - `backend/app/schemas.py:...` (Card sections)\n  - Channels: add `ChannelRead`, `ChannelInviteRequest`, `ChannelKickRequest`.\n    - `backend/app/schemas.py:...` (towards end of file after status report detail)\n\n**Documentation**\n- Governance notes on channel tables and card channel default:\n  - `docs/governance/development-governance-handbook.md` (Python & Backend Practices section)\n- Angular guidelines note for future channel selector:\n  - `docs/guidelines/angular-coding-guidelines.md` (State Management & Data Flow section)\n\n**New Endpoints**\n- `GET /channels/mine` → list member channels\n- `POST /channels/{channel_id}/invite { email }`\n- `POST /channels/{channel_id}/leave`\n- `POST /channels/{channel_id}/kick { user_id }`\n\n**Behavior Summary**\n- On startup: create `channels`, `channel_members` (if `users` exists), add `cards.channel_id`, create private channels for existing users, backfill existing cards to those channels.\n- On registration: create private channel and grant owner membership to the user.\n- Listing/accessing cards: now shows cards in channels the user is a member of (includes the user’s private channel).\n- Creating cards: accepts optional `channel_id` (must be a member). If omitted, defaults to caller’s private channel.\n- Non-board modules unaffected.\n\n**Commands**\n- Backend dev server (runs migrations automatically):\n  - `uvicorn app.main:app --reload --app-dir backend`\n- Backend tests:\n  - `pytest backend/tests`\n- Lint/format (optional):\n  - `ruff check backend`\n  - `black --check backend/app backend/tests`\n\n**Residual Risks / Open Questions**\n- Owner leave flow is "
+      },
+      {
+        "path": "codex_output/security_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/i18n_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/planner.md",
+        "size": 5427,
+        "preview": "**Approach**\n\nIntroduce a lightweight “Channel” model with membership and scope cards to a channel with minimal UI/API changes. Default every user to an auto-created private channel. Require a channel on card creation with a preselected default. Add simple invite/leave/kick actions with a minimal role model.\n\n**Assumptions (to unblock work)**\n\n- Cards associate directly to a `channel` (not via board). Boards remain as-is and continue to work; their views filter cards by the selected/current channel.\n- Channel roles: `owner` and `member`. Owner can kick; any member can invite; invite auto-joins by username (no approval flow).\n- Existing cards migrate to the creator’s private channel. Shared cards (if any) also migrate to the creator’s channel.\n- New users get a private channel named “My Channel” at first login or user creation.\n- Non-board modules are unaffected.\n\n**Minimal Data Model**\n\n- `channels(id, name, owner_user_id, is_private, created_at)`\n- `channel_members(channel_id, user_id, role[owner|member], joined_at)` with unique(channel_id, user_id)\n- Add `cards.channel_id` (non-null after backfill); index on `(channel_id)`\n\n**API Changes (focused)**\n\n- `GET /channels/mine` → list channels where caller is a member.\n- `POST /cards` → require `channelId`; validate caller is member.\n- Query endpoints that return cards must filter by channels the caller is member of (via `cards.channel_id IN (…member channels…)`).\n- Membership actions:\n  - `POST /channels/:id/invite { username }` → add member (any member can invite).\n  - `POST /channels/:id/leave` → remove self if not owner with sole ownership (owner can leave if other owners or transfer out of scope for MVP).\n  - `POST /channels/:id/kick { userId }` → owner only.\n\nOptional for MVP: `GET /channels/:id` basic details (not required if UI uses `mine`).\n\n**UI Changes (Angular, minimal)**\n\n- Card create/edit dialog: add a `Channel` select fed by `GET /channels/mine`; preselect caller’s private channel; hide selector if only one channel.\n- Card lists/boards views: add a lightweight channel filter/switcher (dropdown) at view level; default to last-used or private channel. If too costly, pass `channelId` via query params/state when navigating from the create dialog and default listing to “my channels” aggregation.\n- Channel actions: simple menu in header/user menu:\n  - “Invite to channel” (username input → call invite)\n  - “Leave channel”\n  - “Kick member” (owner-only: basic list with remove buttons or reuse existing member list UI if any)\n\n**Migration Strategy**\n\n- Create a private channel per user and membership(owner).\n- Backfill: set `cards.channel_id` to the card creator’s private channel.\n- Enforce NOT NULL on `cards.channel_id` post-backfill.\n- Add read filters immediately; ensure old UI paths always pass/derive a valid `channelId`.\n\n**Sequence (30-minute-fit, smallest diff)**\n\n1) Migrations: create `channels`, `channel_members`, add `cards.channel_id`, backfill, add constraints/indexes.  \n2) Backend: add membership check helpers; enforce channel scoping on card queries; require `channelId` on create; implement `GET /channels/mine` and membership actions.  \n3) UI: add channel dropdown to card create dialog (default preselected); wire to `POST /cards`; add a simple channel filter for card lists or default to “all my channels”.  \n4) Docs: brief notes in `docs/governance/development-governance-handbook.md` and `docs/guidelines/angular-coding-guidelines.md` about channel requirement for cards.  \n5) Smoke tests: minimally cover card create with channel, filtered listing, invite/leave/kick.\n\n**Critical Risks / Open Questions**\n\n- Migration of already shared cards could change visibility unexpectedly; flagged as risk.\n- Owner-leave edge cases (sole owner) need a policy; temporarily block leave if sole owner.\n- Kicking the sole owner not allowed; owner transfer out-of-scope.\n- Invitation by username assumes uniqueness and existing user; no email/link flow.\n- Board-channel relationship rem"
+      },
+      {
+        "path": "codex_output/uiux_reviewer.md",
+        "size": 0,
+        "preview": ""
+      }
+    ]
   }
 }
