@@ -24,6 +24,7 @@ Design a concrete, risk-aware execution strategy for tasks in the todo-generator
 - Call out missing requirements, risky assumptions, or policy gaps before proposing implementation steps.
 - Limit the workflow to at most three implementation→review cycles, and require full-file outputs from executors.
 - Align instructions with FastAPI + SQLAlchemy conventions on the backend and Angular 20 standalone patterns on the frontend.
+- Explicitly command all downstream agents to reach the goal at minimal total cost, invoking only the scoped tasks required by the AI Agent Development Guidelines.
 
 ## Planning Process
 1. Restate the goal, scope, and any acceptance criteria you infer or need to clarify. Request missing data immediately.

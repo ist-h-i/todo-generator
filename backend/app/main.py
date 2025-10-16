@@ -22,6 +22,7 @@ from .routers import (
     analytics,
     appeals,
     auth,
+    channels,
     cards,
     comments,
     competencies,
@@ -152,6 +153,29 @@ async def cors_preflight_middleware(request: Request, call_next):
     return response
 
 
+@app.middleware("http")
+async def security_headers_middleware(request: Request, call_next):
+    # Let the CORS preflight middleware handle OPTIONS requests.
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    response = await call_next(request)
+    # Minimal, broadly safe security headers for API responses.
+    headers = {
+        "Strict-Transport-Security": "max-age=15552000; includeSubDomains",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+        "X-Frame-Options": "DENY",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Resource-Policy": "same-origin",
+    }
+    for k, v in headers.items():
+        # Preserve existing header values if already set upstream.
+        response.headers.setdefault(k, v)
+    return response
+
+
 @app.get("/", include_in_schema=False)
 def root() -> Response:
     return RedirectResponse(url="/health")
@@ -181,6 +205,7 @@ app.include_router(analysis.router)
 app.include_router(analytics.router)
 app.include_router(appeals.router)
 app.include_router(auth.router)
+app.include_router(channels.router)
 app.include_router(cards.router)
 app.include_router(status_reports.router)
 app.include_router(labels.router)

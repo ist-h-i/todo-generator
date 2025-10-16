@@ -30,6 +30,7 @@ This document collects the coding, testing, and design-system expectations for t
 ## State Management & Data Flow
 - Use Angular signals to represent local component state (`signal`, `computed`, `effect`). Keep long-lived cross-feature data in store classes under `core/state/**` and expose read-only selectors to components.
 - When interacting with backend services, centralise optimistic updates and rollback logic in the store or gateway layer (`WorkspaceStore`, `AnalysisGateway`). Components should render state and delegate mutations to these abstractions.
+  - Channels: card creation should include a `channelId` when the UI surface is added. Until then, the backend defaults to the user’s private channel, preserving current UX. When adding the selector, populate options from `GET /channels/mine` and preselect the private channel; hide the control if only one channel exists.
 - Maintain strict separation between presentation components (template + styling) and coordinators (components that orchestrate services or stores). Presentation components must receive inputs and emit outputs without direct API calls.
  - Prefer Angular Signal Store for app-wide state. Reserve NgRx for existing codebases or exceptional complexity; do not introduce it by default in new features.
  - For remote data lifecycles, use the Resource API (`RxResource`) to handle loading, success, and error states declaratively. Wrap `HttpClient` calls via resource helpers instead of ad-hoc subscriptions.
@@ -73,4 +74,3 @@ This document collects the coding, testing, and design-system expectations for t
 2. Verify light and dark themes, responsive breakpoints (mobile, tablet, desktop), and keyboard navigation.
 3. Ensure new modules are lazy-loaded where appropriate and that route guards are updated when access requirements change.
 4. Update the relevant design docs (`docs/ui-design-system.md`, `docs/ui-layout-requirements.md`) when tokens, components, or layouts evolve.
-

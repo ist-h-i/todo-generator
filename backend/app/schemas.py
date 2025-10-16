@@ -280,6 +280,7 @@ class CardBase(BaseModel):
     summary: Optional[str] = None
     description: Optional[str] = None
     status_id: Optional[str] = None
+    channel_id: Optional[str] = None
     priority: Optional[str] = None
     story_points: Optional[int] = None
     estimate_hours: Optional[float] = None
@@ -306,6 +307,7 @@ class CardUpdate(BaseModel):
     summary: Optional[str] = None
     description: Optional[str] = None
     status_id: Optional[str] = None
+    channel_id: Optional[str] = None
     priority: Optional[str] = None
     story_points: Optional[int] = None
     estimate_hours: Optional[float] = None
@@ -679,6 +681,24 @@ class StatusReportDetail(StatusReportRead):
     events: List[StatusReportEventRead] = Field(default_factory=list)
     processing_meta: Dict[str, Any] = Field(default_factory=dict)
     pending_proposals: List[AnalysisCard] = Field(default_factory=list)
+
+
+# Channels
+class ChannelRead(BaseModel):
+    id: str
+    name: str
+    is_private: bool
+    owner_user_id: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChannelInviteRequest(BaseModel):
+    email: EmailStr
+
+
+class ChannelKickRequest(BaseModel):
+    user_id: str
 
 
 class ActivityCreate(BaseModel):
