@@ -1,13 +1,15 @@
 {
   "steps": [
-    "coder"
+    "coder",
+    "code_quality_reviewer"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder"
+      "coder",
+      "code_quality_reviewer"
     ],
-    "notes": "Make two safe, readability-only refactors: merge a split f-string in backend/sqlalchemy_py313_compat.py and simplify a signals update call in frontend/lib/forms/signal-forms.ts. No behavior change, minimal diff, no new dependencies.",
-    "tests": "If dependencies are available: run backend pytest and frontend unit tests. Otherwise defer to CI. Commands: (1) cd backend && pytest -q (2) cd frontend && npm test -- --watch=false (3) optional: cd frontend && npm run build"
+    "notes": "Apply a small security-headers middleware in backend/app/main.py, add a single test in backend/tests/test_security.py to assert headers on /health, and update docs/security-review.md with findings and residual risks. Token storage migration and CSP are intentionally deferred to keep changes minimal and within the 30-minute window.",
+    "tests": "Run backend tests. New assertions: response.headers['Strict-Transport-Security'] == 'max-age=15552000; includeSubDomains', 'X-Content-Type-Options' == 'nosniff', 'Referrer-Policy' == 'no-referrer', 'X-Frame-Options' == 'DENY', 'Permissions-Policy' includes 'camera=()', 'microphone=()', 'geolocation=()', and COOP/CORP set to 'same-origin'."
   }
 }

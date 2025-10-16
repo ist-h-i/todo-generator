@@ -1,43 +1,46 @@
-**English Restatement**
+**Request Summary**
+- Perform a periodic security review: identify vulnerabilities, apply minimal-impact fixes, and harden the project, delivering a self-contained outcome.
 
-- Issue Title: Periodic Refactoring
-- Issue Body: Perform a comprehensive refactor of the codebase.
-
-**Assumptions**
-
-- “Comprehensive” should be interpreted pragmatically to fit a small, low‑risk diff and 30‑minute task windows.
-- Primary goals are readability, maintainability, and consistency without changing behavior.
-- Repository separates language‑agnostic standards from Angular‑specific rules; both apply where relevant.
-- No external network access; actions should not require new dependencies.
-- Workspace write is allowed; avoid large-scale restructuring.
+**Objectives / Definition of Done**
+- Identify issues across code, configs, and dependencies.
+- Apply smallest viable fixes with minimal diff.
+- Document findings, changes, and residual risks.
+- Keep builds/tests green; update docs where affected.
+- Avoid unnecessary tasks or scope creep.
 
 **Constraints**
+- Minimize changes; fewest steps to completion.
+- Each task must fit within ~30 minutes.
+- Network access is restricted; avoid tools requiring external calls unless approved.
+- Filesystem: workspace-write; no approval prompts available.
+- Follow repo’s governance/design guidelines when applicable.
 
-- Minimize scope and impact; smallest viable diff.
-- Finish with a self-contained, shippable outcome.
-- Each task must fit within 30 minutes.
-- Follow repository guidelines (Development Governance Handbook; Angular Coding & Design Guidelines where applicable).
-- Approval policy: never; proceed without interactive approvals.
+**Assumptions**
+- Dependency updates (patch/minor) are acceptable when fixing known CVEs.
+- No secrets should be present; secret scanning is allowed.
+- Tests/builds exist or can be run locally.
+- “Regular” implies repeatability but this cycle needs a one-off, complete outcome.
 
 **Unknowns**
-
-- Actual tech stack present (docs-only vs. codebase; presence of Angular SPA).
-- Current pain points or targets for refactor (e.g., duplication, lint issues).
-- Existing test coverage and CI gates.
-- Definition of “comprehensive” vs. incremental within this repo’s context.
-- Priority areas (performance, readability, architecture, dead code).
-
-**Risks**
-
-- Over‑refactoring causing unintended behavior changes if code exists.
-- Scope creep from “comprehensive” expectation conflicting with minimal-diff constraint.
-- Inconsistent application of mixed guidelines if the repo has multiple technologies.
+- Tech stack(s) and package manager(s) in use.
+- Existing CI/CD and security gates.
+- Severity thresholds (e.g., fix High/Critical only?).
+- Compliance requirements (e.g., SOC2, ISO27001).
+- Allowed tooling additions (linters, pre-commit hooks).
+- Target environments and threat model.
 
 **Clarifying Questions**
+- What parts of the repo are in scope (all code, infra, CI/CD)?
+- What tech stack and package managers are used?
+- Are dependency upgrades allowed, and to what level (patch/minor/major)?
+- Are we permitted to run networked audits (e.g., npm audit, pip-audit)?
+- Any existing security policies or baselines to follow?
+- Which environments are targeted (dev/staging/prod) and key threats to prioritize?
+- Do you want this to set up recurring automation or is it a one-off pass?
+- Any deadlines or severity priorities (e.g., fix Critical/High only this cycle)?
 
-- Does this repository contain executable code or primarily documentation/guidelines?
-- If code exists, which areas/modules are highest priority for refactoring?
-- Are there existing linters/formatters or quality gates to align with?
-- Should refactoring be limited to non-functional changes (naming, structure, dead code removal) only?
-- Is there an Angular SPA in this repo, and if so, which directories are in scope?
-- Do we have any known issues (bugs, smells, duplications) to target first?
+**Residual Risks (if proceeding without answers)**
+- Missing environment- or compliance-specific issues.
+- Potential regressions from dependency updates.
+- Under- or over-scoping the review.
+- Incomplete coverage of critical assets.

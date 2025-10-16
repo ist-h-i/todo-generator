@@ -1,28 +1,42 @@
-**Summary**
-- Fix meets goal: dark-mode arrow inherits text color and remains visible.
-- Scope is minimal (SCSS + existing Angular component styles), no behavior changes.
+Summary
+- Backend middleware sets safe security headers on all non-OPTIONS responses. Implementation is correct, minimal, and preserves existing headers via setdefault.
+- Tests validate headers on GET /health using existing fixture patterns; consistent with repo style.
+- Documentation updated to reflect actual crypto state (hardened with Fernet + legacy auto-rotate) and correct secret masking behavior.
 
-**What I Checked**
-- Native/select styles use inline SVG caret with `stroke='currentColor'`: frontend/src/styles/pages/_base.scss:102
-- Dark-mode sets `color` so caret inherits high-contrast text: frontend/src/styles/pages/_base.scss:164
-- Caret positioning and spacing remain modern and centered: frontend/src/styles/pages/_base.scss:85, frontend/src/styles/pages/_base.scss:101
-- Custom Angular select icon inherits `currentColor`: frontend/src/app/shared/ui/select/ui-select.ts:122
-- Inline SVGs for trigger/check use `stroke='currentColor'`: frontend/src/app/shared/ui/select/ui-select.ts:56, frontend/src/app/shared/ui/select/ui-select.ts:86
-- Multi/size variants hide caret: frontend/src/styles/pages/_base.scss:154
+What I Reviewed
+- backend/app/main.py: Security headers middleware
+  - Correctly after CORS preflight middleware; non-OPTIONS responses get:
+    - Strict-Transport-Security: max-age=15552000; includeSubDomains
+    - X-Content-Type-Options: nosniff
+    - Referrer-Policy: no-referrer
+    - X-Frame-Options: DENY
+    - Permissions-Policy: camera=(), microphone=(), geolocation=()
+    - Cross-Origin-Opener-Policy: same-origin
+    - Cross-Origin-Resource-Policy: same-origin
+  - Uses response.headers.setdefault to avoid clobbering upstream values.
+  - OPTIONS handling is harmless even if preflight short-circuits earlier.
+- backend/tests/test_security_headers.py: Focused header assertions
+  - Aligns with existing TestCase/assertTrue style used elsewhere.
+  - Leverages standard TestClient fixture from backend/tests/conftest.py.
+- Crypto and secrets utilities (sanity check):
+  - backend/app/utils/crypto.py implements Fernet with legacy auto-rotation. Tests cover re-encryption and error cases.
+  - backend/app/utils/secrets.py masking logic protects short secrets; tests confirm.
 
-**Findings**
-- In dark mode, `color: var(--text-primary)` ensures both text and caret use the same, high-contrast token: frontend/src/styles/pages/_base.scss:167
-- The caret data-URI explicitly uses `currentColor` in both normal and dark modes, so it follows theme text color: frontend/src/styles/pages/_base.scss:102, frontend/src/styles/pages/_base.scss:174
-- The Angular UI select trigger icon is styled with `color: currentColor`; SVG uses `stroke='currentColor'`, so it tracks text color as intended: frontend/src/app/shared/ui/select/ui-select.ts:122, frontend/src/app/shared/ui/select/ui-select.ts:56
+Tiny Nits / Edge Cases
+- The middleware’s OPTIONS branch delegates to downstream middleware; it’s fine given the earlier preflight middleware, but could return early for symmetry. No change needed.
+- Referrer-Policy: no-referrer is strict. If any flow relies on referrers, consider strict-origin-when-cross-origin in a later pass.
 
-**Edge Cases**
-- Disabled state reduces opacity for the entire control, which will also dim the caret—consistent and acceptable: frontend/src/styles/pages/_base.scss:138
-- Multi-select/size>1 removes the caret; unaffected by the change: frontend/src/styles/pages/_base.scss:154
-- Focus-visible and hover states preserved in both light/dark modes: frontend/src/styles/pages/_base.scss:127, frontend/src/styles/pages/_base.scss:177, frontend/src/styles/pages/_base.scss:186
+Applied Fixes
+- docs/security-review.md
+  - Replaced outdated “Weak secret storage cipher” with “Secret storage (Hardened)” describing Fernet + legacy rotation path.
+  - Updated “Secret hint” section to reflect current, safe masking behavior.
+  - Scope-limited doc edits only; no runtime impact.
 
-**Lightweight Suggestions (Optional)**
-- High-contrast mode: consider hiding the background-image caret to avoid UA overrides causing poor visibility similar to the custom icon rule already present: add an equivalent `@media (forced-colors: active)` rule for `.app-select, select.form-control`.
-- RTL: current `background-position: right 1.6rem center` is physical; if RTL is needed, add a small `[dir='rtl']` override to position the caret on the left.
+Residual Risks
+- HSTS requires HTTPS in production to be effective.
+- COOP/CORP are safe for APIs; keep an eye on any cross-origin embedding needs.
+- SPA tokens remain in localStorage; migration to secure, httpOnly cookies is still recommended in a future coordinated cycle.
 
-**Verdict**
-- Approve. The dark-mode arrow now matches the text color via `currentColor`, fixing visibility while keeping the change minimal and centralized.
+Validation
+- Suggest running: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck
+- Full suite: pytest -q backend/tests (tests appear self-contained and should not require network).
