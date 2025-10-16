@@ -1,46 +1,60 @@
-**What I Changed**
+Plan: run the existing class-recipe generator to add only missing per-class/component recipes under docs/recipes/classes, excluding tests; verify idempotency and coverage.
 
-- backend/app/main.py:156
-  - Added a small `security_headers_middleware` that sets safe, default headers on every non-`OPTIONS` response:
-    - `Strict-Transport-Security: max-age=15552000; includeSubDomains`
-    - `X-Content-Type-Options: nosniff`
-    - `Referrer-Policy: no-referrer`
-    - `X-Frame-Options: DENY`
-    - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-    - `Cross-Origin-Opener-Policy: same-origin`
-    - `Cross-Origin-Resource-Policy: same-origin`
-  - Placed after the existing CORS preflight middleware; preserves any existing values via `setdefault`.
+What I did
+- Used the existing generator to create missing per-class/component recipe stubs for Angular.
+- Scope: frontend/src/app/**/*.ts (excludes *.spec.ts and test.ts).
+- Verified idempotency (re-run produced no new files) and coverage vs “export class …” occurrences.
 
-- backend/tests/test_security_headers.py:1
-  - New focused test asserting the above headers are present and correct on `GET /health`.
+Commands run
+- Generate missing class recipes:
+  - python scripts/generate_class_recipes.py
+- Sanity-check counts (classes vs recipes):
+  - rg -n "^\s*export\s+class\s+(\w+)" frontend/src/app | wc -l
+  - find docs/recipes/classes/frontend/src/app -type f -name "*.recipe.md" | wc -l
 
-- docs/security-review.md
-  - Documented the new security headers hardening and verification.
-  - Added residual risk notes and deferred items (token storage, CSP, HSTS context).
+Files added (34)
+- docs/recipes/classes/frontend/src/app/App.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/AdminApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/AnalysisGateway.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/BoardLayoutsApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/CardsApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/CommentsApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/CompetencyApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/HttpErrorNotifierService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/HttpLoadingStore.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/StatusReportsGateway.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/WorkspaceConfigApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/auth/AuthService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/layout/hover-messages/HoverMessageComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/core/layout/hover-messages/HoverMessageStackComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/core/layout/shell/HelpDialogComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/core/layout/shell/Shell.recipe.md
+- docs/recipes/classes/frontend/src/app/core/logger/Logger.recipe.md
+- docs/recipes/classes/frontend/src/app/core/profile/ProfileDialogComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/state/ContinuousImprovementStore.recipe.md
+- docs/recipes/classes/frontend/src/app/core/state/WorkspaceStore.recipe.md
+- docs/recipes/classes/frontend/src/app/features/admin/AdminPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/analytics/AnalyticsPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/analyze/AnalyzePage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/auth/login/LoginPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/profile/evaluations/ProfileEvaluationsPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/reports/ReportAssistantPageComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/features/settings/SettingsPage.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/pipes/LocalDateTimePipe.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/ui/NotFoundPage.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/ui/page-header/PageHeaderComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/ui/page-layout/PageLayoutComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/ui/select/UiSelectComponent.recipe.md
 
-**Why This Approach**
+Notes
+- Generator used: scripts/generate_class_recipes.py
+  - Creates one stub per exported class with Purpose, Public API (methods/properties), Dependencies, Usage Notes, Change History.
+  - Skips existing files; safe to re-run.
+- Idempotency verified: subsequent run reported “Created: 0”.
+- Coverage aligned to “export class …” declarations in frontend/src/app.
 
-- Minimal diff, no API behavior changes.
-- Headers are broadly safe defaults for an API.
-- Test keeps the hardening from regressing with little maintenance overhead.
-
-**How to Run Tests**
-
-- If pytest is available:
-  - `pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck`
-- Full backend tests (optional):
-  - `pytest -q backend/tests`
-
-Note: In this environment `pytest` wasn’t available; commands are provided for local use.
-
-**Residual Risks / Deferrals**
-
-- SPA tokens in `localStorage` remain exfiltration risk under XSS; migrate to secure, httpOnly cookies (SameSite+Secure) in a dedicated cycle.
-- Add CSP on the SPA host in a future pass; requires careful Angular compatibility testing.
-- Ensure production runs over HTTPS so HSTS is effective.
-
-**Files Touched**
-
-- backend/app/main.py:156
-- backend/tests/test_security_headers.py:1
-- docs/security-review.md
+Residual risks / open questions
+- Default-exported classes and unusual multi-line class declarations are not detected; none found in this tree.
+- If you want bilingual (JP/EN) or to include private members, we can extend the script. Would you like me to add support for export default class and static members next?

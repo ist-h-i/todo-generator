@@ -1,15 +1,13 @@
 {
   "steps": [
-    "coder",
-    "code_quality_reviewer"
+    "coder"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder",
-      "code_quality_reviewer"
+      "coder"
     ],
-    "notes": "Apply a small security-headers middleware in backend/app/main.py, add a single test in backend/tests/test_security.py to assert headers on /health, and update docs/security-review.md with findings and residual risks. Token storage migration and CSP are intentionally deferred to keep changes minimal and within the 30-minute window.",
-    "tests": "Run backend tests. New assertions: response.headers['Strict-Transport-Security'] == 'max-age=15552000; includeSubDomains', 'X-Content-Type-Options' == 'nosniff', 'Referrer-Policy' == 'no-referrer', 'X-Frame-Options' == 'DENY', 'Permissions-Policy' includes 'camera=()', 'microphone=()', 'geolocation=()', and COOP/CORP set to 'same-origin'."
+    "notes": "Run the existing idempotent generator to create only missing per-class/component recipes under docs/recipes/classes mirroring frontend/src/app. Avoid overwrites. If the script is unavailable or misses edge cases (e.g., export default class), seed only those few stubs manually to keep the diff small and contained.",
+    "tests": "1) Verify generator exists: `ls -l scripts/generate_class_recipes.py`. 2) Generate: `python scripts/generate_class_recipes.py`. 3) Idempotency: re-run and confirm `git status --porcelain` is empty. 4) Coverage sanity: compare counts `rg -n \"^export\\s+(default\\s+)?class\\s+\\w+\" frontend/src/app | wc -l` vs `rg --files docs/recipes/classes/frontend/src/app | rg '\\\\.recipe\\\\.md$' | wc -l`. 5) Spot-check a component and a service for created recipe files under mirrored paths and basic content structure."
   }
 }

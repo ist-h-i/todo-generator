@@ -1,33 +1,41 @@
 **背景**
-- Periodic security review to harden with minimal, low‑risk changes under a 30‑minute window.
-- Scope: Backend API (FastAPI) primarily; avoid SPA/architectural changes this cycle.
-- Constraints: Minimal diffs, no networked audits, keep builds/tests green, document residual risks.
+- Goal: Ensure every Angular component/class has a concise “recipe” doc describing purpose, public methods, and key variables.
+- Scope: `frontend/src/app/**` only; exclude tests/mocks/stories/generated files.
+- Constraints: Minimal diff, docs-only, idempotent; avoid runtime/build changes.
 
 **変更概要**
-- Backend security headers middleware added to `backend/app/main.py:156`:
-  - Sets safe defaults on non-`OPTIONS` responses via `response.headers.setdefault`.
-  - Headers: `Strict-Transport-Security: max-age=15552000; includeSubDomains`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`, `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`.
-  - Placed after existing CORS handling; does not clobber pre-set values.
-- Test added `backend/tests/test_security_headers.py:1` to assert headers on `GET /health`.
-- Documentation updated `docs/security-review.md` with changes, rationale, and residual risks (token storage, CSP, HSTS context).
+- Generated missing per-class/component recipe stubs using the existing idempotent tool.
+  - Script: `scripts/generate_class_recipes.py`
+  - Output convention: `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`
+  - Excludes `*.spec.ts` and `test.ts`; skips existing files (no overwrites).
+- Added stubs for all detected classes lacking recipes (34 files). Examples:
+  - `docs/recipes/classes/frontend/src/app/App.recipe.md`
+  - `docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md`
+  - `docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md`
+  - `docs/recipes/classes/frontend/src/app/shared/ui/select/UiSelectComponent.recipe.md`
 
 **影響**
-- Runtime: All API responses now include standard hardening headers; no API surface or payload changes.
-- Compatibility: Generally safe for APIs. Note `Referrer-Policy: no-referrer` may affect analytics reliant on referrers.
-- Ops: HSTS effective only over HTTPS; COOP/CORP restrict cross-origin interactions (appropriate for APIs).
+- Docs-only change; no code, build, or runtime impact.
+- Enables consistent, per-class documentation with a mirrored docs path.
+- Safe to re-run the generator; no churn due to idempotency.
 
 **検証**
-- Targeted test: `pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck`
-- Full backend: `pytest -q backend/tests`
-- Manual spot-check (optional): `curl -s -D - http://localhost:<port>/health | grep -E 'Strict-Transport|Content-Type-Options|Referrer-Policy|X-Frame-Options|Permissions-Policy|Cross-Origin'`
-- Files to review:
-  - `backend/app/main.py:156`
-  - `backend/tests/test_security_headers.py:1`
-  - `docs/security-review.md`
+- Generate recipes: `python scripts/generate_class_recipes.py`
+- Re-run to confirm idempotency (no new files on second run).
+- Sanity-check coverage:
+  - Count classes: `rg -n "^\s*export\s+(default\s+)?class\s+\w+" frontend/src/app | wc -l`
+  - Count recipes: `find docs/recipes/classes/frontend/src/app -type f -name "*.recipe.md" | wc -l`
+- Spot-check created examples to confirm structure and public API listing:
+  - `docs/recipes/classes/frontend/src/app/core/logger/Logger.recipe.md`
+  - `docs/recipes/classes/frontend/src/app/features/reports/ReportAssistantPageComponent.recipe.md`
 
 **レビュー観点**
-- Confirm middleware placement post-CORS and use of `setdefault` (no header clobbering).
-- Validate header names/values match policy, especially HSTS max-age and `Permissions-Policy` directives.
-- Ensure `GET /health` exists and test uses established fixtures/patterns in this repo.
-- Environment check: Production runs HTTPS so HSTS is meaningful; no flows depend on referrer headers.
-- Residual risks (deferred by design): SPA tokens in `localStorage` (recommend httpOnly cookies later), CSP on SPA host, dependency CVE audits pending due to restricted network.
+- Convention alignment: Per-class under `docs/recipes/classes/` matches user preference; avoids cluttering source.
+- Coverage limits: Lightweight parsing may miss rare patterns (e.g., complex multiline class declarations, `export default class`, `static` members).
+- Clarity/completeness: Stubs include sections for Purpose, Public API (methods/properties), Dependencies, Usage Notes; owners can fill details incrementally.
+- Optional improvements (small/safe):
+  - Extend parsing to capture `static` members and `export default class`.
+  - Basic `@Input/@Output` awareness for Angular components.
+- Open questions:
+  - Language depth (English-only vs bilingual JP/EN).
+  - Whether to extend beyond Angular to other areas later.
