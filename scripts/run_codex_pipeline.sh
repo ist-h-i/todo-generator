@@ -99,7 +99,7 @@ PRE_PLANNER_STEPS=(translator)
 
 declare -A STAGE_INSTRUCTIONS=(
   [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points and write 'None' when no follow-up is needed."
-  [planner]="Define the minimum-step execution plan that fits within the 30-minute task cap, highlight critical risks, and ensure the ordered steps can finish the task with the smallest viable change set."
+  [planner]="Outline an execution plan that stays within the 30-minute task cap and highlight critical risks."
   [qa_automation_planner]="Recommend only the high-impact tests (unit, integration, or manual) required to validate the scoped change."
   [coder]="Describe the exact files to edit with focused diffs or replacement blocks and list any commands to run. Avoid touching unrelated areas."
   [code_quality_reviewer]="Validate correctness, readability, and edge cases. Supply lightweight fixes when needed to keep the implementation tight."
@@ -122,9 +122,6 @@ run_stage() {
   PROMPT+="Working language: English.\n"
   PROMPT+="Overall task: ${TASK_INPUT}.\n\n"
   PROMPT+="Constraints:\n"
-  PROMPT+="- Minimize the scope of changes and keep edits tightly targeted.\n"
-  PROMPT+="- Use the fewest viable steps to reach a safe completion.\n"
-  PROMPT+="- Each task must fit inside a 30-minute execution window, so prefer solutions achievable with the smallest diff possible.\n"
   PROMPT+="- Call out residual risks or open questions explicitly.\n\n"
   if [ -n "${PREVIOUS_CONTEXT}" ]; then
     PROMPT+="Context from earlier stages:\n${PREVIOUS_CONTEXT}\n\n"

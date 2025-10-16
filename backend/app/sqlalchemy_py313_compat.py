@@ -33,7 +33,7 @@ def _patch_langhelpers(module: ModuleType) -> None:
             }
             if remaining:
                 raise AssertionError(
-                    f"Class {cls} directly inherits TypingOnly but has " f"additional attributes {remaining}."
+                    f"Class {cls} directly inherits TypingOnly but has additional attributes {remaining}."
                 )
 
         original_init_subclass_func(cls)

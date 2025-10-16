@@ -61,7 +61,7 @@ This page helps newcomers quickly find the right code and docs. It complements t
   - Adjust Pydantic schemas in `backend/app/schemas.py` and clients/types in `frontend/src/app/core/models/`.
 
 ## Search Tips (ripgrep)
-- Routes (Angular): `rg -n "export const routes|Route\[" frontend/src/app`
+- Routes (Angular): `rg -n "export const .*Routes|appRoutes|Routes\s*=\s*\[" frontend/src/app`
 - Components: `rg -n "@Component\(" frontend/src/app`
 - Stores: `rg -n "class .*Store" frontend/src/app/core/state`
 - API clients: `rg -n "export class .*ApiService" frontend/src/app/core/api`

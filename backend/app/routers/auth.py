@@ -56,6 +56,12 @@ def register(
     db.flush()
     ensure_default_statuses(db, owner_id=user.id)
     ensure_default_workspace_template(db, owner_id=user.id)
+    # Ensure a private channel and membership for this user
+    channel = models.Channel(name="My Channel", owner_user_id=user.id, is_private=True)
+    db.add(channel)
+    db.flush()
+    member = models.ChannelMember(channel_id=channel.id, user_id=user.id, role="owner")
+    db.add(member)
     token_value = create_session_token(db, user)
     db.commit()
     db.refresh(user)

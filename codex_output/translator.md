@@ -1,70 +1,49 @@
 **Summary Of Request**
-- Create a concise, repository-wide index that explains where things live and what they do, so newcomers can quickly find and understand relevant code and docs.
-- Keep scope minimal and risk low (small diff, avoid restructures), and deliver a finished, self-contained update.
+- Periodically refresh and improve documentation with minimal changes, prioritizing readability and navigation.
+- Add a concise, repository-wide index that explains where key code/docs live so newcomers can quickly find what they need.
+- Keep edits low-risk: avoid restructures, focus on `README.md`, `docs/README.md`, and a new `docs/INDEX.md`.
 
-**Intended Outcomes**
-- A single index document mapping code, docs, build, configs, and workflows, with brief descriptions and links.
-- Clear pointers to the most important guides:
+**Intended Deliverables**
+- `docs/INDEX.md`: top-level directory map (code, docs, scripts, CI/config) with short descriptions and links.
+- Cross-links: add “Repository Index & Map” in `README.md` and `docs/README.md` pointing to `docs/INDEX.md` (or `INDEX.md` within docs).
+- Validate and preserve Quick Links:
   - `docs/governance/development-governance-handbook.md`
   - `docs/guidelines/angular-coding-guidelines.md`
   - `docs/ui-design-system.md`
   - `docs/ui-layout-requirements.md`
-- New contributors can navigate to key entry points without guesswork.
 
 **Non-Goals**
-- No large-scale reorganization, renames, or moving files.
-- No content rewrites across all docs; only light cross-linking where necessary.
-- No dependency or tooling changes.
-
-**Assumptions**
-- English documentation is acceptable (issue is JP, repo guidance indicates English is fine).
-- The repo has meaningful top-level directories to index (e.g., `frontend/`, `docs/`, scripts, configs).
-- Minimal diffs are required; stability of existing links is a priority.
-- Previous minor README/docs tweaks exist and should be preserved.
+- No renames/moves/splits of files or directories.
+- No dependency/tooling changes.
+- No broad rewrites outside the minimal navigation improvements.
 
 **Constraints**
-- Minimal impact; avoid breaking links and existing anchors.
-- 30-minute execution budget; prioritize the highest-value, smallest change.
-- Network access is restricted; rely only on repository contents.
-- Filesystem is workspace-write; no destructive operations.
+- Minimize scope and impact; smallest viable diff.
+- Deliver a finished, self-contained outcome.
+- 30-minute execution budget.
+- Network access restricted; rely only on in-repo content.
+- English-only unless requested otherwise.
 
-**Proposed Scope (Minimal, Safe)**
-- Add `docs/INDEX.md` (or `docs/00-index.md` if alphabetical prominence is needed) with:
-  - Top-level directory map and brief descriptions.
-  - Pointers to Quick Links and other key docs.
-  - How to find common code (routing, components, state, services), configs, scripts, CI.
-- Add a prominent link from `README.md` to the index.
-- Optionally add a link from `docs/README.md` to the index for symmetry.
-- No renames; no structural moves.
+**Assumptions**
+- The four Quick Links exist and should remain canonical entry points.
+- English documentation is acceptable for this pass.
+- The repository structure will not be changed to accommodate the index.
 
-**Deliverables**
-- New `docs/INDEX.md` containing:
-  - Overview and navigation tips.
-  - Directory-by-directory bullets with short descriptions.
-  - Cross-links to governance, Angular guidelines, UI docs, and any “recipes” or automation guides if present.
-- Updated `README.md` with a single link to `docs/INDEX.md`.
-- Optionally updated `docs/README.md` with a single link to `docs/INDEX.md`.
-
-**Acceptance Criteria**
-- A newcomer can locate key code areas and docs in under 2–3 clicks from the root README.
-- All links in the new index resolve to existing in-repo files/directories.
-- Diff limited to 1 new file and 1–2 small README link insertions.
-- No broken existing anchors or removed content.
+**Risks**
+- Index could become stale as directories evolve.
+- Potential for broken links if paths are inferred incorrectly.
+- Overfitting the index to current patterns (e.g., routing search tips) may require updates later.
 
 **Unknowns**
-- Exact code layout (e.g., whether there is a `frontend/`, `backend/`, monorepo packages, infra).
-- Whether to include infra/CI details (e.g., `.github/workflows`, Dockerfiles) in the first pass.
-- Preferred filename for the index (`INDEX.md` vs `00-index.md`).
-- Whether bilingual (JP/EN) presentation is desired for the index.
-
-**Risks & Mitigations**
-- Risk: Incomplete coverage of all directories → Mitigation: Focus on top-level/high-traffic areas; note how to extend later.
-- Risk: Link drift if structure changes later → Mitigation: Keep index light and directory-focused rather than deep-file-specific.
-- Risk: Over-scoping → Mitigation: Limit to 1 new file + 1–2 link additions.
+- Exact top-level layout (e.g., `frontend/`, `backend/`, `packages/`, `infra/`).
+- Preference for index filename prominence (`docs/INDEX.md` vs `docs/00-index.md`).
+- Whether to include CI/Docker/deployment pointers.
+- Desire for bilingual (JP/EN) headings or English-only.
+- Additional must-link docs beyond the four Quick Links (e.g., CONTRIBUTING, ADRs, recipes).
 
 **Clarifying Questions**
-- Which top-level areas must be covered in the first pass (e.g., frontend, backend, infra, CI)?
-- Do you prefer the index filename `docs/INDEX.md` or `docs/00-index.md`?
-- Should we include CI, Docker, and deployment pointers in the index?
-- Is English-only acceptable, or do you want bilingual headings/descriptions?
-- Any must-link documents beyond the Quick Links (e.g., contributing guidelines, code owners, ADRs, recipes)?
+- Which top-level areas are must-include in the first index (frontend, backend, infra/CI, scripts)?
+- Do you prefer `docs/INDEX.md` or `docs/00-index.md` for prominence in file listings?
+- Should the index cover CI/Docker/deployment (e.g., `.github/workflows/`, Dockerfiles)?
+- English-only or JP/EN headings?
+- Any additional must-link documents (CONTRIBUTING, ADRs, recipes index)?
