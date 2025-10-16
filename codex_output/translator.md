@@ -1,47 +1,43 @@
-**Summary**
-- Introduce “Channels” to team‑scope boards. Convert each user’s existing board workspace into their own private channel. Only board-related features live inside channels. Card creation must specify a channel. Members of a channel share visibility of cards and subtasks. Support inviting users to a channel and leaving/kicking from a channel.
+**English Restatement**
 
-**Objectives**
-- Add a Channel concept with membership.
-- Scope boards/cards/subtasks to a channel.
-- Require channel selection on card creation.
-- Enable invite, leave, and kick actions.
-
-**Non‑Goals**
-- Do not move non‑board features into channels.
-- No broad refactors beyond what’s needed to support channels.
+- Issue Title: Periodic Refactoring
+- Issue Body: Perform a comprehensive refactor of the codebase.
 
 **Assumptions**
-- Existing “board workspace” equals a per‑user area that maps 1:1 to a new private channel.
-- Cards and subtasks already exist; we only add channel scoping.
-- Minimal permission model is acceptable for MVP (e.g., owner/moderator).
-- Existing cards can be automatically migrated to a user’s private channel.
+
+- “Comprehensive” should be interpreted pragmatically to fit a small, low‑risk diff and 30‑minute task windows.
+- Primary goals are readability, maintainability, and consistency without changing behavior.
+- Repository separates language‑agnostic standards from Angular‑specific rules; both apply where relevant.
+- No external network access; actions should not require new dependencies.
+- Workspace write is allowed; avoid large-scale restructuring.
 
 **Constraints**
-- Minimize diffs and UX disruption.
-- Backward compatible where possible (e.g., default channel preselected).
-- Complete within a small, incremental change set.
-- No channelization of non‑board modules.
+
+- Minimize scope and impact; smallest viable diff.
+- Finish with a self-contained, shippable outcome.
+- Each task must fit within 30 minutes.
+- Follow repository guidelines (Development Governance Handbook; Angular Coding & Design Guidelines where applicable).
+- Approval policy: never; proceed without interactive approvals.
 
 **Unknowns**
-- Precise data model for channels and membership roles.
-- How boards relate to channels (one channel → many boards, or cards directly in channels without boards?).
-- Organization/tenant boundaries for channels.
-- Invitation mechanism (username vs email) and approval flow.
-- Who can kick whom; quorum rules (any member vs owner only).
-- Default channel naming/visibility and discoverability.
-- Migration details for shared cards across users.
-- Moving cards between channels and audit implications.
-- API and UI surfaces that must change (endpoints, forms, filters).
 
-## Clarifying questions
-- Should a channel contain multiple boards, or are cards directly associated to a channel independent of boards?
-- Are channels scoped within an organization/team, or globally across the app?
-- What roles exist in a channel (owner, admin, member), and who can invite/kick?
-- How should invitations work (by username, email, link), and is acceptance required?
-- Can cards be moved between channels? If yes, who is authorized to do so?
-- How should existing shared boards/cards be migrated when multiple users currently see them?
-- What is the default behavior for new users (auto‑create a private channel with a specific name)?
-- Do we need UI filters/switchers for “current channel” across board/card views?
-- Any auditing/notifications required for invites, joins, leaves, and kicks?
-- Are there retention or access constraints for users removed from a channel (e.g., read‑only history)?
+- Actual tech stack present (docs-only vs. codebase; presence of Angular SPA).
+- Current pain points or targets for refactor (e.g., duplication, lint issues).
+- Existing test coverage and CI gates.
+- Definition of “comprehensive” vs. incremental within this repo’s context.
+- Priority areas (performance, readability, architecture, dead code).
+
+**Risks**
+
+- Over‑refactoring causing unintended behavior changes if code exists.
+- Scope creep from “comprehensive” expectation conflicting with minimal-diff constraint.
+- Inconsistent application of mixed guidelines if the repo has multiple technologies.
+
+**Clarifying Questions**
+
+- Does this repository contain executable code or primarily documentation/guidelines?
+- If code exists, which areas/modules are highest priority for refactoring?
+- Are there existing linters/formatters or quality gates to align with?
+- Should refactoring be limited to non-functional changes (naming, structure, dead code removal) only?
+- Is there an Angular SPA in this repo, and if so, which directories are in scope?
+- Do we have any known issues (bugs, smells, duplications) to target first?

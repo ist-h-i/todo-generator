@@ -1,15 +1,13 @@
 {
   "steps": [
-    "coder",
-    "integrator"
+    "coder"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder",
-      "integrator"
+      "coder"
     ],
-    "notes": "Coder implements minimal channel model, membership, card.channel_id, scoped queries, and small UI additions (channel select on card create, simple filter). Integrator runs migrations, wires config, and verifies endpoints/UI load. Owner/member role kept minimal; invites by username auto-join. Existing cards backfilled to creator’s private channel.",
-    "tests": "Backend: (1) Create card with invalid channel → 403. (2) Create card in member channel → 201, channelId stored. (3) List cards returns only member-channel cards. (4) Invite adds membership; invitee can list/create. (5) Leave removes membership; access revoked. (6) Kick by owner removes member; member loses access. UI: (1) Card create shows channel dropdown with default. (2) Creating a card without changing selection succeeds. (3) Switching channel filter changes visible cards. Migration: After migration, existing cards have non-null channel_id and are visible in private channel."
+    "notes": "Make two safe, readability-only refactors: merge a split f-string in backend/sqlalchemy_py313_compat.py and simplify a signals update call in frontend/lib/forms/signal-forms.ts. No behavior change, minimal diff, no new dependencies.",
+    "tests": "If dependencies are available: run backend pytest and frontend unit tests. Otherwise defer to CI. Commands: (1) cd backend && pytest -q (2) cd frontend && npm test -- --watch=false (3) optional: cd frontend && npm run build"
   }
 }
