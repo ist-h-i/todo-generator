@@ -7,7 +7,7 @@
     "steps": [
       "coder"
     ],
-    "notes": "Create docs/INDEX.md with a concise repository map (frontend routes/stores/APIs, backend routers/services/schemas/tests, docs, scripts, CI). Add one link in README.md under Documentation & knowledge base and one link in docs/README.md under Contribution Tips. No restructures; smallest viable diff.",
-    "tests": "- Verify new index exists: test -f docs/INDEX.md\n- Check README link added: rg -n \"Repository Index & Map\\]\\(docs/INDEX.md\\)\" README.md\n- Check docs index link added: rg -n \"Repository Index & Map\\]\\(INDEX.md\\)\" docs/README.md\n- Spot-check key references exist:\n  - test -f frontend/src/app/app.routes.ts\n  - test -f backend/app/main.py && test -d backend/app/routers && test -d backend/app/services\n  - test -f docs/guidelines/angular-coding-guidelines.md && test -f docs/governance/development-governance-handbook.md && test -f docs/ui-design-system.md && test -f docs/ui-layout-requirements.md"
+    "notes": "Add docs/INDEX.md with a top-level directory map and links to key docs. Insert a single 'Repository Index & Map' link in README.md and docs/README.md. Avoid restructures and keep the diff minimal.",
+    "tests": "- Verify index file exists: test -f docs/INDEX.md\n- Check root README link: rg -n \"\\[Repository Index & Map\\]\\(docs/INDEX.md\\)\" README.md\n- Check docs README link: rg -n \"\\[Repository Index & Map\\]\\(INDEX.md\\)\" docs/README.md\n- Verify Quick Links exist:\n  - test -f docs/governance/development-governance-handbook.md\n  - test -f docs/guidelines/angular-coding-guidelines.md\n  - test -f docs/ui-design-system.md\n  - test -f docs/ui-layout-requirements.md"
   }
 }
