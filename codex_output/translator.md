@@ -1,46 +1,40 @@
 **Request Summary**
-- Add “recipe” Markdown docs that explain source code elements with minimal changes.
-- User preference: organize recipes per component/class (not per folder or per file).
-- Content focus: describe functions and variables for each component/class.
+- Add missing per-class/component “recipe” Markdown files that describe each class’s functions and variables.
+- Keep changes minimal, targeted, and self-contained.
+- Prior work suggests a per-class approach for Angular under `frontend/src/app/**` with generated stubs.
 
 **Assumptions**
-- Target code: Angular SPA (`frontend/src/app/**`). Include services, components, directives, pipes, and core classes.
-- Exclude tests, mocks, stories, generated files.
-- Document public API first (public methods/properties); include private items only when essential.
-- Language: English (per working language), with simple structure that collaborators can extend.
+- Primary scope is Angular classes/components/services/directives/pipes in `frontend/src/app/**`.
+- Recipes live under a mirrored docs path (e.g., `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`).
+- Existing generator `scripts/generate_class_recipes.py:1` can be used to add only missing recipes (idempotent, no overwrites).
+- Content focuses on public API (public methods/properties) plus brief purpose/notes; private members optional.
 
 **Constraints**
-- Keep the diff small; avoid large-scale restructuring or new dependencies.
-- Finish with a self-contained, usable outcome in a short time box.
-- Align with Development Governance and Angular Coding Guidelines.
-
-**Proposed Approach (Minimal Impact)**
-- Convention: one recipe per component/class unit named `<ClassOrComponent>.recipe.md`.
-- Placement: either
-  - A) alongside the source file, or
-  - B) under `docs/recipes/<mirrored path>/`.
-- Content: brief overview, responsibility, list of public methods/properties with one-line explanations, notable variables/config, and usage notes.
+- Minimal diff; avoid runtime/build changes.
+- No new dependencies; no restructuring.
+- Complete and self-contained outcome (missing classes get recipes).
+- Exclude tests, mocks, stories, and generated files.
 
 **Unknowns**
-- Exact placement preference (co-located vs `docs/recipes/` mirror).
-- Scope breadth (Angular only vs also backend/scripts if present).
-- Depth for variables (exported/public only vs all relevant).
-- Required language (English only vs bilingual JP/EN).
-- Whether to include auto-generation tooling or keep entirely manual for now.
+- Exact coverage scope: Angular only, or include non-Angular/ backend classes too?
+- Inclusion criteria: only exported classes / Angular-decorated types, or all classes?
+- Language: English only vs bilingual (JP/EN)?
+- Final location convention: confirm `docs/recipes/classes/` mirrored structure as the standard.
+
+**Proposed Approach (Minimal Impact)**
+- Use `scripts/generate_class_recipes.py:1` to scan `frontend/src/app/**` and create stubs for classes lacking recipes only.
+- Verify idempotency (skip existing files) and exclusions.
+- If generator misses some classes (e.g., `export default class`, multiline declarations), add those few stubs manually to keep the diff small.
+
+**Acceptance Criteria**
+- All targeted classes without existing recipes now have `<ClassName>.recipe.md` with:
+  - Purpose/role
+  - Public methods/properties list (one-line descriptions as TODOs acceptable)
+  - Notable variables/config and usage notes
+- Files placed under the agreed docs path; no source code changes.
 
 **Clarifying Questions**
-- Where should recipe files live?
-  - Co-located next to `.ts` files, or under `docs/recipes/` mirroring paths?
-- Scope confirmation: Angular SPA only, or include other code areas too?
-- Coverage: document only public API, or include private members as well?
-- Naming: confirm `<ClassOrComponent>.recipe.md` per class/component is acceptable.
-- Language: English only, or bilingual JP/EN?
-- Do you want a small script to scaffold stubs (idempotent, no overwrites), or manual creation for selected key components first?
-
-**Acceptance Criteria (Proposed)**
-- Each selected component/class has a `<ClassOrComponent>.recipe.md` with:
-  - Purpose/role, key responsibilities
-  - Public methods/properties with one-line descriptions
-  - Important variables/config and constraints
-  - Notes on usage and dependencies
-- Files are placed per agreed convention and exclude tests.
+- Confirm scope: Angular `frontend/src/app/**` only, or include other areas (backend/scripts)?
+- Confirm placement: keep using `docs/recipes/classes/<mirrored path>/`?
+- Document only exported/decorated classes, or any class found?
+- Language preference: English only, or add Japanese alongside?

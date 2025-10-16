@@ -1,32 +1,28 @@
-**Summary**
-- Goal: Add per-component/class “recipe” Markdown docs that briefly describe purpose, public methods, and key variables, with minimal repo impact.
-- Resolution: Generate `<ClassName>.recipe.md` under `docs/recipes/<mirrored path>/` for Angular classes/components, excluding tests. Keep changes to a single small generator + a few seeded examples.
+**Goal**
+Add missing per-class/component “recipe” Markdown files for Angular (`frontend/src/app/**`) with the smallest, safe change set.
 
 **Approach**
-- Convention: One file per class/component named `<ClassName>.recipe.md`.
-- Location: `docs/recipes/<frontend/src/... mirrored directories>/`.
-- Extraction (lightweight): Find `export class` and classes decorated with `@Component`, `@Injectable`, `@Directive`, `@Pipe`. Collect public methods/properties via simple regex (best-effort starter).
-- Idempotent: Do not overwrite existing recipe files; safe to re-run.
+- Use the existing idempotent generator (`scripts/generate_class_recipes.py`) to create only missing recipes under `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
+- Exclude tests/mocks/stories; do not overwrite existing files.
+- If the generator misses edge cases (e.g., `export default class`, multiline declarations), seed only those few stubs manually to keep the diff minimal.
 
-**Scope**
-- Include: `frontend/src/app/**` TypeScript source.
-- Exclude: `*.spec.ts`, mocks, stories, generated assets.
-- Coverage: Public API first; add placeholders for descriptions.
+**Why This Fits**
+- Minimal impact: docs-only changes, no build/runtime effects, no new deps.
+- Fast: single script run plus tiny manual stubs if needed, well within 30 minutes.
+- Aligns with prior convention and user’s “per component/class” preference.
 
-**Deliverables**
-- Script: `scripts/generate_class_recipes.mjs` (Node, no deps).
-- Seeded examples for 2–3 representative classes/components.
-- Brief `docs/recipes/README.md` section on usage.
+**Acceptance Criteria**
+- Every targeted Angular class/component lacking a recipe now has `<ClassName>.recipe.md` with:
+  - Short purpose/role section
+  - Public methods/properties list with TODO one-liners
+  - Notable variables/config and usage notes
+- Files live under `docs/recipes/classes/` mirroring `frontend/src/app/`.
+- Re-running the generator is a no-op (idempotent).
 
 **Risks / Open Questions**
-- Regex parsing may miss edge cases (re-exports, multi-line signatures); acceptable for initial pass.
-- Placement confirmed as `docs/recipes/` mirror to avoid cluttering source tree.
-- If backend exists and is in-scope later, extend script similarly.
-
-**Validation**
-- Run the script; verify recipe files appear in mirrored paths for a couple of key folders.
-- Re-run to confirm idempotency (no changes if files exist).
-- Spot-check a component and a service for reasonable public API capture.
+- Regex-based extraction may miss a few classes; covered by manual stubs for those specific cases only.
+- Scope assumed to be Angular only. If backend classes are also in scope, that would expand work; not included here to keep changes minimal.
 
 ```json
-{"steps":["coder"],"notes":"Implement an idempotent Node script to generate per-class/component recipe stubs under docs/recipes mirroring frontend/src/app, exclude tests, and seed a few examples. Keep diff minimal: one script, small README note, and 2–3 recipe files.","tests":"1) Run `node scripts/generate_class_recipes.mjs`. 2) Confirm docs/recipes/frontend/src/app/.../<ClassName>.recipe.md created for a few folders. 3) Run again to verify idempotency. 4) Spot-check a component and a service for listed public methods/properties."}
+{"steps":["coder"],"notes":"Run the existing idempotent generator to create only missing per-class/component recipes under docs/recipes/classes mirroring frontend/src/app. Avoid overwrites. If the script is unavailable or misses edge cases (e.g., export default class), seed only those few stubs manually to keep the diff small and contained.","tests":"1) Verify generator exists: `ls -l scripts/generate_class_recipes.py`. 2) Generate: `python scripts/generate_class_recipes.py`. 3) Idempotency: re-run and confirm `git status --porcelain` is empty. 4) Coverage sanity: compare counts `rg -n \"^export\\s+(default\\s+)?class\\s+\\w+\" frontend/src/app | wc -l` vs `rg --files docs/recipes/classes/frontend/src/app | rg '\\\\.recipe\\\\.md$' | wc -l`. 5) Spot-check a component and a service for created recipe files under mirrored paths and basic content structure."}
+```

@@ -1,36 +1,41 @@
 **背景**
-- Goal: Provide “recipe” docs per component/class describing public methods and key variables with minimal churn.
-- User preference: Per component/class, not per folder/file.
-- Scope: Angular app under `frontend/src/app/**`; exclude tests, mocks, stories, generated assets.
-- Constraints: Small, self-contained diff; no runtime/build impact; idempotent tooling.
+- Goal: Ensure every Angular component/class has a concise “recipe” doc describing purpose, public methods, and key variables.
+- Scope: `frontend/src/app/**` only; exclude tests/mocks/stories/generated files.
+- Constraints: Minimal diff, docs-only, idempotent; avoid runtime/build changes.
 
 **変更概要**
-- Added per-class/component generator: `scripts/generate_class_recipes.py:1`
-  - Scans `frontend/src/app/**/*.ts` excluding `*.spec.ts` and `test.ts`.
-  - Detects `export class` and common Angular decorators (`@Component`, `@Injectable`, `@Directive`, `@Pipe`).
-  - Extracts public API (public methods/properties) best-effort via lightweight parsing.
-  - Writes one recipe per class at `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
-  - Idempotent: skips existing files; no overwrites.
-- Kept prior per-file generator (for backend or file-level docs) available: `scripts/generate_file_recipes.py:1`
-- Seeded a few representative class recipes to demonstrate structure.
-- Updated `docs/recipes/README.md:1` with brief usage and convention notes.
+- Generated missing per-class/component recipe stubs using the existing idempotent tool.
+  - Script: `scripts/generate_class_recipes.py`
+  - Output convention: `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`
+  - Excludes `*.spec.ts` and `test.ts`; skips existing files (no overwrites).
+- Added stubs for all detected classes lacking recipes (34 files). Examples:
+  - `docs/recipes/classes/frontend/src/app/App.recipe.md`
+  - `docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md`
+  - `docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md`
+  - `docs/recipes/classes/frontend/src/app/shared/ui/select/UiSelectComponent.recipe.md`
 
 **影響**
-- No application code changes; build/runtime unaffected.
-- Enables incremental documentation by class/component with minimal maintenance overhead.
-- Dual paths supported: per-class for Angular, per-file for backend where useful.
+- Docs-only change; no code, build, or runtime impact.
+- Enables consistent, per-class documentation with a mirrored docs path.
+- Safe to re-run the generator; no churn due to idempotency.
 
 **検証**
-- Generate class recipes: `python scripts/generate_class_recipes.py`
-- Spot-check output paths:
-  - Examples under `docs/recipes/classes/frontend/src/app/**/<ClassName>.recipe.md`
-- Confirm idempotency: re-run command; no changes to existing files.
-- Verify exclusions: no recipes for `*.spec.ts`, `test.ts`, mocks, or non-TS assets.
-- Content sanity: public methods/properties listed; TODO placeholders ready for authors.
+- Generate recipes: `python scripts/generate_class_recipes.py`
+- Re-run to confirm idempotency (no new files on second run).
+- Sanity-check coverage:
+  - Count classes: `rg -n "^\s*export\s+(default\s+)?class\s+\w+" frontend/src/app | wc -l`
+  - Count recipes: `find docs/recipes/classes/frontend/src/app -type f -name "*.recipe.md" | wc -l`
+- Spot-check created examples to confirm structure and public API listing:
+  - `docs/recipes/classes/frontend/src/app/core/logger/Logger.recipe.md`
+  - `docs/recipes/classes/frontend/src/app/features/reports/ReportAssistantPageComponent.recipe.md`
 
 **レビュー観点**
-- Convention fit: Per-class/component aligns with request; placement under `docs/recipes/classes/` avoids source-tree clutter. Confirm team preference on location.
-- Coverage limits: Regex/lightweight parsing may miss multi-line signatures, getters/setters, or complex decorators; acceptable for initial stubs.
-- Depth: Currently documents public API; extend if private members are critical.
-- Adoption: Decide whether to run generator broadly now or seed per-feature gradually to keep diffs small.
-- Next small improvements (optional): support `export default class`, include `static` members, basic `@Input/@Output` capture, and a “Skipped existing” summary in script output.
+- Convention alignment: Per-class under `docs/recipes/classes/` matches user preference; avoids cluttering source.
+- Coverage limits: Lightweight parsing may miss rare patterns (e.g., complex multiline class declarations, `export default class`, `static` members).
+- Clarity/completeness: Stubs include sections for Purpose, Public API (methods/properties), Dependencies, Usage Notes; owners can fill details incrementally.
+- Optional improvements (small/safe):
+  - Extend parsing to capture `static` members and `export default class`.
+  - Basic `@Input/@Output` awareness for Angular components.
+- Open questions:
+  - Language depth (English-only vs bilingual JP/EN).
+  - Whether to extend beyond Angular to other areas later.

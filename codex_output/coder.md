@@ -1,36 +1,60 @@
-**Summary**
-- Implemented per-component/class “recipe” docs for the Angular app with minimal impact.
-- Added an idempotent generator that creates one recipe per exported class under a mirrored docs path.
-- Seeded 3 representative class recipes.
+Plan: run the existing class-recipe generator to add only missing per-class/component recipes under docs/recipes/classes, excluding tests; verify idempotency and coverage.
 
-**What Changed**
-- New generator: `scripts/generate_class_recipes.py:1`
-  - Scans `frontend/src/app/**.ts` (excludes `*.spec.ts`, `test.ts`).
-  - Finds `export class ...` and extracts a best‑effort list of public methods/properties.
-  - Writes one file per class under `docs/recipes/classes/<mirrored path>/<ClassName>.recipe.md`.
-  - Idempotent: skips existing files; no overwrites.
-- Updated guide: `docs/recipes/README.md:1`
-  - Adds “Per-Class/Component Recipes (Angular)” section with convention and usage.
-- Seeded examples:
-  - `docs/recipes/classes/frontend/src/app/App.recipe.md:1`
-  - `docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md:1`
-  - `docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md:1`
+What I did
+- Used the existing generator to create missing per-class/component recipe stubs for Angular.
+- Scope: frontend/src/app/**/*.ts (excludes *.spec.ts and test.ts).
+- Verified idempotency (re-run produced no new files) and coverage vs “export class …” occurrences.
 
-**How To Use**
-- Generate all Angular class recipes:
-  - `python scripts/generate_class_recipes.py`
-- Limit to a folder:
-  - `python scripts/generate_class_recipes.py frontend/src/app/core/profile`
-- Edit the generated stubs to fill in descriptions for methods and properties.
+Commands run
+- Generate missing class recipes:
+  - python scripts/generate_class_recipes.py
+- Sanity-check counts (classes vs recipes):
+  - rg -n "^\s*export\s+class\s+(\w+)" frontend/src/app | wc -l
+  - find docs/recipes/classes/frontend/src/app -type f -name "*.recipe.md" | wc -l
 
-**Why This Fits The Request**
-- Aligns to “per component/class” preference while keeping changes small and additive.
-- Keeps existing per-file recipe tooling (`scripts/generate_file_recipes.py:1`) intact for backend and file-level docs.
+Files added (34)
+- docs/recipes/classes/frontend/src/app/App.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/AdminApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/AnalysisGateway.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/BoardLayoutsApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/CardsApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/CommentsApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/CompetencyApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/HttpErrorNotifierService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/HttpLoadingStore.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/StatusReportsGateway.recipe.md
+- docs/recipes/classes/frontend/src/app/core/api/WorkspaceConfigApiService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/auth/AuthService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/layout/hover-messages/HoverMessageComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/core/layout/hover-messages/HoverMessageStackComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/core/layout/shell/HelpDialogComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/core/layout/shell/Shell.recipe.md
+- docs/recipes/classes/frontend/src/app/core/logger/Logger.recipe.md
+- docs/recipes/classes/frontend/src/app/core/profile/ProfileDialogComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/core/profile/ProfileService.recipe.md
+- docs/recipes/classes/frontend/src/app/core/state/ContinuousImprovementStore.recipe.md
+- docs/recipes/classes/frontend/src/app/core/state/WorkspaceStore.recipe.md
+- docs/recipes/classes/frontend/src/app/features/admin/AdminPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/analytics/AnalyticsPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/analyze/AnalyzePage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/auth/login/LoginPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/board/BoardPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/profile/evaluations/ProfileEvaluationsPage.recipe.md
+- docs/recipes/classes/frontend/src/app/features/reports/ReportAssistantPageComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/features/settings/SettingsPage.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/pipes/LocalDateTimePipe.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/ui/NotFoundPage.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/ui/page-header/PageHeaderComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/ui/page-layout/PageLayoutComponent.recipe.md
+- docs/recipes/classes/frontend/src/app/shared/ui/select/UiSelectComponent.recipe.md
 
-**Notes / Risks**
-- Extraction is regex-based and may miss edge cases (multiline signatures, complex getters/setters, decorators on separate lines).
-- Visibility filter is simple (skips `private`/`protected` on the same line).
-- Scope limited to Angular classes; does not generate for backend Python (covered by existing per-file generator).
+Notes
+- Generator used: scripts/generate_class_recipes.py
+  - Creates one stub per exported class with Purpose, Public API (methods/properties), Dependencies, Usage Notes, Change History.
+  - Skips existing files; safe to re-run.
+- Idempotency verified: subsequent run reported “Created: 0”.
+- Coverage aligned to “export class …” declarations in frontend/src/app.
 
-**Optional Next Steps**
-- If desired, I can run the class generator across `frontend/src/app` to pre-seed more recipes, or extend parsing to capture inputs/outputs and decorators.
+Residual risks / open questions
+- Default-exported classes and unusual multi-line class declarations are not detected; none found in this tree.
+- If you want bilingual (JP/EN) or to include private members, we can extend the script. Would you like me to add support for export default class and static members next?
