@@ -7,7 +7,7 @@
     "steps": [
       "coder"
     ],
-    "notes": "Run the existing idempotent generator to create only missing per-class/component recipes under docs/recipes/classes mirroring frontend/src/app. Avoid overwrites. If the script is unavailable or misses edge cases (e.g., export default class), seed only those few stubs manually to keep the diff small and contained.",
-    "tests": "1) Verify generator exists: `ls -l scripts/generate_class_recipes.py`. 2) Generate: `python scripts/generate_class_recipes.py`. 3) Idempotency: re-run and confirm `git status --porcelain` is empty. 4) Coverage sanity: compare counts `rg -n \"^export\\s+(default\\s+)?class\\s+\\w+\" frontend/src/app | wc -l` vs `rg --files docs/recipes/classes/frontend/src/app | rg '\\\\.recipe\\\\.md$' | wc -l`. 5) Spot-check a component and a service for created recipe files under mirrored paths and basic content structure."
+    "notes": "Add docs/INDEX.md with a concise top-level directory map and Quick Links. Insert one 'Repository Index & Map' link in README.md and one in docs/README.md. Avoid restructures; keep the diff minimal and English-only.",
+    "tests": "- Verify index file exists: test -f docs/INDEX.md\n- Check root README link: rg -n \"\\[Repository Index & Map\\]\\(docs/INDEX.md\\)\" README.md\n- Check docs README link: rg -n \"\\[Repository Index & Map\\]\\(INDEX.md\\)\" docs/README.md\n- Verify Quick Links exist:\n  - test -f docs/governance/development-governance-handbook.md\n  - test -f docs/guidelines/angular-coding-guidelines.md\n  - test -f docs/ui-design-system.md\n  - test -f docs/ui-layout-requirements.md"
   }
 }
