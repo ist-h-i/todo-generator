@@ -1,45 +1,41 @@
-Summary
-- The repository-wide index already exists and is cross‑linked correctly.
-- No additional edits are needed to satisfy the request with minimal impact.
+**Summary**
+- Fixed the “level” select options not showing by stabilizing `app-ui-select` to read projected options after render and react to changes. The fix is localized to the shared select component with no public API changes.
 
-What I verified
-- Index file present and comprehensive:
-  - docs/INDEX.md:1
-    - Includes Quick Pointers for governance, Angular guidelines, UI design/layout.
-    - Maps top-level areas (frontend, backend, docs, scripts, CI).
-    - Search Tips include a correct Angular route pattern: export const .*Routes|appRoutes|Routes\s*=\s*\[ targeting frontend/src/app.
-- Root README links to the index and Quick Links:
-  - README.md:150
-  - README.md:151
-  - README.md:152
-  - README.md:153
-  - README.md:154
-- Docs README cross‑links to the index:
-  - docs/README.md:42
-- Quick Links targets exist:
-  - docs/governance/development-governance-handbook.md:1
-  - docs/guidelines/angular-coding-guidelines.md:1
-  - docs/ui-design-system.md:1
-  - docs/ui-layout-requirements.md:1
+**Changes**
+- Updated `frontend/src/app/shared/ui/select/ui-select.ts:11` to import `OnDestroy`.
+- Updated `frontend/src/app/shared/ui/select/ui-select.ts:182` to implement `OnDestroy` on the class.
+- Added a deferred initial options read and a `MutationObserver` to refresh options when projected `<option>` elements change:
+  - `frontend/src/app/shared/ui/select/ui-select.ts:205`
+  - Defer with `queueMicrotask` or `setTimeout(0)` fallback.
+  - Observe `childList`, `subtree`, `characterData`, and `attributes`.
+  - On mutation: `readOptions()`, `syncLabelFromValue()`, `ensureActiveIndex()`.
+- Cleanup observer on destroy:
+  - `frontend/src/app/shared/ui/select/ui-select.ts:233`
 
-Commands run
-- List repo and docs:
-  - ls -la
-  - ls -la docs
-- Confirm cross-links:
-  - rg -n "\[Repository Index & Map\]\(docs/INDEX.md\)" README.md
-  - rg -n "\[Repository Index & Map\]\(INDEX.md\)" docs/README.md
-- Confirm Quick Links targets exist:
-  - test -f docs/governance/development-governance-handbook.md
-  - test -f docs/guidelines/angular-coding-guidelines.md
-  - test -f docs/ui-design-system.md
-  - test -f docs/ui-layout-requirements.md
-- Validate Angular routes file presence and search tip applicability:
-  - test -f frontend/src/app/app.routes.ts
+What this fixes
+- The competency “level” field uses `app-ui-select` with static `<option>`s at `frontend/src/app/features/admin/page.html:129`. With the observer and deferred initial read, the component correctly discovers and renders options even when content is added/updated after init (e.g., structural directives, async data, or timing differences).
 
-Result
-- The repository already contains a concise, accurate index at docs/INDEX.md with correct cross‑links in README.md and docs/README.md. This fulfills the “project-wide index with minimal changes” requirement. No patch is necessary.
+**Key File References**
+- Shared select component: `frontend/src/app/shared/ui/select/ui-select.ts:205`
+- Admin level field usage: `frontend/src/app/features/admin/page.html:129`
 
-Residual notes
-- Keep docs/INDEX.md updated when adding new top-level directories to avoid staleness.
-- If routing conventions change (e.g., different route variable names), update the Search Tips pattern in docs/INDEX.md accordingly.
+**Why this is minimal**
+- One shared component fix unblocks all uses of `app-ui-select` (admin, reports, etc.).
+- No template API changes; no backend changes.
+
+**How to Validate**
+- Manual checks:
+  - Admin → コンピテンシーを登録 → Verify “レベル” dropdown shows:
+    - 初級 (3段階), 中級 (5段階) — `frontend/src/app/features/admin/page.html:129`
+  - Select a level and submit; confirm form submission payload includes selected `level`.
+  - Reports page: verify `status` and `priority` selects populate and are selectable (dynamic and static).
+- Optional commands:
+  - `cd frontend && npm run lint`
+  - `cd frontend && npm test`
+  - `cd frontend && npm start` then test via browser.
+
+**Residual Risks / Open Questions**
+- If an API was intended to supply options (not the case for the admin “レベル” field), an empty response would still render no options; this change doesn’t mask backend issues.
+- If SSR/hydration is used elsewhere, the `MutationObserver` is guarded but those views should be sanity-checked.
+- Extremely old browsers without `queueMicrotask` are handled via a `setTimeout` fallback; Angular’s evergreen policy makes this low risk.
+- If option attributes change very frequently, the observer could trigger often; current usage patterns are light.

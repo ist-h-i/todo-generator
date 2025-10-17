@@ -7,7 +7,7 @@
     "steps": [
       "coder"
     ],
-    "notes": "Add docs/INDEX.md with a concise top-level directory map and Quick Links. Insert one 'Repository Index & Map' link in README.md and one in docs/README.md. Avoid restructures; keep the diff minimal and English-only.",
-    "tests": "- Verify index file exists: test -f docs/INDEX.md\n- Check root README link: rg -n \"\\[Repository Index & Map\\]\\(docs/INDEX.md\\)\" README.md\n- Check docs README link: rg -n \"\\[Repository Index & Map\\]\\(INDEX.md\\)\" docs/README.md\n- Verify Quick Links exist:\n  - test -f docs/governance/development-governance-handbook.md\n  - test -f docs/guidelines/angular-coding-guidelines.md\n  - test -f docs/ui-design-system.md\n  - test -f docs/ui-layout-requirements.md"
+    "notes": "Implement a minimal, shared fix in UiSelectComponent by deferring initial option read and observing projected <option> changes with MutationObserver. No API or template changes. This should restore the level options and stabilize other selects within the time cap.",
+    "tests": "Manual: (1) Admin → コンピテンシーを登録 → verify two level options render and selection persists; (2) Admin → 判定と履歴 → both user and competency selects populate and are selectable; (3) Reports page → status/priority selects show options. Optional unit test (time-permitting): shallow-mount UiSelect with projected options added after init; assert panel options length updates after MutationObserver triggers."
   }
 }
