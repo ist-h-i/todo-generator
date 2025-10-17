@@ -1,49 +1,41 @@
-**Summary Of Request**
-- Periodically refresh and improve documentation with minimal changes, prioritizing readability and navigation.
-- Add a concise, repository-wide index that explains where key code/docs live so newcomers can quickly find what they need.
-- Keep edits low-risk: avoid restructures, focus on `README.md`, `docs/README.md`, and a new `docs/INDEX.md`.
+**Summary**
+- Bug: During competency registration, the “level” selection shows no options. Needs a fix with minimal project impact and a self-contained outcome.
 
-**Intended Deliverables**
-- `docs/INDEX.md`: top-level directory map (code, docs, scripts, CI/config) with short descriptions and links.
-- Cross-links: add “Repository Index & Map” in `README.md` and `docs/README.md` pointing to `docs/INDEX.md` (or `INDEX.md` within docs).
-- Validate and preserve Quick Links:
-  - `docs/governance/development-governance-handbook.md`
-  - `docs/guidelines/angular-coding-guidelines.md`
-  - `docs/ui-design-system.md`
-  - `docs/ui-layout-requirements.md`
-
-**Non-Goals**
-- No renames/moves/splits of files or directories.
-- No dependency/tooling changes.
-- No broad rewrites outside the minimal navigation improvements.
-
-**Constraints**
-- Minimize scope and impact; smallest viable diff.
-- Deliver a finished, self-contained outcome.
-- 30-minute execution budget.
-- Network access restricted; rely only on in-repo content.
-- English-only unless requested otherwise.
+**Goal**
+- Restore the competency “level” options so users can select a valid level during registration.
 
 **Assumptions**
-- The four Quick Links exist and should remain canonical entry points.
-- English documentation is acceptable for this pass.
-- The repository structure will not be changed to accommodate the index.
+- The competency registration form is part of the Angular SPA.
+- “Level” options are either static (enum/design system constant) or fetched from an API.
+- The issue is a regression affecting all users in the affected environment.
 
-**Risks**
-- Index could become stale as directories evolve.
-- Potential for broken links if paths are inferred incorrectly.
-- Overfitting the index to current patterns (e.g., routing search tips) may require updates later.
+**Constraints**
+- Avoid unrelated changes; keep the fix small and localized.
+- Deliver a complete, ready-to-merge fix (UI + data wiring + tests if applicable).
 
 **Unknowns**
-- Exact top-level layout (e.g., `frontend/`, `backend/`, `packages/`, `infra/`).
-- Preference for index filename prominence (`docs/INDEX.md` vs `docs/00-index.md`).
-- Whether to include CI/Docker/deployment pointers.
-- Desire for bilingual (JP/EN) headings or English-only.
-- Additional must-link docs beyond the four Quick Links (e.g., CONTRIBUTING, ADRs, recipes).
+- Source of the options (static vs API).
+- Whether the issue is frontend-only (binding/component config) or backend/API (empty response).
+- Exact component/module handling the level field.
+- Scope (all competencies vs specific cases; all environments vs one).
+
+**Acceptance Criteria**
+- Level options render consistently in the registration form.
+- Options match the source of truth (enum or API).
+- Selection persists correctly in form state and submission.
+- No console errors; API calls (if any) succeed and are handled (loading/empty/error).
+- Basic accessibility is preserved (focusability, labels, keyboard interaction).
 
 **Clarifying Questions**
-- Which top-level areas are must-include in the first index (frontend, backend, infra/CI, scripts)?
-- Do you prefer `docs/INDEX.md` or `docs/00-index.md` for prominence in file listings?
-- Should the index cover CI/Docker/deployment (e.g., `.github/workflows/`, Dockerfiles)?
-- English-only or JP/EN headings?
-- Any additional must-link documents (CONTRIBUTING, ADRs, recipes index)?
+- What is the expected source of level options (static list or API endpoint)? If API, which endpoint and expected payload?
+- Is the issue reproducible across all environments (dev/staging/prod)? Any environment-specific flags or feature toggles?
+- Are there recent changes to the select component, state management, or API that could have caused this?
+- Do you see errors in the browser console or network panel when opening the form?
+- Which Angular component/file renders the level field?
+- What are the expected option values/labels and order?
+- Should we add/update tests (unit/e2e), and where are current tests located?
+
+**Residual Risks**
+- If the root cause is backend data or contract drift, frontend-only fixes may mask deeper issues.
+- If options are translated, missing i18n keys could still result in blank labels.
+- If the design system select component recently changed API/inputs, other forms may be affected and require follow-up.
