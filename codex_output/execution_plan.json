@@ -1,13 +1,15 @@
 {
   "steps": [
-    "coder"
+    "coder",
+    "code_quality_reviewer"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder"
+      "coder",
+      "code_quality_reviewer"
     ],
-    "notes": "Add a shared getDisplayName(user) utility and adopt it in the shell header and WorkspaceStore for consistent nickname-first display with trim fallback to email. Keep admin/auth displays unchanged.",
-    "tests": "1) Set nickname='Hanako', email='hanako@example.com' -> shell shows 'Hanako'. 2) Set nickname='   ', email='hanako@example.com' -> shell shows 'hanako@example.com'. 3) Remove nickname (null/undefined), keep email -> shell shows email. 4) Comment composer prefill matches the same rules; when logged out, shows '匿名ユーザー'. 5) Admin user list and auth forms still show emails only."
+    "notes": "Leanest path: a single coder can implement migration, API, UI, and tests within 30 minutes. Add code_quality_reviewer to quickly sanity-check validation/i18n consistency and migration safety. Skip integrator/release_manager to keep cycle time minimal unless CI requires them.",
+    "tests": "API: (1) POST /register without nickname -> 400 with i18n error key. (2) nickname length 1 -> 400; 33 -> 400. (3) valid nickname trims spaces and persists; response includes nickname. Migration: After migration, existing users have non-null nickname matching `user-{id}`; column is NOT NULL. UI: Registration form shows required Nickname; client blocks submit on empty/invalid; sends nickname in payload. i18n: EN/JA strings exist for label, placeholder, and validation messages."
   }
 }
