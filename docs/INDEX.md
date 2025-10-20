@@ -3,6 +3,7 @@
 This page helps newcomers quickly find the right code and docs. It complements the [Documentation Index](README.md) by focusing on repository layout and key entry points.
 
 ## Quick Pointers
+
 - Setup, scripts, and common tasks: [README.md](../README.md)
 - Specs and playbooks: [Documentation Index](README.md)
 - UI standards and layout: [UI Design System](ui-design-system.md), [UI Layout Requirements](ui-layout-requirements.md)
@@ -10,6 +11,7 @@ This page helps newcomers quickly find the right code and docs. It complements t
 - Angular coding rules: [Angular Coding & Design Guidelines](guidelines/angular-coding-guidelines.md)
 
 ## Top-level Layout
+
 - `frontend/` — Angular SPA (standalone components, signals, feature routing)
   - `src/app/app.routes.ts` — Route map and feature entry points.
   - `src/app/features/` — Feature areas (e.g., `board/`, `reports/`, `analytics/`, `admin/`).
@@ -32,7 +34,7 @@ This page helps newcomers quickly find the right code and docs. It complements t
 
 - `scripts/` — Local ops and automation helpers
   - `run_codex_pipeline.sh` — Auto‑dev pipeline runner.
-  - `generate_*_recipes.py` — Creates code recipe docs under `docs/recipes/`.
+  - `generate_*_recipes.py` — Creates code recipe docs co-located next to source files (`*.recipe.md`).
   - `bootstrap_database.py` — Initialize local DB state.
 
 - `prompts/` — Prompt materials used by services and tooling.
@@ -44,6 +46,7 @@ This page helps newcomers quickly find the right code and docs. It complements t
 - `codex_output/` — Automation artifacts (planning, reviews, release notes). Safe to keep in-repo.
 
 ## Common Tasks → Where to Look
+
 - Add a new page (SPA)
   - Define route in `frontend/src/app/app.routes.ts` and add a feature under `frontend/src/app/features/<feature>/`.
   - Follow Angular rules in `docs/guidelines/angular-coding-guidelines.md` and UI conventions in `docs/ui-design-system.md`.
@@ -61,6 +64,7 @@ This page helps newcomers quickly find the right code and docs. It complements t
   - Adjust Pydantic schemas in `backend/app/schemas.py` and clients/types in `frontend/src/app/core/models/`.
 
 ## Search Tips (ripgrep)
+
 - Routes (Angular): `rg -n "export const .*Routes|appRoutes|Routes\s*=\s*\[" frontend/src/app`
 - Components: `rg -n "@Component\(" frontend/src/app`
 - Stores: `rg -n "class .*Store" frontend/src/app/core/state`
@@ -69,12 +73,14 @@ This page helps newcomers quickly find the right code and docs. It complements t
 - Service functions: `rg -n "def .*\(" backend/app/services`
 
 ## Configuration & Quality
+
 - Python tooling: `pyproject.toml`, `backend/requirements*.txt`
 - Frontend tooling: `frontend/package.json`, `frontend/angular.json`, `frontend/tailwind.config.js`
 - SonarQube: `sonar-project.properties` (coverage paths and quality gate inputs)
 - CI: `.github/workflows/*.yml`
 
 ## See Also
+
 - [Documentation Index](README.md)
 - [UI Design System](ui-design-system.md)
 - [UI Layout Requirements](ui-layout-requirements.md)

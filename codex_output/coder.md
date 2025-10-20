@@ -1,45 +1,33 @@
 Summary
-- The repository-wide index already exists and is cross‑linked correctly.
-- No additional edits are needed to satisfy the request with minimal impact.
+The nickname-first display rule is already implemented and wired through a shared helper. No additional code changes are required to meet the acceptance criteria with minimal impact.
 
-What I verified
-- Index file present and comprehensive:
-  - docs/INDEX.md:1
-    - Includes Quick Pointers for governance, Angular guidelines, UI design/layout.
-    - Maps top-level areas (frontend, backend, docs, scripts, CI).
-    - Search Tips include a correct Angular route pattern: export const .*Routes|appRoutes|Routes\s*=\s*\[ targeting frontend/src/app.
-- Root README links to the index and Quick Links:
-  - README.md:150
-  - README.md:151
-  - README.md:152
-  - README.md:153
-  - README.md:154
-- Docs README cross‑links to the index:
-  - docs/README.md:42
-- Quick Links targets exist:
-  - docs/governance/development-governance-handbook.md:1
-  - docs/guidelines/angular-coding-guidelines.md:1
-  - docs/ui-design-system.md:1
-  - docs/ui-layout-requirements.md:1
+What’s in place
+- Shared helper for display name:
+  - frontend/src/app/shared/utils/display-name.ts:1
+  - Provides `getDisplayName({ nickname, email })` that trims values, prefers `nickname`, falls back to `email`.
 
-Commands run
-- List repo and docs:
-  - ls -la
-  - ls -la docs
-- Confirm cross-links:
-  - rg -n "\[Repository Index & Map\]\(docs/INDEX.md\)" README.md
-  - rg -n "\[Repository Index & Map\]\(INDEX.md\)" docs/README.md
-- Confirm Quick Links targets exist:
-  - test -f docs/governance/development-governance-handbook.md
-  - test -f docs/guidelines/angular-coding-guidelines.md
-  - test -f docs/ui-design-system.md
-  - test -f docs/ui-layout-requirements.md
-- Validate Angular routes file presence and search tip applicability:
-  - test -f frontend/src/app/app.routes.ts
+- Shell header shows nickname first:
+  - frontend/src/app/core/layout/shell/shell.ts:118 defines `displayName(user)` that delegates to `getDisplayName`.
+  - frontend/src/app/core/layout/shell/shell.html:225 uses `{{ displayName(currentUser) }}` for the visible “name”. Email is still shown in metadata line, which is acceptable for contexts explicitly showing email.
 
-Result
-- The repository already contains a concise, accurate index at docs/INDEX.md with correct cross‑links in README.md and docs/README.md. This fulfills the “project-wide index with minimal changes” requirement. No patch is necessary.
+- Workspace state and comments:
+  - frontend/src/app/core/state/workspace-store.ts:742 computes `activeUserNickname` with `getDisplayName` to keep default-assignee and current-user naming in sync.
+  - frontend/src/app/core/state/workspace-store.ts:749 `commentAuthorName` uses `getDisplayName(this.auth.user())`, falling back to ‘匿名ユーザー’ if not authenticated.
+  - Comment lists display `comment.authorNickname` (from API); when creating comments locally, the prefill follows the same nickname-first rule via `commentAuthorName`.
 
-Residual notes
-- Keep docs/INDEX.md updated when adding new top-level directories to avoid staleness.
-- If routing conventions change (e.g., different route variable names), update the Search Tips pattern in docs/INDEX.md accordingly.
+- Admin/auth remain email-centric:
+  - Admin user selection and user list present emails (e.g., frontend/src/app/features/admin/page.html:295, 321), aligned with “do not change explicitly email contexts.”
+  - Auth pages use email fields only.
+
+No changes needed
+- The scoped helper exists and is used in the shell header and workspace store as planned.
+- Behavior matches acceptance criteria, including whitespace-trim fallback and consistent use for current user display and comment author prefill.
+
+Residual risks / open questions
+- Comments from the API only include `author_nickname`/`author_id` (no `author_email`), so existing comments can’t fall back to email unless the backend adds it.
+- Sorting/search policies by “name” are not adjusted; lists might still sort on email strings where present.
+- Admin tables intentionally show email; confirm if there are any admin views that should display nickname alongside email.
+- Edge case where a user’s nickname equals their email will display that value unchanged; confirm if alternate formatting is desired.
+
+Commands to run
+- None required. If you want me to run the frontend locally to verify visually, I can provide the steps, but dependency installation may require network access.
