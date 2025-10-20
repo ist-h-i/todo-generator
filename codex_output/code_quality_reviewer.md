@@ -1,73 +1,35 @@
 **Summary**
-- The backend now persists user linkage via userId and resolves assignee display names to nicknames on reads. The frontend removed the nickname/email overwrite logic and prefers nickname for defaults. A best‑effort migration normalizes legacy assignee strings to userIds at startup.
+- Meets the ask: hover no longer turns white; selectors match input styling; the down-arrow is always visible and inherits text color in light/dark.
+- Scope is minimal and centralized; no React/shadcn introduced into this Angular repo.
 
-**What Looks Good**
-- Write‑time canonicalization: email/nickname/id → userId
-  - backend/app/routers/cards.py:105–156, 173–178 (_canonicalize_assignees/_canonicalize_single_assignee)
-- Read‑time display: userId → nickname (fallback email)
-  - backend/app/routers/cards.py:180–203 (_resolve_display_names)
-  - Applied consistently in list/get/create/update cards and in subtask list/create/update:
-    - list_cards: backend/app/routers/cards.py:492–520
-    - create_card: backend/app/routers/cards.py:604–680
-    - get_card: backend/app/routers/cards.py:689–699
-    - update_card: backend/app/routers/cards.py:720–758
-    - list_subtasks: backend/app/routers/cards.py:787–805
-    - create_subtask: backend/app/routers/cards.py:829–842
-    - update_subtask: backend/app/routers/cards.py:858–896
-- Data model remains minimally invasive (strings remain, values now userIds):
-  - backend/app/models.py:50–104 (Card.assignees JSON of strings)
-  - backend/app/models.py:214–242 (Subtask.assignee string)
-- Startup migration backfills legacy strings to userIds, preserving unmatched values:
-  - backend/app/migrations.py:1000–1080 (_normalize_assignees_to_user_ids)
-  - Invoked in run_startup_migrations: backend/app/migrations.py:1119–1140
-- SPA stops label flipping and prefers nickname for default assignee:
-  - frontend/src/app/core/state/workspace-store.ts:742–758, 780–816
-- API shapes unchanged; Cards API and board rendering remain compatible:
-  - frontend/src/app/core/api/cards-api.service.ts:139–171 (assignees typed as strings for display)
+**What I Reviewed**
+- Base select styling applied globally to native selects:
+  - `frontend/src/styles/pages/_base.scss:85` base rule for `.app-select, select.form-control`
+  - `frontend/src/styles/pages/_base.scss:113` caret centered via background-position
+  - `frontend/src/styles/pages/_base.scss:129` hover keeps background consistent with inputs
+  - `frontend/src/styles/pages/_base.scss:138` focus-visible ring retained
+  - `frontend/src/styles/pages/_base.scss:174` multi/size variants hide caret
+  - `frontend/src/styles/pages/_base.scss:184` dark-theme parity for text/caret colors
+- Shared Angular Select improvements:
+  - Icon inherits text color (`currentColor`) and is visible at rest: `frontend/src/app/shared/ui/select/ui-select.ts:171`
+  - Template-accessible `onTouched()` and null-safe value checks to keep builds green: `frontend/src/app/shared/ui/select/ui-select.ts:34`, `frontend/src/app/shared/ui/select/ui-select.ts:278`
 
-**Correctness & Edge Cases**
-- Unique nickname handling during canonicalization and migration avoids ambiguity by skipping duplicates. Good.
-- Read‑time resolution batches ids per response; avoids N+1. Good.
-- Update and create paths canonicalize both card assignees and subtask assignee. Good.
-- Filters: server‑side `assignees` query filters by stored values (now userIds). UI appears to filter client‑side; no current breakage spotted.
+**Correctness & Consistency**
+- Visual parity with inputs across idle/hover/focus/disabled states: yes.
+- Icon visibility: always visible, not gated by hover; matches text color in dark mode via `currentColor`.
+- Option panel updated to a modern look without behavior changes.
 
-**Gaps / Risks**
-- Status reports still emit raw stored assignee values (now userIds):
-  - backend/app/services/status_report_presenter.py:63–92, 112–128
-  - Impact: Status report cards may display userIds instead of nicknames.
-- Display fallback might be empty when both nickname and email are empty:
-  - backend/app/routers/cards.py:198–203 returns “” if email missing; consider falling back to userId for non‑empty display.
-- Filtering by assignees via `GET /cards?assignees=` expects userIds now. If any external caller sends emails/nicknames, results will differ. The SPA doesn’t use this param currently, but integrations might.
-- Migration ambiguity: duplicate nicknames are skipped by design; those records remain as legacy strings until updated. Acceptable, but consider logging count for observability.
+**Risks / Nits (Low)**
+- Forced-colors (Windows High Contrast): background-image chevron may be hard to see. Suggest hiding it in forced-colors and relying on native affordances.
+- RTL: rules use physical `right`; acceptable for now, but logical properties could be a follow-up if RTL is required.
+- If `color-mix()` is used anywhere for subtle tints, ensure acceptable browser support or add a conservative fallback.
 
-**Lightweight Fixes (recommended)**
-- Resolve assignee display names in status report serialization (mirrors cards router):
-  - In backend/app/services/status_report_presenter.py, batch map card.assignees and subtask.assignee via `object_session` to nickname/email.
-  - Sketch:
-    - Import: `from sqlalchemy.orm import object_session`
-    - Collect `user_ids` from linked cards/subtasks; query users; build map like `_resolve_display_names`.
-    - Replace assignees/subtasks in `serialize_card_link` similar to `_card_read_with_display`.
-- Improve fallback in display resolution:
-  - backend/app/routers/cards.py:198–203: if neither nickname nor email is present, fall back to `user.id`.
+**Lightweight Suggestions (Optional)**
+- Add a11y safeguard:
+  - `@media (forced-colors: active) { .app-select, select.form-control { background-image: none; } }` in `frontend/src/styles/pages/_base.scss:225` (or nearby global select rules).
 
-**Performance**
-- Per‑request batching for id→name is used; good. If usage grows, consider request‑scoped caching to avoid repeat mapping across multiple endpoints in the same request (optional).
+**Notes on React/shadcn Instructions**
+- This repo is Angular; introducing React/shadcn and Radix would violate minimal-change constraints. The centralized Angular/SCSS solution already satisfies the requirements.
 
-**Tests/Verification**
-- Existing tests don’t assert assignee display content; they should still pass.
-- Add/extend tests to cover:
-  - Create with email → GET returns nickname
-  - Create with nickname → GET returns nickname
-  - Subtask assignee resolution
-  - Migration path with legacy email in `cards.assignees` and `subtasks.assignee`
-  - Optional: status report card summaries reflect nicknames after the above fix
-
-**Open Questions**
-- Should `GET /status-reports/*` display nicknames for assignees consistently with cards?
-- Should `GET /cards?assignees=` accept email/nickname inputs and canonicalize to userIds for filtering (backward compatibility)?
-- What is the desired display when a user is deleted/disabled? Current behavior: label remains raw stored value.
-
-**Residual Risks**
-- Unmatched legacy values remain as strings post‑migration; they’ll display as‑is until edited.
-- Status report UX inconsistency (userIds visible) until presenter is updated.
-- External integrations filtering by email/nickname may break if they rely on `assignees` query semantics.
+**Verdict**
+- Approve. The implementation is correct, minimal, and resolves the reported issues. Optional a11y tweak can be a small follow-up if desired.

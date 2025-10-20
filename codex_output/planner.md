@@ -1,33 +1,34 @@
-**Objective**
-Add a centralized hover/toast message manager that stacks messages on the right, newest on top, with entry/exit animations and auto-dismiss per severity. Keep the change minimal and dependency-free.
+**Summary**
+- Goal: Unify selector (dropdown) visuals with text inputs, fix white hover background and ensure the down-arrow icon is always visible, with light/dark parity.
+- Repo reality: Angular app, not React/shadcn. Minimal, centralized CSS/SCSS update is the safest path to meet requirements within 30 minutes.
 
-**Lean Approach**
-- Add a single service to own queue, timers, and IDs.
-- Add a small host component to render right-side stacked toasts with CSS-only animations.
-- Wire host into the shell template; route existing notifications through the service.
-- No new dependencies; reuse existing design tokens.
+**Default Paths (Angular Repo)**
+- Components: `frontend/src/app/shared/ui`
+- Styles: `frontend/src/styles/pages/_base.scss` (centralized selectors have been handled here previously)
 
-**Key Behaviors**
-- Order: newest at top; array-backed queue.
-- Durations by severity:
-  - Error: persistent (red).
-  - Warning: 10s (yellow).
-  - Notice: 5s (green).
-  - System/Loading: ≥3s; loading persists until dismissed (blue).
-- Animations: drop-in/slide-in on entry; slide-out-right on dismissal.
-- API: showError, showWarning, showNotice, showLoading (returns id), update(id), dismiss(id), clearAll().
+**Minimal Plan**
+- Centralize a single SCSS update for all native `<select>` targets (`.app-select`, `select.form-control`) to:
+  - Match input tokens for bg/border/radius/hover/focus/disabled.
+  - Keep icon always visible (not hover-dependent), drawn with a simple chevron using `currentColor`.
+  - Remove “white on hover” by aligning hover background/border with inputs.
+  - Preserve dark theme parity; icon/text color matched via `currentColor`.
+  - Maintain multi/size variants (no caret when `multiple` or `size > 1`).
+- If present, align the shared Angular `ui-select` trigger icon:
+  - Ensure icon inherits `currentColor`, visible at rest (no hover-only opacity tricks).
 
-**Minimal Diff Integration**
-- Prefer extending any existing notification/toast mechanism if present to avoid duplication.
-- Insert a single host into the app shell; avoid broad refactors.
-- Map severity to existing color/shadow tokens; keep CSS scoped.
+**Why not shadcn/React**
+- The repo is Angular-based; introducing React/shadcn would violate the “minimal change” constraint and expand scope significantly.
+- If this were a React/shadcn stack, the default components path would be `/components/ui`, but it’s out of scope here.
 
-**Risks / Unknowns**
-- Existing notification system overlap (potential double toasts).
-- Exact color/shadow tokens; may need tuning.
-- Close button requirement for sticky errors not specified.
-- A11y depth (aria-live, roles) and mobile safe-area/z-index not specified.
+**Risks**
+- Page-level overrides might slightly diverge; mitigated by choosing selectors with adequate specificity.
+- RTL and forced-colors modes are not addressed in this pass (can be follow-ups).
+
+**Acceptance Criteria**
+- Selector idle/hover/focus/disabled match inputs for bg/border/radius.
+- Down-arrow icon is always visible and uses `currentColor` (light/dark).
+- Hover no longer turns background white.
+- No template/TS changes required; behavior unchanged.
 
 ```json
-{"steps":["coder"],"notes":"Single-stage (coder) is sufficient to add a central HoverMessageService and a lightweight host component, wire it into the app shell, and route notifications through it. No new dependencies; CSS-only animations. If an existing notification system exists, coder will extend/adapt it instead of replacing to keep the diff minimal.","tests":"Unit: verify queue order (newest first), per-severity durations (error sticky, warning 10s, notice 5s, system >=3s), loading returns id and persists until dismiss/update, dismissal triggers exit flag then removal after ~200–300ms. Manual: confirm right-side stack, slide-in entry and slide-out-right exit, colors/shadows per severity, timers behave as specified, errors and loading persist until explicitly dismissed/updated."}
-```
+{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Implement a single centralized SCSS change in frontend/src/styles/pages/_base.scss to unify native <select> with inputs: keep background consistent on hover (no white), ensure the chevron icon is always visible and uses currentColor, preserve focus/disabled states and dark mode. Apply rules to both .app-select and select.form-control. If needed, set the shared Angular ui-select trigger icon color to currentColor and remove hover-only visibility. Do not introduce React/shadcn; the repo is Angular.","tests":"Build frontend and visually verify: (1) selector hover bg matches inputs (no white) in light/dark; (2) icon visible at rest and matches text via currentColor; (3) focus-visible ring and disabled styles match inputs; (4) multi/size>1 variants hide caret correctly; (5) check across pages using .app-select and select.form-control (e.g., Settings, Board, Reports)."}```

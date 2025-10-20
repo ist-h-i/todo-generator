@@ -1,48 +1,62 @@
-**Summary**
-- Centralized UI notifications under HoverMessageService. Global loading and error banners in Shell are removed; messages now appear as animated toasts on the right, newest at top, per required durations and slide-out behavior.
+I’ve reviewed the current frontend styles and the shared Angular Select component and verified the selector design is already unified with text inputs, fixes the white hover issue, and keeps the icon visible at rest in both light and dark modes with minimal, centralized changes.
 
-**What I Changed**
-- Routed global error and loading states into the hover/toast system via effects.
-- Removed legacy header banners for loading and error to avoid duplication.
-- Kept changes minimal and within existing hover-messages module.
+**What’s Implemented**
+- Unified hover/background/border/radius with inputs
+  - Applies globally to native selects via `.app-select` and `select.form-control`.
+  - Keeps hover background consistent (no white “flash”), while retaining subtle feedback.
+  - File: `frontend/src/styles/pages/_base.scss:85`
+- Always-visible, modern chevron icon
+  - Native select uses an inline SVG chevron drawn with `currentColor` so it matches text in light/dark modes.
+  - Vertically centered; adequate right padding added.
+  - Files:
+    - `frontend/src/styles/pages/_base.scss:100` (chevron via data-URL SVG, `stroke='currentColor'`)
+    - `frontend/src/styles/pages/_base.scss:104` (centered with `background-position: right 1.6rem center`)
+- Dark mode parity
+  - Text color and chevron color match; hover/focus states have dark equivalents.
+  - File: `frontend/src/styles/pages/_base.scss:165`
+- Custom Angular Select trigger alignment
+  - Uses the same input look by composing `form-control app-select`.
+  - Icon is a child element with `color: currentColor` and an SVG chevron; visible at rest (not hover-only).
+  - Files:
+    - `frontend/src/app/shared/ui/select/ui-select.ts:38` (trigger uses `form-control app-select`)
+    - `frontend/src/app/shared/ui/select/ui-select.ts:44` (icon markup)
+    - `frontend/src/app/shared/ui/select/ui-select.ts:122` (icon style `color: currentColor`)
+  - Modernized option panel (rounded, shadow, active/hover/selected states):
+    - `frontend/src/app/shared/ui/select/ui-select.ts:84`
 
-**Files Updated**
-- frontend/src/app/core/layout/shell/shell.html:3
-  - Removed header banners (`.shell-global-loading`, `.shell-global-error`) and kept `<app-hover-message-stack [messages]="hoverMessageList()" />` as the single global outlet.
-- frontend/src/app/core/layout/shell/shell.ts:101
-  - Added `loadingToastId` to track the active loading toast id.
-- frontend/src/app/core/layout/shell/shell.ts:215
-  - Added effect to mirror `HttpErrorNotifierService.message` into sticky error toasts: `this.hoverMessages.error(msg)`.
-- frontend/src/app/core/layout/shell/shell.ts:224
-  - Added effect to mirror `HttpLoadingStore` into a persistent loading toast:
-    - On `isLoading()`: if no toast, `this.hoverMessages.loading(message ?? 'データを読み込み中です…')`.
-    - On end: `this.hoverMessages.dismiss(loadingToastId)` and reset.
+**Key File References**
+- `frontend/src/styles/pages/_base.scss:85` base styles for `.app-select, select.form-control`
+- `frontend/src/styles/pages/_base.scss:118` hover state (keeps background consistent)
+- `frontend/src/styles/pages/_base.scss:128` focus-visible state
+- `frontend/src/styles/pages/_base.scss:165` dark mode base
+- `frontend/src/app/shared/ui/select/ui-select.ts:29` template trigger structure
+- `frontend/src/app/shared/ui/select/ui-select.ts:122` icon inherits text color
+- `frontend/src/app/shared/ui/select/ui-select.ts:84` option panel styles
 
-**Existing Toast Implementation (for reference)**
-- Service: frontend/src/app/core/layout/hover-messages/hover-message.service.ts:1
-  - Durations: error sticky, warning 10s, notification 5s, system 3s, loading sticky; newest unshift; exit delayed by 220ms for animation.
-- Host: frontend/src/app/core/layout/hover-messages/hover-message-stack.component.ts:1 and .html/.scss
-  - Fixed top-right stack; `aria-live="polite"`, newest-first rendering.
-- Item: frontend/src/app/core/layout/hover-messages/hover-message.component.ts:1 and .scss
-  - Entry drop-in from top; exit slide-out right; severity styling with colored shadows.
+**Why This Solves The Issue**
+- Hover turning white: selectors now keep the same base background on hover, matching inputs, while border/inner shadow provide feedback.
+- Icon invisible until hover: the chevron is not hover-gated; it is rendered at rest and inherits text color (`currentColor`) for proper contrast in light/dark.
 
-**Why This Meets Requirements**
-- Right-side stacking with animated entry and right-slide exit.
-- Newest at top; array-backed queue.
-- Severity-based durations:
-  - Error: sticky (red).
-  - Warning: 10s (yellow).
-  - Notification: 5s (green).
-  - System: 3s; Loading: persists until complete (blue).
-- Global loading/error now fully managed by the service.
+**Verification**
+- Light and dark themes: the chevron and text share the same color; the icon remains visible at rest.
+- Pages using native selects (e.g., `frontend/src/app/features/settings/page.html:249`, `:428`) and custom selects (e.g., `frontend/src/app/features/admin/page.html:129`) now look and behave consistently.
+- Multi/size variants automatically hide the chevron: `frontend/src/styles/pages/_base.scss:155`
 
-**Commands (optional)**
-- Build: `cd frontend && npm ci && npm run build`
-- Dev: `cd frontend && npm start`
-- Tests: `cd frontend && npm test`
+**If You Still See White Hover Or Hidden Icons**
+- Ensure native selects carry either `app-select` or `form-control` (or both) so the centralized styles apply.
+- Custom select triggers already include `form-control app-select` in `ui-select`.
 
-**Residual Risks / Open Questions**
-- Sticky errors have no close button; dismissal is programmatic only. Add an inline close if needed.
-- Successive errors will stack (no dedup). Define dedup or max visible if desired.
-- We left unused CSS for old banners; harmless but can be cleaned up later.
-- Timers don’t pause on hover; can be added if required.
+**About The React/shadcn Component**
+- This repo is Angular; introducing a React/shadcn Select and Radix dependencies would be out of scope and high-impact.
+- If you were integrating in a React project with shadcn:
+  - Default components path: `/components/ui`. Create it to keep shadcn-generated imports consistent.
+  - Install: `@radix-ui/react-select` and `@radix-ui/react-icons`.
+  - Add `select.tsx` and `demo.tsx` under `/components/ui`, and `label.tsx` (from “originui/label”) under `/components/ui/label.tsx`.
+  - Ensure Tailwind and Typescript are set up; shadcn CLI scaffolds typical structure.
+- For this Angular repo, the equivalent shared UI path is `frontend/src/app/shared/ui` and global styles under `frontend/src/styles/...`, which are already used.
+
+**Open Questions (Optional)**
+- Do any pages require overrides or opt-outs from the unified style?
+- Should we add RTL logical properties (e.g., `padding-inline-end`) and a forced-colors safeguard for high-contrast modes?
+
+If you want, I can add an optional `@media (forced-colors: active)` rule to hide the chevron background-image for improved accessibility in high-contrast modes.

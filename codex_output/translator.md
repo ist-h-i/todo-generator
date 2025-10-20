@@ -1,47 +1,47 @@
-**English Summary**
-Implement a lightweight notification (“hover message/toast”) manager that shows messages on the right side of the screen with animations. Newest messages appear at the top; older ones stack below. Messages auto-dismiss based on severity; errors persist; loading persists until completion. Messages slide out to the right when dismissed.
-
-**Expected Behavior**
-- Placement: right side, vertical stack; newest at top.
-- Entry: animated appearance (descend from top).
-- Exit: slide-out to the right.
-- Queue: in-memory array; visual order reflects newest-first.
-- Duration by severity:
-  - Error: persistent (does not auto-dismiss), red shadow.
-  - Warning: 10s, yellow shadow.
-  - Notice: 5s, green shadow.
-  - System/Loading: ≥3s; loading remains until explicitly ended, blue shadow.
-
-**Scope**
-- Add a central “message manager” class/service to own queue, timers, and IDs.
-- Render via a single host in the app shell to show the stack on the right.
-- Replace scattered notification logic to route through this class.
-- No new dependencies; CSS-based animations only.
+**Request Summary**
+- Unify the visual design of all selectors (dropdowns) with text inputs.
+- Fix hover: selector background turns white and diverges from inputs.
+- Ensure the down-arrow icon is always visible (not only on hover).
+- Maintain light/dark theme parity; in dark mode, icon color must match text color for contrast.
+- Keep the change minimal, centralized, and safe to apply app‑wide.
 
 **Assumptions**
-- “Hover message” refers to floating toast notifications, not tooltip/hover UI.
-- Angular SPA; service + single host component is acceptable.
-- Use existing design tokens (colors/shadows) where available.
-- Callers can programmatically dismiss or update messages (e.g., loading → success).
+- The repository is Angular-based; existing selectors include native `<select>` and a shared Angular UI select.
+- A centralized SCSS/theming layer exists and should be the primary lever (no API/behavior changes).
+- Style tokens (color, border, radius, focus ring) already define the input look we should match.
+- The icon can inherit `currentColor` to remain in sync with text in both themes.
+- Paths used historically: components like `src/app/shared/ui`, styles like `src/styles` (or similar).
 
 **Constraints**
-- Minimize changes to existing code; keep edits tightly scoped.
-- Deliver a self-contained outcome without adding dependencies.
-- Keep implementation achievable within a small diff and short timeframe.
+- Minimize scope and avoid template/TS changes unless necessary for correctness.
+- Deliver a complete, self-contained fix affecting all selectors consistently.
+- Complete within a small diff (single SCSS/CSS source preferred).
+- Do not introduce React/shadcn into an Angular codebase.
 
 **Unknowns**
-- Presence of any existing notification/toast mechanism to extend or replace.
-- Exact design tokens for red/yellow/green/blue and shadow intensities.
-- Maximum number of concurrent on-screen messages.
-- Whether a visible close button is required for sticky errors.
-- Accessibility requirements (roles, aria-live, keyboard dismissal).
-- Mobile behavior, safe-area padding, and z-index layering.
+- Exact selector implementations in use (native `<select>`, custom Angular `ui-select`, Angular Material, or a mix).
+- The definitive input styling tokens to mirror (hover, focus, disabled, radius, border, bg).
+- Any page-specific overrides that could conflict with centralized updates.
+- RTL and high-contrast/forced-colors requirements.
+- Target browser support (e.g., allowance for modern CSS like color-mix).
+
+**Notes on React/shadcn Content Provided**
+- The provided React/shadcn/Tailwind/TypeScript Select component and instructions are not applicable to this Angular repo as-is.
+- If the project were React with shadcn:
+  - Default components path is `/components/ui`, styles under `/lib` and Tailwind config.
+  - Creating `/components/ui` standardizes imports and aligns with shadcn generators.
+  - Required deps: `@radix-ui/react-select`, `@radix-ui/react-icons`; Tailwind and TS setup required.
+- For this Angular repo, equivalent structure is typically `src/app/shared/ui` (components) and `src/styles` (global SCSS).
 
 **Clarifying Questions**
-- Should we replace any existing notification system, or integrate with it?
-- Do you want a close button on persistent errors, or programmatic dismissal only?
-- What color and shadow tokens should map to each severity (error/warn/notice/system)?
-- Should we cap visible messages (e.g., 4) and queue the rest?
-- Any accessibility requirements (aria-live/role, focus handling, keyboard support)?
-- Any mobile-specific placement or safe-area constraints to observe?
-- Is a simple API acceptable: showError, showWarning, showNotice, showLoading (returns id), update(id), dismiss(id), clearAll()?
+- Which selector variants must be covered: native `<select>`, custom `ui-select`, `mat-select`, or all?
+- Which input style tokens are the source of truth (bg, border, radius, hover, focus ring) to mirror exactly?
+- Do any modules/pages require opt-out from the unified appearance?
+- Are RTL and forced-colors (high contrast) modes in scope for this change?
+- What are the target browsers (to confirm acceptable CSS features)?
+
+**Proposed Acceptance Criteria**
+- Selector idle, hover, focus-visible, and disabled states match inputs for bg/border/radius.
+- Icon is always visible and uses `currentColor` to match text (light/dark).
+- Hover no longer turns selector background white; visual feedback matches inputs.
+- No behavior or API changes; minimal, centralized style diff; dark mode parity preserved.
