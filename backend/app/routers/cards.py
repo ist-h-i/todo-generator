@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Iterable
+from typing import Iterable, Mapping
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import func, or_
@@ -49,7 +49,113 @@ def _next_label_colour(index: int) -> str:
     return _FALLBACK_LABEL_COLOURS[index % len(_FALLBACK_LABEL_COLOURS)]
 
 
-def _card_query(db: Session, *, owner_id: str | None = None):
+def _normalize_token(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def _canonicalize_assignees(db: Session, inputs: Iterable[str | None]) -> list[str]:
+    """Map incoming assignee labels (email/nickname/id) to stable user IDs.
+
+    - If a value equals an existing `users.id`, keep that id.
+    - Else if it matches a user's email (case-insensitive), map to that id.
+    - Else if it matches a user's nickname (case-insensitive) and the nickname is unique, map to that id.
+    - Otherwise, preserve the original non-empty value.
+    """
+    raw_values = [v for v in (s.strip() if isinstance(s, str) else None for s in inputs) if v]
+    if not raw_values:
+        return []
+
+    unique_values = list(dict.fromkeys(raw_values))
+
+    # 1) Match by id
+    id_matches = {
+        user.id: user.id
+        for user in db.query(models.User).filter(models.User.id.in_(unique_values)).all()
+    }
+
+    # 2) Match by email (normalized)
+    normalized = {_normalize_token(v) for v in unique_values}
+    email_candidates = (
+        db.query(models.User)
+        .filter(func.lower(func.trim(models.User.email)).in_(normalized))
+        .all()
+    )
+    email_lookup: dict[str, str] = {
+        _normalize_token(user.email): user.id for user in email_candidates
+    }
+
+    # 3) Match by nickname (normalized) — only when unique
+    nickname_candidates = (
+        db.query(models.User)
+        .filter(models.User.nickname.is_not(None))
+        .filter(func.lower(func.trim(models.User.nickname)).in_(normalized))
+        .all()
+    )
+    nickname_buckets: dict[str, set[str]] = {}
+    for user in nickname_candidates:
+        key = _normalize_token(user.nickname)
+        nickname_buckets.setdefault(key, set()).add(user.id)
+    nickname_lookup: dict[str, str] = {
+        key: next(iter(ids)) for key, ids in nickname_buckets.items() if len(ids) == 1
+    }
+
+    results: list[str] = []
+    for value in raw_values:
+        if value in id_matches:
+            results.append(id_matches[value])
+            continue
+        normalized_value = _normalize_token(value)
+        if normalized_value in email_lookup:
+            results.append(email_lookup[normalized_value])
+            continue
+        if normalized_value in nickname_lookup:
+            results.append(nickname_lookup[normalized_value])
+            continue
+        results.append(value)
+
+    return results
+
+
+def _canonicalize_single_assignee(db: Session, value: str | None) -> str | None:
+    mapped = _canonicalize_assignees(db, [value] if value else [])
+    return mapped[0] if mapped else None
+
+
+def _resolve_display_names(db: Session, user_ids: Iterable[str]) -> Mapping[str, str]:
+    """Return map of user_id -> display label (nickname preferred, else email)."""
+    unique_ids = list({uid for uid in user_ids if isinstance(uid, str) and uid.strip()})
+    if not unique_ids:
+        return {}
+    users = db.query(models.User).filter(models.User.id.in_(unique_ids)).all()
+    display: dict[str, str] = {}
+    for user in users:
+        nickname = (user.nickname or "").strip()
+        display[user.id] = nickname if nickname else (user.email or "").strip()
+    return display
+
+
+def _card_read_with_display(card: models.Card, display_map: Mapping[str, str]) -> schemas.CardRead:
+    base = schemas.CardRead.model_validate(card)
+    display_assignees = [display_map.get(a, a) for a in list(card.assignees or [])]
+    display_subtasks = [
+        schemas.SubtaskRead.model_validate(sub).model_copy(
+            update={"assignee": display_map.get(sub.assignee, sub.assignee)}
+        )
+        for sub in card.subtasks
+    ]
+    return base.model_copy(update={"assignees": display_assignees, "subtasks": display_subtasks})
+
+
+def _member_channel_ids(db: Session, *, user_id: str) -> list[str]:
+    return [
+        row[0]
+        for row in db.query(models.ChannelMember.channel_id)
+        .filter(models.ChannelMember.user_id == user_id)
+        .all()
+    ]
+
+
+def _card_query(db: Session, *, owner_id: str | None = None, member_user_id: str | None = None):
     query = db.query(models.Card).options(
         selectinload(models.Card.subtasks),
         selectinload(models.Card.labels),
@@ -58,7 +164,14 @@ def _card_query(db: Session, *, owner_id: str | None = None):
         joinedload(models.Card.initiative),
     )
 
-    if owner_id:
+    if member_user_id:
+        channel_ids = _member_channel_ids(db, user_id=member_user_id)
+        if channel_ids:
+            query = query.filter(models.Card.channel_id.in_(channel_ids))
+        else:
+            # No memberships: return empty set by filtering impossible condition
+            query = query.filter(models.Card.id == "__none__")
+    elif owner_id:
         query = query.filter(models.Card.owner_id == owner_id)
 
     return query
@@ -241,9 +354,9 @@ def _validate_related_entities(
     )
 
 
-def _get_owned_card(db: Session, *, owner_id: str, card_id: str) -> models.Card:
+def _get_accessible_card(db: Session, *, user_id: str, card_id: str) -> models.Card:
     card = (
-        _card_query(db, owner_id=owner_id)
+        _card_query(db, member_user_id=user_id)
         .filter(models.Card.id == card_id)
         .order_by(models.Card.created_at.desc())
         .first()
@@ -353,7 +466,7 @@ def list_cards(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> list[models.Card]:
-    query = _card_query(db, owner_id=current_user.id)
+    query = _card_query(db, member_user_id=current_user.id)
 
     effective_status_ids = set(status_ids or [])
     if status_id:
@@ -412,7 +525,15 @@ def list_cards(
         wanted = set(assignees)
         cards = [card for card in cards if wanted.intersection(set(card.assignees or []))]
 
-    return cards
+    # Resolve userIds -> nickname for display in response
+    user_ids: set[str] = set()
+    for card in cards:
+        user_ids.update([v for v in (card.assignees or []) if v])
+        for sub in card.subtasks:
+            if sub.assignee:
+                user_ids.add(sub.assignee)
+    display_map = _resolve_display_names(db, user_ids)
+    return [_card_read_with_display(card, display_map) for card in cards]
 
 
 @router.post("/", response_model=schemas.CardRead, status_code=status.HTTP_201_CREATED)
@@ -471,15 +592,32 @@ def create_card(
         profile=profile,
     )
 
+    # Determine channel
+    channel_id = payload.channel_id
+    if channel_id:
+        # Validate membership in specified channel
+        member_channels = set(_member_channel_ids(db, user_id=current_user.id))
+        if channel_id not in member_channels:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of channel")
+    else:
+        # Default to user's private channel
+        private = (
+            db.query(models.Channel)
+            .filter(models.Channel.owner_user_id == current_user.id, models.Channel.is_private.is_(True))
+            .first()
+        )
+        channel_id = private.id if private else None
+
     card = models.Card(
         title=payload.title,
         summary=payload.summary,
         description=payload.description,
         status_id=payload.status_id,
+        channel_id=channel_id,
         priority=payload.priority,
         story_points=payload.story_points,
         estimate_hours=payload.estimate_hours,
-        assignees=payload.assignees,
+        assignees=_canonicalize_assignees(db, payload.assignees or []),
         start_date=payload.start_date,
         due_date=payload.due_date,
         dependencies=payload.dependencies,
@@ -502,7 +640,9 @@ def create_card(
         card.labels = labels
 
     for subtask_data in payload.subtasks:
-        subtask = models.Subtask(**subtask_data.model_dump())
+        subtask_payload = subtask_data.model_dump()
+        subtask_payload["assignee"] = _canonicalize_single_assignee(db, subtask_payload.get("assignee"))
+        subtask = models.Subtask(**subtask_payload)
         if _subtask_status_is_done(subtask.status):
             subtask.completed_at = datetime.now(timezone.utc)
         card.subtasks.append(subtask)
@@ -511,7 +651,13 @@ def create_card(
     record_activity(db, action="card_created", card_id=card.id, actor_id=current_user.id)
     db.commit()
     db.refresh(card)
-    return card
+    # Resolve display names in response
+    user_ids = set(card.assignees or [])
+    for sub in card.subtasks:
+        if sub.assignee:
+            user_ids.add(sub.assignee)
+    display_map = _resolve_display_names(db, user_ids)
+    return _card_read_with_display(card, display_map)
 
 
 @router.get("/{card_id}", response_model=schemas.CardRead)
@@ -519,8 +665,14 @@ def get_card(
     card_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> models.Card:
-    return _get_owned_card(db, owner_id=current_user.id, card_id=card_id)
+) -> schemas.CardRead:
+    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
+    user_ids = set(card.assignees or [])
+    for sub in card.subtasks:
+        if sub.assignee:
+            user_ids.add(sub.assignee)
+    display_map = _resolve_display_names(db, user_ids)
+    return _card_read_with_display(card, display_map)
 
 
 @router.put("/{card_id}", response_model=schemas.CardRead)
@@ -529,10 +681,16 @@ def update_card(
     payload: schemas.CardUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> models.Card:
-    card = _get_owned_card(db, owner_id=current_user.id, card_id=card_id)
+) -> schemas.CardRead:
+    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     update_data = payload.model_dump(exclude_unset=True)
+    # Block channel changes for MVP to avoid unauthorized moves
+    if "channel_id" in update_data:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Changing channel is not supported",
+        )
     label_ids = update_data.pop("label_ids", None)
     update_data.pop("ai_confidence", None)
     update_data.pop("ai_notes", None)
@@ -545,7 +703,7 @@ def update_card(
 
     _validate_related_entities(
         db,
-        owner_id=current_user.id,
+        owner_id=card.owner_id,
         status_id=update_data.get("status_id"),
         error_category_id=update_data.get("error_category_id"),
         initiative_id=update_data.get("initiative_id"),
@@ -556,10 +714,14 @@ def update_card(
         status_id = update_data.get("status_id")
         new_status = db.get(models.Status, status_id) if status_id else None
 
+    # Canonicalize assignees on update if provided
+    if "assignees" in update_data and update_data.get("assignees") is not None:
+        update_data["assignees"] = _canonicalize_assignees(db, update_data.get("assignees") or [])
+
     apply_updates(card, update_data)
 
     if label_ids is not None:
-        labels = _load_owned_labels(db, label_ids=list(label_ids or []), owner_id=current_user.id)
+        labels = _load_owned_labels(db, label_ids=list(label_ids or []), owner_id=card.owner_id)
         card.labels = labels
 
     if "status_id" in update_data:
@@ -582,7 +744,12 @@ def update_card(
     record_activity(db, action="card_updated", card_id=card.id, actor_id=current_user.id)
     db.commit()
     db.refresh(card)
-    return card
+    user_ids = set(card.assignees or [])
+    for sub in card.subtasks:
+        if sub.assignee:
+            user_ids.add(sub.assignee)
+    display_map = _resolve_display_names(db, user_ids)
+    return _card_read_with_display(card, display_map)
 
 
 @router.delete(
@@ -595,13 +762,7 @@ def delete_card(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    card = get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     record_activity(db, action="card_deleted", card_id=card.id, actor_id=current_user.id)
     delete_model(db, card)
@@ -613,16 +774,23 @@ def list_subtasks(
     card_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> list[models.Subtask]:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+) -> list[schemas.SubtaskRead]:
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
-    return db.query(models.Subtask).filter(models.Subtask.card_id == card_id).order_by(models.Subtask.created_at).all()
+    items = (
+        db.query(models.Subtask)
+        .filter(models.Subtask.card_id == card_id)
+        .order_by(models.Subtask.created_at)
+        .all()
+    )
+    user_ids = {sub.assignee for sub in items if sub.assignee}
+    display_map = _resolve_display_names(db, user_ids)
+    return [
+        schemas.SubtaskRead.model_validate(sub).model_copy(
+            update={"assignee": display_map.get(sub.assignee, sub.assignee)}
+        )
+        for sub in items
+    ]
 
 
 @router.post(
@@ -635,16 +803,12 @@ def create_subtask(
     payload: schemas.SubtaskCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> models.Subtask:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+) -> schemas.SubtaskRead:
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
-    subtask = models.Subtask(card_id=card_id, **payload.model_dump())
+    data = payload.model_dump()
+    data["assignee"] = _canonicalize_single_assignee(db, data.get("assignee"))
+    subtask = models.Subtask(card_id=card_id, **data)
     if _subtask_status_is_done(subtask.status):
         subtask.completed_at = datetime.now(timezone.utc)
     db.add(subtask)
@@ -657,7 +821,10 @@ def create_subtask(
     )
     db.commit()
     db.refresh(subtask)
-    return subtask
+    display_map = _resolve_display_names(db, [subtask.assignee] if subtask.assignee else [])
+    return schemas.SubtaskRead.model_validate(subtask).model_copy(
+        update={"assignee": display_map.get(subtask.assignee, subtask.assignee)}
+    )
 
 
 @router.put("/{card_id}/subtasks/{subtask_id}", response_model=schemas.SubtaskRead)
@@ -667,14 +834,8 @@ def update_subtask(
     payload: schemas.SubtaskUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> models.Subtask:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+) -> schemas.SubtaskRead:
+    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     subtask = get_resource_or_404(
         db,
@@ -682,13 +843,15 @@ def update_subtask(
         subtask_id,
         detail="Subtask not found",
     )
-    if subtask.card_id != card_id:
+    if subtask.card_id != card.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
     previous_status = subtask.status
     status_was_done = _subtask_status_is_done(previous_status)
 
     updates = payload.model_dump(exclude_unset=True)
+    if "assignee" in updates and updates.get("assignee") is not None:
+        updates["assignee"] = _canonicalize_single_assignee(db, updates.get("assignee"))
     apply_updates(subtask, updates)
 
     status_is_done = _subtask_status_is_done(subtask.status)
@@ -707,7 +870,10 @@ def update_subtask(
     )
     db.commit()
     db.refresh(subtask)
-    return subtask
+    display_map = _resolve_display_names(db, [subtask.assignee] if subtask.assignee else [])
+    return schemas.SubtaskRead.model_validate(subtask).model_copy(
+        update={"assignee": display_map.get(subtask.assignee, subtask.assignee)}
+    )
 
 
 @router.delete(
@@ -721,13 +887,7 @@ def delete_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     subtask = get_resource_or_404(
         db,
@@ -735,7 +895,7 @@ def delete_subtask(
         subtask_id,
         detail="Subtask not found",
     )
-    if subtask.card_id != card_id:
+    if subtask.card_id != card.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
     record_activity(
@@ -799,10 +959,10 @@ def get_similar_items(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> schemas.SimilarItemsResponse:
-    base_card = _get_owned_card(db, owner_id=current_user.id, card_id=card_id)
+    base_card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     candidates = (
-        _card_query(db, owner_id=current_user.id)
+        _card_query(db, member_user_id=current_user.id)
         .filter(models.Card.id != card_id)
         .order_by(models.Card.created_at.desc())
         .all()
@@ -823,22 +983,10 @@ def record_similarity_feedback(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     if payload.related_type == "card":
-        get_owned_resource_or_404(
-            db,
-            models.Card,
-            related_id,
-            owner_id=current_user.id,
-            detail="Related card not found",
-        )
+        _get_accessible_card(db, user_id=current_user.id, card_id=related_id)
     elif payload.related_type == "subtask":
         subtask = get_resource_or_404(
             db,
@@ -846,13 +994,7 @@ def record_similarity_feedback(
             related_id,
             detail="Related subtask not found",
         )
-        get_owned_resource_or_404(
-            db,
-            models.Card,
-            subtask.card_id,
-            owner_id=current_user.id,
-            detail="Related subtask not found",
-        )
+        _get_accessible_card(db, user_id=current_user.id, card_id=subtask.card_id)
 
     feedback = models.SimilarityFeedback(
         card_id=card_id,

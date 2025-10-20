@@ -29,7 +29,7 @@ const buildControl = <T>(initialValue: T): SignalControl<T> => {
       store.set(value);
     },
     updateValue: (updater: (previous: T) => T): void => {
-      store.update((current) => updater(current));
+      store.update(updater);
     },
   };
 };
