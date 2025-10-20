@@ -34,7 +34,7 @@ This page helps newcomers quickly find the right code and docs. It complements t
 
 - `scripts/` — Local ops and automation helpers
   - `run_codex_pipeline.sh` — Auto‑dev pipeline runner.
-  - `generate_*_recipes.py` — Creates code recipe docs under `docs/recipes/`.
+  - `generate_*_recipes.py` — Creates code recipe docs co-located next to source files (`*.recipe.md`).
   - `bootstrap_database.py` — Initialize local DB state.
 
 - `prompts/` — Prompt materials used by services and tooling.
