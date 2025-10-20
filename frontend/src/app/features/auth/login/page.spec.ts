@@ -209,17 +209,20 @@ describe('LoginPage', () => {
     fixture.detectChanges();
 
     expect(component.registerEmailError()).toBeNull();
+    expect(component.registerNicknameError()).toBeNull();
     expect(component.registerPasswordError()).toBeNull();
     expect(component.registerConfirmError()).toBeNull();
 
     await component.onRegisterSubmit(new Event('submit'));
 
-    expect(component.registerNotice()).toBe('メールアドレスを入力してください。');
+    expect(component.registerNotice()).toBe('ニックネームを入力してください。');
     expect(component.registerEmailError()).toBe('メールアドレスを入力してください。');
+    expect(component.registerNicknameError()).toBe('ニックネームを入力してください。');
     expect(component.registerPasswordError()).toBe('パスワードを入力してください。');
     expect(component.registerConfirmError()).toBe('確認用パスワードを入力してください。');
     expect(auth.register.calls.count()).toBe(0);
 
+    component.registerForm.controls.nickname.setValue('Valid Nickname');
     component.registerForm.controls.email.setValue('invalid-address');
     component.registerForm.controls.password.setValue('short');
     component.registerForm.controls.confirmPassword.setValue('short');
@@ -228,6 +231,7 @@ describe('LoginPage', () => {
 
     expect(component.registerNotice()).toBe('メールアドレスの形式が正しくありません。');
     expect(component.registerEmailError()).toBe('メールアドレスの形式が正しくありません。');
+    expect(component.registerNicknameError()).toBeNull();
 
     component.registerForm.controls.email.setValue('user@example.com');
 
@@ -247,6 +251,7 @@ describe('LoginPage', () => {
     component.registerForm.controls.confirmPassword.setValue('validpass');
 
     expect(component.registerConfirmError()).toBeNull();
+    expect(component.registerNicknameError()).toBeNull();
     expect(component.isRegisterFormValid()).toBeTrue();
   });
 
