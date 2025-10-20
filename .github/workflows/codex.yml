@@ -252,37 +252,29 @@ jobs:
           progress_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json"
           progress_content="$(git show "${progress_ref}" 2>/dev/null || true)"
           if [ -n "$progress_content" ]; then
+            out_file="$(mktemp)"
+            printf '%s\n' "$progress_content" > "$out_file"
             {
               echo "json<<EOF"
-              echo "$progress_content"
+              printf '%s\n' "$progress_content"
               echo "EOF"
+              echo "json_path=${out_file}"
             } >> "$GITHUB_OUTPUT"
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             index_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/index.json"
             index_content="$(git show "${index_ref}" 2>/dev/null || true)"
             if [ -n "$index_content" ]; then
-              payload="$(
-                ISSUE="${num}" INDEX_CONTENT="$index_content" python3 - <<'PY'
-                import json, os, sys
-                issue = (os.environ.get("ISSUE") or "").strip()
-                raw = os.environ.get("INDEX_CONTENT") or ""
-                if not issue or not raw.strip():
-                    sys.exit(0)
-                try:
-                    data = json.loads(raw)
-                except Exception:
-                    sys.exit(0)
-                entry = data.get(issue) or data.get(str(issue))
-                if entry:
-                    print(json.dumps(entry, ensure_ascii=False))
-          PY
-              )"
+              # Use jq to safely extract the entry for this issue without passing large JSON via env
+              payload="$(printf '%s\n' "$index_content" | jq -c --arg n "$num" '(.[$n]) // (try .[($n|tonumber)] catch empty)')"
               if [ -n "$payload" ]; then
+                out_file="$(mktemp)"
+                printf '%s\n' "$payload" > "$out_file"
                 {
                   echo "json<<EOF"
-                  echo "$payload"
+                  printf '%s\n' "$payload"
                   echo "EOF"
+                  echo "json_path=${out_file}"
                 } >> "$GITHUB_OUTPUT"
                 echo "exists=true" >> "$GITHUB_OUTPUT"
               else
@@ -299,18 +291,27 @@ jobs:
         env:
           INPUT_JSON: ${{ steps.detect.outputs.task_input }}
           PREV: ${{ steps.progress.outputs.json }}
+          PREV_FILE: ${{ steps.progress.outputs.json_path }}
         shell: bash
         run: |
           set -euo pipefail
           payload="$(python3 - <<'PY'
-          import json, os
+          import json, os, sys
           task = os.environ.get('INPUT_JSON', '')
           prev = os.environ.get('PREV', '')
+          prev_file = os.environ.get('PREV_FILE', '').strip()
           try:
               data = json.loads(task)
           except Exception:
               data = {'Instruction': task}
-          if prev:
+          # Prefer file to avoid env-size issues
+          if prev_file:
+              try:
+                  with open(prev_file, 'r', encoding='utf-8') as f:
+                      data['PreviousProgress'] = json.load(f)
+              except Exception:
+                  pass
+          elif prev:
               try:
                   data['PreviousProgress'] = json.loads(prev)
               except Exception:
