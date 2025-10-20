@@ -1,4 +1,5 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { getDisplayName } from '@shared/utils/display-name';
 import { firstValueFrom } from 'rxjs';
 
 import { AuthService } from '@core/auth/auth.service';
@@ -733,26 +734,23 @@ export class WorkspaceStore {
   private readonly activeUserId = computed(() => this.auth.user()?.id ?? null);
   private readonly activeUserEmail = computed(() => this.auth.user()?.email ?? null);
   private readonly activeUserNickname = computed(() => {
-    const raw = this.auth.user()?.nickname;
-    if (raw === null || raw === undefined) {
+    const rawUser = this.auth.user();
+    if (!rawUser) {
       return null;
     }
 
-    const nickname = raw.trim();
+    const nickname = getDisplayName({ nickname: rawUser.nickname, email: null });
     return nickname.length > 0 ? nickname : null;
   });
   public readonly currentUserId = computed(() => this.activeUserId());
   public readonly commentAuthorName = computed(() => {
-    const nickname = this.activeUserNickname();
-    if (nickname) {
-      return nickname;
+    const user = this.auth.user();
+    if (user) {
+      const preferred = getDisplayName(user);
+      if (preferred.trim().length > 0) {
+        return preferred.trim();
+      }
     }
-
-    const email = this.activeUserEmail();
-    if (email) {
-      return email;
-    }
-
     return '匿名ユーザー';
   });
   private lastSyncedAssigneeName: string | null = null;

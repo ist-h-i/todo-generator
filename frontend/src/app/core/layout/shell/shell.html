@@ -222,9 +222,7 @@
                   }
                 </span>
                 <span class="shell-user__details">
-                  <span class="shell-user__name">{{
-                    currentUser.nickname ?? currentUser.email
-                  }}</span>
+                  <span class="shell-user__name">{{ displayName(currentUser) }}</span>
                   <span class="shell-user__meta">
                     @if (currentUser.roles.length) {
                       <span
