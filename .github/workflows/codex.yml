@@ -320,7 +320,7 @@ PY
         id: prepare_branch
         env:
           BRANCH_NAME: ${{ github.event_name == 'issue_comment' && steps.detect.outputs.issue_number != '' && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
-          BASE_BRANCH: deploy
+          BASE_BRANCH: develop
         run: |
           set -euo pipefail
           branch="${BRANCH_NAME}"
@@ -713,7 +713,7 @@ PY
         uses: actions/github-script@v7
         env:
           BRANCH_NAME: ${{ github.event_name == 'issue_comment' && steps.detect.outputs.issue_number != '' && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
-          BASE_BRANCH: deploy
+          BASE_BRANCH: develop
           ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
           TASK_INPUT: ${{ steps.merge.outputs.task_input }}
           CHANGE_SUMMARY: ${{ steps.summary.outputs.change_summary }}
