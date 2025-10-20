@@ -27,6 +27,7 @@ interface LoginSubmission {
 interface RegistrationSubmission {
   readonly email: string;
   readonly password: string;
+  readonly nickname: string;
 }
 
 @Component({
@@ -42,6 +43,7 @@ export class LoginPage {
 
   public readonly loginForm = createSignalForm({ email: '', password: '' });
   public readonly registerForm = createSignalForm({
+    nickname: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -56,6 +58,7 @@ export class LoginPage {
   private readonly loginEmailTouched = signal(false);
   private readonly loginPasswordTouched = signal(false);
   private readonly registerEmailTouched = signal(false);
+  private readonly registerNicknameTouched = signal(false);
   private readonly registerPasswordTouched = signal(false);
   private readonly registerConfirmTouched = signal(false);
   public readonly loginEmailError = computed(() => {
@@ -82,11 +85,13 @@ export class LoginPage {
   });
   public readonly isRegisterFormValid = computed(() => {
     const email = this.registerForm.controls.email.value();
+    const nickname = this.registerForm.controls.nickname.value();
     const password = this.registerForm.controls.password.value();
     const confirmPassword = this.registerForm.controls.confirmPassword.value();
 
     return (
       !this.getEmailError(email) &&
+      !this.getNicknameError(nickname) &&
       !this.getPasswordError(password) &&
       !this.getRegisterConfirmError(password, confirmPassword)
     );
@@ -117,6 +122,13 @@ export class LoginPage {
 
     return this.getRegisterConfirmError(password, confirmPassword);
   });
+  public readonly registerNicknameError = computed(() => {
+    if (!this.registerNicknameTouched()) {
+      return null;
+    }
+    const value = this.registerForm.controls.nickname.value();
+    return this.getNicknameError(value);
+  });
   public readonly loginFormChangedSinceLastSubmit = computed(() => {
     const lastSubmission = this.lastLoginSubmission();
     if (!lastSubmission) {
@@ -138,7 +150,8 @@ export class LoginPage {
     const value = this.registerForm.value();
     return (
       lastSubmission.email !== this.sanitizeEmail(value.email) ||
-      lastSubmission.password !== value.password
+      lastSubmission.password !== value.password ||
+      lastSubmission.nickname !== value.nickname
     );
   });
   public readonly canSubmitLogin = computed(
@@ -216,11 +229,13 @@ export class LoginPage {
     event.preventDefault();
     this.resetNotices();
     this.registerEmailTouched.set(true);
+    this.registerNicknameTouched.set(true);
     this.registerPasswordTouched.set(true);
     this.registerConfirmTouched.set(true);
 
     const value = this.registerForm.value();
     const email = this.sanitizeEmail(value.email);
+    const nickname = value.nickname.trim();
     const password = value.password;
 
     const validationError = this.resolveRegisterErrorMessage(value);
@@ -233,9 +248,9 @@ export class LoginPage {
       return;
     }
 
-    this.lastRegisterSubmission.set({ email, password });
+    this.lastRegisterSubmission.set({ email, password, nickname });
 
-    const success = await this.auth.register(email, password);
+    const success = await this.auth.register(email, password, nickname);
     if (success) {
       this.registerForm.reset();
       this.resetRegisterInteractions();
@@ -252,6 +267,12 @@ export class LoginPage {
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
     this.registerEmailTouched.set(true);
     this.registerForm.controls.email.setValue(value);
+  }
+
+  public onRegisterNicknameInput(event: Event): void {
+    const value = (event.target as HTMLInputElement | null)?.value ?? '';
+    this.registerNicknameTouched.set(true);
+    this.registerForm.controls.nickname.setValue(value);
   }
 
   public onRegisterPasswordInput(event: Event): void {
@@ -306,6 +327,7 @@ export class LoginPage {
 
   private resetRegisterInteractions(): void {
     this.registerEmailTouched.set(false);
+    this.registerNicknameTouched.set(false);
     this.registerPasswordTouched.set(false);
     this.registerConfirmTouched.set(false);
   }
@@ -379,10 +401,15 @@ export class LoginPage {
   }
 
   private resolveRegisterErrorMessage(value: {
+    nickname: string;
     email: string;
     password: string;
     confirmPassword: string;
   }): string | null {
+    const nicknameError = this.getNicknameError(value.nickname);
+    if (nicknameError) {
+      return nicknameError;
+    }
     const emailError = this.getEmailError(value.email);
     if (emailError) {
       return emailError;
@@ -398,6 +425,18 @@ export class LoginPage {
       return confirmError;
     }
 
+    return null;
+  }
+
+  private getNicknameError(value: string): string | null {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      return 'ニックネームを入力してください。';
+    }
+    const MAX_NICKNAME_LENGTH = 64;
+    if (trimmed.length > MAX_NICKNAME_LENGTH) {
+      return `ニックネームは${MAX_NICKNAME_LENGTH}文字以内で入力してください。`;
+    }
     return null;
   }
 }

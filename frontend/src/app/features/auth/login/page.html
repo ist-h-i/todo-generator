@@ -126,6 +126,27 @@
 
             <form class="auth-form" (submit)="onRegisterSubmit($event)">
               <div class="form-field">
+                <label class="form-field__label" for="register-nickname">ニックネーム</label>
+                <input
+                  id="register-nickname"
+                  name="register-nickname"
+                  type="text"
+                  autocomplete="nickname"
+                  class="form-control"
+                  [class.form-control--invalid]="registerNicknameError()"
+                  [value]="registerForm.controls.nickname.value()"
+                  (input)="onRegisterNicknameInput($event)"
+                  [attr.aria-invalid]="registerNicknameError() ? 'true' : null"
+                  [attr.aria-describedby]="registerNicknameError() ? 'register-nickname-error' : null"
+                  placeholder="表示名（例：山田 太郎）"
+                />
+                @if (registerNicknameError(); as nicknameError) {
+                  <p id="register-nickname-error" class="form-feedback form-feedback--error" aria-live="polite">
+                    {{ nicknameError }}
+                  </p>
+                }
+              </div>
+              <div class="form-field">
                 <label class="form-field__label" for="register-email">メールアドレス</label>
                 <input
                   id="register-email"
