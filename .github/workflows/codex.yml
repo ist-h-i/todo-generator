@@ -29,11 +29,18 @@ jobs:
     timeout-minutes: 60
     env:
       CODEX_NPM_PKG: "@openai/codex"
+      CODEX_OUTPUT_DIR: "${{ runner.temp }}/codex/${{ github.run_id }}"
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Prepare Codex output directory
+        run: |
+          set -euo pipefail
+          mkdir -p "${CODEX_OUTPUT_DIR}"
+          echo "CODEX_OUTPUT_DIR=${CODEX_OUTPUT_DIR}" >> "$GITHUB_ENV"
 
       # --- Auto-Evolve: flags 読込 & canary ルート決定 ここから ---
       - name: Install jq (for flags parsing)
@@ -364,7 +371,7 @@ PY
           TASK_INPUT: ${{ steps.merge.outputs.task_input }}
         run: |
           set -euo pipefail
-          mkdir -p codex_output
+          mkdir -p "${CODEX_OUTPUT_DIR}"
           printf '%s' "$TASK_INPUT" | ./scripts/run_codex_pipeline.sh
 
       - name: Check for clarification request
@@ -372,13 +379,31 @@ PY
         id: clarifications
         run: |
           set -euo pipefail
-          status="$(python3 -c "from pathlib import Path; import json; p=Path('codex_output/status.json'); ns={'p': p, 'json': json, 'status': ''}; exec(\"if p.exists():\\n    try:\\n        status=json.loads(p.read_text(encoding='utf-8')).get('status','') or ''\\n    except Exception:\\n        status=''\", ns); print(ns.get('status',''))")"
+          status="$(python3 - <<'PY'
+import json, os, pathlib
+
+base = pathlib.Path(os.environ["CODEX_OUTPUT_DIR"])
+p = base / "status.json"
+status = ""
+if p.exists():
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    else:
+        if isinstance(data, dict):
+            status = str(data.get("status") or "")
+        elif isinstance(data, str):
+            status = data
+print(status)
+PY
+          )"
           if [ "${status}" = "needs_clarification" ]; then
             echo "needs_clarification=true" >> "$GITHUB_OUTPUT"
-            if [ -f codex_output/clarifying_questions.md ]; then
+            if [ -f "${CODEX_OUTPUT_DIR}/clarifying_questions.md" ]; then
               {
                 echo "questions<<EOF"
-                cat codex_output/clarifying_questions.md
+                cat "${CODEX_OUTPUT_DIR}/clarifying_questions.md"
                 echo "EOF"
               } >> "$GITHUB_OUTPUT"
             fi
@@ -404,7 +429,8 @@ PY
             out = {'issue': issue, 'run_id': run_id, 'timestamp': ts}
 
             # status.json (structured if possible)
-            p = pathlib.Path('codex_output/status.json')
+            output_dir = pathlib.Path(os.environ['CODEX_OUTPUT_DIR'])
+            p = output_dir / 'status.json'
             if p.exists():
                 try:
                     out['status'] = json.loads(p.read_text(encoding='utf-8'))
@@ -412,15 +438,14 @@ PY
                     out['status_raw'] = p.read_text(encoding='utf-8')
 
             # clarifying questions preview
-            q = pathlib.Path('codex_output/clarifying_questions.md')
+            q = output_dir / 'clarifying_questions.md'
             if q.exists():
                 out['clarifying_questions'] = q.read_text(encoding='utf-8')[:4000]
 
             # file inventory with small previews
             files = []
-            base = pathlib.Path('codex_output')
-            if base.exists():
-                for q in base.rglob('*'):
+            if output_dir.exists():
+                for q in output_dir.rglob('*'):
                     if q.is_file():
                         sz = q.stat().st_size
                         item = {'path': str(q), 'size': sz}
@@ -485,7 +510,7 @@ PY
         continue-on-error: true
         with:
           name: codex-agent-outputs
-          path: codex_output
+          path: ${{ env.CODEX_OUTPUT_DIR }}
           retention-days: 7
 
       - name: Check repository diff
@@ -793,6 +818,7 @@ PY
         with:
           script: |
             const fs = require('fs');
+            const path = require('path');
             const issueNumber = Number("${{ steps.detect.outputs.issue_number }}");
             const prUrl = "${{ steps.pr.outputs.result.pull_request_url }}";
             const prNumber = Number("${{ steps.pr.outputs.result.pull_request_number }}");
@@ -837,7 +863,8 @@ PY
               "- 重点: 差分とPR内容の妥当性を確認してください。",
               "- 非対象: 特になし"
             ].join("\n");
-            const workReportPath = 'codex_output/work_report.md';
+            const outputDir = (process.env.CODEX_OUTPUT_DIR || 'codex_output').trim() || 'codex_output';
+            const workReportPath = path.join(outputDir, 'work_report.md');
             const report = fs.existsSync(workReportPath)
               ? (fs.readFileSync(workReportPath, 'utf8').trim() || fallbackReport)
               : fallbackReport;
@@ -853,3 +880,11 @@ PY
         run: |
           echo "::error::No changes detected. PR was not created, so completion conditions are not met."
           exit 1
+
+      - name: Clean up Codex output directory
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          if [ -d "${CODEX_OUTPUT_DIR}" ]; then
+            rm -rf "${CODEX_OUTPUT_DIR}"
+          fi
