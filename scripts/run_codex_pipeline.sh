@@ -79,7 +79,9 @@ fi
 echo 'preferred_auth_method = "chatgpt"' > "${AUTH_DIR}/config.toml"
 
 # ---------- Pipeline ----------
-mkdir -p codex_output
+CODEX_OUTPUT_DIR="${CODEX_OUTPUT_DIR:-codex_output}"
+export CODEX_OUTPUT_DIR
+mkdir -p "${CODEX_OUTPUT_DIR}"
 
 AVAILABLE_DYNAMIC_STAGES=(
   qa_automation_planner
@@ -112,7 +114,7 @@ PREVIOUS_CONTEXT=""
 
 run_stage() {
   local STEP="$1"
-  local OUTPUT_FILE="codex_output/${STEP}.md"
+  local OUTPUT_FILE="${CODEX_OUTPUT_DIR}/${STEP}.md"
   local HUMAN_STEP_NAME
   HUMAN_STEP_NAME=$(echo "${STEP}" | tr '_' ' ')
 
@@ -250,8 +252,8 @@ PY
       {
         printf '## Clarifying questions\n'
         printf '%s\n' "${CLARIFYING_SECTION}" | sed 's/[[:space:]]*$//'
-      } > codex_output/clarifying_questions.md
-      cat <<'JSON' > codex_output/status.json
+      } > "${CODEX_OUTPUT_DIR}/clarifying_questions.md"
+      cat <<'JSON' > "${CODEX_OUTPUT_DIR}/status.json"
 {"status":"needs_clarification"}
 JSON
       oneline "::notice::Translator stage requested clarifications. Stopping pipeline early."
@@ -291,7 +293,8 @@ if not default:
     default = allowed.copy()
 
 text = ""
-planner_path = pathlib.Path("codex_output/planner.md")
+output_dir = pathlib.Path(os.environ["CODEX_OUTPUT_DIR"])
+planner_path = output_dir / "planner.md"
 if planner_path.exists():
     text = planner_path.read_text(encoding="utf-8")
 
@@ -333,7 +336,7 @@ output = {"steps": plan_steps, "source": source}
 if planner_payload is not None:
     output["planner_payload"] = planner_payload
 
-pathlib.Path("codex_output/execution_plan.json").write_text(
+(output_dir / "execution_plan.json").write_text(
     json.dumps(output, ensure_ascii=False, indent=2),
     encoding="utf-8",
 )
@@ -361,7 +364,7 @@ if [ ${#EXECUTION_PLAN[@]} -eq 0 ]; then
 fi
 
 oneline "$(printf '::notice::Planner selected stages: %s' "$(IFS=', '; echo "${EXECUTION_PLAN[*]}")")"
-printf '%s\n' "${EXECUTION_PLAN[@]}" > codex_output/execution_plan_steps.txt
+printf '%s\n' "${EXECUTION_PLAN[@]}" > "${CODEX_OUTPUT_DIR}/execution_plan_steps.txt"
 
 for STEP in "${EXECUTION_PLAN[@]}"; do
   run_stage "${STEP}"
