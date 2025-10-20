@@ -98,6 +98,7 @@ export class Shell {
   private readonly errorMessage = this.errorNotifier.message;
   private readonly loadingState = this.loadingStore.isLoading;
   private readonly loadingMessageState = this.loadingStore.message;
+  private loadingToastId: number | null = null;
   public readonly globalErrorMessage = computed(() => this.errorMessage());
   public readonly isGlobalLoading = computed(() => {
     if (this.errorMessage()) {
@@ -211,6 +212,28 @@ export class Shell {
   public constructor() {
     this.setupSystemThemeListener();
     // No-op: HoverMessageService manages its own timers; nothing to tear down here.
+    // Mirror global error messages into sticky error toasts.
+    effect(() => {
+      const msg = this.errorMessage();
+      if (msg) {
+        this.hoverMessages.error(msg);
+      }
+    });
+
+    // Mirror global loading state into a persistent loading toast.
+    effect(() => {
+      const isLoading = this.loadingState();
+      const message = this.loadingMessageState();
+
+      if (isLoading) {
+        if (this.loadingToastId === null) {
+          this.loadingToastId = this.hoverMessages.loading(message ?? 'データを読み込み中です…');
+        }
+      } else if (this.loadingToastId !== null) {
+        this.hoverMessages.dismiss(this.loadingToastId);
+        this.loadingToastId = null;
+      }
+    });
   }
 
   private resolveInitialTheme(): ThemePreference {
