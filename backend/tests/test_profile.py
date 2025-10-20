@@ -17,7 +17,7 @@ def _register_and_login(
 ) -> tuple[str, dict[str, str]]:
     response = client.post(
         "/auth/register",
-        json={"email": email, "password": password},
+        json={"email": email, "password": password, "nickname": "ProfileUser"},
     )
     assertions.assertTrue(response.status_code == 201)
     payload = response.json()
@@ -36,7 +36,7 @@ def test_profile_defaults(client: TestClient, email: str) -> None:
     assertions.assertTrue(response.status_code == 200)
     data = response.json()
 
-    assertions.assertTrue(data["nickname"] is None)
+    assertions.assertTrue(isinstance(data["nickname"], str) and data["nickname"].strip() != "")
     assertions.assertTrue(data["roles"] == [])
     assertions.assertTrue(data["avatar_url"] is None)
 

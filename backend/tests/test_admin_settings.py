@@ -16,7 +16,10 @@ def _admin_headers(client: TestClient) -> dict[str, str]:
     email = "owner@example.com"
     password = "AdminPass123!"  # noqa: S105 - test credential
 
-    register = client.post("/auth/register", json={"email": email, "password": password})
+    register = client.post(
+        "/auth/register",
+        json={"email": email, "password": password, "nickname": "Owner"},
+    )
     assertions.assertTrue(register.status_code == 201, register.text)
 
     login = client.post("/auth/login", json={"email": email, "password": password})

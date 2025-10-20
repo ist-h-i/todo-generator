@@ -1,6 +1,7 @@
 # Board Collaboration Requirements
 
 ## Document Control
+
 | Field | Value |
 | --- | --- |
 | Version | 0.10 |
@@ -9,15 +10,19 @@
 | Status | Draft |
 
 ## 1. Background & Objectives
+
 The workspace board gives teams a shared view of task progress, quick filtering tools, and inline collaboration through comments and activity history. The experience is powered by Angular signals that keep columns, filters, and card details synchronized with persisted workspace preferences and backend audit logs.【F:frontend/src/app/features/board/page.ts†L48-L215】【F:frontend/src/app/core/state/workspace-store.ts†L360-L520】【F:backend/app/routers/activity.py†L1-L60】
 
 ### Objectives
+
 1. Enable drag-and-drop planning for tasks and subtasks so teams can rebalance workloads with minimal clicks.【F:frontend/src/app/features/board/page.ts†L315-L368】【F:frontend/src/app/core/state/workspace-store.ts†L632-L720】
 2. Provide multi-dimensional filtering (search, labels, statuses, quick filters) that persists per user and keeps card and subtask views in sync.【F:frontend/src/app/features/board/page.ts†L210-L276】【F:frontend/src/app/core/state/workspace-store.ts†L480-L632】
 3. Support threaded collaboration through comment timelines and activity logs with permission-aware APIs for auditability.【F:frontend/src/app/features/board/page.ts†L402-L525】【F:backend/app/routers/comments.py†L1-L82】【F:backend/app/routers/activity.py†L14-L60】
 
 ## 2. Scope
+
 ### In Scope
+
 - Task board UI for cards grouped by status or label with subtask swimlanes and drag-and-drop interactions.【F:frontend/src/app/features/board/page.html†L58-L182】【F:frontend/src/app/features/board/page.ts†L301-L368】
 - Board filters, search box, quick filters, and persistence of preferences per authenticated user.【F:frontend/src/app/features/board/page.html†L16-L89】【F:frontend/src/app/core/state/workspace-store.ts†L520-L632】
 - Card detail drawer covering metadata editing, subtasks, comments, and activity timeline display.【F:frontend/src/app/features/board/page.html†L184-L540】【F:frontend/src/app/features/board/page.ts†L368-L525】
@@ -25,11 +30,13 @@ The workspace board gives teams a shared view of task progress, quick filtering 
 - Default AI-assisted template flow for one-off card creation that proposes labels, statuses, and metadata before saving.
 
 ### Out of Scope
+
 - Real-time multi-user presence indicators (future enhancement).
 - External notification channels (email, chat) triggered from board actions.
 - Role administration beyond the existing owner/actor checks in current routers.
 
 ## 3. Personas
+
 | Persona | Goals | Key Needs |
 | --- | --- | --- |
 | Product Owner | Track delivery risk and rebalance work quickly | Accurate drag-and-drop updates and filters showing at-risk items |
@@ -37,6 +44,7 @@ The workspace board gives teams a shared view of task progress, quick filtering 
 | Project Coordinator | Prepare status updates for stakeholders | Exportable views with reliable audit trails and persisted filters |
 
 ## 4. User Stories & Acceptance Criteria
+
 1. **Plan work with drag-and-drop** – As a product owner, I move cards across status columns to reassign work.
    - When grouping by status, dragging a card into a new column updates its status immediately and reflects the status accent color in the card preview.【F:frontend/src/app/features/board/page.ts†L321-L368】【F:frontend/src/app/core/state/workspace-store.ts†L664-L720】
    - Dragging is disabled when grouping by label to prevent accidental status changes.【F:frontend/src/app/features/board/page.html†L118-L160】
@@ -68,6 +76,7 @@ The workspace board gives teams a shared view of task progress, quick filtering 
    - The chosen AI recommendations are persisted with the card and logged in activity history to document automated assistance.
 
 ## 5. Functional Requirements
+
 1. Persist workspace settings to browser storage namespaced by user IDs while syncing board layout preferences through the `/board-layouts` API, migrating legacy keys automatically.【F:frontend/src/app/core/state/workspace-store.ts†L684-L980】【F:frontend/src/app/core/api/board-layouts-api.service.ts†L1-L44】
 2. Compute board columns dynamically based on grouping mode and filtered card IDs, including counts and accent colors per column.【F:frontend/src/app/core/state/workspace-store.ts†L520-L608】
 3. Highlight selected cards and subtasks to align board and subtask swimlanes, resetting forms when selection changes.【F:frontend/src/app/features/board/page.ts†L368-L460】
@@ -76,12 +85,14 @@ The workspace board gives teams a shared view of task progress, quick filtering 
 6. Provide an AI-assisted default template pathway that (a) pre-fills recommended metadata, (b) limits creation scope to a single card, (c) surfaces confidence levels or rationales, and (d) records acceptance or overrides within activity logs.
 
 ## 6. Non-Functional Requirements
+
 - **Performance** – Filtered card computations rely on pure signal transformations to minimize change detection work and keep board interactions under 50 ms for typical datasets.【F:frontend/src/app/core/state/workspace-store.ts†L480-L608】
 - **Reliability** – Activity logging happens within database transactions to guarantee comment or card mutations are accompanied by audit records.【F:backend/app/routers/comments.py†L40-L79】【F:backend/app/routers/cards.py†L360-L600】
 - **Usability** – Drag handles, disabled states, and badges provide context for grouping and filter states, ensuring discoverability of board controls.【F:frontend/src/app/features/board/page.html†L16-L182】
 - **Security & Privacy** – Backend routers check authenticated ownership on every request, and the frontend store normalizes user-provided strings before persisting.【F:backend/app/routers/comments.py†L14-L82】【F:frontend/src/app/core/state/workspace-store.ts†L700-L808】
 
 ## 7. Success Metrics
+
 | Metric | Target | Measurement |
 | --- | --- | --- |
 | Drag-and-drop adoption | 80% of board status changes recorded via `card_updated` activity entries | Count `card_updated` actions in `activity_log` table and compare to direct status edits.【F:backend/app/routers/cards.py†L420-L470】【F:backend/app/routers/activity.py†L46-L60】 |
@@ -91,6 +102,7 @@ The workspace board gives teams a shared view of task progress, quick filtering 
 | AI template adoption | 50% of ad-hoc card creations use the AI default template with at least one suggestion accepted | Measure `/cards` create events flagged with the AI default template identifier and compare accepted vs. overridden fields. |
 
 ## 8. Open Questions
+
 - Should drag-and-drop status changes trigger notifications or remain silent beyond the activity log?
 - Do we need to surface activity filters (e.g., by action type) on the board page or dedicated history view?
 - How should we reconcile external collaborators without workspace ownership when introducing shared boards?

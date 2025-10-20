@@ -1,11 +1,13 @@
 {
   "steps": [
-    "coder"
+    "coder",
+    "code_quality_reviewer"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder"
+      "coder",
+      "code_quality_reviewer"
     ],
     "notes": "Implement minimal, shared fix in UiSelect by deferring initial options read and observing projected <option> mutations. No API/template changes. This restores the competency 'Level' options and stabilizes other selects.",
     "tests": "Manual: (1) Admin → コンピテンシー登録 → verify 'レベル' options render and selection submits; (2) Spot-check other app-ui-select instances (reports status/priority) for proper rendering/selection; (3) Verify no console errors and accessible keyboard navigation remains."

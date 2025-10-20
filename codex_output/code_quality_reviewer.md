@@ -1,42 +1,73 @@
-Summary
-- Backend middleware sets safe security headers on all non-OPTIONS responses. Implementation is correct, minimal, and preserves existing headers via setdefault.
-- Tests validate headers on GET /health using existing fixture patterns; consistent with repo style.
-- Documentation updated to reflect actual crypto state (hardened with Fernet + legacy auto-rotate) and correct secret masking behavior.
+**Summary**
+- The backend now persists user linkage via userId and resolves assignee display names to nicknames on reads. The frontend removed the nickname/email overwrite logic and prefers nickname for defaults. A best‑effort migration normalizes legacy assignee strings to userIds at startup.
 
-What I Reviewed
-- backend/app/main.py: Security headers middleware
-  - Correctly after CORS preflight middleware; non-OPTIONS responses get:
-    - Strict-Transport-Security: max-age=15552000; includeSubDomains
-    - X-Content-Type-Options: nosniff
-    - Referrer-Policy: no-referrer
-    - X-Frame-Options: DENY
-    - Permissions-Policy: camera=(), microphone=(), geolocation=()
-    - Cross-Origin-Opener-Policy: same-origin
-    - Cross-Origin-Resource-Policy: same-origin
-  - Uses response.headers.setdefault to avoid clobbering upstream values.
-  - OPTIONS handling is harmless even if preflight short-circuits earlier.
-- backend/tests/test_security_headers.py: Focused header assertions
-  - Aligns with existing TestCase/assertTrue style used elsewhere.
-  - Leverages standard TestClient fixture from backend/tests/conftest.py.
-- Crypto and secrets utilities (sanity check):
-  - backend/app/utils/crypto.py implements Fernet with legacy auto-rotation. Tests cover re-encryption and error cases.
-  - backend/app/utils/secrets.py masking logic protects short secrets; tests confirm.
+**What Looks Good**
+- Write‑time canonicalization: email/nickname/id → userId
+  - backend/app/routers/cards.py:105–156, 173–178 (_canonicalize_assignees/_canonicalize_single_assignee)
+- Read‑time display: userId → nickname (fallback email)
+  - backend/app/routers/cards.py:180–203 (_resolve_display_names)
+  - Applied consistently in list/get/create/update cards and in subtask list/create/update:
+    - list_cards: backend/app/routers/cards.py:492–520
+    - create_card: backend/app/routers/cards.py:604–680
+    - get_card: backend/app/routers/cards.py:689–699
+    - update_card: backend/app/routers/cards.py:720–758
+    - list_subtasks: backend/app/routers/cards.py:787–805
+    - create_subtask: backend/app/routers/cards.py:829–842
+    - update_subtask: backend/app/routers/cards.py:858–896
+- Data model remains minimally invasive (strings remain, values now userIds):
+  - backend/app/models.py:50–104 (Card.assignees JSON of strings)
+  - backend/app/models.py:214–242 (Subtask.assignee string)
+- Startup migration backfills legacy strings to userIds, preserving unmatched values:
+  - backend/app/migrations.py:1000–1080 (_normalize_assignees_to_user_ids)
+  - Invoked in run_startup_migrations: backend/app/migrations.py:1119–1140
+- SPA stops label flipping and prefers nickname for default assignee:
+  - frontend/src/app/core/state/workspace-store.ts:742–758, 780–816
+- API shapes unchanged; Cards API and board rendering remain compatible:
+  - frontend/src/app/core/api/cards-api.service.ts:139–171 (assignees typed as strings for display)
 
-Tiny Nits / Edge Cases
-- The middleware’s OPTIONS branch delegates to downstream middleware; it’s fine given the earlier preflight middleware, but could return early for symmetry. No change needed.
-- Referrer-Policy: no-referrer is strict. If any flow relies on referrers, consider strict-origin-when-cross-origin in a later pass.
+**Correctness & Edge Cases**
+- Unique nickname handling during canonicalization and migration avoids ambiguity by skipping duplicates. Good.
+- Read‑time resolution batches ids per response; avoids N+1. Good.
+- Update and create paths canonicalize both card assignees and subtask assignee. Good.
+- Filters: server‑side `assignees` query filters by stored values (now userIds). UI appears to filter client‑side; no current breakage spotted.
 
-Applied Fixes
-- docs/security-review.md
-  - Replaced outdated “Weak secret storage cipher” with “Secret storage (Hardened)” describing Fernet + legacy rotation path.
-  - Updated “Secret hint” section to reflect current, safe masking behavior.
-  - Scope-limited doc edits only; no runtime impact.
+**Gaps / Risks**
+- Status reports still emit raw stored assignee values (now userIds):
+  - backend/app/services/status_report_presenter.py:63–92, 112–128
+  - Impact: Status report cards may display userIds instead of nicknames.
+- Display fallback might be empty when both nickname and email are empty:
+  - backend/app/routers/cards.py:198–203 returns “” if email missing; consider falling back to userId for non‑empty display.
+- Filtering by assignees via `GET /cards?assignees=` expects userIds now. If any external caller sends emails/nicknames, results will differ. The SPA doesn’t use this param currently, but integrations might.
+- Migration ambiguity: duplicate nicknames are skipped by design; those records remain as legacy strings until updated. Acceptable, but consider logging count for observability.
 
-Residual Risks
-- HSTS requires HTTPS in production to be effective.
-- COOP/CORP are safe for APIs; keep an eye on any cross-origin embedding needs.
-- SPA tokens remain in localStorage; migration to secure, httpOnly cookies is still recommended in a future coordinated cycle.
+**Lightweight Fixes (recommended)**
+- Resolve assignee display names in status report serialization (mirrors cards router):
+  - In backend/app/services/status_report_presenter.py, batch map card.assignees and subtask.assignee via `object_session` to nickname/email.
+  - Sketch:
+    - Import: `from sqlalchemy.orm import object_session`
+    - Collect `user_ids` from linked cards/subtasks; query users; build map like `_resolve_display_names`.
+    - Replace assignees/subtasks in `serialize_card_link` similar to `_card_read_with_display`.
+- Improve fallback in display resolution:
+  - backend/app/routers/cards.py:198–203: if neither nickname nor email is present, fall back to `user.id`.
 
-Validation
-- Suggest running: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck
-- Full suite: pytest -q backend/tests (tests appear self-contained and should not require network).
+**Performance**
+- Per‑request batching for id→name is used; good. If usage grows, consider request‑scoped caching to avoid repeat mapping across multiple endpoints in the same request (optional).
+
+**Tests/Verification**
+- Existing tests don’t assert assignee display content; they should still pass.
+- Add/extend tests to cover:
+  - Create with email → GET returns nickname
+  - Create with nickname → GET returns nickname
+  - Subtask assignee resolution
+  - Migration path with legacy email in `cards.assignees` and `subtasks.assignee`
+  - Optional: status report card summaries reflect nicknames after the above fix
+
+**Open Questions**
+- Should `GET /status-reports/*` display nicknames for assignees consistently with cards?
+- Should `GET /cards?assignees=` accept email/nickname inputs and canonicalize to userIds for filtering (backward compatibility)?
+- What is the desired display when a user is deleted/disabled? Current behavior: label remains raw stored value.
+
+**Residual Risks**
+- Unmatched legacy values remain as strings post‑migration; they’ll display as‑is until edited.
+- Status report UX inconsistency (userIds visible) until presenter is updated.
+- External integrations filtering by email/nickname may break if they rely on `assignees` query semantics.
