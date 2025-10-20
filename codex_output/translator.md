@@ -1,49 +1,47 @@
 **Request Summary**
-- Redesign all app selectors to a modern, simple style.
-- Unify visuals with other inputs: fix hover background turning white.
-- Simplify the trigger icon to a single down chevron.
-- Ensure dark mode parity: arrow and text remain visible.
-- Modernize the options panel (radius, shadow, spacing).
+- Unify the visual design of all selectors (dropdowns) with text inputs.
+- Fix hover: selector background turns white and diverges from inputs.
+- Ensure the down-arrow icon is always visible (not only on hover).
+- Maintain light/dark theme parity; in dark mode, icon color must match text color for contrast.
+- Keep the change minimal, centralized, and safe to apply app‑wide.
 
 **Assumptions**
-- “Selectors” are dropdown inputs (native select and/or a shared custom select).
-- Behavior and APIs stay unchanged; this is a styling-focused update.
-- Design should match existing input tokens (colors, radius, borders, focus).
-- Minimal-impact approach is preferred (centralized styling over component rewrites).
+- The repository is Angular-based; existing selectors include native `<select>` and a shared Angular UI select.
+- A centralized SCSS/theming layer exists and should be the primary lever (no API/behavior changes).
+- Style tokens (color, border, radius, focus ring) already define the input look we should match.
+- The icon can inherit `currentColor` to remain in sync with text in both themes.
+- Paths used historically: components like `src/app/shared/ui`, styles like `src/styles` (or similar).
 
 **Constraints**
-- Keep scope minimal; avoid unnecessary refactors.
-- Provide a finished, self-contained outcome.
-- Prefer centralized CSS/SCSS changes unless a new component is explicitly required.
-- If the stack is React/shadcn is desired, set up must be justified; otherwise, stick to current stack.
-
-**Observed Context**
-- The current repository appears Angular-based; prior CI logs and paths reference Angular files.
-- The provided Select component is React/shadcn (Radix + Tailwind), which does not match Angular without a stack change.
-
-**Two Viable Paths**
-- Angular-first (minimal change): Update shared select component and global select styles to align hover/background, icon (simple chevron via CSS or SVG), and dark mode, plus modernize the dropdown panel styles.
-- React/shadcn path (higher impact): Set up Tailwind + shadcn + Radix; add `components/ui/select.tsx` and `components/ui/label.tsx`; install `@radix-ui/react-select` and `@radix-ui/react-icons`; ensure `@/lib/utils` `cn` helper exists and `components/ui` is the default path. Only if the app is React/Next.
-
-**Success Criteria**
-- Hover state matches other inputs; no white-background mismatch.
-- Trigger icon is a single down chevron, vertically centered, not “stacked triangles”.
-- Icon uses currentColor so it matches text and is visible in dark mode.
-- Options panel looks modern (rounded, subtle border/shadow, clear item hover).
-- Accessibility intact: focus-visible, keyboard navigation, disabled states.
-- No TS/CI errors; no regressions in multi-select or `size > 1`.
+- Minimize scope and avoid template/TS changes unless necessary for correctness.
+- Deliver a complete, self-contained fix affecting all selectors consistently.
+- Complete within a small diff (single SCSS/CSS source preferred).
+- Do not introduce React/shadcn into an Angular codebase.
 
 **Unknowns**
-- Actual framework in use for the target UI (Angular vs React).
-- Which selector implementations are present (native select, custom Angular component, Angular Material).
-- Exact design tokens to match (hover bg/border, radii, shadows).
-- Whether RTL or high-contrast/forced-colors support is required.
+- Exact selector implementations in use (native `<select>`, custom Angular `ui-select`, Angular Material, or a mix).
+- The definitive input styling tokens to mirror (hover, focus, disabled, radius, border, bg).
+- Any page-specific overrides that could conflict with centralized updates.
+- RTL and high-contrast/forced-colors requirements.
+- Target browser support (e.g., allowance for modern CSS like color-mix).
+
+**Notes on React/shadcn Content Provided**
+- The provided React/shadcn/Tailwind/TypeScript Select component and instructions are not applicable to this Angular repo as-is.
+- If the project were React with shadcn:
+  - Default components path is `/components/ui`, styles under `/lib` and Tailwind config.
+  - Creating `/components/ui` standardizes imports and aligns with shadcn generators.
+  - Required deps: `@radix-ui/react-select`, `@radix-ui/react-icons`; Tailwind and TS setup required.
+- For this Angular repo, equivalent structure is typically `src/app/shared/ui` (components) and `src/styles` (global SCSS).
 
 **Clarifying Questions**
-- Is the UI stack Angular (current repo) or React/Next with shadcn as in the snippet?
-- Which selector(s) should be standardized: native `<select>`, a shared Angular `ui-select`, `mat-select`, or all?
-- Should selector hover match input hover exactly (no background change, only border/ring), or use a subtle tinted bg?
-- Provide the canonical tokens for text, background, border, radius, shadow for light/dark to ensure perfect match?
-- Do we need RTL and forced-colors support in this change?
-- If React is indeed the target, should we create `components/ui`, add `@/lib/utils` with `cn`, and install `@radix-ui/react-select` and `@radix-ui/react-icons` now?
-- Any screens/components that must be excluded from the new styles?
+- Which selector variants must be covered: native `<select>`, custom `ui-select`, `mat-select`, or all?
+- Which input style tokens are the source of truth (bg, border, radius, hover, focus ring) to mirror exactly?
+- Do any modules/pages require opt-out from the unified appearance?
+- Are RTL and forced-colors (high contrast) modes in scope for this change?
+- What are the target browsers (to confirm acceptable CSS features)?
+
+**Proposed Acceptance Criteria**
+- Selector idle, hover, focus-visible, and disabled states match inputs for bg/border/radius.
+- Icon is always visible and uses `currentColor` to match text (light/dark).
+- Hover no longer turns selector background white; visual feedback matches inputs.
+- No behavior or API changes; minimal, centralized style diff; dark mode parity preserved.

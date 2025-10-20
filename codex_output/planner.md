@@ -1,56 +1,34 @@
-Plan summary
+**Summary**
+- Goal: Unify selector (dropdown) visuals with text inputs, fix white hover background and ensure the down-arrow icon is always visible, with light/dark parity.
+- Repo reality: Angular app, not React/shadcn. Minimal, centralized CSS/SCSS update is the safest path to meet requirements within 30 minutes.
 
-- Stack confirmation: The repo is Angular, not React. The provided shadcn/Radix React Select is not applicable here without a stack shift. We’ll implement a minimal, centralized SCSS fix.
-- Problem focus: On hover, the select background turns too light (perceived “white”), diverging from other inputs. Unify hover behavior to match inputs with minimal UI drift.
-- Scope control: Single-file SCSS changes, no TS/template edits, no deps, no React setup.
+**Default Paths (Angular Repo)**
+- Components: `frontend/src/app/shared/ui`
+- Styles: `frontend/src/styles/pages/_base.scss` (centralized selectors have been handled here previously)
 
-What to change
+**Minimal Plan**
+- Centralize a single SCSS update for all native `<select>` targets (`.app-select`, `select.form-control`) to:
+  - Match input tokens for bg/border/radius/hover/focus/disabled.
+  - Keep icon always visible (not hover-dependent), drawn with a simple chevron using `currentColor`.
+  - Remove “white on hover” by aligning hover background/border with inputs.
+  - Preserve dark theme parity; icon/text color matched via `currentColor`.
+  - Maintain multi/size variants (no caret when `multiple` or `size > 1`).
+- If present, align the shared Angular `ui-select` trigger icon:
+  - Ensure icon inherits `currentColor`, visible at rest (no hover-only opacity tricks).
 
-- Keep select hover background consistent with inputs:
-  - Light theme: Remove or reduce the hover background lightening so it no longer jumps to white-ish; keep subtle border/box-shadow refinement only.
-  - Dark theme: Do the same (avoid brightening the background on hover).
-- Preserve existing tokens:
-  - Radius, border, focus ring, transitions, and currentColor-driven caret remain unchanged.
-- No changes to Angular component logic or assets.
+**Why not shadcn/React**
+- The repo is Angular-based; introducing React/shadcn would violate the “minimal change” constraint and expand scope significantly.
+- If this were a React/shadcn stack, the default components path would be `/components/ui`, but it’s out of scope here.
 
-Where to change
+**Risks**
+- Page-level overrides might slightly diverge; mitigated by choosing selectors with adequate specificity.
+- RTL and forced-colors modes are not addressed in this pass (can be follow-ups).
 
-- Update the select hover rules in the central stylesheet:
-  - frontend/src/styles/pages/_base.scss:118
-  - frontend/src/styles/pages/_base.scss:177
-- Optional alignment (if needed for total parity): If inputs use no hover background change at all, set the select hover background-color equal to its base background or remove the hover-specific background-color line entirely; keep border-color/box-shadow adjustments for tactile feedback.
-
-Why this is minimal and safe
-
-- Single-point change applied across `.app-select` and `select.form-control`.
-- No behavior or API changes; no component churning.
-- Matches existing design tokens and keeps dark mode parity.
-- Leaves the modern, simple chevron (currentColor) intact, protecting the earlier fixes for icon visibility.
-
-Risks and mitigations
-
-- Risk: Some screens might have local overrides. Mitigation: central change should dominate; if conflicts surface, adjust specificity minimally.
-- Risk: Perception of reduced hover affordance if background no longer brightens. Mitigation: keep subtle border/box-shadow change on hover for feedback.
-
-Test plan
-
-- Build: `cd frontend && npm ci && npm run build` or `ng build --configuration production`.
-- Manual checks (light/dark):
-  - Hover no longer jumps to white; background remains aligned with inputs.
-  - Focus-visible ring shows correctly; disabled state unchanged.
-  - Icon remains visible and matches text color (currentColor).
-- Pages to spot-check:
-  - frontend/src/app/features/settings/page.html:249
-  - frontend/src/app/features/settings/page.html:428
-  - frontend/src/app/features/board/page.html:565
-  - frontend/src/app/features/board/page.html:730
-  - frontend/src/app/features/reports/reports-page.component.html:274
-
-Note on shadcn/React path
-
-- Current repo is Angular. If you want the shadcn/Radix Select:
-  - Requires a React + Tailwind + shadcn setup, `components/ui` convention, `@/lib/utils` `cn` helper, and packages `@radix-ui/react-select` and `@radix-ui/react-icons`.
-  - This would be a separate, larger change, not advisable under the “minimal impact” and 30-minute constraints.
+**Acceptance Criteria**
+- Selector idle/hover/focus/disabled match inputs for bg/border/radius.
+- Down-arrow icon is always visible and uses `currentColor` (light/dark).
+- Hover no longer turns background white.
+- No template/TS changes required; behavior unchanged.
 
 ```json
-{"steps":["coder"],"notes":"Centralize the fix by adjusting select hover styles in frontend/src/styles/pages/_base.scss to stop the background from turning white. Align hover behavior with inputs: keep subtle border/box-shadow feedback, remove or reduce hover background lightening in both light and dark themes. No TS/template changes, no new deps, retain currentColor chevron.","tests":"Build the frontend and manually verify on Settings, Board, and Reports pages that: (1) hover background no longer turns white; (2) focus-visible ring and disabled states remain correct; (3) dark mode remains readable; (4) caret icon color matches text (currentColor) and remains visible; (5) no regressions for multi-select/size>1."}```
+{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Implement a single centralized SCSS change in frontend/src/styles/pages/_base.scss to unify native <select> with inputs: keep background consistent on hover (no white), ensure the chevron icon is always visible and uses currentColor, preserve focus/disabled states and dark mode. Apply rules to both .app-select and select.form-control. If needed, set the shared Angular ui-select trigger icon color to currentColor and remove hover-only visibility. Do not introduce React/shadcn; the repo is Angular.","tests":"Build frontend and visually verify: (1) selector hover bg matches inputs (no white) in light/dark; (2) icon visible at rest and matches text via currentColor; (3) focus-visible ring and disabled styles match inputs; (4) multi/size>1 variants hide caret correctly; (5) check across pages using .app-select and select.form-control (e.g., Settings, Board, Reports)."}```

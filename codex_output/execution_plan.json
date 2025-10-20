@@ -1,13 +1,17 @@
 {
   "steps": [
-    "coder"
+    "coder",
+    "code_quality_reviewer",
+    "integrator"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder"
+      "coder",
+      "code_quality_reviewer",
+      "integrator"
     ],
-    "notes": "Centralize the fix by adjusting select hover styles in frontend/src/styles/pages/_base.scss to stop the background from turning white. Align hover behavior with inputs: keep subtle border/box-shadow feedback, remove or reduce hover background lightening in both light and dark themes. No TS/template changes, no new deps, retain currentColor chevron.",
-    "tests": "Build the frontend and manually verify on Settings, Board, and Reports pages that: (1) hover background no longer turns white; (2) focus-visible ring and disabled states remain correct; (3) dark mode remains readable; (4) caret icon color matches text (currentColor) and remains visible; (5) no regressions for multi-select/size>1."
+    "notes": "Implement a single centralized SCSS change in frontend/src/styles/pages/_base.scss to unify native <select> with inputs: keep background consistent on hover (no white), ensure the chevron icon is always visible and uses currentColor, preserve focus/disabled states and dark mode. Apply rules to both .app-select and select.form-control. If needed, set the shared Angular ui-select trigger icon color to currentColor and remove hover-only visibility. Do not introduce React/shadcn; the repo is Angular.",
+    "tests": "Build frontend and visually verify: (1) selector hover bg matches inputs (no white) in light/dark; (2) icon visible at rest and matches text via currentColor; (3) focus-visible ring and disabled styles match inputs; (4) multi/size>1 variants hide caret correctly; (5) check across pages using .app-select and select.form-control (e.g., Settings, Board, Reports)."
   }
 }
