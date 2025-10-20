@@ -35,81 +35,28 @@ jobs:
         with:
           fetch-depth: 0
 
-      # --- Auto-Evolve: flags 読込 & canary ルート決定 ここから ---
       - name: Install jq (for flags parsing)
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y jq
+        run: bash -lc $'sudo apt-get update -y\nsudo apt-get install -y jq'
 
       - name: Read Auto-Evolve flags
         id: flags
         shell: bash
-        run: |
-          if [ -f .codex/flags.json ]; then
-            echo "found=.codex/flags.json" >> "$GITHUB_OUTPUT"
-            echo "json<<EOF" >> "$GITHUB_OUTPUT"
-            cat .codex/flags.json >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
-            CANARY=$(jq -r '.canary_ratio // 0' .codex/flags.json)
-          else
-            echo "found=(none)" >> "$GITHUB_OUTPUT"
-            CANARY=0
-          fi
-          echo "canary_ratio=${CANARY}" >> "$GITHUB_OUTPUT"
+        run: bash -lc $'if [ -f .codex/flags.json ]; then echo "found=.codex/flags.json" >> "$GITHUB_OUTPUT"; echo "json<<EOF" >> "$GITHUB_OUTPUT"; cat .codex/flags.json >> "$GITHUB_OUTPUT"; echo "EOF" >> "$GITHUB_OUTPUT"; CANARY=$(jq -r \'.canary_ratio // 0\' .codex/flags.json); else echo "found=(none)" >> "$GITHUB_OUTPUT"; CANARY=0; fi; echo "canary_ratio=${CANARY}" >> "$GITHUB_OUTPUT"'
 
       - name: Decide route (canary/main)
         id: route
         shell: bash
-        run: |
-          # 安定分流用のハッシュ: issue番号 > ref > run_id
-          KEY="${{ github.event.issue.number || github.ref || github.run_id }}"
-          H=$(printf "%s" "$KEY" | cksum | awk '{print $1}')
-          MOD=$(( H % 100 ))
-          CANARY_PCT=$(python3 - <<'PY'
-from decimal import Decimal
-import os
-print(int(Decimal(os.environ.get('CANARY','0')) * 100))
-PY
-          )
-          if [ "$MOD" -lt "$CANARY_PCT" ]; then
-            echo "variant=canary" >> "$GITHUB_OUTPUT"
-          else
-            echo "variant=main" >> "$GITHUB_OUTPUT"
-          fi
+        run: bash -lc $'KEY="${{ github.event.issue.number || github.ref || github.run_id }}"; H=$(printf "%s" "$KEY" | cksum | awk \'{print $1}\'); MOD=$(( H % 100 )); CANARY_PCT=$(python3 - <<\'PY\'\nfrom decimal import Decimal\nimport os\nprint(int(Decimal(os.environ.get(\'CANARY\',\'0\')) * 100))\nPY\n); if [ "$MOD" -lt "$CANARY_PCT" ]; then echo "variant=canary" >> "$GITHUB_OUTPUT"; else echo "variant=main" >> "$GITHUB_OUTPUT"; fi'
         env:
           CANARY: ${{ steps.flags.outputs.canary_ratio }}
 
       - name: Export route & role toggles to env
         shell: bash
-        run: |
-          echo "VARIANT=${{ steps.route.outputs.variant }}" >> "$GITHUB_ENV"
-          if [ -n "${{ steps.flags.outputs.json }}" ]; then
-            # 例: セキュリティレビューを無効化している場合にスキップ変数を立てる
-            SR=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.roles["Security Reviewer"].enabled // true')
-            CQR=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.roles["Code Quality Reviewer"].enabled // true')
-            UXR=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.roles["UI/UX Reviewer"].enabled // true')
-            AIS=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.roles["AI Safety Reviewer"].enabled // true')
-            echo "SKIP_SECURITY_REVIEWER=$([ "$SR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
-            echo "SKIP_CODE_QUALITY_REVIEWER=$([ "$CQR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
-            echo "SKIP_UI_UX_REVIEWER=$([ "$UXR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
-            echo "SKIP_AI_SAFETY_REVIEWER=$([ "$AIS" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
-          fi
-          if [ -n "${{ steps.flags.outputs.json }}" ]; then
-            ROUTE_WEIGHTS=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.route.weights // {}' 2>/dev/null)
-          else
-            ROUTE_WEIGHTS='{}'
-          fi
-          echo "ROUTE_WEIGHTS=$ROUTE_WEIGHTS" >> "$GITHUB_ENV"
-      # --- Auto-Evolve: flags 読込 & canary ルート決定 ここまで ---
+        run: bash -lc $'echo "VARIANT=${{ steps.route.outputs.variant }}" >> "$GITHUB_ENV"; if [ -n "${{ steps.flags.outputs.json }}" ]; then SR=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r \'.roles["Security Reviewer"].enabled // true\'); CQR=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r \'.roles["Code Quality Reviewer"].enabled // true\'); UXR=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r \'.roles["UI/UX Reviewer"].enabled // true\'); AIS=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r \'.roles["AI Safety Reviewer"].enabled // true\'); echo "SKIP_SECURITY_REVIEWER=$([ "$SR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"; echo "SKIP_CODE_QUALITY_REVIEWER=$([ "$CQR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"; echo "SKIP_UI_UX_REVIEWER=$([ "$UXR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"; echo "SKIP_AI_SAFETY_REVIEWER=$([ "$AIS" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"; fi; if [ -n "${{ steps.flags.outputs.json }}" ]; then ROUTE_WEIGHTS=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r \'.route.weights // {}\' 2>/dev/null); else ROUTE_WEIGHTS=\'{}\'; fi; echo "ROUTE_WEIGHTS=$ROUTE_WEIGHTS" >> "$GITHUB_ENV"'
 
       - name: Announce route (log)
         if: always()
-        run: |
-          echo "Auto-Evolve route: $VARIANT"
-          echo "Security Reviewer skip flag: $SKIP_SECURITY_REVIEWER"
-          echo "Code Quality Reviewer skip flag: $SKIP_CODE_QUALITY_REVIEWER"
-          echo "UI/UX Reviewer skip flag: $SKIP_UI_UX_REVIEWER"
-          echo "AI Safety Reviewer skip flag: $SKIP_AI_SAFETY_REVIEWER"
+        run: bash -lc $'echo "Auto-Evolve route: $VARIANT"; echo "Security Reviewer skip flag: $SKIP_SECURITY_REVIEWER"; echo "Code Quality Reviewer skip flag: $SKIP_CODE_QUALITY_REVIEWER"; echo "UI/UX Reviewer skip flag: $SKIP_UI_UX_REVIEWER"; echo "AI Safety Reviewer skip flag: $SKIP_AI_SAFETY_REVIEWER"'
 
       - name: Detect trigger and compose TASK_INPUT
         id: detect
@@ -117,175 +64,12 @@ PY
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          python3 -c "import sys, textwrap; exec(textwrap.dedent(sys.stdin.read()))" <<'PY'
-            import json, os, re, sys, uuid, urllib.request
-
-            name = os.environ.get("GITHUB_EVENT_NAME","")
-            path = os.environ.get("GITHUB_EVENT_PATH")
-            if not path:
-                print("::error::GITHUB_EVENT_PATH is not set."); sys.exit(1)
-            with open(path, encoding="utf-8") as f:
-                event = json.load(f)
-
-            def out(k, v):
-                go = os.environ["GITHUB_OUTPUT"]
-                if "\n" in v:
-                    m = f"EOF_{uuid.uuid4().hex}"
-                    with open(go, "a", encoding="utf-8") as g:
-                        g.write(f"{k}<<{m}\n{v}\n{m}\n")
-                else:
-                    with open(go, "a", encoding="utf-8") as g:
-                        g.write(f"{k}={v}\n")
-
-            def coerce(x):
-                return "" if x is None else str(x)
-
-            if name == "workflow_dispatch":
-                inputs = event.get("inputs") or {}
-                task = coerce(inputs.get("task_input")).strip() or "Manual trigger: Please implement the requested feature."
-                out("run_codex","true")
-                out("task_input", task)
-
-            elif name == "issue_comment":
-                issue = event.get("issue") or {}
-                comment = event.get("comment") or {}
-                title = coerce(issue.get("title")).strip()
-                issue_body = coerce(issue.get("body")).strip()
-                body = coerce(comment.get("body")).replace("\r","")
-
-                lines = body.split("\n")
-                trigger_pattern = re.compile(r"^@?codex_agents\b[:\s-]*", re.IGNORECASE)
-                trigger_index = -1
-                trigger_line = ""
-                command_start = 0
-                for idx, raw in enumerate(lines):
-                    stripped = raw.strip()
-                    if not stripped:
-                        continue
-                    probe = stripped
-                    while probe.startswith(">"):
-                        probe = probe[1:].lstrip()
-                    match = trigger_pattern.match(probe)
-                    if match:
-                        trigger_index = idx
-                        trigger_line = probe
-                        command_start = match.end()
-                        break
-                if trigger_index < 0:
-                    out("run_codex","false"); sys.exit(0)
-
-                head = trigger_line[command_start:].lstrip(" \t:-")
-                command = ("\n".join([head] + lines[trigger_index+1:])).strip()
-                if not command:
-                    command = '""'
-                policy = (
-                    "You MUST follow these constraints:\n"
-                    "1. Avoid creating unnecessary tasks and keep impact on the existing project to a minimum.\n"
-                    "2. Complete all required fixes to deliver a finished, self-contained outcome."
-                )
-                augmented_command = f"{command}\n\n{policy}".strip()
-
-                # Recent conversation snapshot (last 15 comments, clipped)
-                def fetch_issue_comments(ev, limit=15, clip=800):
-                    repo = (ev.get("repository") or {})
-                    owner = ((repo.get("owner") or {}).get("login")) or ""
-                    name  = repo.get("name") or ""
-                    num   = issue.get("number")
-                    if not (owner and name and num):
-                        return []
-                    url = f"https://api.github.com/repos/{owner}/{name}/issues/{num}/comments?per_page=100"
-                    headers = {"Accept":"application/vnd.github+json"}
-                    tok = os.environ.get("GITHUB_TOKEN","")
-                    if tok:
-                        headers["Authorization"] = f"Bearer {tok}"
-                    req = urllib.request.Request(url, headers=headers)
-                    try:
-                        with urllib.request.urlopen(req, timeout=60) as r:
-                            arr = json.loads(r.read().decode("utf-8"))
-                    except Exception as e:
-                        print(f"::warning::Failed to fetch comments: {e}")
-                        return []
-                    arr = arr[-limit:]
-                    out_items = []
-                    for c in arr:
-                        by = ((c.get("user") or {}).get("login")) or ""
-                        at = c.get("created_at") or ""
-                        bd = (c.get("body") or "").strip()
-                        if len(bd) > clip:
-                            bd = bd[:clip] + " ...(truncated)"
-                        out_items.append({"by":by, "at":at, "body":bd})
-                    return out_items
-
-                conversation = fetch_issue_comments(event)
-
-                payload = json.dumps({
-                    "Issue Title": title,
-                    "Issue Body": issue_body,
-                    "Instruction": augmented_command,
-                    "Conversation": conversation
-                }, ensure_ascii=False)
-
-                out("run_codex","true")
-                out("task_input", payload)
-                out("issue_number", coerce(issue.get("number")))
-            else:
-                print("::error::Unsupported event."); sys.exit(1)
-
-            prev = (locals().get("payload") or locals().get("task") or "").replace("\n"," ").replace("\r"," ")
-            if prev:
-                print(f"TASK_INPUT preview: {prev[:200]}{'...' if len(prev)>200 else ''}")
-          PY
+        run: bash -lc $'set -euo pipefail; python3 -c "import sys, textwrap; exec(textwrap.dedent(sys.stdin.read()))" <<\'PY\'\nimport json, os, re, sys, uuid, urllib.request\nname = os.environ.get("GITHUB_EVENT_NAME","")\npath = os.environ.get("GITHUB_EVENT_PATH")\nif not path:\n    print("::error::GITHUB_EVENT_PATH is not set."); sys.exit(1)\nwith open(path, encoding="utf-8") as f:\n    event = json.load(f)\n\ndef out(k, v):\n    go = os.environ["GITHUB_OUTPUT"]\n    if "\\n" in v:\n        m = f"EOF_{uuid.uuid4().hex}"\n        with open(go, "a", encoding="utf-8") as g:\n            g.write(f"{k}<<{m}\\n{v}\\n{m}\\n")\n    else:\n        with open(go, "a", encoding="utf-8") as g:\n            g.write(f"{k}={v}\\n")\n\ndef coerce(x):\n    return \"\" if x is None else str(x)\n\nif name == "workflow_dispatch":\n    inputs = event.get("inputs") or {}\n    task = coerce(inputs.get("task_input")).strip() or "Manual trigger: Please implement the requested feature."\n    out("run_codex","true")\n    out("task_input", task)\nelif name == "issue_comment":\n    issue = event.get("issue") or {}\n    comment = event.get("comment") or {}\n    title = coerce(issue.get("title")).strip()\n    issue_body = coerce(issue.get("body")).strip()\n    body = coerce(comment.get("body")).replace("\\r","")\n    lines = body.split("\\n")\n    trigger_pattern = re.compile(r"^@?codex_agents\\b[:\\s-]*", re.IGNORECASE)\n    trigger_index = -1\n    trigger_line = ""\n    command_start = 0\n    for idx, raw in enumerate(lines):\n        stripped = raw.strip()\n        if not stripped:\n            continue\n        probe = stripped\n        while probe.startswith(\">\"):\n            probe = probe[1:].lstrip()\n        match = trigger_pattern.match(probe)\n        if match:\n            trigger_index = idx\n            trigger_line = probe\n            command_start = match.end()\n            break\n    if trigger_index < 0:\n        out("run_codex","false"); sys.exit(0)\n    head = trigger_line[command_start:].lstrip(" \\t:-")\n    command = ("\\n".join([head] + lines[trigger_index+1:])).strip()\n    if not command:\n        command = \'\"\"\'\n    policy = ("You MUST follow these constraints:\\n1. Avoid creating unnecessary tasks and keep impact on the existing project to a minimum.\\n2. Complete all required fixes to deliver a finished, self-contained outcome.")\n    augmented_command = f"{command}\\n\\n{policy}".strip()\n    def fetch_issue_comments(ev, limit=15, clip=800):\n        repo = (ev.get("repository") or {})\n        owner = ((repo.get("owner") or {}).get("login")) or ""\n        name  = repo.get("name") or ""\n        num   = issue.get("number")\n        if not (owner and name and num):\n            return []\n        url = f"https://api.github.com/repos/{owner}/{name}/issues/{num}/comments?per_page=100"\n        headers = {"Accept":"application/vnd.github+json"}\n        tok = os.environ.get("GITHUB_TOKEN","")\n        if tok:\n            headers["Authorization"] = f"Bearer {tok}"\n        req = urllib.request.Request(url, headers=headers)\n        try:\n            with urllib.request.urlopen(req, timeout=60) as r:\n                arr = json.loads(r.read().decode("utf-8"))\n        except Exception as e:\n            print(f"::warning::Failed to fetch comments: {e}")\n            return []\n        arr = arr[-limit:]\n        out_items = []\n        for c in arr:\n            by = ((c.get("user") or {}).get("login")) or ""\n            at = c.get("created_at") or ""\n            bd = (c.get("body") or "").strip()\n            if len(bd) > clip:\n                bd = bd[:clip] + " ...(truncated)"\n            out_items.append({"by":by, "at":at, "body":bd})\n        return out_items\n    conversation = fetch_issue_comments(event)\n    payload = json.dumps({"Issue Title": title,"Issue Body": issue_body,"Instruction": augmented_command,"Conversation": conversation}, ensure_ascii=False)\n    out("run_codex","true")\n    out("task_input", payload)\n    out("issue_number", coerce(issue.get("number")))\nelse:\n    print("::error::Unsupported event."); sys.exit(1)\nprev = (locals().get("payload") or locals().get("task") or "").replace("\\n"," ").replace("\\r"," ")\nif prev:\n    print(f"TASK_INPUT preview: {prev[:200]}{'...' if len(prev)>200 else ''}")\nPY'
 
       - name: Load previous progress for this issue
         if: ${{ steps.detect.outputs.run_codex == 'true' && github.event_name == 'issue_comment' }}
         id: progress
-        run: |
-          set -euo pipefail
-
-          num="${{ steps.detect.outputs.issue_number }}"
-
-          if [ -z "${num}" ]; then
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          git fetch origin "refs/heads/codex/issue-${num}:refs/remotes/origin/codex/issue-${num}" || true
-
-          progress_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json"
-          progress_content="$(git show "${progress_ref}" 2>/dev/null || true)"
-
-          if [ -n "$progress_content" ]; then
-            {
-              echo "json<<EOF"
-              echo "$progress_content"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            index_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/index.json"
-            index_content="$(git show "${index_ref}" 2>/dev/null || true)"
-
-            if [ -n "$index_content" ]; then
-              payload="$(
-                ISSUE="${num}" INDEX_CONTENT="$index_content" python3 -c $'import json, os, sys\nissue = (os.environ.get(\"ISSUE\") or \"\").strip()\nraw = os.environ.get(\"INDEX_CONTENT\") or \"\"\nif not issue or not raw.strip():\n    sys.exit(0)\ntry:\n    data = json.loads(raw)\nexcept Exception:\n    sys.exit(0)\nentry = data.get(issue) or data.get(str(issue))\nif entry:\n    print(json.dumps(entry, ensure_ascii=False))'
-              )"
-
-              if [ -n "$payload" ]; then
-                {
-                  echo "json<<EOF"
-                  echo "$payload"
-                  echo "EOF"
-                } >> "$GITHUB_OUTPUT"
-                echo "exists=true" >> "$GITHUB_OUTPUT"
-              else
-                echo "exists=false" >> "$GITHUB_OUTPUT"
-              fi
-            else
-              echo "exists=false" >> "$GITHUB_OUTPUT"
-            fi
-          fi
+        run: bash -lc $'set -euo pipefail; num="${{ steps.detect.outputs.issue_number }}"; if [ -z "${num}" ]; then echo "exists=false" >> "$GITHUB_OUTPUT"; exit 0; fi; git fetch origin "refs/heads/codex/issue-${num}:refs/remotes/origin/codex/issue-${num}" || true; progress_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json"; progress_content="$(git show "${progress_ref}" 2>/dev/null || true)"; if [ -n "$progress_content" ]; then { echo "json<<EOF"; echo "$progress_content"; echo "EOF"; } >> "$GITHUB_OUTPUT"; echo "exists=true" >> "$GITHUB_OUTPUT"; else index_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/index.json"; index_content="$(git show "${index_ref}" 2>/dev/null || true)"; if [ -n "$index_content" ]; then payload="$(ISSUE="${num}" INDEX_CONTENT="$index_content" python3 -c $\'import json, os, sys\\nissue = (os.environ.get("ISSUE") or "").strip()\\nraw = os.environ.get("INDEX_CONTENT") or ""\\nif not issue or not raw.strip():\\n    sys.exit(0)\\ntry:\\n    data = json.loads(raw)\\nexcept Exception:\\n    sys.exit(0)\\nentry = data.get(issue) or data.get(str(issue))\\nif entry:\\n    print(json.dumps(entry, ensure_ascii=False))\')"; if [ -n "$payload" ]; then { echo "json<<EOF"; echo "$payload"; echo "EOF"; } >> "$GITHUB_OUTPUT"; echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi; fi'
 
       - name: Merge previous progress into TASK_INPUT
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -293,27 +77,7 @@ PY
         env:
           INPUT_JSON: ${{ steps.detect.outputs.task_input }}
           PREV: ${{ steps.progress.outputs.json }}
-        run: |
-          set -euo pipefail
-          python3 -c "import sys, textwrap; exec(textwrap.dedent(sys.stdin.read()))" <<'PY' | {
-            import json, os
-            task = os.environ.get('INPUT_JSON', '')
-            prev = os.environ.get('PREV', '')
-            try:
-                data = json.loads(task)
-            except Exception:
-                data = {'Instruction': task}
-            if prev:
-                try:
-                    data['PreviousProgress'] = json.loads(prev)
-                except Exception:
-                    data['PreviousProgressRaw'] = prev
-            print(json.dumps(data, ensure_ascii=False))
-          PY
-            echo "task_input<<EOF"
-            cat
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+        run: bash -lc $'set -euo pipefail; python3 -c "import sys, textwrap; exec(textwrap.dedent(sys.stdin.read()))" <<\'PY\' | { echo "task_input<<EOF"; cat; echo "EOF"; } >> "$GITHUB_OUTPUT"\nimport json, os\ntask = os.environ.get(\'INPUT_JSON\', \'\')\nprev = os.environ.get(\'PREV\', \'\')\ntry:\n    data = json.loads(task)\nexcept Exception:\n    data = {\'Instruction\': task}\nif prev:\n    try:\n        data[\'PreviousProgress\'] = json.loads(prev)\n    except Exception:\n        data[\'PreviousProgressRaw\'] = prev\nprint(json.dumps(data, ensure_ascii=False))\nPY'
 
       - name: Prepare working branch
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -321,40 +85,17 @@ PY
         env:
           BRANCH_NAME: ${{ github.event_name == 'issue_comment' && steps.detect.outputs.issue_number != '' && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
           BASE_BRANCH: develop
-        run: |
-          set -euo pipefail
-          branch="${BRANCH_NAME}"
-          base="${BASE_BRANCH}"
-          git config user.name "codex-workflow"
-          git config user.email "codex-workflow@users.noreply.github.com"
-          git fetch origin "${base}"
-          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
-            git fetch origin "${branch}:${branch}"
-            git checkout "${branch}"
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            git checkout -B "${branch}" "origin/${base}"
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: bash -lc $'set -euo pipefail; branch="${BRANCH_NAME}"; base="${BASE_BRANCH}"; git config user.name "codex-workflow"; git config user.email "codex-workflow@users.noreply.github.com"; git fetch origin "${base}"; if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then git fetch origin "${branch}:${branch}"; git checkout "${branch}"; echo "exists=true" >> "$GITHUB_OUTPUT"; else git checkout -B "${branch}" "origin/${base}"; echo "exists=false" >> "$GITHUB_OUTPUT"; fi'
 
       - name: Install Codex CLI
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
-        run: |
-          npm i -g ${CODEX_NPM_PKG:-@openai/codex}@0.39.0
-          codex --version
+        run: bash -lc $'npm i -g ${CODEX_NPM_PKG:-@openai/codex}@0.39.0; codex --version'
 
       - name: Restore ChatGPT auth (no API key)
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
         env:
           CODEX_AUTH_JSON_B64: ${{ secrets.CODEX_AUTH_JSON_B64 }}
-        run: |
-          set -euo pipefail
-          test -n "${CODEX_AUTH_JSON_B64:-}" || { echo "::error::Missing secret CODEX_AUTH_JSON_B64"; exit 1; }
-          mkdir -p "$HOME/.codex"
-          printf '%s' "$CODEX_AUTH_JSON_B64" | base64 -d > "$HOME/.codex/auth.json"
-          chmod 600 "$HOME/.codex/auth.json"
-          echo 'preferred_auth_method = "chatgpt"' > "$HOME/.codex/config.toml"
-          codex --version
+        run: bash -lc $'set -euo pipefail; test -n "${CODEX_AUTH_JSON_B64:-}" || { echo "::error::Missing secret CODEX_AUTH_JSON_B64"; exit 1; }; mkdir -p "$HOME/.codex"; printf %s "$CODEX_AUTH_JSON_B64" | base64 -d > "$HOME/.codex/auth.json"; chmod 600 "$HOME/.codex/auth.json"; echo \'preferred_auth_method = "chatgpt"\' > "$HOME/.codex/config.toml"; codex --version'
 
       - name: Run Codex pipeline
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -362,96 +103,23 @@ PY
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_CODEX: ${{ steps.detect.outputs.run_codex }}
           TASK_INPUT: ${{ steps.merge.outputs.task_input }}
-        run: |
-          set -euo pipefail
-          mkdir -p codex_output
-          printf '%s' "$TASK_INPUT" | ./scripts/run_codex_pipeline.sh
+        run: bash -lc $'set -euo pipefail; mkdir -p codex_output; printf %s "$TASK_INPUT" | ./scripts/run_codex_pipeline.sh'
 
       - name: Check for clarification request
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
         id: clarifications
-        run: |
-          set -euo pipefail
-          status="$(python3 -c "from pathlib import Path; import json; p=Path('codex_output/status.json'); ns={'p': p, 'json': json, 'status': ''}; exec(\"if p.exists():\\n    try:\\n        status=json.loads(p.read_text(encoding='utf-8')).get('status','') or ''\\n    except Exception:\\n        status=''\", ns); print(ns.get('status',''))")"
-          if [ "${status}" = "needs_clarification" ]; then
-            echo "needs_clarification=true" >> "$GITHUB_OUTPUT"
-            if [ -f codex_output/clarifying_questions.md ]; then
-              {
-                echo "questions<<EOF"
-                cat codex_output/clarifying_questions.md
-                echo "EOF"
-              } >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "needs_clarification=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: bash -lc $'set -euo pipefail; status="$(python3 -c "from pathlib import Path; import json; p=Path(\'codex_output/status.json\'); ns={\'p\': p, \'json\': json, \'status\': \'\'}; exec(\\"if p.exists():\\\\n    try:\\\\n        status=json.loads(p.read_text(encoding=\'utf-8\')).get(\'status\',\'\') or \'\'\\\\n    except Exception:\\\\n        status=\'\'\\", ns); print(ns.get(\'status\',\'\'))")"; if [ "${status}" = "needs_clarification" ]; then echo "needs_clarification=true" >> "$GITHUB_OUTPUT"; if [ -f codex_output/clarifying_questions.md ]; then { echo "questions<<EOF"; cat codex_output/clarifying_questions.md; echo "EOF"; } >> "$GITHUB_OUTPUT"; fi; else echo "needs_clarification=false" >> "$GITHUB_OUTPUT"; fi'
 
       - name: Persist progress snapshot
         if: ${{ steps.detect.outputs.run_codex == 'true' && github.event_name == 'issue_comment' }}
         id: persist
         env:
           ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
-        run: |
-          set -euo pipefail
-          state_dir=".codex/state"
-          mkdir -p "$state_dir"
-          ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; export ts
-          python3 -c "import sys, textwrap; exec(textwrap.dedent(sys.stdin.read()))" <<'PY' >> "$GITHUB_OUTPUT"
-            import os, json, pathlib
-            issue = (os.environ.get('ISSUE_NUMBER') or 'manual').strip() or 'manual'
-            run_id = os.environ.get('GITHUB_RUN_ID', '')
-            ts = os.environ.get('ts', '')
-            out = {'issue': issue, 'run_id': run_id, 'timestamp': ts}
-
-            # status.json (structured if possible)
-            p = pathlib.Path('codex_output/status.json')
-            if p.exists():
-                try:
-                    out['status'] = json.loads(p.read_text(encoding='utf-8'))
-                except Exception:
-                    out['status_raw'] = p.read_text(encoding='utf-8')
-
-            # clarifying questions preview
-            q = pathlib.Path('codex_output/clarifying_questions.md')
-            if q.exists():
-                out['clarifying_questions'] = q.read_text(encoding='utf-8')[:4000]
-
-            # file inventory with small previews
-            files = []
-            base = pathlib.Path('codex_output')
-            if base.exists():
-                for q in base.rglob('*'):
-                    if q.is_file():
-                        sz = q.stat().st_size
-                        item = {'path': str(q), 'size': sz}
-                        if sz <= 20000:
-                            try:
-                                item['preview'] = q.read_text(encoding='utf-8', errors='ignore')[:4000]
-                            except Exception:
-                                pass
-                        files.append(item)
-            out['files'] = files
-
-            index_path = pathlib.Path('.codex/state/index.json')
-            if index_path.exists():
-                try:
-                    data = json.loads(index_path.read_text(encoding='utf-8'))
-                except Exception:
-                    data = {}
-            else:
-                data = {}
-            data[issue] = out
-            index_path.parent.mkdir(parents=True, exist_ok=True)
-            index_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
-          PY
-          echo "path=$state_dir/index.json" >> "$GITHUB_OUTPUT"
+        run: bash -lc $'set -euo pipefail; state_dir=".codex/state"; mkdir -p "$state_dir"; ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; export ts; python3 -c "import sys, textwrap; exec(textwrap.dedent(sys.stdin.read()))" <<\'PY\' >> "$GITHUB_OUTPUT"\nimport os, json, pathlib\nissue = (os.environ.get(\'ISSUE_NUMBER\') or \'manual\').strip() or \'manual\'\nrun_id = os.environ.get(\'GITHUB_RUN_ID\', \'\')\nts = os.environ.get(\'ts\', \'\')\nout = {\'issue\': issue, \'run_id\': run_id, \'timestamp\': ts}\np = pathlib.Path(\'codex_output/status.json\')\nif p.exists():\n    try:\n        out[\'status\'] = json.loads(p.read_text(encoding=\'utf-8\'))\n    except Exception:\n        out[\'status_raw\'] = p.read_text(encoding=\'utf-8\')\nq = pathlib.Path(\'codex_output/clarifying_questions.md\')\nif q.exists():\n    out[\'clarifying_questions\'] = q.read_text(encoding=\'utf-8\')[:4000]\nfiles = []\nbase = pathlib.Path(\'codex_output\')\nif base.exists():\n    for q in base.rglob(\'*\'):\n        if q.is_file():\n            sz = q.stat().st_size\n            item = {\'path\': str(q), \'size\': sz}\n            if sz <= 20000:\n                try:\n                    item[\'preview\'] = q.read_text(encoding=\'utf-8\', errors=\'ignore\')[:4000]\n                except Exception:\n                    pass\n            files.append(item)\nout[\'files\'] = files\nindex_path = pathlib.Path(\'.codex/state/index.json\')\nif index_path.exists():\n    try:\n        data = json.loads(index_path.read_text(encoding=\'utf-8\'))\n    except Exception:\n        data = {}\nelse:\n    data = {}\ndata[issue] = out\nindex_path.parent.mkdir(parents=True, exist_ok=True)\nindex_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding=\'utf-8\')\nPY\necho "path=$state_dir/index.json" >> "$GITHUB_OUTPUT"'
 
       - name: Debug gates
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
-        run: |
-          echo "run_codex=${{ steps.detect.outputs.run_codex }}"
-          echo "needs_clarification=${{ steps.clarifications.outputs.needs_clarification || 'n/a' }}"
-          echo "progress_saved=${{ steps.persist.outputs.path || 'n/a' }}"
+        run: bash -lc $'echo "run_codex=${{ steps.detect.outputs.run_codex }}"; echo "needs_clarification=${{ steps.clarifications.outputs.needs_clarification || \'n/a\' }}"; echo "progress_saved=${{ steps.persist.outputs.path || \'n/a\' }}"'
 
       - name: Comment clarifying questions to issue
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' && github.event_name == 'issue_comment' }}
@@ -462,22 +130,12 @@ PY
           script: |
             const issue_number = Number("${{ steps.detect.outputs.issue_number }}");
             const questions = process.env.QUESTIONS || '(no questions found)';
-            const body = [
-              "Codex requires clarifications before continuing.",
-              "",
-              "### Questions",
-              questions
-            ].join("\n");
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number,
-              body
-            });
+            const body = ["Codex requires clarifications before continuing.","","### Questions",questions].join("\n");
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number, body });
 
       - name: Stop after clarification
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' }}
-        run: echo "::notice::Waiting for user clarifications." && exit 0
+        run: bash -lc $'echo "::notice::Waiting for user clarifications." && exit 0'
 
       - name: Upload Codex outputs
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -491,65 +149,19 @@ PY
       - name: Check repository diff
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
         id: diff
-        run: |
-          set -euo pipefail
-          if [ -z "$(git status --porcelain)" ]; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
+        run: bash -lc $'set -euo pipefail; if [ -z "$(git status --porcelain)" ]; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi'
 
       - name: Summarize changes
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.diff.outputs.changed == 'true' }}
         id: summary
-        run: |
-          set -euo pipefail
-          files="$(git --no-pager diff --name-only)"
-          stat="$(git --no-pager diff --stat)"
-          count="$(printf "%s\n" "$files" | sed '/^$/d' | wc -l | tr -d ' ')"
-          {
-            echo "change_summary<<EOF"
-            echo "Changed files ($count):"
-            echo
-            printf '%s\n' "$files" | sed 's/^/- /'
-            echo
-            echo "Diffstat:"
-            echo
-            printf '%s\n' "$stat"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+        run: bash -lc $'set -euo pipefail; files="$(git --no-pager diff --name-only)"; stat="$(git --no-pager diff --stat)"; count="$(printf "%s\n" "$files" | sed \'/^$/d\' | wc -l | tr -d \' \')"; { echo "change_summary<<EOF"; echo "Changed files ($count):"; echo; printf "%s\n" "$files" | sed \'s/^/- /\'; echo; echo "Diffstat:"; echo; printf "%s\n" "$stat"; echo "EOF"; } >> "$GITHUB_OUTPUT"'
 
       - name: Synthesize report change if needed
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.diff.outputs.changed != 'true' }}
         id: synth
         env:
           ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
-        run: |
-          set -euo pipefail
-          mkdir -p .codex/reports
-          ISSUE_TAG="${ISSUE_NUMBER:-manual}"
-          REPORT=".codex/reports/${ISSUE_TAG}-${GITHUB_RUN_ID}.md"
-          {
-            echo "# Codex Auto Dev Report"
-            echo
-            echo "- Run: ${GITHUB_RUN_ID}"
-            echo "- Event: ${GITHUB_EVENT_NAME}"
-            echo "- Issue: ${ISSUE_TAG}"
-            echo
-            echo "## Task Input (JSON)"
-            echo '```json'
-          } > "${REPORT}"
-          {
-            echo '```json'
-            echo "${{ steps.merge.outputs.task_input }}"
-            echo '```'
-            echo
-            echo "## Changes summary"
-            echo
-            echo "No code changes were necessary. This report file is added to satisfy the completion condition."
-          } >> "${REPORT}"
-          echo "synthesized=true" >> "$GITHUB_OUTPUT"
-          echo "report_path=${REPORT}" >> "$GITHUB_OUTPUT"
+        run: bash -lc $'set -euo pipefail; mkdir -p .codex/reports; ISSUE_TAG="${ISSUE_NUMBER:-manual}"; REPORT=".codex/reports/${ISSUE_TAG}-${GITHUB_RUN_ID}.md"; { echo "# Codex Auto Dev Report"; echo; echo "- Run: ${GITHUB_RUN_ID}"; echo "- Event: ${GITHUB_EVENT_NAME}"; echo "- Issue: ${ISSUE_TAG}"; echo; echo "## Task Input (JSON)"; echo \'```json\'; } > "${REPORT}"; { echo \'```json\'; echo "${{ steps.merge.outputs.task_input }}"; echo \'```\'; echo; echo "## Changes summary"; echo; echo "No code changes were necessary. This report file is added to satisfy the completion condition."; } >> "${REPORT}"; echo "synthesized=true" >> "$GITHUB_OUTPUT"; echo "report_path=${REPORT}" >> "$GITHUB_OUTPUT"'
 
       - name: Group and commit Codex changes
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed == 'true' || steps.synth.outputs.synthesized == 'true') }}
@@ -560,152 +172,7 @@ PY
           ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
           ISSUE_TITLE: ${{ github.event.issue.title || '' }}
           CHANGE_SUMMARY: ${{ steps.summary.outputs.change_summary }}
-        run: |
-          set -euo pipefail
-          python3 -c "import sys, textwrap; exec(textwrap.dedent(sys.stdin.read()))" <<'PY'
-            import os
-            import subprocess
-
-            def run(cmd, *, capture=False):
-                if capture:
-                    result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, text=True)
-                    return result.stdout
-                subprocess.run(cmd, check=True)
-
-            branch = os.environ['BRANCH_NAME']
-            branch_exists = os.environ.get('BRANCH_EXISTS', 'false').lower() == 'true'
-            issue_number = (os.environ.get('ISSUE_NUMBER') or '').strip()
-            issue_title_raw = (os.environ.get('ISSUE_TITLE') or '').strip()
-            change_summary = (os.environ.get('CHANGE_SUMMARY') or '').strip()
-
-            run(['git', 'restore', '--staged', '.'])
-
-            status_output = run(['git', 'status', '--porcelain'], capture=True).strip()
-            if not status_output:
-                print('::notice::No files to commit.')
-                raise SystemExit(0)
-
-            candidates = []
-            for raw_line in status_output.splitlines():
-                line = raw_line.rstrip()
-                if not line:
-                    continue
-                status = line[:2]
-                remainder = line[2:].lstrip()
-                if not remainder:
-                    continue
-                if ('R' in status or 'C' in status) and ' -> ' in remainder:
-                    paths_to_add = [part.strip() for part in remainder.split(' -> ', 1) if part.strip()]
-                else:
-                    paths_to_add = [remainder.strip()]
-                for candidate in paths_to_add:
-                    if candidate:
-                        candidates.append(candidate)
-
-            files = []
-            seen = set()
-            for candidate in candidates:
-                if candidate not in seen:
-                    seen.add(candidate)
-                    files.append(candidate)
-
-            if not files:
-                print('::notice::No files to commit.')
-                raise SystemExit(0)
-
-            def group_key(path: str) -> str:
-                if '/' not in path:
-                    return 'root'
-                head = path.split('/', 1)[0]
-                if head in {'backend', 'frontend', 'docs', 'prompts', 'scripts'}:
-                    return head
-                return 'others'
-
-            groups = {}
-            for path in files:
-                key = group_key(path)
-                groups.setdefault(key, []).append(path)
-
-            order = ['docs', 'frontend', 'backend', 'prompts', 'scripts', 'root', 'others']
-            for key in list(groups):
-                groups[key].sort()
-            ordered_keys = [key for key in order if key in groups] + [key for key in sorted(groups) if key not in order]
-
-            def adjust_length(text: str) -> str:
-                fillers = [
-                    '自動テストやスタイルチェックの基準とも整合する粒度で差分を束ねています。',
-                    '依存モジュールや参考資料への影響も同じコミット内で追跡できるよう補足しました。',
-                    'レビュアーが安心して判断できるだけの文脈情報を意識的に保持しています。'
-                ]
-                while len(text) < 200 and fillers:
-                    text += fillers.pop(0)
-                if len(text) > 300:
-                    text = text[:297] + '...'
-                return text
-
-            label_map = {
-                'backend': 'バックエンド領域',
-                'frontend': 'フロントエンド領域',
-                'docs': 'ドキュメント領域',
-                'prompts': 'プロンプト設定領域',
-                'scripts': 'スクリプト領域',
-                'root': 'リポジトリ直下',
-                'others': '横断領域'
-            }
-
-            issue_ref = f'#{issue_number}' if issue_number.isdigit() else '該当Issueなし'
-            title_fragment = issue_title_raw.replace('\r', ' ').replace('\n', ' ').strip()
-            if not title_fragment:
-                title_fragment = 'Codex自動実行タスク'
-            if len(title_fragment) > 60:
-                title_fragment = title_fragment[:57] + '…'
-
-            for key in ordered_keys:
-                paths = groups[key]
-                run(['git', 'restore', '--staged', '.'])
-                run(['git', 'add', '-A', '--'] + paths)
-
-                group_label = label_map.get(key, f'{key}領域')
-                sample_limit = 4
-                sample = paths[:sample_limit]
-                if len(paths) > sample_limit:
-                    sample.append('その他')
-                file_digest = '、'.join(sample) if sample else '対象ファイル'
-                file_count = len(paths)
-
-                content = (
-                    f'{group_label}で検出した{file_count}件のファイル差分をまとめて適用し、自動生成された変更を構造単位で整理しました。'
-                    f'主要ファイルは{file_digest}で、関連する設定や補助コードも合わせて整合性を保つよう同期しています。'
-                    'レビュー時に変更意図を追いやすいよう、依存関係と補助資料を同じコミットに束ねています。'
-                )
-                if change_summary:
-                    content += '差分概要は自動生成したサマリに基づき、過不足がないかを再確認済みです。'
-                content = adjust_length(content)
-
-                if issue_number:
-                    issue_fragment = f'関連Issue {issue_ref} の解決'
-                else:
-                    issue_fragment = '手動起動タスクの要件充足'
-
-                purpose = (
-                    f'自動化ワークフローが提案した{group_label}の修正を段階的に共有し、レビュアーが影響範囲を俯瞰できるようにすることが狙いです。'
-                    f'{issue_fragment}と「{title_fragment}」の背景を踏まえ、後続対応や回帰検証への橋渡しとなる情報を確保するためにこのコミット単位で保存しています。'
-                    'また、ビルドと運用に必要な周辺設定を先行して整備することで、追加対応時の手戻りを抑え継続的な改善サイクルを維持する意図があります。'
-                )
-                purpose = adjust_length(purpose)
-
-                commit_message = f'##変更内容\n{content}\n\n##目的\n{purpose}'
-                run(['git', 'commit', '-m', commit_message])
-
-            remaining = run(['git', 'status', '--porcelain'], capture=True).strip()
-            if remaining:
-                raise SystemExit(f'Uncommitted files remain:\n{remaining}')
-
-            if branch_exists:
-                run(['git', 'push', 'origin', f'HEAD:{branch}'])
-            else:
-                run(['git', 'push', '-u', 'origin', branch])
-          PY
+        run: bash -lc $'set -euo pipefail; python3 -c "import sys, textwrap; exec(textwrap.dedent(sys.stdin.read()))" <<\'PY\'\nimport os, subprocess\n\ndef run(cmd, *, capture=False):\n    if capture:\n        r = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, text=True)\n        return r.stdout\n    subprocess.run(cmd, check=True)\n\nbranch = os.environ[\'BRANCH_NAME\']\nbranch_exists = os.environ.get(\'BRANCH_EXISTS\', \'false\').lower() == \'true\'\nissue_number = (os.environ.get(\'ISSUE_NUMBER\') or \'\').strip()\nissue_title_raw = (os.environ.get(\'ISSUE_TITLE\') or \'\').strip()\nchange_summary = (os.environ.get(\'CHANGE_SUMMARY\') or \'\').strip()\nrun([\'git\', \'restore\', \'--staged\', \'.\'])\nstatus_output = run([\'git\', \'status\', \'--porcelain\'], capture=True).strip()\nif not status_output:\n    print(\'::notice::No files to commit.\'); raise SystemExit(0)\ncandidates = []\nfor raw_line in status_output.splitlines():\n    line = raw_line.rstrip()\n    if not line: continue\n    status = line[:2]\n    remainder = line[2:].lstrip()\n    if not remainder: continue\n    if (\'R\' in status or \'C\' in status) and \' -> \' in remainder:\n        paths_to_add = [part.strip() for part in remainder.split(\' -> \', 1) if part.strip()]\n    else:\n        paths_to_add = [remainder.strip()]\n    for candidate in paths_to_add:\n        if candidate: candidates.append(candidate)\nfiles = []\nseen = set()\nfor c in candidates:\n    if c not in seen:\n        seen.add(c); files.append(c)\nif not files:\n    print(\'::notice::No files to commit.\'); raise SystemExit(0)\n\ndef group_key(p: str) -> str:\n    if \'/\' not in p: return \'root\'\n    head = p.split(\'/\', 1)[0]\n    return head if head in {\'backend\', \'frontend\', \'docs\', \'prompts\', \'scripts\'} else \'others\'\n\ngroups = {}\nfor p in files:\n    k = group_key(p)\n    groups.setdefault(k, []).append(p)\norder = [\'docs\', \'frontend\', \'backend\', \'prompts\', \'scripts\', \'root\', \'others\']\nfor k in list(groups): groups[k].sort()\nordered_keys = [k for k in order if k in groups] + [k for k in sorted(groups) if k not in order]\n\ndef adjust_length(t: str) -> str:\n    fillers = [\n        \'自動テストやスタイルチェックの基準とも整合する粒度で差分を束ねています。\',\n        \'依存モジュールや参考資料への影響も同じコミット内で追跡できるよう補足しました。\',\n        \'レビュアーが安心して判断できるだけの文脈情報を意識的に保持しています。\'\n    ]\n    while len(t) < 200 and fillers:\n        t += fillers.pop(0)\n    if len(t) > 300: t = t[:297] + \'...\'\n    return t\n\nlabel_map = {\n    \'backend\': \'バックエンド領域\', \'frontend\': \'フロントエンド領域\', \'docs\': \'ドキュメント領域\',\n    \'prompts\': \'プロンプト設定領域\', \'scripts\': \'スクリプト領域\', \'root\': \'リポジトリ直下\', \'others\': \'横断領域\'\n}\nissue_ref = f\'#{issue_number}\' if issue_number.isdigit() else \'該当Issueなし\'\nfrag = issue_title_raw.replace(\'\\r\', \' \').replace(\'\\n\', \' \').strip() or \'Codex自動実行タスク\'\nif len(frag) > 60: frag = frag[:57] + \'…\'\nfor k in ordered_keys:\n    paths = groups[k]\n    run([\'git\', \'restore\', \'--staged\', \'.\'])\n    run([\'git\', \'add\', \'-A\', \'--\'] + paths)\n    group_label = label_map.get(k, f\'{k}領域\')\n    sample_limit = 4\n    sample = paths[:sample_limit]\n    if len(paths) > sample_limit: sample.append(\'その他\')\n    file_digest = \'、\'.join(sample) if sample else \'対象ファイル\'\n    file_count = len(paths)\n    content = (f\'{group_label}で検出した{file_count}件のファイル差分をまとめて適用し、自動生成された変更を構造単位で整理しました。\'\n               f\'主要ファイルは{file_digest}で、関連する設定や補助コードも合わせて整合性を保つよう同期しています。\'\n               \'レビュー時に変更意図を追いやすいよう、依存関係と補助資料を同じコミットに束ねています。\')\n    if change_summary: content += \'差分概要は自動生成したサマリに基づき、過不足がないかを再確認済みです。\'\n    content = adjust_length(content)\n    issue_fragment = f\'関連Issue {issue_ref} の解決\' if issue_number else \'手動起動タスクの要件充足\'\n    purpose = (f\'自動化ワークフローが提案した{group_label}の修正を段階的に共有し、レビュアーが影響範囲を俯瞰できるようにすることが狙いです。\'\n               f\'{issue_fragment}と「{frag}」の背景を踏まえ、後続対応や回帰検証への橋渡しとなる情報を確保するためにこのコミット単位で保存しています。\'\n               \'また、ビルドと運用に必要な周辺設定を先行して整備することで、追加対応時の手戻りを抑え継続的な改善サイクルを維持する意図があります。\')\n    purpose = adjust_length(purpose)\n    msg = f\'##変更内容\\n{content}\\n\\n##目的\\n{purpose}\'\n    run([\'git\', \'commit\', \'-m\', msg])\nremaining = run([\'git\', \'status\', \'--porcelain\'], capture=True).strip()\nif remaining: raise SystemExit(f\'Uncommitted files remain:\\n{remaining}\')\nif branch_exists:\n    run([\'git\', \'push\', \'origin\', f\'HEAD:{branch}\'])\nelse:\n    run([\'git\', \'push\', \'-u\', \'origin\', branch])\nPY'
 
       - name: Create or update pull request
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed == 'true' || steps.synth.outputs.synthesized == 'true') }}
@@ -728,58 +195,18 @@ PY
             const reportPath = (process.env.REPORT_PATH || '').trim();
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-
-            const title = Number.isFinite(issueNumber) && issueNumber > 0
-              ? `Codex: issue #${issueNumber}`
-              : 'Codex: manual run';
-
-            const changesBlock = changeSummary || (reportPath
-              ? `No code changes were necessary. A report file was added: ${reportPath}`
-              : 'No code changes were necessary. A report file is included under .codex/reports/');
-
-            const body = [
-              'Task input (JSON):',
-              '',
-              '```json',
-              `${process.env.TASK_INPUT || ''}`,
-              '```',
-              '',
-              'Changes summary:',
-              '```text',
-              changesBlock,
-              '```'
-            ].join('\n');
-
+            const title = Number.isFinite(issueNumber) && issueNumber > 0 ? `Codex: issue #${issueNumber}` : 'Codex: manual run';
+            const changesBlock = changeSummary || (reportPath ? `No code changes were necessary. A report file was added: ${reportPath}` : 'No code changes were necessary. A report file is included under .codex/reports/');
+            const body = ['Task input (JSON):','','```json',`${process.env.TASK_INPUT || ''}`,'```','','Changes summary:','```text',changesBlock,'```'].join('\n');
             const headRef = `${owner}:${branch}`;
-            const existing = await github.rest.pulls.list({
-              owner,
-              repo,
-              head: headRef,
-              state: 'open',
-              per_page: 1
-            });
-
+            const existing = await github.rest.pulls.list({ owner, repo, head: headRef, state: 'open', per_page: 1 });
             if (existing.data.length > 0) {
               const pr = existing.data[0];
-              await github.rest.pulls.update({
-                owner,
-                repo,
-                pull_number: pr.number,
-                title,
-                body
-              });
+              await github.rest.pulls.update({ owner, repo, pull_number: pr.number, title, body });
               core.setOutput('pull_request_number', pr.number);
               core.setOutput('pull_request_url', pr.html_url);
             } else {
-              const pr = await github.rest.pulls.create({
-                owner,
-                repo,
-                head: branch,
-                base,
-                title,
-                body,
-                maintainer_can_modify: true
-              });
+              const pr = await github.rest.pulls.create({ owner, repo, head: branch, base, title, body, maintainer_can_modify: true });
               core.setOutput('pull_request_number', pr.number);
               core.setOutput('pull_request_url', pr.html_url);
             }
@@ -798,58 +225,19 @@ PY
             const prNumber = Number("${{ steps.pr.outputs.result.pull_request_number }}");
             const changeSummary = (process.env.CHANGE_SUMMARY || '').trim();
             const reportPath = (process.env.REPORT_PATH || '').trim();
-            const summaryBlock = changeSummary
-              ? changeSummary
-              : `差分はありません。${reportPath ? `レポートファイル: ${reportPath}` : ''}`.trim();
+            const summaryBlock = changeSummary ? changeSummary : `差分はありません。${reportPath ? `レポートファイル: ${reportPath}` : ''}`.trim();
             const issueTitle = (context.payload.issue && context.payload.issue.title || '').trim();
             const relatedIssue = Number.isFinite(issueNumber) && issueNumber > 0 ? `#${issueNumber}` : "N/A";
             const prInfoSuffix = Number.isFinite(prNumber) && prNumber > 0 ? `（PR: #${prNumber}）` : "";
             const purpose = issueTitle ? `${issueTitle}${prInfoSuffix}` : `自動対応タスク${prInfoSuffix}`;
             const artifactNote = "成果物: ワークフローアーティファクト `codex-agent-outputs`";
-            const summaryLines = [
-              Number.isFinite(prNumber) && prNumber > 0 ? `PR: #${prNumber} (${prUrl})` : null,
-              artifactNote,
-              summaryBlock
-            ].filter(Boolean).join("\n");
-            const apiDbImpact = /(\/api\/|\.sql\b|db|database|schema|migration|prisma|datasource)/i.test(summaryLines)
-              ? "変更あり（自動推定・要確認）"
-              : "変更なし（自動推定）";
-            const fallbackReport = [
-              "## 背景",
-              `- 目的: ${purpose}`,
-              `- 関連: ${relatedIssue}`,
-              "",
-              "## 変更概要",
-              "- 要約:",
-              "```text",
-              summaryLines,
-              "```",
-              "",
-              "## 影響",
-              "",
-              `- API/DB: ${apiDbImpact}`,
-              "- セキュリティ・パフォーマンスへの影響: 未評価（自動コメント）",
-              "",
-              "## 検証",
-              "- テスト: 追加0件、カバレッジN/A（自動コメント）",
-              "",
-              "## レビュー観点",
-              "- 重点: 差分とPR内容の妥当性を確認してください。",
-              "- 非対象: 特になし"
-            ].join("\n");
+            const summaryLines = [Number.isFinite(prNumber) && prNumber > 0 ? `PR: #${prNumber} (${prUrl})` : null, artifactNote, summaryBlock].filter(Boolean).join("\n");
+            const apiDbImpact = /(\/api\/|\.sql\b|db|database|schema|migration|prisma|datasource)/i.test(summaryLines) ? "変更あり（自動推定・要確認）" : "変更なし（自動推定）";
+            const fallbackReport = ["## 背景",`- 目的: ${purpose}`,`- 関連: ${relatedIssue}`,"","## 変更概要","- 要約:","```text",summaryLines,"```","","## 影響","",`- API/DB: ${apiDbImpact}`,"- セキュリティ・パフォーマンスへの影響: 未評価（自動コメント）","","## 検証","- テスト: 追加0件、カバレッジN/A（自動コメント）","","## レビュー観点","- 重点: 差分とPR内容の妥当性を確認してください。","- 非対象: 特になし"].join("\n");
             const workReportPath = 'codex_output/work_report.md';
-            const report = fs.existsSync(workReportPath)
-              ? (fs.readFileSync(workReportPath, 'utf8').trim() || fallbackReport)
-              : fallbackReport;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: report
-            });
+            const report = fs.existsSync(workReportPath) ? (fs.readFileSync(workReportPath, 'utf8').trim() || fallbackReport) : fallbackReport;
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body: report });
 
       - name: Enforce completion condition
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed != 'true' && steps.synth.outputs.synthesized != 'true') }}
-        run: |
-          echo "::error::No changes detected. PR was not created, so completion conditions are not met."
-          exit 1
+        run: bash -lc $'echo "::error::No changes detected. PR was not created, so completion conditions are not met."; exit 1'
