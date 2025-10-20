@@ -18,6 +18,7 @@ import { UserProfile } from '@core/profile/profile.models';
 import { HelpDialogComponent } from './help-dialog';
 import { HoverMessageStackComponent } from '../hover-messages/hover-message-stack.component';
 import { HoverMessageService } from '../hover-messages/hover-message.service';
+import { getDisplayName } from '@shared/utils/display-name';
 
 function extractRoleLabel(role: string): string {
   const separator = ' / ';
@@ -113,6 +114,10 @@ export class Shell {
 
     return this.loadingMessageState();
   });
+
+  public displayName(user: { nickname: string | null; email: string }): string {
+    return getDisplayName(user);
+  }
 
   private readonly syncTheme = effect(() => {
     const preference = this.theme();

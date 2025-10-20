@@ -1,50 +1,43 @@
-**Restatement**
+**Summary**
+- Show a user’s nickname wherever a “name” is displayed; fall back to email only when nickname is not set.
 
-Fix the documentation “recipe” folder structure. Each recipe must live alongside the specific source code it explains (one recipe per target directory), not grouped centrally under a documentation folder.
-
-**Intended Outcome**
-
-- Move existing recipes from any centralized docs location into the same directories as their referenced source code.
-- Update all links, indexes, and build/preview tooling so documentation resolves correctly after the move.
-- Remove or deprecate the centralized recipes folder once references are updated.
+**Acceptance Criteria**
+- When rendering a user’s display name: if `nickname` exists and is non-empty after trim, show it; else show `email`.
+- Apply consistently across all user-facing views/components (lists, headers, profile, activity, comments, etc.).
+- Do not change displays that explicitly require the email (e.g., auth forms, security pages).
+- No functional regressions; visual snapshots (if any) updated accordingly.
 
 **Assumptions**
-
-- “Recipe” = self-contained guidance (likely Markdown) tied to a specific source file/folder.
-- Each recipe explains exactly one code target and should be co-located with that target’s directory.
-- Linkable indices (e.g., README, docs site navigation) must continue to work post-move.
-- Non-Angular parts follow the same co-location rule.
+- User entity includes `email` (always present) and `nickname` (optional).
+- `nickname` may be `null`, `undefined`, empty string, or whitespace.
+- No backend schema change is needed; this is a presentation-layer rule.
 
 **Constraints**
+- Minimize impact and avoid unnecessary tasks.
+- Keep changes localized (prefer a single utility/helper as a source of truth).
+- Do not modify APIs or database unless strictly necessary.
+- Maintain i18n and existing accessibility semantics.
 
-- Minimize changes; touch only what’s needed to align structure.
-- Deliver a complete, self-contained fix (no partial moves or broken links).
-- No network access; operate within current workspace.
-- Keep language-agnostic standards and Angular-specific rules separate per repository guidelines.
+**Unknowns**
+- Exact field names (`nickname`, `displayName`, `handle`?) and types in the current codebase.
+- Are there views intentionally showing email even when nickname exists (e.g., admin tables)?
+- Any caching/memoization layers that compute display names?
+- Cross-tenant contexts where email must be shown for disambiguation.
+- Sorting/grouping behavior: if lists sort by “name,” should sorting use nickname or email?
 
-**Success Criteria**
+**Clarifying Questions**
+- What are the exact user model fields for nickname and email?
+- Are there screens where email must still be shown even if nickname exists (admin, audit, notifications)?
+- Should sorting/search use nickname primarily as well?
+- How should we treat nicknames equal to the email (e.g., user set email as nickname)?
+- Any constraints for system users/integrations without emails?
 
-- No centralized “recipes” collection remains referenced.
-- All recipe links in docs, READMEs, and navigation resolve.
-- Any docs tooling (site generator, CI checks, link checkers) passes with the new paths.
-- Clear mapping from each recipe to its target source directory.
+**Out of Scope**
+- Adding or changing nickname edit flows.
+- Backend schema changes or migrations.
+- Broader UI redesigns.
 
-**Residual Risks / Open Questions**
-
-- Broken links if any external references or hardcoded paths point to old locations.
-- Tooling that assumes a centralized recipes path (site generators, link checkers) may need config updates.
-- Ambiguity in identifying which source directory a given recipe belongs to.
-- Asset paths inside recipes (images/code snippets) may break after relocation.
-- Naming collisions or conventions (e.g., multiple recipes per directory) not yet defined.
-
-## Clarifying questions
-
-- Where are recipes currently stored (exact path, e.g., `docs/recipes/`), and what are their file patterns (e.g., `*.md`)?
-- What is the canonical naming convention for recipe files (e.g., `README.recipe.md`, `recipe.md`, or `<feature>.recipe.md`) after relocation?
-- How should we determine the target directory when a recipe covers multiple files or a cross-cutting concern?
-- Are there build or docs-generation tools that index recipes by their current location (please specify config/files to update)?
-- Should we update central indices/navigation to point to new locations, or generate them dynamically?
-- How should embedded assets (images, code samples) be handled—move alongside the recipe or keep a shared assets directory?
-- Do any non-doc consumers (scripts, CI) rely on the old structure?
-- Is there a preferred fallback for directories already containing a `README.md` (append section vs. separate `recipe.md`)?
-- Are Angular-specific recipes subject to any additional placement rules relative to the Angular guidelines?
+**Residual Risks**
+- Inconsistent logic if some components bypass the shared helper.
+- Edge cases with whitespace-only nicknames causing unexpected blanks.
+- Potential confusion in contexts where email is expected for identification (support/admin).
