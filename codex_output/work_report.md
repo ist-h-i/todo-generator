@@ -1,32 +1,36 @@
 **背景**
-- Goal: Require a “Nickname” during user registration so every account has an associated nickname.
-- Scope: Minimal surface change limited to registration, persistence, and i18n; no broad UI/API refactors.
-- Existing users: Must be handled without blocking; backfill approach selected.
+- 担当ラベルがニックネーム→メールアドレスへと上書きされる不整合が発生。
+- ユーザ識別子を文字列（email/nickname）で保持していることが根因。安定した `userId` 紐づけに統一し、表示時のみニックネーム解決する方針。
 
 **変更概要**
-- Data model/migration: Add `nickname` (VARCHAR 64). Startup backfills `user-{id}` where nickname is null/empty; schema remains nullable for compatibility.
-- API: Extend `POST /auth/register` to require `nickname`. Normalize/trim; validate non-empty and max length 64; persist and return with user profile.
-- Frontend: Add required “ニックネーム” field to the registration form with client-side validation mirroring server rules; include in payload.
-- Tests: Update registration helpers and specs to provide nicknames; add cases for missing/too short/too long inputs.
+- サーバ（最小影響での内的変更）
+  - 書き込み時: email/nickname/id → `userId` に正規化して保存（単/複数担当、サブタスク含む）。
+  - 読み出し時: `userId` → 表示名に解決（ニックネーム優先、なければ email、最後は元値）。
+  - 既存データ: 起動時にベストエフォートで文字列→`userId` へバックフィル（曖昧一致はスキップ）。
+  - API 形状は変更なし（既存フロント互換）。
+- フロント（Angular）
+  - ニックネーム→メールに上書きする副作用を削除。デフォルト担当はニックネームを優先して設定。
 
 **影響**
-- Breaking for old clients: Registrations without `nickname` now fail with a clear validation error.
-- Existing users: Receive default `user-{id}` nickname after backfill; may become visible wherever nickname is displayed.
-- Uniqueness: Not enforced in this pass; duplicates are possible.
-- SSO/social: Unchanged; must supply or prompt for nickname if they hit the same registration path.
+- ユースケース体験: 以降は安定した `userId` で保持し、UI は常にニックネーム表示に統一。ラベルの「切り替わり」消滅。
+- 既存データ: 一意にマッチしたものは `userId` に正規化。未マッチは既存の文字列のまま表示（データ喪失なし）。
+- パフォーマンス: 読み出し時の名前解決で DB 参照が増えるが、リクエスト内で一括解決して N+1 を回避。
+- 互換性: API の入出力フィールドは従来通り。外部連携が担当フィルタを email/nickname で送る場合は挙動差異の可能性あり。
 
 **検証**
-- API: Verified 400/422 on missing/invalid nickname; valid values are trimmed, persisted, and returned.
-- Migration: Verified backfill assigns non-empty `user-{id}`; post-migration users have non-null values in practice.
-- UI: Registration form blocks submit when nickname invalid/empty; successful submit includes nickname.
-- Consistency: Server/client share non-empty + 64-char max; messages follow existing i18n pattern.
+- カード作成: `assignees=["user@example.com"]` → 保存は `userId`、取得は `["Nickname"]`。
+- 更新: `assignees=["Nickname"]` → 保存は `userId`、取得は `["Nickname"]`。
+- サブタスク: `assignee="user@example.com"` → 保存は `userId`、取得は `"Nickname"`。
+- 移行: 既存の email/nickname を持つレコードは起動時に正規化（未解決値はそのまま保持・表示）。
+- フロント: 画面ロード時にラベルが email に上書きされる現象が解消され、表示が安定。
 
 **レビュー観点**
-- Validation policy: Confirm min length and allowed characters; current pass uses trim + non-empty + max 64, no profanity/emoji filtering.
-- Uniqueness: Decide whether to enforce globally (case/Unicode rules) and when to add constraints/indexing.
-- Schema hardening: When to migrate `nickname` to NOT NULL after safe rollout.
-- SSO flows: Confirm nickname capture behavior for social/enterprise providers.
-- UX/i18n: Finalize label/help/error copy and accessibility cues; confirm languages supported.
-- Visibility/editability: Where nickname appears and whether users can change it (rules/rate limits).
-
-Residual risks/open questions are called out above; guidance on uniqueness, stricter validation, and NOT NULL timing will shape any follow-up.
+- 正規化・解決の網羅性: 書き込み時の email/nickname/id マッチング、読み出し時の表示名フォールバック（nickname→email→元値）。
+- 曖昧性処理: 重複ニックネームは移行時にスキップする設計で安全性確保できているか。
+- バッチ解決: 一括取得・キャッシュで N+1 を避けられているか（リクエスト単位）。
+- 後方互換: API 形状維持、UI への値はニックネーム表示で統一されているか。
+- 残リスク／未解決事項（要合意）
+  - ステータスレポート等の別プレゼンターで、担当が `userId` のまま表示される可能性（同様の解決処理を適用すべきか）。
+  - フィルタパラメータ（`assignees=`）の互換性: 文字列からのサーバ側正規化を受けるべきか。
+  - ユーザ削除/無効化時の表示方針（元値・`Unassigned`・`userId` など）。
+  - 複数担当/ウォッチャーを同様に扱う必要の有無と対象範囲。
