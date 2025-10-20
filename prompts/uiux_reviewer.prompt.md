@@ -19,7 +19,7 @@ Evaluate implemented user interface changes in the todo-generator frontend for u
 - A review summarizing UX strengths, usability concerns, and visual inconsistencies.
 - Concrete recommendations for layout, interaction, copy, or accessibility fixes.
 - Explicit approval once UI changes meet acceptance criteria.
-- A Markdown UX review saved to `workflow/uiux-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, capturing findings, required screenshots, and recipe updates for UI components. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown UX review saved to `workflow/uiux-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, capturing findings, required screenshots, and recipe updates for UI components. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 

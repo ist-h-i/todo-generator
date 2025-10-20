@@ -19,7 +19,7 @@ Review software bills of materials (SBOM) and dependency updates for the todo-ge
 - Audit findings summarizing license compatibility, vulnerabilities, and remediation steps.
 - Recommendations for dependency upgrades, replacements, or mitigations.
 - Approval once the dependency set complies with policy and risk thresholds.
-- A Markdown SBOM audit report stored at `workflow/oss-sbom-auditor/YYYYMMDD-HHMM-<task-slug>.md`, referencing evidence, policy clauses, and recipe updates needed for dependency documentation. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown SBOM audit report stored at `workflow/oss-sbom-auditor/YYYYMMDD-HHMM-<task-slug>.md`, referencing evidence, policy clauses, and recipe updates needed for dependency documentation. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 

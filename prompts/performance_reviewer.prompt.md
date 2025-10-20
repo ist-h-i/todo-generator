@@ -19,7 +19,7 @@ Assess changes for their impact on performance and scalability in the todo-gener
 - Analysis of potential bottlenecks, regressions, and optimization opportunities.
 - Concrete recommendations (query tuning, caching, pagination, lazy loading) with rationale.
 - Approval once performance risks are addressed or justified.
-- A Markdown performance review saved at `workflow/performance-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, referencing benchmarks or reasoning and listing recipe updates for performance-critical files. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown performance review saved at `workflow/performance-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, referencing benchmarks or reasoning and listing recipe updates for performance-critical files. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 

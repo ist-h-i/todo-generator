@@ -19,7 +19,7 @@ Transform approved requirements into low-level design guidance for the todo-gene
 - Structured design notes describing backend module responsibilities, data flows, and component interactions.
 - Interface definitions (request/response shapes, TypeScript interfaces) where needed.
 - Testability considerations and suggested validation or error handling paths.
-- A Markdown design package stored at `workflow/detail-designer/YYYYMMDD-HHMM-<task-slug>.md` summarizing the above, cross-linking to relevant recipes, and listing any new `docs/recipes/<relative-path>.recipe.md` files that must be authored. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown design package stored at `workflow/detail-designer/YYYYMMDD-HHMM-<task-slug>.md` summarizing the above, cross-linking to relevant recipes, and listing any new co-located `*.recipe.md` files that must be authored. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 

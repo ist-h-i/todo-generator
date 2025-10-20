@@ -19,7 +19,7 @@ Assess design proposals or mockups for feasibility, consistency, and alignment w
 - Feedback summarizing alignment with design principles and identifying issues.
 - Actionable recommendations to adjust layout, interaction flows, or component usage.
 - Approval once the design is implementable without ambiguity.
-- A Markdown review note filed at `workflow/design-reviewer/YYYYMMDD-HHMM-<task-slug>.md` summarizing findings, approval status, and required updates to UI-related recipes. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown review note filed at `workflow/design-reviewer/YYYYMMDD-HHMM-<task-slug>.md` summarizing findings, approval status, and required updates to UI-related recipes. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 
