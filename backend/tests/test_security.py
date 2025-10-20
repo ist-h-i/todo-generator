@@ -15,7 +15,10 @@ assertions = TestCase()
 
 
 def _register_user(client: TestClient, email: str, password: str) -> dict:
-    response = client.post("/auth/register", json={"email": email, "password": password})
+    response = client.post(
+        "/auth/register",
+        json={"email": email, "password": password, "nickname": "User"},
+    )
     assertions.assertTrue(response.status_code == 201, response.text)
     return response.json()
 
@@ -63,7 +66,7 @@ def test_email_login_flow_accepts_user_input_variations(client: TestClient) -> N
 
     register_response = client.post(
         "/auth/register",
-        json={"email": email_input, "password": password},
+        json={"email": email_input, "password": password, "nickname": "Admin"},
     )
     assertions.assertTrue(register_response.status_code == 201, register_response.text)
     register_payload = register_response.json()
@@ -85,14 +88,14 @@ def test_second_registered_user_is_not_admin(client: TestClient) -> None:
 
     first_register_response = client.post(
         "/auth/register",
-        json={"email": "owner@example.com", "password": password},
+        json={"email": "owner@example.com", "password": password, "nickname": "Owner"},
     )
     assertions.assertTrue(first_register_response.status_code == 201, first_register_response.text)
     assertions.assertTrue(first_register_response.json()["user"]["is_admin"] is True)
 
     second_register_response = client.post(
         "/auth/register",
-        json={"email": "member@example.com", "password": password},
+        json={"email": "member@example.com", "password": password, "nickname": "Member"},
     )
     assertions.assertTrue(second_register_response.status_code == 201, second_register_response.text)
     second_register_payload = second_register_response.json()

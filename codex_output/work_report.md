@@ -1,38 +1,32 @@
 **背景**
-- Requirement: Prefer nickname over email wherever a user “name” is shown; fall back to email only when nickname is missing or whitespace.
-- Scope: Presentation layer only; do not alter admin/auth screens that explicitly show email; maintain i18n/a11y.
+- Goal: Require a “Nickname” during user registration so every account has an associated nickname.
+- Scope: Minimal surface change limited to registration, persistence, and i18n; no broad UI/API refactors.
+- Existing users: Must be handled without blocking; backfill approach selected.
 
 **変更概要**
-- Shared helper centralizes display-name logic:
-  - `frontend/src/app/shared/utils/display-name.ts:1` provides `getDisplayName({ nickname, email })` (trim, prefer nickname, else email).
-- Shell header uses the helper:
-  - `frontend/src/app/core/layout/shell/shell.ts:118` exposes `displayName(user)` delegating to `getDisplayName`.
-  - `frontend/src/app/core/layout/shell/shell.html:225` renders `{{ displayName(currentUser) }}`; email remains in the metadata line.
-- Workspace store aligns current-user naming:
-  - `frontend/src/app/core/state/workspace-store.ts:742` normalizes active user nickname.
-  - `frontend/src/app/core/state/workspace-store.ts:749` computes `commentAuthorName` via `getDisplayName(this.auth.user())`, falling back to ‘匿名ユーザー’ when unauthenticated.
-- Admin/auth remain email-centric (no change), e.g., `frontend/src/app/features/admin/page.html:304`.
+- Data model/migration: Add `nickname` (VARCHAR 64). Startup backfills `user-{id}` where nickname is null/empty; schema remains nullable for compatibility.
+- API: Extend `POST /auth/register` to require `nickname`. Normalize/trim; validate non-empty and max length 64; persist and return with user profile.
+- Frontend: Add required “ニックネーム” field to the registration form with client-side validation mirroring server rules; include in payload.
+- Tests: Update registration helpers and specs to provide nicknames; add cases for missing/too short/too long inputs.
 
 **影響**
-- User-facing “name” displays now consistently show nickname when present; whitespace-only nicknames fall back to email.
-- Comments list shows `authorNickname` from API; legacy comments without nickname fall back to author_id per existing mapping.
-- No backend/schema changes; no API or routing changes; minimal UI surface change (text value only).
+- Breaking for old clients: Registrations without `nickname` now fail with a clear validation error.
+- Existing users: Receive default `user-{id}` nickname after backfill; may become visible wherever nickname is displayed.
+- Uniqueness: Not enforced in this pass; duplicates are possible.
+- SSO/social: Unchanged; must supply or prompt for nickname if they hit the same registration path.
 
 **検証**
-- Header: nickname='Hanako', email='hanako@example.com' → shows “Hanako”.
-- Header: nickname='   ', email='hanako@example.com' → shows “hanako@example.com”.
-- Header: nickname null/undefined, email present → shows email.
-- Comments composer prefill matches the same rule; unauthenticated shows ‘匿名ユーザー’.
-- Admin Users and auth forms still display email only; no regressions in those contexts.
+- API: Verified 400/422 on missing/invalid nickname; valid values are trimmed, persisted, and returned.
+- Migration: Verified backfill assigns non-empty `user-{id}`; post-migration users have non-null values in practice.
+- UI: Registration form blocks submit when nickname invalid/empty; successful submit includes nickname.
+- Consistency: Server/client share non-empty + 64-char max; messages follow existing i18n pattern.
 
 **レビュー観点**
-- Consistency: Confirm no other user-facing views bypass the helper when showing a “name”; promote `getDisplayName` for future use.
-- Intentional email contexts: Ensure admin/security/notifications still show emails as designed.
-- Sorting/search: If any lists sort/filter by “name,” should nickname be the primary key? Current work does not change sorting semantics.
-- Edge cases: Nickname identical to email will display that same value; confirm if alternate formatting is desired.
-- Data limits: Comments from API include `author_nickname` but not `author_email`; older comments cannot fall back to email unless backend adds it.
+- Validation policy: Confirm min length and allowed characters; current pass uses trim + non-empty + max 64, no profanity/emoji filtering.
+- Uniqueness: Decide whether to enforce globally (case/Unicode rules) and when to add constraints/indexing.
+- Schema hardening: When to migrate `nickname` to NOT NULL after safe rollout.
+- SSO flows: Confirm nickname capture behavior for social/enterprise providers.
+- UX/i18n: Finalize label/help/error copy and accessibility cues; confirm languages supported.
+- Visibility/editability: Where nickname appears and whether users can change it (rules/rate limits).
 
-残課題・リスク（明示）
-- Bypass risk if future components read `user.nickname` directly instead of `getDisplayName`.
-- Comments fallback limited by API fields; email-based fallback not possible for historical comments.
-- Potential ambiguity where email is expected for disambiguation in support/admin contexts; verify UX expectations per screen.
+Residual risks/open questions are called out above; guidance on uniqueness, stricter validation, and NOT NULL timing will shape any follow-up.

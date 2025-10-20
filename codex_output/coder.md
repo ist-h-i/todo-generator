@@ -1,33 +1,81 @@
-Summary
-The nickname-first display rule is already implemented and wired through a shared helper. No additional code changes are required to meet the acceptance criteria with minimal impact.
+Summary of changes
+- Backend registration now requires and persists a sanitized nickname.
+- Database startup migration backfills missing nicknames for existing users.
+- Frontend registration UI includes a required “Nickname” field with validation.
+- Tests updated to supply nicknames and to reflect the new requirement.
 
-What’s in place
-- Shared helper for display name:
-  - frontend/src/app/shared/utils/display-name.ts:1
-  - Provides `getDisplayName({ nickname, email })` that trims values, prefers `nickname`, falls back to `email`.
+Files changed (focused diffs)
 
-- Shell header shows nickname first:
-  - frontend/src/app/core/layout/shell/shell.ts:118 defines `displayName(user)` that delegates to `getDisplayName`.
-  - frontend/src/app/core/layout/shell/shell.html:225 uses `{{ displayName(currentUser) }}` for the visible “name”. Email is still shown in metadata line, which is acceptable for contexts explicitly showing email.
+Backend
+- backend/app/schemas.py:1
+  - Add `nickname: str` to `RegistrationRequest`.
+- backend/app/routers/auth.py:1
+  - Validate/sanitize nickname during registration using `normalize_nickname` and persist to `User.nickname`.
+- backend/app/migrations.py:1
+  - Add `_backfill_user_nickname(engine)` to assign `user-{id}` for users with null/empty nickname.
+  - Call `_backfill_user_nickname(engine)` in `run_startup_migrations` after ensuring profile columns.
+- backend/tests/test_cards.py:1
+  - `register_and_login` now posts nickname `Tester`.
+- backend/tests/test_admin_users.py:1
+  - Include nicknames (“Owner”, “Member”, “Second”) for all `POST /auth/register` calls.
+- backend/tests/test_report_templates.py:1
+  - `_register_user` now sends nickname `Admin`.
+- backend/tests/test_status_reports.py:1
+  - Helper `register_and_login` now sends nickname `Reporter`.
+- backend/tests/test_security.py:1
+  - `_register_user` adds nickname `User`; direct registration calls updated with nicknames.
+- backend/tests/test_competency_evaluations.py:1
+  - `_register` sends nickname `Member`.
+- backend/tests/test_profile.py:1
+  - `_register_and_login` sends nickname `ProfileUser`.
+  - `test_profile_defaults` now expects nickname is a non-empty string.
+- backend/tests/test_appeals.py:1
+  - Helper `register_and_login` sends nickname `AppealsUser`.
+- backend/tests/test_admin_settings.py:1
+  - `_admin_headers` registers with nickname `Owner`.
 
-- Workspace state and comments:
-  - frontend/src/app/core/state/workspace-store.ts:742 computes `activeUserNickname` with `getDisplayName` to keep default-assignee and current-user naming in sync.
-  - frontend/src/app/core/state/workspace-store.ts:749 `commentAuthorName` uses `getDisplayName(this.auth.user())`, falling back to ‘匿名ユーザー’ if not authenticated.
-  - Comment lists display `comment.authorNickname` (from API); when creating comments locally, the prefill follows the same nickname-first rule via `commentAuthorName`.
+Frontend
+- frontend/src/app/core/auth/auth.service.ts:1
+  - `register(email, password, nickname)` now includes `nickname` in the API payload.
+- frontend/src/app/features/auth/login/page.ts:1
+  - Registration form state adds `nickname`.
+  - Add nickname touched state, error computation, validation (`getNicknameError`).
+  - Include nickname in submit validation and pass to `AuthService.register`.
+  - Add `onRegisterNicknameInput` handler.
+- frontend/src/app/features/auth/login/page.html:1
+  - Add required “ニックネーム” input with error display to registration form.
 
-- Admin/auth remain email-centric:
-  - Admin user selection and user list present emails (e.g., frontend/src/app/features/admin/page.html:295, 321), aligned with “do not change explicitly email contexts.”
-  - Auth pages use email fields only.
+How it works (backend)
+- API contract
+  - Request: POST `/auth/register` expects JSON `{ email, password, nickname }`.
+  - Response: unchanged shape; `user.nickname` included as before via `UserProfile`.
+- Validation
+  - Server uses `normalize_nickname` (Japanese messages, trims whitespace, requires non-empty, max length 100).
+  - Email/password validation unchanged.
+- Migration/backfill
+  - On startup, any user with `NULL` or empty `nickname` is set to `user-{id}`. Column remains nullable for compatibility.
+  - No uniqueness constraints are enforced.
 
-No changes needed
-- The scoped helper exists and is used in the shell header and workspace store as planned.
-- Behavior matches acceptance criteria, including whitespace-trim fallback and consistent use for current user display and comment author prefill.
-
-Residual risks / open questions
-- Comments from the API only include `author_nickname`/`author_id` (no `author_email`), so existing comments can’t fall back to email unless the backend adds it.
-- Sorting/search policies by “name” are not adjusted; lists might still sort on email strings where present.
-- Admin tables intentionally show email; confirm if there are any admin views that should display nickname alongside email.
-- Edge case where a user’s nickname equals their email will display that value unchanged; confirm if alternate formatting is desired.
+How it works (frontend)
+- Registration form now includes a nickname field with client-side checks that mirror server messaging style:
+  - Required; max length 100 characters; trimmed before submission.
+- Auth service sends `{ email, password, nickname }` to `/auth/register`.
+- UX remains the same otherwise.
 
 Commands to run
-- None required. If you want me to run the frontend locally to verify visually, I can provide the steps, but dependency installation may require network access.
+- Backend (optional validation):
+  - `pytest -q` (from `backend/`) to verify test updates pass.
+- Frontend (optional build):
+  - `npm ci` (from `frontend/`)
+  - `npm run build` or `npm run start` to ensure the UI compiles with the new field.
+
+Residual risks / open questions
+- Validation limits: This pass enforces required and max length (100) consistent with existing profile UI, not the previously proposed 2–32 range.
+- Uniqueness: Not enforced. Duplicate nicknames are possible.
+- Existing users: Backfill uses `user-{id}`; visible if shown in UI. If a different default is preferred, please specify.
+- SSO/social: Not adjusted. Those flows must supply or prompt for a nickname if they use the same endpoint.
+- Editability: Users can still change nickname in Profile dialog. No rate limiting/audit added.
+
+Notes
+- I kept changes minimal and reused existing validation/i18n patterns.
+- If you want stricter nickname rules (e.g., 2–32 chars, character sets, uniqueness), I can add them in a follow-up with migration/indexing updates.
