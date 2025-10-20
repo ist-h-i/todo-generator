@@ -1,43 +1,42 @@
 **Summary**
-- Show a user’s nickname wherever a “name” is displayed; fall back to email only when nickname is not set.
-
-**Acceptance Criteria**
-- When rendering a user’s display name: if `nickname` exists and is non-empty after trim, show it; else show `email`.
-- Apply consistently across all user-facing views/components (lists, headers, profile, activity, comments, etc.).
-- Do not change displays that explicitly require the email (e.g., auth forms, security pages).
-- No functional regressions; visual snapshots (if any) updated accordingly.
+Add a required “Nickname” field to the user registration flow so that every newly registered user has a nickname stored and associated with their account. Ensure persistence, validation, and data model support; address existing users without nicknames.
 
 **Assumptions**
-- User entity includes `email` (always present) and `nickname` (optional).
-- `nickname` may be `null`, `undefined`, empty string, or whitespace.
-- No backend schema change is needed; this is a presentation-layer rule.
+- “Nickname” is a new user-profile attribute persisted server-side.
+- The field is required for new registrations.
+- Minimal UI/API changes beyond registration are preferred.
+- No immediate change to how names are displayed elsewhere unless specified.
 
 **Constraints**
-- Minimize impact and avoid unnecessary tasks.
-- Keep changes localized (prefer a single utility/helper as a source of truth).
-- Do not modify APIs or database unless strictly necessary.
-- Maintain i18n and existing accessibility semantics.
+- Minimize impact and avoid unrelated refactors.
+- Deliver a self-contained, finished outcome (UI, API, data, tests).
+- Align with existing validation and i18n patterns.
+- Backward compatibility must be considered for existing APIs/clients.
 
 **Unknowns**
-- Exact field names (`nickname`, `displayName`, `handle`?) and types in the current codebase.
-- Are there views intentionally showing email even when nickname exists (e.g., admin tables)?
-- Any caching/memoization layers that compute display names?
-- Cross-tenant contexts where email must be shown for disambiguation.
-- Sorting/grouping behavior: if lists sort by “name,” should sorting use nickname or email?
+- Uniqueness: Must nicknames be globally unique?
+- Validation: Allowed characters, length min/max, profanity/emoji handling.
+- Editability: Can users change nickname after signup? Frequency/rules?
+- Visibility: Publicly displayed vs internal-only.
+- Data model: Existing field (e.g., displayName/handle) vs new column?
+- Migration: Strategy for existing users lacking a nickname.
+- i18n: Final label/placeholder copy and supported locales.
+- External auth: Behavior for SSO/social login flows.
+- API contract: Field name (`nickname` vs `displayName`), request/response shape, versioning.
 
-**Clarifying Questions**
-- What are the exact user model fields for nickname and email?
-- Are there screens where email must still be shown even if nickname exists (admin, audit, notifications)?
-- Should sorting/search use nickname primarily as well?
-- How should we treat nicknames equal to the email (e.g., user set email as nickname)?
-- Any constraints for system users/integrations without emails?
-
-**Out of Scope**
-- Adding or changing nickname edit flows.
-- Backend schema changes or migrations.
-- Broader UI redesigns.
+## Clarifying questions
+- Should nicknames be unique across all users? If yes, is comparison case-insensitive and Unicode-normalized?
+- What are the validation rules (min/max length, allowed characters, profanity checks, emoji support)?
+- Can users change their nickname later? If so, are there rate limits or audit requirements?
+- Is the nickname intended to be publicly visible and used in UI, or internal only for now?
+- Do we already have a similar field (e.g., `displayName`) that should be reused instead of adding `nickname`?
+- How should we handle existing users without a nickname (migration default, prompt on next login, forced modal, or admin backfill)?
+- For SSO providers, should we prefill from provider attributes (e.g., `nickname`, `name`) and still require confirmation?
+- What is the exact API field name and where should it appear in requests/responses? Any API versioning concerns?
+- Are there accessibility or localization requirements for the new input’s label, help text, and validation messages?
 
 **Residual Risks**
-- Inconsistent logic if some components bypass the shared helper.
-- Edge cases with whitespace-only nicknames causing unexpected blanks.
-- Potential confusion in contexts where email is expected for identification (support/admin).
+- Enforcing uniqueness or strong validation may block registrations without clear UX.
+- Divergence between client/server validation could cause inconsistent errors.
+- Migration for existing users may require user prompts and can disrupt flows.
+- Confusion if an existing “username/display name” concept already exists and overlaps with “nickname.”

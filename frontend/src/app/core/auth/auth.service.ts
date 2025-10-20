@@ -66,7 +66,7 @@ export class AuthService {
     }
   }
 
-  public async register(email: string, password: string): Promise<boolean> {
+  public async register(email: string, password: string, nickname: string): Promise<boolean> {
     this.pendingStore.set(true);
     this.errorStore.set(null);
 
@@ -75,6 +75,7 @@ export class AuthService {
         this.http.post<TokenResponse>(buildApiUrl('/auth/register'), {
           email,
           password,
+          nickname,
         }),
       );
       this.setSession(response.access_token, response.user);

@@ -1,38 +1,39 @@
-Plan summary
-- Centralize “display name” logic in a small shared utility.
-- Use it in the shell header so nickname (trimmed) is preferred over email.
-- Keep scope tight; avoid changes to admin/auth contexts and backend.
+**Plan Summary**
+Add a required “nickname” field to the registration flow end-to-end with minimal surface area: database migration with safe backfill, server-side validation and persistence, client form field with i18n and client validation, and a handful of focused tests. Avoid uniqueness enforcement and cross-cutting UI changes to stay within 30 minutes.
 
-Proposed changes (30 min scope)
-- Add `getDisplayName(user)` utility that returns trimmed `nickname` if present, else `email`.
-- Update shell header to call the helper so whitespace-only nicknames fall back to email.
-- Reuse helper in `WorkspaceStore.commentAuthorName` to align current-user name computation with the same rule.
+**Scope and Decisions**
+- Field name: `nickname`
+- Requirement: Mandatory for new registrations
+- Uniqueness: Not enforced (timebox); add a non-unique index only if cheap
+- Validation: Trimmed length 2–32, allow general Unicode; no profanity/emoji filtering in this pass
+- Existing users: Backfill during migration with `user-{id}` then mark column NOT NULL
+- i18n: Add minimal strings (EN/JA) following existing pattern
+- API compatibility: Extend registration request/response; keep older clients failing fast with useful error
 
-Why this route
-- Minimal surface area: 1 new helper file, 2 targeted call sites.
-- Consistency: one source of truth for display-name logic used by current-user UI and comments author prefill.
-- No API/backend changes; no i18n/a11y changes; admin/auth UIs remain email-centric.
+**Execution Steps**
+- Data: Migration adds nullable `nickname`, backfill `user-{id}`, then set NOT NULL. Optional index for future uniqueness.
+- API: Accept `nickname` in registration DTO, validate server-side (2–32), trim, persist, include in response.
+- UI: Add required input to registration form; client validation mirrors server; include in payload; add i18n labels/help/error.
+- Tests: 
+  - API: missing/too short/too long nickname rejected; valid saved and returned.
+  - UI: form blocks submit without valid nickname.
+  - Migration: verifies existing users are backfilled and column is NOT NULL.
 
-Touched files
-- frontend/src/app/shared/utils/display-name.ts: new helper.
-- frontend/src/app/core/layout/shell/shell.ts: import helper and expose `displayName`.
-- frontend/src/app/core/layout/shell/shell.html: use `displayName(currentUser)`.
-- frontend/src/app/core/state/workspace-store.ts: use helper for current-user computed display.
+**Timeline Fit (≤30 min)**
+- Migration + backfill: 8–10 min
+- API DTO + handler validation: 8–10 min
+- UI form + i18n: 6–8 min
+- Tests (lightweight): 6–8 min
+- Buffer overlaps by pairing simple changes; cut optional index if time runs tight.
 
-Residual risks and open questions
-- Bypass risk: Other components might directly use `user.nickname` in future. Mitigation: document/evangelize `getDisplayName`.
-- Intentional email contexts: Admin tables, security, notifications — kept as-is. Confirm no additional places require nickname preference.
-- Sorting/search ambiguity: If any list sorts by “name,” should sorting respect nickname first? Not addressed here.
-- Edge case: If a user sets nickname equal to email, display is unchanged (still that value). Confirm if different behavior is desired.
-- System users without emails: Helper falls back to empty string; `commentAuthorName` still falls back to ‘匿名ユーザー’. Confirm if a generic fallback is needed elsewhere.
-
-Test checklist
-- Shell header shows nickname when set, else email.
-- Shell header falls back to email when nickname is whitespace-only.
-- Comment composer default author name reflects nickname-first rule; with whitespace nickname, falls back to email; when logged out, shows ‘匿名ユーザー’.
-- Admin “Users” and auth pages remain email-only as before.
-- Visual alignment unchanged; no layout regressions.
+**Residual Risks / Open Questions**
+- Uniqueness not enforced; duplicates possible until a later pass.
+- Validation rules may need tightening (character set, emoji, profanity).
+- SSO/social flows not adjusted; may register without nickname unless they hit the same endpoint—confirm flow parity.
+- Visibility/usage of nickname elsewhere is unchanged; clarify future display semantics.
+- If an existing `displayName` exists, reuse might be preferable—needs confirmation.
+- API versioning: extending payload may break older clients if they don’t supply nickname; acceptable given requirement?
 
 ```json
-{"steps":["coder"],"notes":"Add a shared getDisplayName(user) utility and adopt it in the shell header and WorkspaceStore for consistent nickname-first display with trim fallback to email. Keep admin/auth displays unchanged.","tests":"1) Set nickname='Hanako', email='hanako@example.com' -> shell shows 'Hanako'. 2) Set nickname='   ', email='hanako@example.com' -> shell shows 'hanako@example.com'. 3) Remove nickname (null/undefined), keep email -> shell shows email. 4) Comment composer prefill matches the same rules; when logged out, shows '匿名ユーザー'. 5) Admin user list and auth forms still show emails only."}
+{"steps":["coder","code_quality_reviewer"],"notes":"Leanest path: a single coder can implement migration, API, UI, and tests within 30 minutes. Add code_quality_reviewer to quickly sanity-check validation/i18n consistency and migration safety. Skip integrator/release_manager to keep cycle time minimal unless CI requires them.","tests":"API: (1) POST /register without nickname -> 400 with i18n error key. (2) nickname length 1 -> 400; 33 -> 400. (3) valid nickname trims spaces and persists; response includes nickname. Migration: After migration, existing users have non-null nickname matching `user-{id}`; column is NOT NULL. UI: Registration form shows required Nickname; client blocks submit on empty/invalid; sends nickname in payload. i18n: EN/JA strings exist for label, placeholder, and validation messages."}
 ```

@@ -39,6 +39,7 @@ interface LoginCall {
 interface RegisterCall {
   readonly email: string;
   readonly password: string;
+  readonly nickname: string;
   readonly deferred: Deferred<boolean>;
 }
 
@@ -71,11 +72,12 @@ class MockAuthService {
       return deferred.promise;
     });
 
-  public readonly register: jasmine.Spy<(email: string, password: string) => Promise<boolean>> =
-    jasmine.createSpy('register').and.callFake((email: string, password: string) => {
+  public readonly register: jasmine.Spy<
+    (email: string, password: string, nickname: string) => Promise<boolean>
+  > = jasmine.createSpy('register').and.callFake((email: string, password: string, nickname: string) => {
       this.pendingStore.set(true);
       const deferred = createDeferred<boolean>();
-      this.registerCalls.push({ email, password, deferred });
+      this.registerCalls.push({ email, password, nickname, deferred });
       deferred.promise.finally(() => {
         this.pendingStore.set(false);
       });
