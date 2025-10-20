@@ -7,7 +7,7 @@
     "steps": [
       "coder"
     ],
-    "notes": "Implement a minimal, shared fix in UiSelectComponent by deferring initial option read and observing projected <option> changes with MutationObserver. No API or template changes. This should restore the level options and stabilize other selects within the time cap.",
-    "tests": "Manual: (1) Admin → コンピテンシーを登録 → verify two level options render and selection persists; (2) Admin → 判定と履歴 → both user and competency selects populate and are selectable; (3) Reports page → status/priority selects show options. Optional unit test (time-permitting): shallow-mount UiSelect with projected options added after init; assert panel options length updates after MutationObserver triggers."
+    "notes": "Implement minimal, shared fix in UiSelect by deferring initial options read and observing projected <option> mutations. No API/template changes. This restores the competency 'Level' options and stabilizes other selects.",
+    "tests": "Manual: (1) Admin → コンピテンシー登録 → verify 'レベル' options render and selection submits; (2) Spot-check other app-ui-select instances (reports status/priority) for proper rendering/selection; (3) Verify no console errors and accessible keyboard navigation remains."
   }
 }

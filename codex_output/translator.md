@@ -1,41 +1,45 @@
 **Summary**
-- Bug: During competency registration, the “level” selection shows no options. Needs a fix with minimal project impact and a self-contained outcome.
-
-**Goal**
-- Restore the competency “level” options so users can select a valid level during registration.
+- Bug: In the competency registration form, the “Level” select shows no options.
+- Objective: Restore the level options so users can select and submit a valid level.
 
 **Assumptions**
-- The competency registration form is part of the Angular SPA.
-- “Level” options are either static (enum/design system constant) or fetched from an API.
-- The issue is a regression affecting all users in the affected environment.
+- The app is an Angular SPA; the “Level” field uses a shared select component.
+- Level options are static (design/constant) or otherwise already available client-side.
+- The issue is frontend-timing related (projected options not detected) rather than backend data emptiness.
 
 **Constraints**
-- Avoid unrelated changes; keep the fix small and localized.
-- Deliver a complete, ready-to-merge fix (UI + data wiring + tests if applicable).
+- Minimal, localized change; avoid unrelated edits.
+- Deliver a self-contained, ready-to-merge fix with no API/template contract changes.
+- Preserve existing UX, form bindings, and accessibility.
 
-**Unknowns**
-- Source of the options (static vs API).
-- Whether the issue is frontend-only (binding/component config) or backend/API (empty response).
-- Exact component/module handling the level field.
-- Scope (all competencies vs specific cases; all environments vs one).
+**Known Context**
+- Prior analysis suggests the shared select component reads projected `<option>`s only once and misses later insertions; observing DOM changes and deferring the initial read likely resolves it.
+- Other pages using the same select may also benefit from the fix.
 
 **Acceptance Criteria**
-- Level options render consistently in the registration form.
-- Options match the source of truth (enum or API).
-- Selection persists correctly in form state and submission.
-- No console errors; API calls (if any) succeed and are handled (loading/empty/error).
-- Basic accessibility is preserved (focusability, labels, keyboard interaction).
+- “Level” dropdown consistently renders expected options.
+- User can open the dropdown, navigate options (mouse/keyboard), select a value, and the form reflects/submits it.
+- No console errors; no regression in other pages using the select.
+- Basic a11y preserved (focus, ARIA roles, keyboard interaction).
+
+**Non-Goals**
+- No redesign or dependency changes.
+- No backend or API contract changes.
+- No global refactors beyond the shared select’s minimal stabilization.
+
+**Unknowns**
+- Exact source of “Level” options (purely static vs. async-inserted).
+- Specific component/template rendering the field.
+- Whether the issue reproduces across all environments or only certain builds.
 
 **Clarifying Questions**
-- What is the expected source of level options (static list or API endpoint)? If API, which endpoint and expected payload?
-- Is the issue reproducible across all environments (dev/staging/prod)? Any environment-specific flags or feature toggles?
-- Are there recent changes to the select component, state management, or API that could have caused this?
-- Do you see errors in the browser console or network panel when opening the form?
-- Which Angular component/file renders the level field?
-- What are the expected option values/labels and order?
-- Should we add/update tests (unit/e2e), and where are current tests located?
+- Are “Level” options strictly static in the template, or can they be added/translated asynchronously?
+- Which component/template renders the competency registration form and “Level” field?
+- Do any console or network errors appear when opening the form?
+- Is this regression recent, tied to a change in the shared select component or rendering lifecycle?
+- Should we verify any other forms using the same select for parity?
 
-**Residual Risks**
-- If the root cause is backend data or contract drift, frontend-only fixes may mask deeper issues.
-- If options are translated, missing i18n keys could still result in blank labels.
-- If the design system select component recently changed API/inputs, other forms may be affected and require follow-up.
+**Residual Risks / Open Questions**
+- If options rely on translations, missing i18n keys could still yield blank labels.
+- If options are intended to come from an API and that API returns empty, the UI fix won’t surface choices.
+- SSR/hydration contexts may require guarding DOM observers to browser-only execution.

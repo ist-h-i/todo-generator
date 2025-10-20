@@ -1,35 +1,43 @@
 **背景**
 - 症状: コンピテンシー登録フォームの「レベル」選択で候補が表示されない。
-- 想定原因: 共有セレクトコンポーネント（`app-ui-select`）が投影された`<option>`を`ngAfterViewInit`時に一度だけ読み取り、その後の動的挿入やラベル変更を追従できず内部`options`が空のままになるタイミング不整合。
-- 影響範囲の前提: レベルは静的選択肢（設計/定数）で、他画面の同コンポーネント利用にも同様のリスクあり。
+- 想定原因: 共有セレクト（`app-ui-select`）が投影`<option>`を`ngAfterViewInit`で一度だけ取得し、その後の動的挿入/更新に追従せず内部`options`が空のままになるタイミング不整合。
+- 影響範囲: 「レベル」に限らず、同コンポーネント利用箇所でも同様事象が起こりうる。
 
 **変更概要**
-- 変更箇所を共有UIに限定し、既存API/テンプレートは不変更。
-- `frontend/src/app/shared/ui/select/ui-select.ts:11` で `OnDestroy` をインポート。
-- `frontend/src/app/shared/ui/select/ui-select.ts:182` でクラスに `OnDestroy` を実装。
-- 初期読み取りを描画完了後に遅延実行（`queueMicrotask`、フォールバックに`setTimeout(0)`）して投影`<option>`を確実に取得。
-- `MutationObserver` を設定し、`childList/subtree/characterData/attributes`の変化で`readOptions()`→`syncLabelFromValue()`→`ensureActiveIndex()`を再評価。
-- 破棄時にObserverをクリーンアップ。
-- 参照: レベル欄の利用箇所 `frontend/src/app/features/admin/page.html:129`
+- 変更は共有UIコンポーネント内に限定（既存API/テンプレート不変更）。
+- `OnDestroy`の導入とライフサイクル整備
+  - `frontend/src/app/shared/ui/select/ui-select.ts:11` で `OnDestroy` をimport。
+  - `frontend/src/app/shared/ui/select/ui-select.ts:182` でクラスに `OnDestroy` を実装。
+- 初期読み取りの安定化
+  - レンダリング完了後に遅延実行（`queueMicrotask`→フォールバック`setTimeout(0)`）で投影`<option>`を確実取得（`frontend/src/app/shared/ui/select/ui-select.ts:205` 付近）。
+- 動的変化への追従
+  - `MutationObserver` をネイティブ`<select>`に設定し、`childList/subtree/characterData/attributes`の変化で`readOptions()`→`syncLabelFromValue()`→`ensureActiveIndex()`を再評価。
+  - 破棄時に`disconnect()`でクリーンアップ（`frontend/src/app/shared/ui/select/ui-select.ts:233` 付近）。
+- 参照（レベル欄の利用箇所）: `frontend/src/app/features/admin/page.html:129`
 
 **影響**
-- 正常化: 「レベル」選択肢が安定表示され、選択・送信に反映。
-- 横展開効果: 他の`app-ui-select`利用箇所（評価・レポート等）でも遅延挿入/更新に追従し安定化。
-- 非互換なし: 公開API/テンプレート構造・フォーム値は不変更。パフォーマンス影響は軽微（通常利用でObserverの通知頻度は低い）。
+- 正常化: 「レベル」の選択肢が安定表示され、選択/送信に反映。
+- 横展開: 他の`app-ui-select`利用箇所でも投影`<option>`の遅延挿入/更新に追従して安定化。
+- 非互換なし: 公開APIやテンプレート構造、フォーム値は不変更。パフォーマンス影響は軽微。
 
 **検証**
-- 管理画面 → コンピテンシー登録 → 「レベル」ドロップダウンに「初級(3段階)」「中級(5段階)」が表示されること。
-- 選択後にフォーム送信し、送信ペイロードに選択した`level`が含まれること。
-- コンソールエラーなし／ネットワーク異常なし（静的選択肢前提）。
-- 他画面スポットチェック: ユーザー/コンピテンシー選択、レポートのステータス/優先度などの選択肢が表示・選択可能。
-- 任意: `cd frontend && npm run lint` / `npm test` で静的解析・テストの健全性確認。
+- 手動確認
+  - 管理 → コンピテンシー登録 → 「レベル」ドロップダウンに期待項目（例: 「初級(3段階)」「中級(5段階)」）が表示される。
+  - 候補を選択して送信し、リクエストペイロードに選択した`level`が含まれる。
+  - コンソールエラーなし。
+- スポットチェック
+  - レポート等、他の`app-ui-select`利用画面で選択肢が表示・選択可能。
+- 任意コマンド
+  - `cd frontend && npm run lint`
+  - `cd frontend && npm test`（あれば）
 
 **レビュー観点**
-- ライフサイクル: 初期遅延読み取りのタイミングが安定しているか、`OnDestroy`でのObserver解放が漏れなく行われているか。
-- 挙動維持: セレクトのキーボード操作/フォーカス制御/ARIA属性など既存アクセシビリティが維持されているか。
-- 回帰監視: 他の`app-ui-select`利用箇所で意図しない選択更新や過剰な再計算が発生していないか。
+- ライフサイクル: 初期遅延読み取りのタイミングが安定しているか、`ngOnDestroy`でObserver解放が漏れないか。
+- 挙動維持: キーボード操作/フォーカス/ARIA属性など既存アクセシビリティの維持。
+- 回帰: 他画面で意図しない選択更新や過剰な再計算が発生していないか。
 - パフォーマンス: 大量オプションや頻繁な属性変更時のObserver負荷が実用上問題ないか。
-- Residual Risks / Open Questions:
-  - もし本来API供給の選択肢であれば、バックエンド空データは別途対応が必要。
-  - i18nキー欠落によりラベルが空になる可能性（今回の修正は構造検知のみ）。
-  - SSR/ハイドレーションがある構成では、ブラウザコンテキスト限定でObserverが動作するか再確認が必要。
+
+**Residual Risks / Open Questions**
+- もし本来API供給の選択肢でレスポンスが空の場合、UI修正では埋まらない（別途バックエンド対応が必要）。
+- ラベルがi18n依存の場合、翻訳キー欠落で表示が空になる可能性。
+- SSR/ハイドレーション環境がある場合、ブラウザ限定のObserver動作を確認要。
