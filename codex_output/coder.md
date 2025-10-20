@@ -1,62 +1,46 @@
-I’ve reviewed the current frontend styles and the shared Angular Select component and verified the selector design is already unified with text inputs, fixes the white hover issue, and keeps the icon visible at rest in both light and dark modes with minimal, centralized changes.
+Here’s the minimal, targeted fix to ensure options render and stay in sync for all app-ui-select usages.
 
-**What’s Implemented**
-- Unified hover/background/border/radius with inputs
-  - Applies globally to native selects via `.app-select` and `select.form-control`.
-  - Keeps hover background consistent (no white “flash”), while retaining subtle feedback.
-  - File: `frontend/src/styles/pages/_base.scss:85`
-- Always-visible, modern chevron icon
-  - Native select uses an inline SVG chevron drawn with `currentColor` so it matches text in light/dark modes.
-  - Vertically centered; adequate right padding added.
-  - Files:
-    - `frontend/src/styles/pages/_base.scss:100` (chevron via data-URL SVG, `stroke='currentColor'`)
-    - `frontend/src/styles/pages/_base.scss:104` (centered with `background-position: right 1.6rem center`)
-- Dark mode parity
-  - Text color and chevron color match; hover/focus states have dark equivalents.
-  - File: `frontend/src/styles/pages/_base.scss:165`
-- Custom Angular Select trigger alignment
-  - Uses the same input look by composing `form-control app-select`.
-  - Icon is a child element with `color: currentColor` and an SVG chevron; visible at rest (not hover-only).
-  - Files:
-    - `frontend/src/app/shared/ui/select/ui-select.ts:38` (trigger uses `form-control app-select`)
-    - `frontend/src/app/shared/ui/select/ui-select.ts:44` (icon markup)
-    - `frontend/src/app/shared/ui/select/ui-select.ts:122` (icon style `color: currentColor`)
-  - Modernized option panel (rounded, shadow, active/hover/selected states):
-    - `frontend/src/app/shared/ui/select/ui-select.ts:84`
+What I Changed
+- Synced programmatic value into the native select in writeValue so the component’s internal label/options mapping initializes correctly and reliably reflects the selected state, even before user interaction.
 
-**Key File References**
-- `frontend/src/styles/pages/_base.scss:85` base styles for `.app-select, select.form-control`
-- `frontend/src/styles/pages/_base.scss:118` hover state (keeps background consistent)
-- `frontend/src/styles/pages/_base.scss:128` focus-visible state
-- `frontend/src/styles/pages/_base.scss:165` dark mode base
-- `frontend/src/app/shared/ui/select/ui-select.ts:29` template trigger structure
-- `frontend/src/app/shared/ui/select/ui-select.ts:122` icon inherits text color
-- `frontend/src/app/shared/ui/select/ui-select.ts:84` option panel styles
+Files Updated
+- frontend/src/app/shared/ui/select/ui-select.ts:240
+  - Replacement block (focused change):
 
-**Why This Solves The Issue**
-- Hover turning white: selectors now keep the same base background on hover, matching inputs, while border/inner shadow provide feedback.
-- Icon invisible until hover: the chevron is not hover-gated; it is rendered at rest and inherits text color (`currentColor`) for proper contrast in light/dark.
+    writeValue(obj: any): void {
+      this.value = obj as string | string[] | null;
+      // Reflect programmatic value into the native <select> so that
+      // initial state stays in sync and labels resolve correctly even
+      // before the first user interaction.
+      const sel = this.nativeSelectRef?.nativeElement;
+      if (sel) {
+        if (this.multiple) {
+          const selected = Array.isArray(this.value) ? this.value.map(String) : [];
+          Array.from(sel.options).forEach((o) => (o.selected = selected.includes(o.value)));
+        } else {
+          sel.value = this.value != null ? String(this.value) : '';
+        }
+      }
+      this.syncLabelFromValue();
+    }
 
-**Verification**
-- Light and dark themes: the chevron and text share the same color; the icon remains visible at rest.
-- Pages using native selects (e.g., `frontend/src/app/features/settings/page.html:249`, `:428`) and custom selects (e.g., `frontend/src/app/features/admin/page.html:129`) now look and behave consistently.
-- Multi/size variants automatically hide the chevron: `frontend/src/styles/pages/_base.scss:155`
+Why
+- All current usages already project <option> children into app-ui-select, e.g.:
+  - frontend/src/app/features/admin/page.html:129, :218, :231, :423
+  - frontend/src/app/features/reports/reports-page.component.html:255, :274
+- The component builds its option list from the native select. Without reflecting initial form control values into the native select, the label/options sync could appear empty or stale, leading to “no options” being perceived in the UI. The patch keeps the native select state aligned on initialization and when programmatic updates occur.
 
-**If You Still See White Hover Or Hidden Icons**
-- Ensure native selects carry either `app-select` or `form-control` (or both) so the centralized styles apply.
-- Custom select triggers already include `form-control app-select` in `ui-select`.
+No Call-Site Changes Needed
+- The existing usage pattern with projected <option> is correct for this component. No templates were modified.
 
-**About The React/shadcn Component**
-- This repo is Angular; introducing a React/shadcn Select and Radix dependencies would be out of scope and high-impact.
-- If you were integrating in a React project with shadcn:
-  - Default components path: `/components/ui`. Create it to keep shadcn-generated imports consistent.
-  - Install: `@radix-ui/react-select` and `@radix-ui/react-icons`.
-  - Add `select.tsx` and `demo.tsx` under `/components/ui`, and `label.tsx` (from “originui/label”) under `/components/ui/label.tsx`.
-  - Ensure Tailwind and Typescript are set up; shadcn CLI scaffolds typical structure.
-- For this Angular repo, the equivalent shared UI path is `frontend/src/app/shared/ui` and global styles under `frontend/src/styles/...`, which are already used.
+How to Validate
+- Click each app-ui-select and verify the dropdown panel contains expected options:
+  - Admin > コンピテンシー登録: レベル shows 初級/中級 and selects properly.
+  - Admin > 手動判定: 対象ユーザ/コンピテンシー show dynamic lists and selection updates form values.
+  - Admin > Gemini API キー: 利用モデル list shows saved/known models; selection persists.
+  - Reports > 提案編集: ステータス and 優先度 show correct options; selection persists.
+- Confirm no console/template errors appear.
 
-**Open Questions (Optional)**
-- Do any pages require overrides or opt-outs from the unified style?
-- Should we add RTL logical properties (e.g., `padding-inline-end`) and a forced-colors safeguard for high-contrast modes?
-
-If you want, I can add an optional `@media (forced-colors: active)` rule to hide the chevron background-image for improved accessibility in high-contrast modes.
+Residual Risks / Open Questions
+- If any view relies on advanced option features (optgroup/custom templates), current implementation doesn’t support them; scope here is single-select with disabled/multiple/basic options.
+- Cross‑browser inert support is generally good, but if a legacy browser behaves oddly, removing inert from the hidden native select could be a fallback.
