@@ -94,7 +94,12 @@ PY
             echo "SKIP_UI_UX_REVIEWER=$([ "$UXR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
             echo "SKIP_AI_SAFETY_REVIEWER=$([ "$AIS" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
           fi
-          echo "ROUTE_WEIGHTS=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.route.weights // {}' 2>/dev/null)" >> "$GITHUB_ENV"
+          if [ -n "${{ steps.flags.outputs.json }}" ]; then
+            ROUTE_WEIGHTS=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.route.weights // {}' 2>/dev/null)
+          else
+            ROUTE_WEIGHTS='{}'
+          fi
+          echo "ROUTE_WEIGHTS=$ROUTE_WEIGHTS" >> "$GITHUB_ENV"
       # --- Auto-Evolve: flags 読込 & canary ルート決定 ここまで ---
 
       - name: Announce route (log)
