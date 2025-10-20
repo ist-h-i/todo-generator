@@ -1,45 +1,47 @@
-**Summary**
-- Bug: In the competency registration form, the “Level” select shows no options.
-- Objective: Restore the level options so users can select and submit a valid level.
+**English Summary**
+Implement a lightweight notification (“hover message/toast”) manager that shows messages on the right side of the screen with animations. Newest messages appear at the top; older ones stack below. Messages auto-dismiss based on severity; errors persist; loading persists until completion. Messages slide out to the right when dismissed.
+
+**Expected Behavior**
+- Placement: right side, vertical stack; newest at top.
+- Entry: animated appearance (descend from top).
+- Exit: slide-out to the right.
+- Queue: in-memory array; visual order reflects newest-first.
+- Duration by severity:
+  - Error: persistent (does not auto-dismiss), red shadow.
+  - Warning: 10s, yellow shadow.
+  - Notice: 5s, green shadow.
+  - System/Loading: ≥3s; loading remains until explicitly ended, blue shadow.
+
+**Scope**
+- Add a central “message manager” class/service to own queue, timers, and IDs.
+- Render via a single host in the app shell to show the stack on the right.
+- Replace scattered notification logic to route through this class.
+- No new dependencies; CSS-based animations only.
 
 **Assumptions**
-- The app is an Angular SPA; the “Level” field uses a shared select component.
-- Level options are static (design/constant) or otherwise already available client-side.
-- The issue is frontend-timing related (projected options not detected) rather than backend data emptiness.
+- “Hover message” refers to floating toast notifications, not tooltip/hover UI.
+- Angular SPA; service + single host component is acceptable.
+- Use existing design tokens (colors/shadows) where available.
+- Callers can programmatically dismiss or update messages (e.g., loading → success).
 
 **Constraints**
-- Minimal, localized change; avoid unrelated edits.
-- Deliver a self-contained, ready-to-merge fix with no API/template contract changes.
-- Preserve existing UX, form bindings, and accessibility.
-
-**Known Context**
-- Prior analysis suggests the shared select component reads projected `<option>`s only once and misses later insertions; observing DOM changes and deferring the initial read likely resolves it.
-- Other pages using the same select may also benefit from the fix.
-
-**Acceptance Criteria**
-- “Level” dropdown consistently renders expected options.
-- User can open the dropdown, navigate options (mouse/keyboard), select a value, and the form reflects/submits it.
-- No console errors; no regression in other pages using the select.
-- Basic a11y preserved (focus, ARIA roles, keyboard interaction).
-
-**Non-Goals**
-- No redesign or dependency changes.
-- No backend or API contract changes.
-- No global refactors beyond the shared select’s minimal stabilization.
+- Minimize changes to existing code; keep edits tightly scoped.
+- Deliver a self-contained outcome without adding dependencies.
+- Keep implementation achievable within a small diff and short timeframe.
 
 **Unknowns**
-- Exact source of “Level” options (purely static vs. async-inserted).
-- Specific component/template rendering the field.
-- Whether the issue reproduces across all environments or only certain builds.
+- Presence of any existing notification/toast mechanism to extend or replace.
+- Exact design tokens for red/yellow/green/blue and shadow intensities.
+- Maximum number of concurrent on-screen messages.
+- Whether a visible close button is required for sticky errors.
+- Accessibility requirements (roles, aria-live, keyboard dismissal).
+- Mobile behavior, safe-area padding, and z-index layering.
 
 **Clarifying Questions**
-- Are “Level” options strictly static in the template, or can they be added/translated asynchronously?
-- Which component/template renders the competency registration form and “Level” field?
-- Do any console or network errors appear when opening the form?
-- Is this regression recent, tied to a change in the shared select component or rendering lifecycle?
-- Should we verify any other forms using the same select for parity?
-
-**Residual Risks / Open Questions**
-- If options rely on translations, missing i18n keys could still yield blank labels.
-- If options are intended to come from an API and that API returns empty, the UI fix won’t surface choices.
-- SSR/hydration contexts may require guarding DOM observers to browser-only execution.
+- Should we replace any existing notification system, or integrate with it?
+- Do you want a close button on persistent errors, or programmatic dismissal only?
+- What color and shadow tokens should map to each severity (error/warn/notice/system)?
+- Should we cap visible messages (e.g., 4) and queue the rest?
+- Any accessibility requirements (aria-live/role, focus handling, keyboard support)?
+- Any mobile-specific placement or safe-area constraints to observe?
+- Is a simple API acceptable: showError, showWarning, showNotice, showLoading (returns id), update(id), dismiss(id), clearAll()?

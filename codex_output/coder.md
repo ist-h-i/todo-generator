@@ -1,39 +1,48 @@
-I’ve reviewed the frontend and confirmed the root cause is in the shared select. I implemented the minimal fix in the shared component so the projected <option> elements are reliably discovered and kept in sync.
+**Summary**
+- Centralized UI notifications under HoverMessageService. Global loading and error banners in Shell are removed; messages now appear as animated toasts on the right, newest at top, per required durations and slide-out behavior.
 
-What I changed
-- Stabilized app-ui-select to read options after render and on mutations, without changing its public API or templates.
+**What I Changed**
+- Routed global error and loading states into the hover/toast system via effects.
+- Removed legacy header banners for loading and error to avoid duplication.
+- Kept changes minimal and within existing hover-messages module.
 
-Focused diffs
-- frontend/src/app/shared/ui/select/ui-select.ts:1–16
-  - Added OnDestroy to imports.
-- frontend/src/app/shared/ui/select/ui-select.ts:182
-  - Implemented OnDestroy on UiSelectComponent.
-- frontend/src/app/shared/ui/select/ui-select.ts:205–231
-  - Deferred initial option read to post-render using queueMicrotask (fallback to setTimeout(0)).
-  - Added MutationObserver on the native select to watch childList/subtree/characterData/attributes and refresh options, selected label, and active index.
-- frontend/src/app/shared/ui/select/ui-select.ts:233–238
-  - Cleaned up MutationObserver in ngOnDestroy.
-- Behavior preservation: No changes to inputs, form bindings, or templates. Keyboard and ARIA behavior remain intact.
+**Files Updated**
+- frontend/src/app/core/layout/shell/shell.html:3
+  - Removed header banners (`.shell-global-loading`, `.shell-global-error`) and kept `<app-hover-message-stack [messages]="hoverMessageList()" />` as the single global outlet.
+- frontend/src/app/core/layout/shell/shell.ts:101
+  - Added `loadingToastId` to track the active loading toast id.
+- frontend/src/app/core/layout/shell/shell.ts:215
+  - Added effect to mirror `HttpErrorNotifierService.message` into sticky error toasts: `this.hoverMessages.error(msg)`.
+- frontend/src/app/core/layout/shell/shell.ts:224
+  - Added effect to mirror `HttpLoadingStore` into a persistent loading toast:
+    - On `isLoading()`: if no toast, `this.hoverMessages.loading(message ?? 'データを読み込み中です…')`.
+    - On end: `this.hoverMessages.dismiss(loadingToastId)` and reset.
 
-Why this fixes “Level” options
-- The admin “レベル” field uses projected static options: frontend/src/app/features/admin/page.html:129–132
-- With deferred read + MutationObserver, the component now consistently discovers those options even when rendering timing varies, so the dropdown shows items and selection persists.
+**Existing Toast Implementation (for reference)**
+- Service: frontend/src/app/core/layout/hover-messages/hover-message.service.ts:1
+  - Durations: error sticky, warning 10s, notification 5s, system 3s, loading sticky; newest unshift; exit delayed by 220ms for animation.
+- Host: frontend/src/app/core/layout/hover-messages/hover-message-stack.component.ts:1 and .html/.scss
+  - Fixed top-right stack; `aria-live="polite"`, newest-first rendering.
+- Item: frontend/src/app/core/layout/hover-messages/hover-message.component.ts:1 and .scss
+  - Entry drop-in from top; exit slide-out right; severity styling with colored shadows.
 
-Key file references
-- Shared select: frontend/src/app/shared/ui/select/ui-select.ts:205, 219, 233
-- Admin “レベル”: frontend/src/app/features/admin/page.html:129–132
-- Default value (junior): frontend/src/app/features/admin/page.ts:81, 242
+**Why This Meets Requirements**
+- Right-side stacking with animated entry and right-slide exit.
+- Newest at top; array-backed queue.
+- Severity-based durations:
+  - Error: sticky (red).
+  - Warning: 10s (yellow).
+  - Notification: 5s (green).
+  - System: 3s; Loading: persists until complete (blue).
+- Global loading/error now fully managed by the service.
 
-Manual verification
-- Admin → コンピテンシー登録:
-  - Open “レベル” dropdown; see “初級 (3段階)” and “中級 (5段階)”.
-  - Select both values; submit; payload includes selected level.
-- Spot-check other selects (reports/status, priority, and admin evaluation selects) for populated options and selection.
-- Optional commands (if deps are installed):
-  - cd frontend && npm run lint
-  - cd frontend && npm start
+**Commands (optional)**
+- Build: `cd frontend && npm ci && npm run build`
+- Dev: `cd frontend && npm start`
+- Tests: `cd frontend && npm test`
 
-Residual risks / open questions
-- If options are API-driven and return empty, UI will still show none (backend issue).
-- If labels depend on i18n and keys are missing, labels could be blank despite this fix.
-- In SSR/hydration contexts, MutationObserver should only run in the browser; current SPA views are client-only, but SSR views should be sanity-checked.
+**Residual Risks / Open Questions**
+- Sticky errors have no close button; dismissal is programmatic only. Add an inline close if needed.
+- Successive errors will stack (no dedup). Define dedup or max visible if desired.
+- We left unused CSS for old banners; harmless but can be cleaned up later.
+- Timers don’t pause on hover; can be added if required.
