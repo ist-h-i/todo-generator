@@ -161,6 +161,41 @@ def _ensure_user_profile_columns(engine: Engine) -> None:
             )
 
 
+def _backfill_user_nickname(engine: Engine) -> None:
+    """Backfill missing user nicknames with a stable default.
+
+    Uses the format "user-{id}" to ensure every existing user row has a non-empty
+    nickname without introducing new dependencies or uniqueness constraints.
+    """
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "users"):
+            return
+
+        if "nickname" not in _column_names(inspector, "users"):
+            return
+
+    # Populate nickname only where it's NULL or empty.
+    with engine.begin() as connection:
+        dialect = engine.dialect.name
+        if dialect == "sqlite":
+            # SQLite uses || for concatenation
+            connection.execute(
+                text(
+                    "UPDATE users SET nickname = 'user-' || id "
+                    "WHERE nickname IS NULL OR nickname = ''"
+                )
+            )
+        else:
+            # PostgreSQL/MySQL: use CONCAT for portability
+            connection.execute(
+                text(
+                    "UPDATE users SET nickname = CONCAT('user-', id) "
+                    "WHERE nickname IS NULL OR nickname = ''"
+                )
+            )
+
+
 def _datetime_column_type(dialect_name: str) -> str:
     if dialect_name == "postgresql":
         return "TIMESTAMP WITH TIME ZONE"
@@ -927,6 +962,7 @@ def run_startup_migrations(engine: Engine) -> None:
 
     _ensure_users_is_admin_column(engine)
     _ensure_user_profile_columns(engine)
+    _backfill_user_nickname(engine)
     _promote_first_user_to_admin(engine)
     _ensure_completion_timestamps(engine)
     _ensure_card_error_category_column(engine)
