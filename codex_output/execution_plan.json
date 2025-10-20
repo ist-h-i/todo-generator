@@ -7,7 +7,7 @@
     "steps": [
       "coder"
     ],
-    "notes": "Coder inventories docs/recipes, maps each recipe to its source directory, moves files and any local assets, updates all internal links and docs navigation/configs, runs docs build/link-checks, and removes the centralized folder. Risks: hidden hardcoded paths, ambiguous mapping, asset path breakage. If ambiguity arises, coder uses a pointer stub and flags for follow-up.",
-    "tests": "1) Run docs build (e.g., `npm run docs:build` or repo-specific) and ensure success. 2) Run link checker if available (e.g., `npm run docs:check-links`). 3) Search for old path references: `rg -n \"docs/recipes\"` -> expect no matches. 4) Open a few key indices and ensure links resolve to co-located recipes."
+    "notes": "Add a shared getDisplayName(user) utility and adopt it in the shell header and WorkspaceStore for consistent nickname-first display with trim fallback to email. Keep admin/auth displays unchanged.",
+    "tests": "1) Set nickname='Hanako', email='hanako@example.com' -> shell shows 'Hanako'. 2) Set nickname='   ', email='hanako@example.com' -> shell shows 'hanako@example.com'. 3) Remove nickname (null/undefined), keep email -> shell shows email. 4) Comment composer prefill matches the same rules; when logged out, shows '匿名ユーザー'. 5) Admin user list and auth forms still show emails only."
   }
 }

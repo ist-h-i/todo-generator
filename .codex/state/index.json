@@ -1637,5 +1637,142 @@
         "preview": "**Restatement**\n\nFix the documentation “recipe” folder structure. Each recipe must live alongside the specific source code it explains (one recipe per target directory), not grouped centrally under a documentation folder.\n\n**Intended Outcome**\n\n- Move existing recipes from any centralized docs location into the same directories as their referenced source code.\n- Update all links, indexes, and build/preview tooling so documentation resolves correctly after the move.\n- Remove or deprecate the centralized recipes folder once references are updated.\n\n**Assumptions**\n\n- “Recipe” = self-contained guidance (likely Markdown) tied to a specific source file/folder.\n- Each recipe explains exactly one code target and should be co-located with that target’s directory.\n- Linkable indices (e.g., README, docs site navigation) must continue to work post-move.\n- Non-Angular parts follow the same co-location rule.\n\n**Constraints**\n\n- Minimize changes; touch only what’s needed to align structure.\n- Deliver a complete, self-contained fix (no partial moves or broken links).\n- No network access; operate within current workspace.\n- Keep language-agnostic standards and Angular-specific rules separate per repository guidelines.\n\n**Success Criteria**\n\n- No centralized “recipes” collection remains referenced.\n- All recipe links in docs, READMEs, and navigation resolve.\n- Any docs tooling (site generator, CI checks, link checkers) passes with the new paths.\n- Clear mapping from each recipe to its target source directory.\n\n**Residual Risks / Open Questions**\n\n- Broken links if any external references or hardcoded paths point to old locations.\n- Tooling that assumes a centralized recipes path (site generators, link checkers) may need config updates.\n- Ambiguity in identifying which source directory a given recipe belongs to.\n- Asset paths inside recipes (images/code snippets) may break after relocation.\n- Naming collisions or conventions (e.g., multiple recipes per directory) not yet defined.\n\n## Clarifying questions\n\n- Where are recipes currently stored (exact path, e.g., `docs/recipes/`), and what are their file patterns (e.g., `*.md`)?\n- What is the canonical naming convention for recipe files (e.g., `README.recipe.md`, `recipe.md`, or `<feature>.recipe.md`) after relocation?\n- How should we determine the target directory when a recipe covers multiple files or a cross-cutting concern?\n- Are there build or docs-generation tools that index recipes by their current location (please specify config/files to update)?\n- Should we update central indices/navigation to point to new locations, or generate them dynamically?\n- How should embedded assets (images, code samples) be handled—move alongside the recipe or keep a shared assets directory?\n- Do any non-doc consumers (scripts, CI) rely on the old structure?\n- Is there a preferred fallback for directories already containing a `README.md` (append section vs. separate `recipe.md`)?\n- Are Angular-specific recipes subject to any additional placement rules relative to the Angular guidelines?"
       }
     ]
+  },
+  "591": {
+    "issue": "591",
+    "run_id": "18644058282",
+    "timestamp": "2025-10-20T06:30:39Z",
+    "files": [
+      {
+        "path": "codex_output/execution_plan_steps.txt",
+        "size": 6,
+        "preview": "coder\n"
+      },
+      {
+        "path": "codex_output/requirements_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/execution_plan.json",
+        "size": 737,
+        "preview": "{\n  \"steps\": [\n    \"coder\"\n  ],\n  \"source\": \"planner\",\n  \"planner_payload\": {\n    \"steps\": [\n      \"coder\"\n    ],\n    \"notes\": \"Add a shared getDisplayName(user) utility and adopt it in the shell header and WorkspaceStore for consistent nickname-first display with trim fallback to email. Keep admin/auth displays unchanged.\",\n    \"tests\": \"1) Set nickname='Hanako', email='hanako@example.com' -> shell shows 'Hanako'. 2) Set nickname='   ', email='hanako@example.com' -> shell shows 'hanako@example.com'. 3) Remove nickname (null/undefined), keep email -> shell shows email. 4) Comment composer prefill matches the same rules; when logged out, shows '匿名ユーザー'. 5) Admin user list and auth forms still show emails only.\"\n  }\n}"
+      },
+      {
+        "path": "codex_output/requirements_analyst.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/work_report.md",
+        "size": 2999,
+        "preview": "**背景**\n- Requirement: Prefer nickname over email wherever a user “name” is shown; fall back to email only when nickname is missing or whitespace.\n- Scope: Presentation layer only; do not alter admin/auth screens that explicitly show email; maintain i18n/a11y.\n\n**変更概要**\n- Shared helper centralizes display-name logic:\n  - `frontend/src/app/shared/utils/display-name.ts:1` provides `getDisplayName({ nickname, email })` (trim, prefer nickname, else email).\n- Shell header uses the helper:\n  - `frontend/src/app/core/layout/shell/shell.ts:118` exposes `displayName(user)` delegating to `getDisplayName`.\n  - `frontend/src/app/core/layout/shell/shell.html:225` renders `{{ displayName(currentUser) }}`; email remains in the metadata line.\n- Workspace store aligns current-user naming:\n  - `frontend/src/app/core/state/workspace-store.ts:742` normalizes active user nickname.\n  - `frontend/src/app/core/state/workspace-store.ts:749` computes `commentAuthorName` via `getDisplayName(this.auth.user())`, falling back to ‘匿名ユーザー’ when unauthenticated.\n- Admin/auth remain email-centric (no change), e.g., `frontend/src/app/features/admin/page.html:304`.\n\n**影響**\n- User-facing “name” displays now consistently show nickname when present; whitespace-only nicknames fall back to email.\n- Comments list shows `authorNickname` from API; legacy comments without nickname fall back to author_id per existing mapping.\n- No backend/schema changes; no API or routing changes; minimal UI surface change (text value only).\n\n**検証**\n- Header: nickname='Hanako', email='hanako@example.com' → shows “Hanako”.\n- Header: nickname='   ', email='hanako@example.com' → shows “hanako@example.com”.\n- Header: nickname null/undefined, email present → shows email.\n- Comments composer prefill matches the same rule; unauthenticated shows ‘匿名ユーザー’.\n- Admin Users and auth forms still display email only; no regressions in those contexts.\n\n**レビュー観点**\n- Consistency: Confirm no other user-facing views bypass the helper when showing a “name”; promote `getDisplayName` for future use.\n- Intentional email contexts: Ensure admin/security/notifications still show emails as designed.\n- Sorting/search: If any lists sort/filter by “name,” should nickname be the primary key? Current work does not change sorting semantics.\n- Edge cases: Nickname identical to email will display that same value; confirm if alternate formatting is desired.\n- Data limits: Comments from API include `author_nickname` but not `author_email`; older comments cannot fall back to email unless backend adds it.\n\n残課題・リスク（明示）\n- Bypass risk if future components read `user.nickname` directly instead of `getDisplayName`.\n- Comments fallback limited by API fields; email-based fallback not possible for historical comments.\n- Potential ambiguity where email is expected for disambiguation in support/admin contexts; verify UX expectations per screen."
+      },
+      {
+        "path": "codex_output/qa_automation_planner.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/threat_modeler.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/doc_editor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/planner.md",
+        "size": 2974,
+        "preview": "Plan summary\n- Centralize “display name” logic in a small shared utility.\n- Use it in the shell header so nickname (trimmed) is preferred over email.\n- Keep scope tight; avoid changes to admin/auth contexts and backend.\n\nProposed changes (30 min scope)\n- Add `getDisplayName(user)` utility that returns trimmed `nickname` if present, else `email`.\n- Update shell header to call the helper so whitespace-only nicknames fall back to email.\n- Reuse helper in `WorkspaceStore.commentAuthorName` to align current-user name computation with the same rule.\n\nWhy this route\n- Minimal surface area: 1 new helper file, 2 targeted call sites.\n- Consistency: one source of truth for display-name logic used by current-user UI and comments author prefill.\n- No API/backend changes; no i18n/a11y changes; admin/auth UIs remain email-centric.\n\nTouched files\n- frontend/src/app/shared/utils/display-name.ts: new helper.\n- frontend/src/app/core/layout/shell/shell.ts: import helper and expose `displayName`.\n- frontend/src/app/core/layout/shell/shell.html: use `displayName(currentUser)`.\n- frontend/src/app/core/state/workspace-store.ts: use helper for current-user computed display.\n\nResidual risks and open questions\n- Bypass risk: Other components might directly use `user.nickname` in future. Mitigation: document/evangelize `getDisplayName`.\n- Intentional email contexts: Admin tables, security, notifications — kept as-is. Confirm no additional places require nickname preference.\n- Sorting/search ambiguity: If any list sorts by “name,” should sorting respect nickname first? Not addressed here.\n- Edge case: If a user sets nickname equal to email, display is unchanged (still that value). Confirm if different behavior is desired.\n- System users without emails: Helper falls back to empty string; `commentAuthorName` still falls back to ‘匿名ユーザー’. Confirm if a generic fallback is needed elsewhere.\n\nTest checklist\n- Shell header shows nickname when set, else email.\n- Shell header falls back to email when nickname is whitespace-only.\n- Comment composer default author name reflects nickname-first rule; with whitespace nickname, falls back to email; when logged out, shows ‘匿名ユーザー’.\n- Admin “Users” and auth pages remain email-only as before.\n- Visual alignment unchanged; no layout regressions.\n\n```json\n{\"steps\":[\"coder\"],\"notes\":\"Add a shared getDisplayName(user) utility and adopt it in the shell header and WorkspaceStore for consistent nickname-first display with trim fallback to email. Keep admin/auth displays unchanged.\",\"tests\":\"1) Set nickname='Hanako', email='hanako@example.com' -> shell shows 'Hanako'. 2) Set nickname='   ', email='hanako@example.com' -> shell shows 'hanako@example.com'. 3) Remove nickname (null/undefined), keep email -> shell shows email. 4) Comment composer prefill matches the same rules; when logged out, shows '匿名ユーザー'. 5) Admin user list and auth forms still show emails only.\"}\n```"
+      },
+      {
+        "path": "codex_output/uiux_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/design_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/detail_designer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/coder.md",
+        "size": 2579,
+        "preview": "Summary\nThe nickname-first display rule is already implemented and wired through a shared helper. No additional code changes are required to meet the acceptance criteria with minimal impact.\n\nWhat’s in place\n- Shared helper for display name:\n  - frontend/src/app/shared/utils/display-name.ts:1\n  - Provides `getDisplayName({ nickname, email })` that trims values, prefers `nickname`, falls back to `email`.\n\n- Shell header shows nickname first:\n  - frontend/src/app/core/layout/shell/shell.ts:118 defines `displayName(user)` that delegates to `getDisplayName`.\n  - frontend/src/app/core/layout/shell/shell.html:225 uses `{{ displayName(currentUser) }}` for the visible “name”. Email is still shown in metadata line, which is acceptable for contexts explicitly showing email.\n\n- Workspace state and comments:\n  - frontend/src/app/core/state/workspace-store.ts:742 computes `activeUserNickname` with `getDisplayName` to keep default-assignee and current-user naming in sync.\n  - frontend/src/app/core/state/workspace-store.ts:749 `commentAuthorName` uses `getDisplayName(this.auth.user())`, falling back to ‘匿名ユーザー’ if not authenticated.\n  - Comment lists display `comment.authorNickname` (from API); when creating comments locally, the prefill follows the same nickname-first rule via `commentAuthorName`.\n\n- Admin/auth remain email-centric:\n  - Admin user selection and user list present emails (e.g., frontend/src/app/features/admin/page.html:295, 321), aligned with “do not change explicitly email contexts.”\n  - Auth pages use email fields only.\n\nNo changes needed\n- The scoped helper exists and is used in the shell header and workspace store as planned.\n- Behavior matches acceptance criteria, including whitespace-trim fallback and consistent use for current user display and comment author prefill.\n\nResidual risks / open questions\n- Comments from the API only include `author_nickname`/`author_id` (no `author_email`), so existing comments can’t fall back to email unless the backend adds it.\n- Sorting/search policies by “name” are not adjusted; lists might still sort on email strings where present.\n- Admin tables intentionally show email; confirm if there are any admin views that should display nickname alongside email.\n- Edge case where a user’s nickname equals their email will display that value unchanged; confirm if alternate formatting is desired.\n\nCommands to run\n- None required. If you want me to run the frontend locally to verify visually, I can provide the steps, but dependency installation may require network access."
+      },
+      {
+        "path": "codex_output/code_quality_reviewer.md",
+        "size": 2637,
+        "preview": "Summary\n- Backend middleware sets safe security headers on all non-OPTIONS responses. Implementation is correct, minimal, and preserves existing headers via setdefault.\n- Tests validate headers on GET /health using existing fixture patterns; consistent with repo style.\n- Documentation updated to reflect actual crypto state (hardened with Fernet + legacy auto-rotate) and correct secret masking behavior.\n\nWhat I Reviewed\n- backend/app/main.py: Security headers middleware\n  - Correctly after CORS preflight middleware; non-OPTIONS responses get:\n    - Strict-Transport-Security: max-age=15552000; includeSubDomains\n    - X-Content-Type-Options: nosniff\n    - Referrer-Policy: no-referrer\n    - X-Frame-Options: DENY\n    - Permissions-Policy: camera=(), microphone=(), geolocation=()\n    - Cross-Origin-Opener-Policy: same-origin\n    - Cross-Origin-Resource-Policy: same-origin\n  - Uses response.headers.setdefault to avoid clobbering upstream values.\n  - OPTIONS handling is harmless even if preflight short-circuits earlier.\n- backend/tests/test_security_headers.py: Focused header assertions\n  - Aligns with existing TestCase/assertTrue style used elsewhere.\n  - Leverages standard TestClient fixture from backend/tests/conftest.py.\n- Crypto and secrets utilities (sanity check):\n  - backend/app/utils/crypto.py implements Fernet with legacy auto-rotation. Tests cover re-encryption and error cases.\n  - backend/app/utils/secrets.py masking logic protects short secrets; tests confirm.\n\nTiny Nits / Edge Cases\n- The middleware’s OPTIONS branch delegates to downstream middleware; it’s fine given the earlier preflight middleware, but could return early for symmetry. No change needed.\n- Referrer-Policy: no-referrer is strict. If any flow relies on referrers, consider strict-origin-when-cross-origin in a later pass.\n\nApplied Fixes\n- docs/security-review.md\n  - Replaced outdated “Weak secret storage cipher” with “Secret storage (Hardened)” describing Fernet + legacy rotation path.\n  - Updated “Secret hint” section to reflect current, safe masking behavior.\n  - Scope-limited doc edits only; no runtime impact.\n\nResidual Risks\n- HSTS requires HTTPS in production to be effective.\n- COOP/CORP are safe for APIs; keep an eye on any cross-origin embedding needs.\n- SPA tokens remain in localStorage; migration to secure, httpOnly cookies is still recommended in a future coordinated cycle.\n\nValidation\n- Suggest running: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck\n- Full suite: pytest -q backend/tests (tests appear self-contained and should not require network)."
+      },
+      {
+        "path": "codex_output/docwriter.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/a11y_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/integrator.md",
+        "size": 3909,
+        "preview": "**Integration Summary**\n\n- Models and migrations\n  - `channels` and `channel_members` tables exist with relationships wired in `backend/app/models.py:256` and `backend/app/models.py:271`.\n  - `cards.channel_id` added and related to `Channel` (`backend/app/models.py:123`, `backend/app/models.py:166`).\n  - Startup migrations create channel tables, add `cards.channel_id`, and backfill private channels + memberships + card associations (`backend/app/migrations.py:296`, `backend/app/migrations.py:364`, `backend/app/migrations.py:392`, `backend/app/migrations.py:947`).\n  - `run_startup_migrations` calls are in `backend/app/main.py` and run during app lifespan; ORM `create_all` follows to ensure schema.\n\n- Routers and behavior\n  - Channel endpoints implemented and registered:\n    - `GET /channels/mine` (`backend/app/routers/channels.py:14`)\n    - `POST /channels/{channel_id}/invite` by email (`backend/app/routers/channels.py:35`)\n    - `POST /channels/{channel_id}/leave` with sole-owner guard (`backend/app/routers/channels.py:73`)\n    - `POST /channels/{channel_id}/kick` owner-only (`backend/app/routers/channels.py:105`)\n    - Router included in `backend/app/main.py:185`.\n  - Card scoping by channel membership:\n    - Helper `_member_channel_ids` (`backend/app/routers/cards.py:52`)\n    - Query scoping via `_card_query(..., member_user_id=...)` for list/details/similar, etc. (calls at `backend/app/routers/cards.py:372`, `backend/app/routers/cards.py:551`, `backend/app/routers/cards.py:820`).\n    - Card creation requires membership if `channel_id` provided; defaults to user’s private channel (`backend/app/routers/cards.py:491`–`511`).\n  - Registration auto-creates a private channel + owner membership (`backend/app/routers/auth.py:60`–`63`).\n\n- Schemas and docs\n  - Card schemas include `channel_id` (`backend/app/schemas.py:283`, `backend/app/schemas.py:310`) and channel DTOs added (`backend/app/schemas.py:687`–`700`).\n  - Docs updated to note channel model and card default channel (`docs/governance/development-governance-handbook.md:21`) and UI guidance for future selector (`docs/guidelines/angular-coding-guidelines.md:33`).\n\n**Integrator Fix (MVP safety)**\n- Block changing a card’s `channel_id` during update to avoid unauthorized or accidental cross-channel moves until policies/UI are defined.\n  - Change: `backend/app/routers/cards.py:...` raises 409 if `channel_id` is present in update payload.\n\n**Landing Plan**\n\n- No extra ops steps: migrations run automatically at startup; ORM ensures tables.\n- Start backend: `uvicorn app.main:app --reload --app-dir backend`\n- Quick smoke checks (manual or via API client):\n  - Register/login → ensure `GET /channels/mine` returns one private channel.\n  - Create a card without `channel_id` → verify response includes `channel_id`.\n  - List cards → only cards from member channels are returned.\n  - Invite a second user via `/channels/{id}/invite` → login as invitee and confirm listing/creation works.\n  - Attempt to update a card with `channel_id` change → expect 409.\n\n**Residual Risks / Open Questions**\n\n- Index: no explicit index on `cards.channel_id`; consider adding if listing grows.\n- Invitation: email-based, assumes unique emails; no approval/notifications included.\n- Sole-owner edge cases: owner cannot leave; ownership transfer is out of scope.\n- Migration of pre-existing shared artifacts: all cards backfilled to creator’s private channel; visibility may narrow.\n- Frontend: UI lacks a channel selector; backend defaults preserve current UX. Add selector later using `GET /channels/mine`.\n\n**Follow-ups (minimal)**\n- Add DB index for `cards.channel_id` when performance requires.\n- Define and implement channel transfer policy (owner-only? audit?) and enable controlled channel updates.\n- Add basic frontend dropdown for `Channel` in card creation with default selection; hide if only one channel."
+      },
+      {
+        "path": "codex_output/performance_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/release_manager.md",
+        "size": 3164,
+        "preview": "**Release Summary**\n\n- Modernized select trigger and options panel across Angular app, keeping changes minimal and scoped.\n- Global native `<select>` triggers updated; shared Angular `UiSelectComponent` now renders a custom, modern dropdown panel.\n\n**What Changed**\n\n- Global styles: modern, centered chevron and spacing for selects.\n  - `frontend/src/styles/pages/_base.scss:1`\n- Shared Angular select component: custom panel with rounded corners, shadow, max-height + scroll, hover/selected/active states, keyboard support; fixed `onTouched` visibility.\n  - `frontend/src/app/shared/ui/select/ui-select.ts:1`\n\n**Scope & Compatibility**\n\n- No new dependencies; Angular-only solution.\n- Usage of `<app-ui-select>` remains the same in Admin and Reports pages.\n- Native `<select>`s retain improved trigger visuals; their OS dropdown remains by design.\n- Single-selects use the custom panel; multi/size>1 continue using native control for minimal impact.\n\n**A11y & UX**\n\n- Trigger: simple down chevron, vertically centered; comfortable right padding.\n- Panel: `role=\"listbox\"` and `role=\"option\"` with `aria-selected`; keyboard navigation (ArrowUp/Down, Enter, Esc).\n- Hidden native select in single mode is unfocusable and hidden from AT (`tabindex=\"-1\"`, `aria-hidden=\"true\"`, `inert`).\n\n**Risks**\n\n- Stacking context: confirm `z-index: 1000` clears headers/overlays in all layouts.\n- CSS `color-mix()` usage mirrors existing styles; older browsers might lack support (pre-existing risk).\n- RTL not explicitly handled (kept minimal to meet scope).\n\n**Verification Steps**\n\n- Build: from `frontend/`, run `npm ci && npm run build` (or `ng build --configuration production`).\n- Pages to check:\n  - Admin: `frontend/src/app/features/admin/page.html:1`\n  - Reports: `frontend/src/app/features/reports/reports-page.component.html:1`\n- Validate:\n  - Trigger chevron is centered; spacing balanced; focus-visible outline appears.\n  - Panel opens under trigger with rounded corners, subtle border, shadow, smooth entry animation.\n  - States: hover highlight, selected checkmark, disabled item styling.\n  - Keyboard: ArrowUp/Down moves active item, Enter selects, Esc closes.\n  - Long lists: scroll within the panel; max-height respected.\n  - Light/dark theme parity; no clipping; no scroll bleed.\n\n**Rollback Plan**\n\n- Revert the two touched files if needed:\n  - `frontend/src/styles/pages/_base.scss:1`\n  - `frontend/src/app/shared/ui/select/ui-select.ts:1`\n- Temporary disable custom panel by switching affected instances to multi/size>1 (forces native select), if a hotfix is needed without code changes.\n\n**Notes on React/shadcn Request**\n\n- Repo is Angular + SCSS; introducing React/shadcn/Tailwind would be high-impact and out of scope for minimal change.\n- If a React/shadcn project is desired elsewhere, place components under `/components/ui` and install `@radix-ui/react-select` and `@radix-ui/react-icons`. Not applied here.\n\n**Release Verdict**\n\n- Ready to ship. Changes are minimal, self-contained, and meet the “modern trigger + modern options panel” requirement, with no new deps. Recommended to complete the verification checklist above prior to tagging."
+      },
+      {
+        "path": "codex_output/oss_sbom_auditor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/security_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/i18n_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/dpo_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/ai_safety_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/implementation_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "codex_output/translator.md",
+        "size": 2254,
+        "preview": "**Summary**\n- Show a user’s nickname wherever a “name” is displayed; fall back to email only when nickname is not set.\n\n**Acceptance Criteria**\n- When rendering a user’s display name: if `nickname` exists and is non-empty after trim, show it; else show `email`.\n- Apply consistently across all user-facing views/components (lists, headers, profile, activity, comments, etc.).\n- Do not change displays that explicitly require the email (e.g., auth forms, security pages).\n- No functional regressions; visual snapshots (if any) updated accordingly.\n\n**Assumptions**\n- User entity includes `email` (always present) and `nickname` (optional).\n- `nickname` may be `null`, `undefined`, empty string, or whitespace.\n- No backend schema change is needed; this is a presentation-layer rule.\n\n**Constraints**\n- Minimize impact and avoid unnecessary tasks.\n- Keep changes localized (prefer a single utility/helper as a source of truth).\n- Do not modify APIs or database unless strictly necessary.\n- Maintain i18n and existing accessibility semantics.\n\n**Unknowns**\n- Exact field names (`nickname`, `displayName`, `handle`?) and types in the current codebase.\n- Are there views intentionally showing email even when nickname exists (e.g., admin tables)?\n- Any caching/memoization layers that compute display names?\n- Cross-tenant contexts where email must be shown for disambiguation.\n- Sorting/grouping behavior: if lists sort by “name,” should sorting use nickname or email?\n\n**Clarifying Questions**\n- What are the exact user model fields for nickname and email?\n- Are there screens where email must still be shown even if nickname exists (admin, audit, notifications)?\n- Should sorting/search use nickname primarily as well?\n- How should we treat nicknames equal to the email (e.g., user set email as nickname)?\n- Any constraints for system users/integrations without emails?\n\n**Out of Scope**\n- Adding or changing nickname edit flows.\n- Backend schema changes or migrations.\n- Broader UI redesigns.\n\n**Residual Risks**\n- Inconsistent logic if some components bypass the shared helper.\n- Edge cases with whitespace-only nicknames causing unexpected blanks.\n- Potential confusion in contexts where email is expected for identification (support/admin)."
+      }
+    ]
   }
 }

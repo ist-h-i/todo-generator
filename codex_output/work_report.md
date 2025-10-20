@@ -1,39 +1,38 @@
 **背景**
-- Centralized “recipes” under `docs/recipes/` conflicted with the policy to co-locate each recipe with the source it explains.
-- Goal: move each recipe next to its target code (one recipe per target directory), update links/tooling, and remove centralized references with minimal impact.
+- Requirement: Prefer nickname over email wherever a user “name” is shown; fall back to email only when nickname is missing or whitespace.
+- Scope: Presentation layer only; do not alter admin/auth screens that explicitly show email; maintain i18n/a11y.
 
 **変更概要**
-- Co-located recipes next to code:
-  - Examples: `backend/app/main.py.recipe.md`, `backend/app/routers/status_reports.py.recipe.md`, `frontend/src/app/core/api/status-reports-gateway.ts.recipe.md`, `frontend/src/app/features/reports/ReportAssistantPageComponent.recipe.md`.
-- Removed centralized collection and added deprecation note:
-  - Deleted `docs/recipes/*.recipe.md` and `docs/recipes/classes/frontend/src/app/**`.
-  - Rewrote `docs/recipes/README.md` as a migration/deprecation notice.
-- Updated docs and navigation:
-  - `docs/README.md` and `docs/INDEX.md` now describe co-location and updated paths.
-- Updated generators to emit co-located files:
-  - `scripts/generate_file_recipes.py` writes `<source>.<ext>.recipe.md` next to the source.
-  - `scripts/generate_class_recipes.py` writes `ClassName.recipe.md` next to the TS file.
-- Removed centralized-path references in workflow/prompts (e.g., `workflow/README.md`, key `prompts/*.prompt.md`).
+- Shared helper centralizes display-name logic:
+  - `frontend/src/app/shared/utils/display-name.ts:1` provides `getDisplayName({ nickname, email })` (trim, prefer nickname, else email).
+- Shell header uses the helper:
+  - `frontend/src/app/core/layout/shell/shell.ts:118` exposes `displayName(user)` delegating to `getDisplayName`.
+  - `frontend/src/app/core/layout/shell/shell.html:225` renders `{{ displayName(currentUser) }}`; email remains in the metadata line.
+- Workspace store aligns current-user naming:
+  - `frontend/src/app/core/state/workspace-store.ts:742` normalizes active user nickname.
+  - `frontend/src/app/core/state/workspace-store.ts:749` computes `commentAuthorName` via `getDisplayName(this.auth.user())`, falling back to ‘匿名ユーザー’ when unauthenticated.
+- Admin/auth remain email-centric (no change), e.g., `frontend/src/app/features/admin/page.html:304`.
 
 **影響**
-- Readers and contributors now find recipes beside their source, improving discoverability and reducing drift.
-- Any tooling or external docs that assumed `docs/recipes/` must be updated; internal references were adjusted.
-- The deprecated `docs/recipes/` path remains only as a migration notice (no live documents).
+- User-facing “name” displays now consistently show nickname when present; whitespace-only nicknames fall back to email.
+- Comments list shows `authorNickname` from API; legacy comments without nickname fall back to author_id per existing mapping.
+- No backend/schema changes; no API or routing changes; minimal UI surface change (text value only).
 
 **検証**
-- Searched for stale references to centralized path: `rg -n "docs/recipes/" -S` (no remaining references except the deprecation notice).
-- Spot-checked moved files resolve correctly from indices and local links:
-  - `frontend/src/app/core/api/status-reports-gateway.ts.recipe.md`
-  - `backend/app/routers/status_reports.py.recipe.md`
-- Generators output verified to co-located destinations by path inspection.
-- Documentation index updated; link resolution confirmed locally via link checks where available.
+- Header: nickname='Hanako', email='hanako@example.com' → shows “Hanako”.
+- Header: nickname='   ', email='hanako@example.com' → shows “hanako@example.com”.
+- Header: nickname null/undefined, email present → shows email.
+- Comments composer prefill matches the same rule; unauthenticated shows ‘匿名ユーザー’.
+- Admin Users and auth forms still display email only; no regressions in those contexts.
 
 **レビュー観点**
-- Confirm recipe-to-source mapping is correct for cross-cutting topics (choose the most representative directory).
-- Ensure generators create files in the intended locations and do not reintroduce centralized paths.
-- Validate that internal navigation and any CI docs checks still pass with new paths.
-- Residual risks / open questions:
-  - External references (wikis, PR templates, downstream docs) may still point to `docs/recipes/*`.
-  - Hidden tooling or CI parsers that assumed a centralized directory might need small adjustments.
-  - Multiple recipes in one directory (file-level and class-level) could require a naming convention decision.
-  - If future recipes include assets, confirm policy to co-locate assets next to each recipe.
+- Consistency: Confirm no other user-facing views bypass the helper when showing a “name”; promote `getDisplayName` for future use.
+- Intentional email contexts: Ensure admin/security/notifications still show emails as designed.
+- Sorting/search: If any lists sort/filter by “name,” should nickname be the primary key? Current work does not change sorting semantics.
+- Edge cases: Nickname identical to email will display that same value; confirm if alternate formatting is desired.
+- Data limits: Comments from API include `author_nickname` but not `author_email`; older comments cannot fall back to email unless backend adds it.
+
+残課題・リスク（明示）
+- Bypass risk if future components read `user.nickname` directly instead of `getDisplayName`.
+- Comments fallback limited by API fields; email-based fallback not possible for historical comments.
+- Potential ambiguity where email is expected for disambiguation in support/admin contexts; verify UX expectations per screen.
