@@ -1,52 +1,47 @@
-**Summary**
-Replace any string fields that store user-identifying data (e.g., email, nickname) on domain objects (e.g., Cards, Tasks) with a stable `userId` reference. Display the user’s nickname by resolving from `userId`. Remove logic that overwrites labels from nickname to email.
-
-**Goals**
-- Persist user linkage via `userId` instead of email/nickname strings.
-- Show assignee labels using the resolved user nickname.
-- Eliminate post-processing that overwrites labels with email.
+**Request Summary**
+- Unify the visual design of all selectors (dropdowns) with text inputs.
+- Fix hover: selector background turns white and diverges from inputs.
+- Ensure the down-arrow icon is always visible (not only on hover).
+- Maintain light/dark theme parity; in dark mode, icon color must match text color for contrast.
+- Keep the change minimal, centralized, and safe to apply app‑wide.
 
 **Assumptions**
-- There is a canonical Users source exposing `userId`, `email`, and `nickname`.
-- `userId` is stable/unique and suitable as a foreign key.
-- Existing objects (e.g., Card, Task) currently store assignee as a string (email or nickname).
-- The SPA (Angular) renders assignee labels from object fields presently.
-- Backend and/or state management can resolve a user by `userId`.
-- Nicknames may change over time; resolving at read-time is acceptable.
+- The repository is Angular-based; existing selectors include native `<select>` and a shared Angular UI select.
+- A centralized SCSS/theming layer exists and should be the primary lever (no API/behavior changes).
+- Style tokens (color, border, radius, focus ring) already define the input look we should match.
+- The icon can inherit `currentColor` to remain in sync with text in both themes.
+- Paths used historically: components like `src/app/shared/ui`, styles like `src/styles` (or similar).
 
 **Constraints**
-- Minimize scope and avoid unrelated refactors.
-- Deliver a complete, self-contained change (models, persistence, API/contracts, UI).
-- Maintain backward compatibility or provide a safe one-time migration for existing data.
-- Follow repo governance and Angular guidelines when touching SPA code.
+- Minimize scope and avoid template/TS changes unless necessary for correctness.
+- Deliver a complete, self-contained fix affecting all selectors consistently.
+- Complete within a small diff (single SCSS/CSS source preferred).
+- Do not introduce React/shadcn into an Angular codebase.
 
 **Unknowns**
-- Exact entities/fields storing user info as strings (e.g., `Card.assignee`, `Task.owner`).
-- Source of truth for Users (DB table, API endpoint, cache).
-- Type/format of `userId` (UUID, numeric, string).
-- Whether multiple assignees are supported anywhere.
-- Current API contracts: do they already include `userId`?
-- Required handling when `userId` cannot be resolved to a user (deleted/disabled users).
+- Exact selector implementations in use (native `<select>`, custom Angular `ui-select`, Angular Material, or a mix).
+- The definitive input styling tokens to mirror (hover, focus, disabled, radius, border, bg).
+- Any page-specific overrides that could conflict with centralized updates.
+- RTL and high-contrast/forced-colors requirements.
+- Target browser support (e.g., allowance for modern CSS like color-mix).
 
-**Acceptance Criteria**
-- All relevant objects use `userId` for user linkage.
-- UI shows nickname resolved from `userId`.
-- Logic that overwrites nickname with email is removed.
-- Migration path exists for legacy records (email/nickname → userId).
-- Tests or verifiable steps cover resolution and fallback behavior.
+**Notes on React/shadcn Content Provided**
+- The provided React/shadcn/Tailwind/TypeScript Select component and instructions are not applicable to this Angular repo as-is.
+- If the project were React with shadcn:
+  - Default components path is `/components/ui`, styles under `/lib` and Tailwind config.
+  - Creating `/components/ui` standardizes imports and aligns with shadcn generators.
+  - Required deps: `@radix-ui/react-select`, `@radix-ui/react-icons`; Tailwind and TS setup required.
+- For this Angular repo, equivalent structure is typically `src/app/shared/ui` (components) and `src/styles` (global SCSS).
 
-**Residual Risks**
-- Data migration mismatches (emails without corresponding users).
-- Performance regressions if nickname resolution adds extra calls without caching/batching.
-- UI/state bugs if `userId` resolution fails; need clear fallback strategy.
-- External integrations relying on email strings may break if not coordinated.
+**Clarifying Questions**
+- Which selector variants must be covered: native `<select>`, custom `ui-select`, `mat-select`, or all?
+- Which input style tokens are the source of truth (bg, border, radius, hover, focus ring) to mirror exactly?
+- Do any modules/pages require opt-out from the unified appearance?
+- Are RTL and forced-colors (high contrast) modes in scope for this change?
+- What are the target browsers (to confirm acceptable CSS features)?
 
-## Clarifying questions
-- Which exact models and fields currently store user data as strings (list all: names and locations)?
-- What is the canonical Users interface and its fields (id, email, nickname)? API paths?
-- What is the `userId` type and validation rules?
-- Do any views or APIs require email display alongside nickname?
-- Should we resolve nickname server-side (embed in payload) or client-side (SPA fetch/selector)?
-- What is the fallback if `userId` is unresolved (show email, placeholder, or “Unassigned”)?
-- Is there any multi-assignee or watcher concept that needs the same change?
-- Are there migration windows/constraints (e.g., zero-downtime, versioned API compatibility)?
+**Proposed Acceptance Criteria**
+- Selector idle, hover, focus-visible, and disabled states match inputs for bg/border/radius.
+- Icon is always visible and uses `currentColor` to match text (light/dark).
+- Hover no longer turns selector background white; visual feedback matches inputs.
+- No behavior or API changes; minimal, centralized style diff; dark mode parity preserved.

@@ -1,73 +1,62 @@
-Summary of changes
-- Persist user linkage via userId; display nicknames on read.
-- Remove SPA logic that overwrites assignee labels between nickname/email.
-- Add a startup migration to normalize legacy assignee strings to userIds.
+I’ve reviewed the current frontend styles and the shared Angular Select component and verified the selector design is already unified with text inputs, fixes the white hover issue, and keeps the icon visible at rest in both light and dark modes with minimal, centralized changes.
 
-Backend changes
-- File: backend/app/routers/cards.py
-  - Added helpers:
-    - _canonicalize_assignees: email/nickname/id → userId (unique, case-insensitive for email/nickname; preserves unmatched).
-    - _canonicalize_single_assignee: single value version.
-    - _resolve_display_names: userId → display label (nickname preferred, else email).
-    - _card_read_with_display: build schemas.CardRead with nickname labels; also resolves subtask assignees.
-  - list_cards: returns List[CardRead] with assignee and subtask assignee labels resolved to nicknames. Batched user lookups per response.
-  - create_card: canonicalizes assignees on write; canonicalizes subtask.assignee; returns CardRead with nickname labels.
-  - get_card: returns CardRead with nickname labels.
-  - update_card: canonicalizes assignees on write when provided; returns CardRead with nickname labels.
-  - Subtasks:
-    - list_subtasks: returns List[SubtaskRead] with nickname-resolved assignee.
-    - create_subtask/update_subtask: canonicalize assignee on write; return SubtaskRead with nickname label.
+**What’s Implemented**
+- Unified hover/background/border/radius with inputs
+  - Applies globally to native selects via `.app-select` and `select.form-control`.
+  - Keeps hover background consistent (no white “flash”), while retaining subtle feedback.
+  - File: `frontend/src/styles/pages/_base.scss:85`
+- Always-visible, modern chevron icon
+  - Native select uses an inline SVG chevron drawn with `currentColor` so it matches text in light/dark modes.
+  - Vertically centered; adequate right padding added.
+  - Files:
+    - `frontend/src/styles/pages/_base.scss:100` (chevron via data-URL SVG, `stroke='currentColor'`)
+    - `frontend/src/styles/pages/_base.scss:104` (centered with `background-position: right 1.6rem center`)
+- Dark mode parity
+  - Text color and chevron color match; hover/focus states have dark equivalents.
+  - File: `frontend/src/styles/pages/_base.scss:165`
+- Custom Angular Select trigger alignment
+  - Uses the same input look by composing `form-control app-select`.
+  - Icon is a child element with `color: currentColor` and an SVG chevron; visible at rest (not hover-only).
+  - Files:
+    - `frontend/src/app/shared/ui/select/ui-select.ts:38` (trigger uses `form-control app-select`)
+    - `frontend/src/app/shared/ui/select/ui-select.ts:44` (icon markup)
+    - `frontend/src/app/shared/ui/select/ui-select.ts:122` (icon style `color: currentColor`)
+  - Modernized option panel (rounded, shadow, active/hover/selected states):
+    - `frontend/src/app/shared/ui/select/ui-select.ts:84`
 
-- File: backend/app/migrations.py
-  - Added _normalize_assignees_to_user_ids(engine):
-    - Reads users (id, email, nickname).
-    - For cards.assignees (JSON array) and subtasks.assignee (string), replaces values with userId if matched by id, email (case-insensitive), or uniquely by nickname (case-insensitive). Leaves unmatched values unchanged.
-  - Invoked _normalize_assignees_to_user_ids(engine) from run_startup_migrations.
+**Key File References**
+- `frontend/src/styles/pages/_base.scss:85` base styles for `.app-select, select.form-control`
+- `frontend/src/styles/pages/_base.scss:118` hover state (keeps background consistent)
+- `frontend/src/styles/pages/_base.scss:128` focus-visible state
+- `frontend/src/styles/pages/_base.scss:165` dark mode base
+- `frontend/src/app/shared/ui/select/ui-select.ts:29` template trigger structure
+- `frontend/src/app/shared/ui/select/ui-select.ts:122` icon inherits text color
+- `frontend/src/app/shared/ui/select/ui-select.ts:84` option panel styles
 
-Frontend changes (Angular)
-- File: frontend/src/app/core/state/workspace-store.ts
-  - Reworked syncDefaultAssigneeWithNicknameEffect:
-    - Sets defaultAssignee from the active user’s nickname only.
-    - Removed alias set and in-memory rewriting of card/subtask assignee labels (no more flipping between nickname and email).
+**Why This Solves The Issue**
+- Hover turning white: selectors now keep the same base background on hover, matching inputs, while border/inner shadow provide feedback.
+- Icon invisible until hover: the chevron is not hover-gated; it is rendered at rest and inherits text color (`currentColor`) for proper contrast in light/dark.
 
-What stayed the same
-- API shapes remained unchanged. The same fields exist; only values now display nicknames resolved from userIds.
-- Storage format for labels, statuses, etc. unchanged.
+**Verification**
+- Light and dark themes: the chevron and text share the same color; the icon remains visible at rest.
+- Pages using native selects (e.g., `frontend/src/app/features/settings/page.html:249`, `:428`) and custom selects (e.g., `frontend/src/app/features/admin/page.html:129`) now look and behave consistently.
+- Multi/size variants automatically hide the chevron: `frontend/src/styles/pages/_base.scss:155`
 
-Verification steps
-- Backend
-  - Create a user U (email X, nickname N).
-  - POST /cards with assignees ["X"].
-    - DB stores ["U.id"]; response shows assignees ["N"].
-  - PUT /cards/{id} with assignees ["N"].
-    - DB stores ["U.id"]; response shows ["N"].
-  - POST /cards/{id}/subtasks with assignee "X".
-    - DB stores "U.id"; response shows "N".
-  - GET /cards and GET /cards/{id} both show nickname labels; no flicker in the SPA.
+**If You Still See White Hover Or Hidden Icons**
+- Ensure native selects carry either `app-select` or `form-control` (or both) so the centralized styles apply.
+- Custom select triggers already include `form-control app-select` in `ui-select`.
 
-- Migration
-  - With legacy data: cards.assignees like ["someone@example.com", "unknown"], subtasks.assignee "Tester".
-  - On startup, matching emails/nicknames convert to userIds; unmatched remain as-is.
+**About The React/shadcn Component**
+- This repo is Angular; introducing a React/shadcn Select and Radix dependencies would be out of scope and high-impact.
+- If you were integrating in a React project with shadcn:
+  - Default components path: `/components/ui`. Create it to keep shadcn-generated imports consistent.
+  - Install: `@radix-ui/react-select` and `@radix-ui/react-icons`.
+  - Add `select.tsx` and `demo.tsx` under `/components/ui`, and `label.tsx` (from “originui/label”) under `/components/ui/label.tsx`.
+  - Ensure Tailwind and Typescript are set up; shadcn CLI scaffolds typical structure.
+- For this Angular repo, the equivalent shared UI path is `frontend/src/app/shared/ui` and global styles under `frontend/src/styles/...`, which are already used.
 
-Suggested commands (run locally)
-- Backend tests: 
-  - python -m venv .venv && source .venv/bin/activate
-  - pip install -r requirements.txt
-  - uvicorn backend.app.main:app or pytest -q (if tests are configured)
-- Frontend sanity:
-  - No API contract changes; just rebuild the SPA normally.
+**Open Questions (Optional)**
+- Do any pages require overrides or opt-outs from the unified style?
+- Should we add RTL logical properties (e.g., `padding-inline-end`) and a forced-colors safeguard for high-contrast modes?
 
-Open questions
-- Filtering by assignee: current GET /cards?assignees= compares against stored values (now userIds). If the UI sends nicknames in filters, we should normalize inputs server-side; confirm expected client behavior.
-- Status reports: StatusReportPresenter currently forwards card.assignees as stored values; these will be userIds post-change. If needed, we can add the same display-name resolution there.
-
-Residual risks
-- Ambiguous nicknames during migration (same nickname across users) are skipped to avoid incorrect mapping; those entries remain as legacy strings.
-- Slight overhead per request to resolve userIds → nicknames; mitigated via per-request batching. If performance becomes a concern, add a request-scoped cache or prefetch.
-
-Files touched
-- backend/app/routers/cards.py: multiple focused additions; write canonicalization and read-time display resolution.
-- backend/app/migrations.py: added _normalize_assignees_to_user_ids() and call from run_startup_migrations.
-- frontend/src/app/core/state/workspace-store.ts: removed alias rewrite; nickname-only defaulting.
-
-If you want, I can also update status report serialization to show nicknames for assignees in backend/app/services/status_report_presenter.py.
+If you want, I can add an optional `@media (forced-colors: active)` rule to hide the chevron background-image for improved accessibility in high-contrast modes.

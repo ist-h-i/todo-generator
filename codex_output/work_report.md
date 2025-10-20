@@ -1,36 +1,48 @@
 **背景**
-- 担当ラベルがニックネーム→メールアドレスへと上書きされる不整合が発生。
-- ユーザ識別子を文字列（email/nickname）で保持していることが根因。安定した `userId` 紐づけに統一し、表示時のみニックネーム解決する方針。
+- 既存のセレクターでホバー時に背景が白っぽくなり、他の input と不統一。
+- 下向きアローがホバーまで見えにくい／見えない箇所があり、ダークモードで背景と同化。
+- リポジトリは Angular 構成。最小変更方針により中央の SCSS と共有 UI セレクターのみを調整。
+- React/shadcn のコンポーネント統合は本リポジトリの技術選定外のため不採用（最小差分を優先）。
 
 **変更概要**
-- サーバ（最小影響での内的変更）
-  - 書き込み時: email/nickname/id → `userId` に正規化して保存（単/複数担当、サブタスク含む）。
-  - 読み出し時: `userId` → 表示名に解決（ニックネーム優先、なければ email、最後は元値）。
-  - 既存データ: 起動時にベストエフォートで文字列→`userId` へバックフィル（曖昧一致はスキップ）。
-  - API 形状は変更なし（既存フロント互換）。
-- フロント（Angular）
-  - ニックネーム→メールに上書きする副作用を削除。デフォルト担当はニックネームを優先して設定。
+- セレクターの基礎スタイルを inputs と統一（背景/枠/半径/密度/状態）
+  - 対象: `.app-select`, `select.form-control`（アプリ全体に反映）
+  - 常時表示の極細シェブロンを `currentColor` で描画、Y方向センタリングと右余白を調整
+  - 参照: `frontend/src/styles/pages/_base.scss:85`, `frontend/src/styles/pages/_base.scss:94`, `frontend/src/styles/pages/_base.scss:113`
+- ホバーで白くならないよう背景は据え置き、境界/影でフィードバック
+  - 参照: `frontend/src/styles/pages/_base.scss:118`（もしくは `:129`）
+- フォーカス/無効/複数選択/size>1 の各状態を統一、複数系はキャレット非表示
+  - 参照: `frontend/src/styles/pages/_base.scss:128`, `frontend/src/styles/pages/_base.scss:155`
+- ダークモードの視認性を確保（テキスト色とアイコン色を一致）
+  - 参照: `frontend/src/styles/pages/_base.scss:165`, `frontend/src/styles/pages/_base.scss:184`, `frontend/src/styles/pages/_base.scss:204`, `frontend/src/styles/pages/_base.scss:213`, `frontend/src/styles/pages/_base.scss:220`
+- 共有 Angular セレクター（トリガー/アイコン/パネル）の整合
+  - アイコンは `currentColor` 継承で常時可視化、パネルは丸み/影/間隔をモダン化
+  - 参照: `frontend/src/app/shared/ui/select/ui-select.ts:34`, `frontend/src/app/shared/ui/select/ui-select.ts:84`, `frontend/src/app/shared/ui/select/ui-select.ts:122`, `frontend/src/app/shared/ui/select/ui-select.ts:171`
+- 型安全の付随修正（ビルド安定化・挙動不変）
+  - `onTouched()` 公開化、選択値の null 安全化
+  - 参照: `frontend/src/app/shared/ui/select/ui-select.ts:34`, `frontend/src/app/shared/ui/select/ui-select.ts:278`
 
 **影響**
-- ユースケース体験: 以降は安定した `userId` で保持し、UI は常にニックネーム表示に統一。ラベルの「切り替わり」消滅。
-- 既存データ: 一意にマッチしたものは `userId` に正規化。未マッチは既存の文字列のまま表示（データ喪失なし）。
-- パフォーマンス: 読み出し時の名前解決で DB 参照が増えるが、リクエスト内で一括解決して N+1 を回避。
-- 互換性: API の入出力フィールドは従来通り。外部連携が担当フィルタを email/nickname で送る場合は挙動差異の可能性あり。
+- アプリ全体でセレクターの見た目が input と統一（ライト/ダーク両対応）。
+- 下向きアローは常時見え、テキスト色と同コントラストで視認性向上。
+- 挙動/API の変更なし。影響は CSS と最小限の TS 安全化に限定。
 
 **検証**
-- カード作成: `assignees=["user@example.com"]` → 保存は `userId`、取得は `["Nickname"]`。
-- 更新: `assignees=["Nickname"]` → 保存は `userId`、取得は `["Nickname"]`。
-- サブタスク: `assignee="user@example.com"` → 保存は `userId`、取得は `"Nickname"`。
-- 移行: 既存の email/nickname を持つレコードは起動時に正規化（未解決値はそのまま保持・表示）。
-- フロント: 画面ロード時にラベルが email に上書きされる現象が解消され、表示が安定。
+- ビルドとスモークテスト: `cd frontend && npm ci && npm run build`
+- 画面確認（抜粋）
+  - `frontend/src/app/features/settings/page.html:249`, `frontend/src/app/features/settings/page.html:428`
+  - `frontend/src/app/features/board/page.html:565`, `frontend/src/app/features/board/page.html:730`
+  - `frontend/src/app/features/reports/reports-page.component.html:255`, `frontend/src/app/features/reports/reports-page.component.html:274`
+- チェックリスト
+  - ホバーで背景が白化しない／inputs と同一の表現
+  - アイコンが常時可視、ライト/ダークで文字色と一致
+  - `:focus-visible` のリングと無効状態の視認性
+  - `multiple`/`size>1` でキャレット非表示・余白適正
 
 **レビュー観点**
-- 正規化・解決の網羅性: 書き込み時の email/nickname/id マッチング、読み出し時の表示名フォールバック（nickname→email→元値）。
-- 曖昧性処理: 重複ニックネームは移行時にスキップする設計で安全性確保できているか。
-- バッチ解決: 一括取得・キャッシュで N+1 を避けられているか（リクエスト単位）。
-- 後方互換: API 形状維持、UI への値はニックネーム表示で統一されているか。
-- 残リスク／未解決事項（要合意）
-  - ステータスレポート等の別プレゼンターで、担当が `userId` のまま表示される可能性（同様の解決処理を適用すべきか）。
-  - フィルタパラメータ（`assignees=`）の互換性: 文字列からのサーバ側正規化を受けるべきか。
-  - ユーザ削除/無効化時の表示方針（元値・`Unassigned`・`userId` など）。
-  - 複数担当/ウォッチャーを同様に扱う必要の有無と対象範囲。
+- コントラスト比（ダーク/ライト）、キーボードフォーカスの可視性
+- 既存ページ固有のオーバーライドとの干渉（特に `select.form-control`）
+- 物理 `right` 指定のまま（RTL はスコープ外）。必要なら論理プロパティへ移行
+- 高コントラスト環境: 必要なら `@media (forced-colors: active) { .app-select, select.form-control { background-image: none; } }` を追補可能
+
+以上により、「ホバー時の白化」「アイコンが見えない」「ダークモードでの同化」を解消し、インプットとセレクターのデザインを統一しました。
