@@ -1,42 +1,52 @@
 **Summary**
-Add a required “Nickname” field to the user registration flow so that every newly registered user has a nickname stored and associated with their account. Ensure persistence, validation, and data model support; address existing users without nicknames.
+Replace any string fields that store user-identifying data (e.g., email, nickname) on domain objects (e.g., Cards, Tasks) with a stable `userId` reference. Display the user’s nickname by resolving from `userId`. Remove logic that overwrites labels from nickname to email.
+
+**Goals**
+- Persist user linkage via `userId` instead of email/nickname strings.
+- Show assignee labels using the resolved user nickname.
+- Eliminate post-processing that overwrites labels with email.
 
 **Assumptions**
-- “Nickname” is a new user-profile attribute persisted server-side.
-- The field is required for new registrations.
-- Minimal UI/API changes beyond registration are preferred.
-- No immediate change to how names are displayed elsewhere unless specified.
+- There is a canonical Users source exposing `userId`, `email`, and `nickname`.
+- `userId` is stable/unique and suitable as a foreign key.
+- Existing objects (e.g., Card, Task) currently store assignee as a string (email or nickname).
+- The SPA (Angular) renders assignee labels from object fields presently.
+- Backend and/or state management can resolve a user by `userId`.
+- Nicknames may change over time; resolving at read-time is acceptable.
 
 **Constraints**
-- Minimize impact and avoid unrelated refactors.
-- Deliver a self-contained, finished outcome (UI, API, data, tests).
-- Align with existing validation and i18n patterns.
-- Backward compatibility must be considered for existing APIs/clients.
+- Minimize scope and avoid unrelated refactors.
+- Deliver a complete, self-contained change (models, persistence, API/contracts, UI).
+- Maintain backward compatibility or provide a safe one-time migration for existing data.
+- Follow repo governance and Angular guidelines when touching SPA code.
 
 **Unknowns**
-- Uniqueness: Must nicknames be globally unique?
-- Validation: Allowed characters, length min/max, profanity/emoji handling.
-- Editability: Can users change nickname after signup? Frequency/rules?
-- Visibility: Publicly displayed vs internal-only.
-- Data model: Existing field (e.g., displayName/handle) vs new column?
-- Migration: Strategy for existing users lacking a nickname.
-- i18n: Final label/placeholder copy and supported locales.
-- External auth: Behavior for SSO/social login flows.
-- API contract: Field name (`nickname` vs `displayName`), request/response shape, versioning.
+- Exact entities/fields storing user info as strings (e.g., `Card.assignee`, `Task.owner`).
+- Source of truth for Users (DB table, API endpoint, cache).
+- Type/format of `userId` (UUID, numeric, string).
+- Whether multiple assignees are supported anywhere.
+- Current API contracts: do they already include `userId`?
+- Required handling when `userId` cannot be resolved to a user (deleted/disabled users).
 
-## Clarifying questions
-- Should nicknames be unique across all users? If yes, is comparison case-insensitive and Unicode-normalized?
-- What are the validation rules (min/max length, allowed characters, profanity checks, emoji support)?
-- Can users change their nickname later? If so, are there rate limits or audit requirements?
-- Is the nickname intended to be publicly visible and used in UI, or internal only for now?
-- Do we already have a similar field (e.g., `displayName`) that should be reused instead of adding `nickname`?
-- How should we handle existing users without a nickname (migration default, prompt on next login, forced modal, or admin backfill)?
-- For SSO providers, should we prefill from provider attributes (e.g., `nickname`, `name`) and still require confirmation?
-- What is the exact API field name and where should it appear in requests/responses? Any API versioning concerns?
-- Are there accessibility or localization requirements for the new input’s label, help text, and validation messages?
+**Acceptance Criteria**
+- All relevant objects use `userId` for user linkage.
+- UI shows nickname resolved from `userId`.
+- Logic that overwrites nickname with email is removed.
+- Migration path exists for legacy records (email/nickname → userId).
+- Tests or verifiable steps cover resolution and fallback behavior.
 
 **Residual Risks**
-- Enforcing uniqueness or strong validation may block registrations without clear UX.
-- Divergence between client/server validation could cause inconsistent errors.
-- Migration for existing users may require user prompts and can disrupt flows.
-- Confusion if an existing “username/display name” concept already exists and overlaps with “nickname.”
+- Data migration mismatches (emails without corresponding users).
+- Performance regressions if nickname resolution adds extra calls without caching/batching.
+- UI/state bugs if `userId` resolution fails; need clear fallback strategy.
+- External integrations relying on email strings may break if not coordinated.
+
+## Clarifying questions
+- Which exact models and fields currently store user data as strings (list all: names and locations)?
+- What is the canonical Users interface and its fields (id, email, nickname)? API paths?
+- What is the `userId` type and validation rules?
+- Do any views or APIs require email display alongside nickname?
+- Should we resolve nickname server-side (embed in payload) or client-side (SPA fetch/selector)?
+- What is the fallback if `userId` is unresolved (show email, placeholder, or “Unassigned”)?
+- Is there any multi-assignee or watcher concept that needs the same change?
+- Are there migration windows/constraints (e.g., zero-downtime, versioned API compatibility)?

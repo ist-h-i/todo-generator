@@ -1,81 +1,73 @@
 Summary of changes
-- Backend registration now requires and persists a sanitized nickname.
-- Database startup migration backfills missing nicknames for existing users.
-- Frontend registration UI includes a required “Nickname” field with validation.
-- Tests updated to supply nicknames and to reflect the new requirement.
+- Persist user linkage via userId; display nicknames on read.
+- Remove SPA logic that overwrites assignee labels between nickname/email.
+- Add a startup migration to normalize legacy assignee strings to userIds.
 
-Files changed (focused diffs)
+Backend changes
+- File: backend/app/routers/cards.py
+  - Added helpers:
+    - _canonicalize_assignees: email/nickname/id → userId (unique, case-insensitive for email/nickname; preserves unmatched).
+    - _canonicalize_single_assignee: single value version.
+    - _resolve_display_names: userId → display label (nickname preferred, else email).
+    - _card_read_with_display: build schemas.CardRead with nickname labels; also resolves subtask assignees.
+  - list_cards: returns List[CardRead] with assignee and subtask assignee labels resolved to nicknames. Batched user lookups per response.
+  - create_card: canonicalizes assignees on write; canonicalizes subtask.assignee; returns CardRead with nickname labels.
+  - get_card: returns CardRead with nickname labels.
+  - update_card: canonicalizes assignees on write when provided; returns CardRead with nickname labels.
+  - Subtasks:
+    - list_subtasks: returns List[SubtaskRead] with nickname-resolved assignee.
+    - create_subtask/update_subtask: canonicalize assignee on write; return SubtaskRead with nickname label.
 
-Backend
-- backend/app/schemas.py:1
-  - Add `nickname: str` to `RegistrationRequest`.
-- backend/app/routers/auth.py:1
-  - Validate/sanitize nickname during registration using `normalize_nickname` and persist to `User.nickname`.
-- backend/app/migrations.py:1
-  - Add `_backfill_user_nickname(engine)` to assign `user-{id}` for users with null/empty nickname.
-  - Call `_backfill_user_nickname(engine)` in `run_startup_migrations` after ensuring profile columns.
-- backend/tests/test_cards.py:1
-  - `register_and_login` now posts nickname `Tester`.
-- backend/tests/test_admin_users.py:1
-  - Include nicknames (“Owner”, “Member”, “Second”) for all `POST /auth/register` calls.
-- backend/tests/test_report_templates.py:1
-  - `_register_user` now sends nickname `Admin`.
-- backend/tests/test_status_reports.py:1
-  - Helper `register_and_login` now sends nickname `Reporter`.
-- backend/tests/test_security.py:1
-  - `_register_user` adds nickname `User`; direct registration calls updated with nicknames.
-- backend/tests/test_competency_evaluations.py:1
-  - `_register` sends nickname `Member`.
-- backend/tests/test_profile.py:1
-  - `_register_and_login` sends nickname `ProfileUser`.
-  - `test_profile_defaults` now expects nickname is a non-empty string.
-- backend/tests/test_appeals.py:1
-  - Helper `register_and_login` sends nickname `AppealsUser`.
-- backend/tests/test_admin_settings.py:1
-  - `_admin_headers` registers with nickname `Owner`.
+- File: backend/app/migrations.py
+  - Added _normalize_assignees_to_user_ids(engine):
+    - Reads users (id, email, nickname).
+    - For cards.assignees (JSON array) and subtasks.assignee (string), replaces values with userId if matched by id, email (case-insensitive), or uniquely by nickname (case-insensitive). Leaves unmatched values unchanged.
+  - Invoked _normalize_assignees_to_user_ids(engine) from run_startup_migrations.
 
-Frontend
-- frontend/src/app/core/auth/auth.service.ts:1
-  - `register(email, password, nickname)` now includes `nickname` in the API payload.
-- frontend/src/app/features/auth/login/page.ts:1
-  - Registration form state adds `nickname`.
-  - Add nickname touched state, error computation, validation (`getNicknameError`).
-  - Include nickname in submit validation and pass to `AuthService.register`.
-  - Add `onRegisterNicknameInput` handler.
-- frontend/src/app/features/auth/login/page.html:1
-  - Add required “ニックネーム” input with error display to registration form.
+Frontend changes (Angular)
+- File: frontend/src/app/core/state/workspace-store.ts
+  - Reworked syncDefaultAssigneeWithNicknameEffect:
+    - Sets defaultAssignee from the active user’s nickname only.
+    - Removed alias set and in-memory rewriting of card/subtask assignee labels (no more flipping between nickname and email).
 
-How it works (backend)
-- API contract
-  - Request: POST `/auth/register` expects JSON `{ email, password, nickname }`.
-  - Response: unchanged shape; `user.nickname` included as before via `UserProfile`.
-- Validation
-  - Server uses `normalize_nickname` (Japanese messages, trims whitespace, requires non-empty, max length 100).
-  - Email/password validation unchanged.
-- Migration/backfill
-  - On startup, any user with `NULL` or empty `nickname` is set to `user-{id}`. Column remains nullable for compatibility.
-  - No uniqueness constraints are enforced.
+What stayed the same
+- API shapes remained unchanged. The same fields exist; only values now display nicknames resolved from userIds.
+- Storage format for labels, statuses, etc. unchanged.
 
-How it works (frontend)
-- Registration form now includes a nickname field with client-side checks that mirror server messaging style:
-  - Required; max length 100 characters; trimmed before submission.
-- Auth service sends `{ email, password, nickname }` to `/auth/register`.
-- UX remains the same otherwise.
+Verification steps
+- Backend
+  - Create a user U (email X, nickname N).
+  - POST /cards with assignees ["X"].
+    - DB stores ["U.id"]; response shows assignees ["N"].
+  - PUT /cards/{id} with assignees ["N"].
+    - DB stores ["U.id"]; response shows ["N"].
+  - POST /cards/{id}/subtasks with assignee "X".
+    - DB stores "U.id"; response shows "N".
+  - GET /cards and GET /cards/{id} both show nickname labels; no flicker in the SPA.
 
-Commands to run
-- Backend (optional validation):
-  - `pytest -q` (from `backend/`) to verify test updates pass.
-- Frontend (optional build):
-  - `npm ci` (from `frontend/`)
-  - `npm run build` or `npm run start` to ensure the UI compiles with the new field.
+- Migration
+  - With legacy data: cards.assignees like ["someone@example.com", "unknown"], subtasks.assignee "Tester".
+  - On startup, matching emails/nicknames convert to userIds; unmatched remain as-is.
 
-Residual risks / open questions
-- Validation limits: This pass enforces required and max length (100) consistent with existing profile UI, not the previously proposed 2–32 range.
-- Uniqueness: Not enforced. Duplicate nicknames are possible.
-- Existing users: Backfill uses `user-{id}`; visible if shown in UI. If a different default is preferred, please specify.
-- SSO/social: Not adjusted. Those flows must supply or prompt for a nickname if they use the same endpoint.
-- Editability: Users can still change nickname in Profile dialog. No rate limiting/audit added.
+Suggested commands (run locally)
+- Backend tests: 
+  - python -m venv .venv && source .venv/bin/activate
+  - pip install -r requirements.txt
+  - uvicorn backend.app.main:app or pytest -q (if tests are configured)
+- Frontend sanity:
+  - No API contract changes; just rebuild the SPA normally.
 
-Notes
-- I kept changes minimal and reused existing validation/i18n patterns.
-- If you want stricter nickname rules (e.g., 2–32 chars, character sets, uniqueness), I can add them in a follow-up with migration/indexing updates.
+Open questions
+- Filtering by assignee: current GET /cards?assignees= compares against stored values (now userIds). If the UI sends nicknames in filters, we should normalize inputs server-side; confirm expected client behavior.
+- Status reports: StatusReportPresenter currently forwards card.assignees as stored values; these will be userIds post-change. If needed, we can add the same display-name resolution there.
+
+Residual risks
+- Ambiguous nicknames during migration (same nickname across users) are skipped to avoid incorrect mapping; those entries remain as legacy strings.
+- Slight overhead per request to resolve userIds → nicknames; mitigated via per-request batching. If performance becomes a concern, add a request-scoped cache or prefetch.
+
+Files touched
+- backend/app/routers/cards.py: multiple focused additions; write canonicalization and read-time display resolution.
+- backend/app/migrations.py: added _normalize_assignees_to_user_ids() and call from run_startup_migrations.
+- frontend/src/app/core/state/workspace-store.ts: removed alias rewrite; nickname-only defaulting.
+
+If you want, I can also update status report serialization to show nicknames for assignees in backend/app/services/status_report_presenter.py.
