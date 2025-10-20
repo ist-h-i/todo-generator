@@ -13,7 +13,7 @@ While the exact content varies by role, every log should at minimum contain:
 1. **Summary** of the role’s decisions and deliverables.
 2. **Step-by-step Actions** enumerating what happened, including commands executed or analyses performed.
 3. **Evidence & References** pointing to code paths, recipes, policies, and workflow logs consulted.
-4. **Recipe Updates** listing every `docs/recipes/*.recipe.md` file touched, with a one-line note about the knowledge captured.
+4. **Recipe Updates** listing every `*.recipe.md` file touched (co-located next to the source files), with a one-line note about the knowledge captured.
 5. **Risks & Follow-ups** that downstream roles must address before the workflow can close.
 
 Logs provide traceability across the workflow. Ensure the log is committed alongside the corresponding code or documentation changes, and cross-link related logs so reviewers can reconstruct context quickly.

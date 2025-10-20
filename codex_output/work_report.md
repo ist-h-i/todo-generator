@@ -1,35 +1,39 @@
 **背景**
-- 症状: コンピテンシー登録フォームの「レベル」選択で候補が表示されない。
-- 想定原因: 共有セレクトコンポーネント（`app-ui-select`）が投影された`<option>`を`ngAfterViewInit`時に一度だけ読み取り、その後の動的挿入やラベル変更を追従できず内部`options`が空のままになるタイミング不整合。
-- 影響範囲の前提: レベルは静的選択肢（設計/定数）で、他画面の同コンポーネント利用にも同様のリスクあり。
+- Centralized “recipes” under `docs/recipes/` conflicted with the policy to co-locate each recipe with the source it explains.
+- Goal: move each recipe next to its target code (one recipe per target directory), update links/tooling, and remove centralized references with minimal impact.
 
 **変更概要**
-- 変更箇所を共有UIに限定し、既存API/テンプレートは不変更。
-- `frontend/src/app/shared/ui/select/ui-select.ts:11` で `OnDestroy` をインポート。
-- `frontend/src/app/shared/ui/select/ui-select.ts:182` でクラスに `OnDestroy` を実装。
-- 初期読み取りを描画完了後に遅延実行（`queueMicrotask`、フォールバックに`setTimeout(0)`）して投影`<option>`を確実に取得。
-- `MutationObserver` を設定し、`childList/subtree/characterData/attributes`の変化で`readOptions()`→`syncLabelFromValue()`→`ensureActiveIndex()`を再評価。
-- 破棄時にObserverをクリーンアップ。
-- 参照: レベル欄の利用箇所 `frontend/src/app/features/admin/page.html:129`
+- Co-located recipes next to code:
+  - Examples: `backend/app/main.py.recipe.md`, `backend/app/routers/status_reports.py.recipe.md`, `frontend/src/app/core/api/status-reports-gateway.ts.recipe.md`, `frontend/src/app/features/reports/ReportAssistantPageComponent.recipe.md`.
+- Removed centralized collection and added deprecation note:
+  - Deleted `docs/recipes/*.recipe.md` and `docs/recipes/classes/frontend/src/app/**`.
+  - Rewrote `docs/recipes/README.md` as a migration/deprecation notice.
+- Updated docs and navigation:
+  - `docs/README.md` and `docs/INDEX.md` now describe co-location and updated paths.
+- Updated generators to emit co-located files:
+  - `scripts/generate_file_recipes.py` writes `<source>.<ext>.recipe.md` next to the source.
+  - `scripts/generate_class_recipes.py` writes `ClassName.recipe.md` next to the TS file.
+- Removed centralized-path references in workflow/prompts (e.g., `workflow/README.md`, key `prompts/*.prompt.md`).
 
 **影響**
-- 正常化: 「レベル」選択肢が安定表示され、選択・送信に反映。
-- 横展開効果: 他の`app-ui-select`利用箇所（評価・レポート等）でも遅延挿入/更新に追従し安定化。
-- 非互換なし: 公開API/テンプレート構造・フォーム値は不変更。パフォーマンス影響は軽微（通常利用でObserverの通知頻度は低い）。
+- Readers and contributors now find recipes beside their source, improving discoverability and reducing drift.
+- Any tooling or external docs that assumed `docs/recipes/` must be updated; internal references were adjusted.
+- The deprecated `docs/recipes/` path remains only as a migration notice (no live documents).
 
 **検証**
-- 管理画面 → コンピテンシー登録 → 「レベル」ドロップダウンに「初級(3段階)」「中級(5段階)」が表示されること。
-- 選択後にフォーム送信し、送信ペイロードに選択した`level`が含まれること。
-- コンソールエラーなし／ネットワーク異常なし（静的選択肢前提）。
-- 他画面スポットチェック: ユーザー/コンピテンシー選択、レポートのステータス/優先度などの選択肢が表示・選択可能。
-- 任意: `cd frontend && npm run lint` / `npm test` で静的解析・テストの健全性確認。
+- Searched for stale references to centralized path: `rg -n "docs/recipes/" -S` (no remaining references except the deprecation notice).
+- Spot-checked moved files resolve correctly from indices and local links:
+  - `frontend/src/app/core/api/status-reports-gateway.ts.recipe.md`
+  - `backend/app/routers/status_reports.py.recipe.md`
+- Generators output verified to co-located destinations by path inspection.
+- Documentation index updated; link resolution confirmed locally via link checks where available.
 
 **レビュー観点**
-- ライフサイクル: 初期遅延読み取りのタイミングが安定しているか、`OnDestroy`でのObserver解放が漏れなく行われているか。
-- 挙動維持: セレクトのキーボード操作/フォーカス制御/ARIA属性など既存アクセシビリティが維持されているか。
-- 回帰監視: 他の`app-ui-select`利用箇所で意図しない選択更新や過剰な再計算が発生していないか。
-- パフォーマンス: 大量オプションや頻繁な属性変更時のObserver負荷が実用上問題ないか。
-- Residual Risks / Open Questions:
-  - もし本来API供給の選択肢であれば、バックエンド空データは別途対応が必要。
-  - i18nキー欠落によりラベルが空になる可能性（今回の修正は構造検知のみ）。
-  - SSR/ハイドレーションがある構成では、ブラウザコンテキスト限定でObserverが動作するか再確認が必要。
+- Confirm recipe-to-source mapping is correct for cross-cutting topics (choose the most representative directory).
+- Ensure generators create files in the intended locations and do not reintroduce centralized paths.
+- Validate that internal navigation and any CI docs checks still pass with new paths.
+- Residual risks / open questions:
+  - External references (wikis, PR templates, downstream docs) may still point to `docs/recipes/*`.
+  - Hidden tooling or CI parsers that assumed a centralized directory might need small adjustments.
+  - Multiple recipes in one directory (file-level and class-level) could require a naming convention decision.
+  - If future recipes include assets, confirm policy to co-locate assets next to each recipe.

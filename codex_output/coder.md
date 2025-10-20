@@ -1,41 +1,82 @@
-**Summary**
-- Fixed the “level” select options not showing by stabilizing `app-ui-select` to read projected options after render and react to changes. The fix is localized to the shared select component with no public API changes.
+Summary of work
+- Co-located all recipe docs next to their target source code.
+- Updated docs index and workflow/prompt templates to remove centralized recipes references.
+- Updated generator scripts to create recipes in the new co-located locations.
+- Deprecated the old docs/recipes/ folder with a clear migration notice.
+- Removed the centralized recipe files to avoid duplication.
 
-**Changes**
-- Updated `frontend/src/app/shared/ui/select/ui-select.ts:11` to import `OnDestroy`.
-- Updated `frontend/src/app/shared/ui/select/ui-select.ts:182` to implement `OnDestroy` on the class.
-- Added a deferred initial options read and a `MutationObserver` to refresh options when projected `<option>` elements change:
-  - `frontend/src/app/shared/ui/select/ui-select.ts:205`
-  - Defer with `queueMicrotask` or `setTimeout(0)` fallback.
-  - Observe `childList`, `subtree`, `characterData`, and `attributes`.
-  - On mutation: `readOptions()`, `syncLabelFromValue()`, `ensureActiveIndex()`.
-- Cleanup observer on destroy:
-  - `frontend/src/app/shared/ui/select/ui-select.ts:233`
+What changed
 
-What this fixes
-- The competency “level” field uses `app-ui-select` with static `<option>`s at `frontend/src/app/features/admin/page.html:129`. With the observer and deferred initial read, the component correctly discovers and renders options even when content is added/updated after init (e.g., structural directives, async data, or timing differences).
+- Recipes moved next to code
+  - Added per-file recipes:
+    - backend/app/main.py.recipe.md
+    - backend/app/routers/status_reports.py.recipe.md
+    - backend/app/services/status_reports.py.recipe.md
+    - frontend/src/app/app.ts.recipe.md
+    - frontend/src/app/core/api/status-reports-gateway.ts.recipe.md
+  - Added Angular class recipes co-located with their TS sources, for example:
+    - frontend/src/app/App.recipe.md
+    - frontend/src/app/features/analyze/AnalyzePage.recipe.md
+    - frontend/src/app/features/reports/ReportAssistantPageComponent.recipe.md
+    - frontend/src/app/core/api/StatusReportsGateway.recipe.md
+    - frontend/src/app/core/state/WorkspaceStore.recipe.md
+    - frontend/src/app/shared/ui/page-layout/PageLayoutComponent.recipe.md
+    - …and the rest under frontend/src/app/** (mirroring prior docs/recipes/classes/frontend/src/app/**)
 
-**Key File References**
-- Shared select component: `frontend/src/app/shared/ui/select/ui-select.ts:205`
-- Admin level field usage: `frontend/src/app/features/admin/page.html:129`
+- Centralized recipes removed
+  - Deleted centralized files under:
+    - docs/recipes/*.recipe.md (5 files)
+    - docs/recipes/classes/frontend/src/app/** (all class recipe files)
 
-**Why this is minimal**
-- One shared component fix unblocks all uses of `app-ui-select` (admin, reports, etc.).
-- No template API changes; no backend changes.
+- Docs updated
+  - docs/README.md: Removed “Recipes index” link; added note that recipes are co-located as *.recipe.md next to code.
+  - docs/INDEX.md: Updated scripts description to reflect co-located recipe output.
+  - docs/recipes/README.md: Rewritten as deprecation notice with new co-location policy and updated generator instructions.
 
-**How to Validate**
-- Manual checks:
-  - Admin → コンピテンシーを登録 → Verify “レベル” dropdown shows:
-    - 初級 (3段階), 中級 (5段階) — `frontend/src/app/features/admin/page.html:129`
-  - Select a level and submit; confirm form submission payload includes selected `level`.
-  - Reports page: verify `status` and `priority` selects populate and are selectable (dynamic and static).
-- Optional commands:
-  - `cd frontend && npm run lint`
-  - `cd frontend && npm test`
-  - `cd frontend && npm start` then test via browser.
+- Scripts updated
+  - scripts/generate_file_recipes.py
+    - Now writes to <source>.<ext>.recipe.md next to the source file.
+    - Updated docstring and removed use of the centralized folder.
+  - scripts/generate_class_recipes.py
+    - Now writes ClassName.recipe.md next to the TS file directory.
+    - Updated docstring and path function.
 
-**Residual Risks / Open Questions**
-- If an API was intended to supply options (not the case for the admin “レベル” field), an empty response would still render no options; this change doesn’t mask backend issues.
-- If SSR/hydration is used elsewhere, the `MutationObserver` is guarded but those views should be sanity-checked.
-- Extremely old browsers without `queueMicrotask` are handled via a `setTimeout` fallback; Angular’s evergreen policy makes this low risk.
-- If option attributes change very frequently, the observer could trigger often; current usage patterns are light.
+- Workflow and prompts updated (remove centralized references)
+  - workflow/README.md
+  - prompts/coder.prompt.md
+  - prompts/planner.prompt.md
+  - prompts/detail_designer.prompt.md (main reference updated)
+  - prompts/integrator.prompt.md
+  - prompts/release_manager.prompt.md
+  - prompts/uiux_reviewer.prompt.md
+  - prompts/doc_editor.prompt.md
+  - prompts/requirements_analyst.prompt.md
+  - prompts/i18n_reviewer.prompt.md
+  - prompts/docwriter.prompt.md
+  - prompts/oss_sbom_auditor.prompt.md
+  - prompts/requirements_reviewer.prompt.md
+  - prompts/threat_modeler.prompt.md
+  - prompts/code_quality_reviewer.prompt.md
+  - prompts/implementation_reviewer.prompt.md
+  - prompts/performance_reviewer.prompt.md
+  - prompts/ai_safety_reviewer.prompt.md
+
+Validation commands
+- Confirm no centralized references remain (except deprecation note and past automation logs):
+  - rg -n "docs/recipes/" -S
+- Spot-check a few recipes in their new locations:
+  - open frontend/src/app/core/api/status-reports-gateway.ts.recipe.md
+  - open backend/app/routers/status_reports.py.recipe.md
+- Optionally generate new recipes and ensure they land co-located:
+  - python scripts/generate_file_recipes.py frontend/src/app/core/api
+  - python scripts/generate_class_recipes.py frontend/src/app/features
+
+Residual risks / open questions
+- Any external docs or integrations outside this repo that point to docs/recipes/* will break; they need manual updates.
+- If any internal tooling or CI parsers assumed a centralized path, they may require minor adjustments (we updated in-repo prompts and workflow references).
+- Directories with multiple recipes (file-level + class-level) are now possible; if a naming convention limit is desired (e.g., one recipe per dir), define and enforce it.
+- Embedded assets within recipes were not present here; if future recipes add assets, co-locate them alongside the recipe to avoid path issues.
+- The deprecated docs/recipes/ path has a migration README but is otherwise empty; if you prefer a hard removal, we can delete the folder entirely once external references are confirmed removed.
+
+Next step
+- Do you want me to run a full-text search to highlight any remaining external references you expect to update manually (e.g., wikis/PR templates)?

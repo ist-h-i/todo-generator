@@ -7,7 +7,7 @@
     "steps": [
       "coder"
     ],
-    "notes": "Implement a minimal, shared fix in UiSelectComponent by deferring initial option read and observing projected <option> changes with MutationObserver. No API or template changes. This should restore the level options and stabilize other selects within the time cap.",
-    "tests": "Manual: (1) Admin → コンピテンシーを登録 → verify two level options render and selection persists; (2) Admin → 判定と履歴 → both user and competency selects populate and are selectable; (3) Reports page → status/priority selects show options. Optional unit test (time-permitting): shallow-mount UiSelect with projected options added after init; assert panel options length updates after MutationObserver triggers."
+    "notes": "Coder inventories docs/recipes, maps each recipe to its source directory, moves files and any local assets, updates all internal links and docs navigation/configs, runs docs build/link-checks, and removes the centralized folder. Risks: hidden hardcoded paths, ambiguous mapping, asset path breakage. If ambiguity arises, coder uses a pointer stub and flags for follow-up.",
+    "tests": "1) Run docs build (e.g., `npm run docs:build` or repo-specific) and ensure success. 2) Run link checker if available (e.g., `npm run docs:check-links`). 3) Search for old path references: `rg -n \"docs/recipes\"` -> expect no matches. 4) Open a few key indices and ensure links resolve to co-located recipes."
   }
 }
