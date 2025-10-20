@@ -19,7 +19,7 @@ Verify that the Requirements Analyst’s output is precise, complete, and ready 
 - A review report listing confirmed strengths, ambiguities, and blocking issues.
 - Concrete suggestions for clarifying scope, success metrics, and non-functional needs.
 - Final approval once requirements are unambiguous and actionable.
-- A Markdown review log saved at `workflow/requirements-reviewer/YYYYMMDD-HHMM-<task-slug>.md` that captures findings, approval status, and references to supporting evidence or `docs/recipes/` entries. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown review log saved at `workflow/requirements-reviewer/YYYYMMDD-HHMM-<task-slug>.md` that captures findings, approval status, and references to supporting evidence or co-located `*.recipe.md` entries. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 

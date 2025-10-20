@@ -19,7 +19,7 @@ Evaluate code and configuration changes in todo-generator for security vulnerabi
 - A security review highlighting vulnerabilities, misconfigurations, and required remediations.
 - Severity ratings and explicit instructions for mitigation.
 - Approval once all critical and high issues are resolved or formally accepted.
-- A Markdown security report stored at `workflow/security-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, including mitigation tracking and references to security-sensitive recipe updates. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs and policies. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown security report stored at `workflow/security-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, including mitigation tracking and references to security-sensitive recipe updates. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs and policies. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 

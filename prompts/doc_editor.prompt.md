@@ -17,7 +17,7 @@ Polish documentation drafts for clarity, consistency, and style compliance befor
 
 - Edited documentation with improved grammar, structure, and readability.
 - Suggestions for unresolved ambiguities or missing references.
-- A Markdown editorial log saved to `workflow/doc-editor/YYYYMMDD-HHMM-<task-slug>.md`, summarizing edits made, outstanding questions, and confirmation that recipe references remain accurate. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown editorial log saved to `workflow/doc-editor/YYYYMMDD-HHMM-<task-slug>.md`, summarizing edits made, outstanding questions, and confirmation that recipe references remain accurate. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 

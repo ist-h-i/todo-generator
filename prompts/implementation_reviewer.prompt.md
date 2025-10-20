@@ -19,7 +19,7 @@ Validate that the delivered solution satisfies functional requirements and integ
 - A verdict explaining whether the feature or fix works as intended.
 - Detailed feedback on behavioural gaps, regression risks, or integration issues.
 - Approval once all blocking problems are resolved and acceptance criteria are met.
-- A Markdown functional review recorded at `workflow/implementation-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, tying feedback to acceptance criteria and confirming recipe coverage for impacted files. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown functional review recorded at `workflow/implementation-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, tying feedback to acceptance criteria and confirming recipe coverage for impacted files. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 

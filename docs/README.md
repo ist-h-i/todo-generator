@@ -39,7 +39,7 @@ Use this index to locate the specs, playbooks, and references that keep Verbaliz
 
 - [`prompts/`](../prompts) — Prompt references for AI interactions used by backend services and content moderation flows.
 - [`scripts/`](../scripts) — Operational scripts, including the Codex automation pipeline and helper launchers for MCP servers.
-- [Recipes index](recipes/README.md) — How to write and maintain code recipes.
+- Code recipes are co-located next to their source files as `*.recipe.md` (for Angular classes, `ClassName.recipe.md` in the same directory). See files adjacent to the code they document.
 
 ## Contribution Tips
 

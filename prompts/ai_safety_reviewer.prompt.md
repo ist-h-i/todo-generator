@@ -19,7 +19,7 @@ Assess features that involve AI functionality within todo-generator for safety, 
 - Risk assessment covering misuse potential, bias, privacy exposure, and transparency requirements.
 - Recommendations for safeguards, monitoring, or documentation updates.
 - Approval or blocking decision with rationale and follow-up actions.
-- A Markdown AI safety review stored at `workflow/ai-safety-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, enumerating findings, approvals, and recipe updates for AI-related modules or prompts. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant policies, recipes, and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the `docs/recipes/<relative-path>.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown AI safety review stored at `workflow/ai-safety-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, enumerating findings, approvals, and recipe updates for AI-related modules or prompts. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant policies, recipes, and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
 
 ## Guardrails
 

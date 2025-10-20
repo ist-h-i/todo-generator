@@ -1,41 +1,50 @@
-**Summary**
-- Bug: During competency registration, the “level” selection shows no options. Needs a fix with minimal project impact and a self-contained outcome.
+**Restatement**
 
-**Goal**
-- Restore the competency “level” options so users can select a valid level during registration.
+Fix the documentation “recipe” folder structure. Each recipe must live alongside the specific source code it explains (one recipe per target directory), not grouped centrally under a documentation folder.
+
+**Intended Outcome**
+
+- Move existing recipes from any centralized docs location into the same directories as their referenced source code.
+- Update all links, indexes, and build/preview tooling so documentation resolves correctly after the move.
+- Remove or deprecate the centralized recipes folder once references are updated.
 
 **Assumptions**
-- The competency registration form is part of the Angular SPA.
-- “Level” options are either static (enum/design system constant) or fetched from an API.
-- The issue is a regression affecting all users in the affected environment.
+
+- “Recipe” = self-contained guidance (likely Markdown) tied to a specific source file/folder.
+- Each recipe explains exactly one code target and should be co-located with that target’s directory.
+- Linkable indices (e.g., README, docs site navigation) must continue to work post-move.
+- Non-Angular parts follow the same co-location rule.
 
 **Constraints**
-- Avoid unrelated changes; keep the fix small and localized.
-- Deliver a complete, ready-to-merge fix (UI + data wiring + tests if applicable).
 
-**Unknowns**
-- Source of the options (static vs API).
-- Whether the issue is frontend-only (binding/component config) or backend/API (empty response).
-- Exact component/module handling the level field.
-- Scope (all competencies vs specific cases; all environments vs one).
+- Minimize changes; touch only what’s needed to align structure.
+- Deliver a complete, self-contained fix (no partial moves or broken links).
+- No network access; operate within current workspace.
+- Keep language-agnostic standards and Angular-specific rules separate per repository guidelines.
 
-**Acceptance Criteria**
-- Level options render consistently in the registration form.
-- Options match the source of truth (enum or API).
-- Selection persists correctly in form state and submission.
-- No console errors; API calls (if any) succeed and are handled (loading/empty/error).
-- Basic accessibility is preserved (focusability, labels, keyboard interaction).
+**Success Criteria**
 
-**Clarifying Questions**
-- What is the expected source of level options (static list or API endpoint)? If API, which endpoint and expected payload?
-- Is the issue reproducible across all environments (dev/staging/prod)? Any environment-specific flags or feature toggles?
-- Are there recent changes to the select component, state management, or API that could have caused this?
-- Do you see errors in the browser console or network panel when opening the form?
-- Which Angular component/file renders the level field?
-- What are the expected option values/labels and order?
-- Should we add/update tests (unit/e2e), and where are current tests located?
+- No centralized “recipes” collection remains referenced.
+- All recipe links in docs, READMEs, and navigation resolve.
+- Any docs tooling (site generator, CI checks, link checkers) passes with the new paths.
+- Clear mapping from each recipe to its target source directory.
 
-**Residual Risks**
-- If the root cause is backend data or contract drift, frontend-only fixes may mask deeper issues.
-- If options are translated, missing i18n keys could still result in blank labels.
-- If the design system select component recently changed API/inputs, other forms may be affected and require follow-up.
+**Residual Risks / Open Questions**
+
+- Broken links if any external references or hardcoded paths point to old locations.
+- Tooling that assumes a centralized recipes path (site generators, link checkers) may need config updates.
+- Ambiguity in identifying which source directory a given recipe belongs to.
+- Asset paths inside recipes (images/code snippets) may break after relocation.
+- Naming collisions or conventions (e.g., multiple recipes per directory) not yet defined.
+
+## Clarifying questions
+
+- Where are recipes currently stored (exact path, e.g., `docs/recipes/`), and what are their file patterns (e.g., `*.md`)?
+- What is the canonical naming convention for recipe files (e.g., `README.recipe.md`, `recipe.md`, or `<feature>.recipe.md`) after relocation?
+- How should we determine the target directory when a recipe covers multiple files or a cross-cutting concern?
+- Are there build or docs-generation tools that index recipes by their current location (please specify config/files to update)?
+- Should we update central indices/navigation to point to new locations, or generate them dynamically?
+- How should embedded assets (images, code samples) be handled—move alongside the recipe or keep a shared assets directory?
+- Do any non-doc consumers (scripts, CI) rely on the old structure?
+- Is there a preferred fallback for directories already containing a `README.md` (append section vs. separate `recipe.md`)?
+- Are Angular-specific recipes subject to any additional placement rules relative to the Angular guidelines?

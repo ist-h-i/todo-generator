@@ -1,38 +1,42 @@
-Summary
-- Symptom: On competency registration, the “level” select shows no options.
-- Likely root cause: The shared custom select (`app-ui-select`) reads projected <option> elements only once in `ngAfterViewInit`. When content is created or changes later (via Angular structural directives or async data), its `options` array remains empty, so the dropdown panel renders no choices. This can affect both dynamic and static option cases depending on timing.
+**Overview**
+Fix docs recipe structure by co-locating each recipe with the code it explains, updating all links/indexes/tooling, and removing the centralized recipes folder without breaking navigation or builds.
 
-Plan (under 30 minutes)
-- Localize fix to `frontend/src/app/shared/ui/select/ui-select.ts` only.
-- Add a MutationObserver on the hidden/native `<select>` to refresh the internal `options` array when child `<option>` nodes change.
-- Add a deferred initial read (`queueMicrotask` or `setTimeout(0)`) after `ngAfterViewInit` to ensure projected content is present before first read.
-- Keep public API unchanged; no template changes where `app-ui-select` is used (including admin level field).
-- Sanity-check other usages (reports, admin user/competency selects) for no regressions.
+**30-Minute Plan**
+- Inventory current recipes and centralized path (e.g., docs/recipes).
+- Map each recipe to its target code directory using filename/front-matter/links.
+- Move recipes next to their target code; preserve relative assets.
+- Update internal links and indices; adjust docs config if needed.
+- Run docs/link checks; fix any broken references.
+- Remove/deprecate centralized folder; add a redirect stub if mandated.
 
-Why this is minimal
-- One shared component fix unblocks all selects, including the competency “level” field.
-- No backend or model changes; no routing or state changes.
-- No design-system API changes; existing markup keeps working.
+**Critical Risks**
+- Hidden hardcoded paths in docs site configs or scripts.
+- Ambiguous recipe-to-target mapping (cross-cutting topics).
+- Broken embedded asset paths after relocation.
+- Multiple recipes in one target directory without a naming convention.
 
-Acceptance alignment
-- Options render correctly in the competency registration form.
-- Selection persists in form control and submit payload stays unchanged.
-- No console errors; dropdown panel opens/closes as expected.
-- Accessibility preserved (role listbox, keyboard handling intact).
+**Assumptions**
+- Recipes are Markdown with stable identifiers in filenames or front-matter.
+- A docs site or link checker exists and can run locally via scripts.
+- Co-location applies repo-wide, including Angular and non-Angular code.
 
-Residual Risks
-- If the level list was intended to be fetched from an API, this UI fix won’t address backend emptiness. Evidence in `admin/page.html` shows static options, so risk is low.
-- If SSR/hydration is used somewhere else, ensure `MutationObserver` setup guards run only in browser context (current component usage appears client-only).
-- If other forms rely on late insertion of options (e.g., `@for` after async), this fix should now handle them; if not, we may need to call `readOptions()` on certain input changes.
+**Clarifying Questions**
+- Exact current location and pattern: is it `docs/recipes/**/*.md`?
+- Naming convention post-move: `recipe.md`, `<feature>.recipe.md`, or `README.recipe.md`?
+- Handling cross-cutting recipes: primary directory + backlinks or keep a pointer?
+- Which docs tooling indexes recipes (mkdocs, docusaurus, vitepress)? Config files to update?
+- Asset policy: move alongside or central shared assets directory?
+- Any CI or scripts rely on the old path?
+- If a directory already has `README.md`, should recipe be a separate file?
 
-Open Questions
-- Was the regression introduced by recent changes to the select component styling or lifecycle?
-- Are there environments (staging/prod) where the issue reproduces differently due to rendering timing?
+**Minimal Stage Route**
+- Choose coder-only to keep the route lean; the work is file moves plus link/config updates that a single stage can complete within 30 minutes. Add reviewers only if tooling updates become non-trivial.
 
-Validation
-- Manual checks: Admin console → “コンピテンシーを登録” → “レベル” shows “初級 (3段階)” and “中級 (5段階)”. Can open panel, select both values, submit, and see correct level in payload.
-- Spot-check other `app-ui-select` instances (evaluation user/competency, reports status/priority) for proper option rendering and selection.
+**Validation**
+- Build docs (or run link checker) to ensure no broken links.
+- Grep for stale paths pointing to the old centralized folder and confirm zero results.
+- Spot-check a few moved recipes from index/navigation to their targets.
 
 ```json
-{"steps":["coder"],"notes":"Implement a minimal, shared fix in UiSelectComponent by deferring initial option read and observing projected <option> changes with MutationObserver. No API or template changes. This should restore the level options and stabilize other selects within the time cap.","tests":"Manual: (1) Admin → コンピテンシーを登録 → verify two level options render and selection persists; (2) Admin → 判定と履歴 → both user and competency selects populate and are selectable; (3) Reports page → status/priority selects show options. Optional unit test (time-permitting): shallow-mount UiSelect with projected options added after init; assert panel options length updates after MutationObserver triggers."}
+{"steps":["coder"],"notes":"Coder inventories docs/recipes, maps each recipe to its source directory, moves files and any local assets, updates all internal links and docs navigation/configs, runs docs build/link-checks, and removes the centralized folder. Risks: hidden hardcoded paths, ambiguous mapping, asset path breakage. If ambiguity arises, coder uses a pointer stub and flags for follow-up.","tests":"1) Run docs build (e.g., `npm run docs:build` or repo-specific) and ensure success. 2) Run link checker if available (e.g., `npm run docs:check-links`). 3) Search for old path references: `rg -n \"docs/recipes\"` -> expect no matches. 4) Open a few key indices and ensure links resolve to co-located recipes."}
 ```
