@@ -244,7 +244,11 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git fetch origin "refs/heads/codex/issue-${num}:refs/remotes/origin/codex/issue-${num}" || true
+          if git ls-remote --exit-code --heads origin "codex/issue-${num}" >/dev/null 2>&1; then
+            git fetch origin "refs/heads/codex/issue-${num}:refs/remotes/origin/codex/issue-${num}"
+          else
+            echo "No remote branch codex/issue-${num}; skipping fetch"
+          fi
           progress_ref="refs/remotes/origin/codex/issue-${num}:.codex/state/issue-${num}/progress.json"
           progress_content="$(git show "${progress_ref}" 2>/dev/null || true)"
           if [ -n "$progress_content" ]; then
@@ -272,7 +276,7 @@ jobs:
                 entry = data.get(issue) or data.get(str(issue))
                 if entry:
                     print(json.dumps(entry, ensure_ascii=False))
-                PY
+          PY
               )"
               if [ -n "$payload" ]; then
                 {
