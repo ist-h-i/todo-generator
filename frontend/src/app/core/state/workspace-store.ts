@@ -814,14 +814,9 @@ export class WorkspaceStore {
   });
 
   private readonly syncDefaultAssigneeWithNicknameEffect = effect(() => {
+    // Prefer nickname only; do not overwrite existing labels in cards/subtasks.
     const nickname = this.activeUserNickname();
-    const email = this.activeUserEmail();
-    const preferredName =
-      nickname && nickname.trim().length > 0
-        ? nickname.trim()
-        : email && email.trim().length > 0
-          ? email.trim()
-          : null;
+    const preferredName = nickname && nickname.trim().length > 0 ? nickname.trim() : null;
 
     if (!preferredName) {
       this.lastSyncedAssigneeName = null;
@@ -829,94 +824,16 @@ export class WorkspaceStore {
     }
 
     const settings = this.settingsSignal();
-    const previousDefaultRaw = settings.defaultAssignee;
-    const previousDefault = previousDefaultRaw.trim();
+    const previousDefault = settings.defaultAssignee.trim();
     const lastSynced = this.lastSyncedAssigneeName?.trim() ?? null;
-    const normalizedEmail = email?.trim() ?? null;
 
     const canUpdateDefault =
-      previousDefault.length === 0 ||
-      previousDefault === '匿名ユーザー' ||
-      (lastSynced !== null && previousDefault === lastSynced) ||
-      (normalizedEmail !== null && previousDefault === normalizedEmail);
+      previousDefault.length === 0 || previousDefault === '匿名ユーザー' || (lastSynced !== null && previousDefault === lastSynced);
 
     if (canUpdateDefault && previousDefault !== preferredName) {
-      const nextSettings: WorkspaceSettings = {
-        ...settings,
-        defaultAssignee: preferredName,
-      };
+      const nextSettings: WorkspaceSettings = { ...settings, defaultAssignee: preferredName };
       this.settingsSignal.set(nextSettings);
       this.persistSettings(nextSettings);
-    }
-
-    const aliasValues = new Set<string>();
-    const registerAlias = (value: string | null | undefined): void => {
-      if (!value) {
-        return;
-      }
-
-      const normalized = value.trim();
-      if (normalized.length === 0 || normalized === preferredName) {
-        return;
-      }
-
-      aliasValues.add(normalized);
-    };
-
-    if (canUpdateDefault) {
-      registerAlias(previousDefault);
-    }
-    registerAlias(lastSynced);
-    registerAlias(normalizedEmail);
-    registerAlias('匿名ユーザー');
-
-    if (aliasValues.size > 0) {
-      this.cardsSignal.update((cards) => {
-        let mutated = false;
-        const nextCards = cards.map((card) => {
-          let updated = false;
-          let nextAssignee = card.assignee;
-
-          if (nextAssignee) {
-            const normalizedAssignee = nextAssignee.trim();
-            if (normalizedAssignee.length > 0 && aliasValues.has(normalizedAssignee)) {
-              nextAssignee = preferredName;
-              updated = true;
-            }
-          }
-
-          let nextSubtasks = card.subtasks;
-          if (
-            card.subtasks.some((subtask) => {
-              const normalized = subtask.assignee?.trim();
-              return normalized && aliasValues.has(normalized);
-            })
-          ) {
-            nextSubtasks = card.subtasks.map((subtask) => {
-              const normalized = subtask.assignee?.trim();
-              if (normalized && aliasValues.has(normalized)) {
-                return { ...subtask, assignee: preferredName } satisfies Subtask;
-              }
-
-              return subtask;
-            });
-            updated = true;
-          }
-
-          if (!updated) {
-            return card;
-          }
-
-          mutated = true;
-          return {
-            ...card,
-            assignee: nextAssignee,
-            subtasks: nextSubtasks,
-          } satisfies Card;
-        });
-
-        return mutated ? nextCards : cards;
-      });
     }
 
     this.lastSyncedAssigneeName = preferredName;
