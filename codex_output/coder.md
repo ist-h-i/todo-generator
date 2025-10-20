@@ -1,48 +1,30 @@
 **Summary**
-- Centralized UI notifications under HoverMessageService. Global loading and error banners in Shell are removed; messages now appear as animated toasts on the right, newest at top, per required durations and slide-out behavior.
-
-**What I Changed**
-- Routed global error and loading states into the hover/toast system via effects.
-- Removed legacy header banners for loading and error to avoid duplication.
-- Kept changes minimal and within existing hover-messages module.
+- Repositioned the global hover/toast stack from top-right to bottom-right with a minimal, CSS-only change.
+- Ordering, durations, and animations remain unchanged (newest on top; drop-in/slide-out).
 
 **Files Updated**
-- frontend/src/app/core/layout/shell/shell.html:3
-  - Removed header banners (`.shell-global-loading`, `.shell-global-error`) and kept `<app-hover-message-stack [messages]="hoverMessageList()" />` as the single global outlet.
-- frontend/src/app/core/layout/shell/shell.ts:101
-  - Added `loadingToastId` to track the active loading toast id.
-- frontend/src/app/core/layout/shell/shell.ts:215
-  - Added effect to mirror `HttpErrorNotifierService.message` into sticky error toasts: `this.hoverMessages.error(msg)`.
-- frontend/src/app/core/layout/shell/shell.ts:224
-  - Added effect to mirror `HttpLoadingStore` into a persistent loading toast:
-    - On `isLoading()`: if no toast, `this.hoverMessages.loading(message ?? 'データを読み込み中です…')`.
-    - On end: `this.hoverMessages.dismiss(loadingToastId)` and reset.
+- frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss:1
+  - Switched logical inset from top to bottom to anchor the stack at the bottom-right:
+    - `inset-block-start` → `inset-block-end` in both base and desktop media query.
 
-**Existing Toast Implementation (for reference)**
-- Service: frontend/src/app/core/layout/hover-messages/hover-message.service.ts:1
-  - Durations: error sticky, warning 10s, notification 5s, system 3s, loading sticky; newest unshift; exit delayed by 220ms for animation.
-- Host: frontend/src/app/core/layout/hover-messages/hover-message-stack.component.ts:1 and .html/.scss
-  - Fixed top-right stack; `aria-live="polite"`, newest-first rendering.
-- Item: frontend/src/app/core/layout/hover-messages/hover-message.component.ts:1 and .scss
-  - Entry drop-in from top; exit slide-out right; severity styling with colored shadows.
+**Focused Diff**
+- frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss:4
+  - inset-block-start: clamp(16px, 12vh, 144px) → inset-block-end: clamp(16px, 12vh, 144px)
+- frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss:21
+  - inset-block-start: clamp(24px, 8vh, 160px) → inset-block-end: clamp(24px, 8vh, 160px)
 
-**Why This Meets Requirements**
-- Right-side stacking with animated entry and right-slide exit.
-- Newest at top; array-backed queue.
-- Severity-based durations:
-  - Error: sticky (red).
-  - Warning: 10s (yellow).
-  - Notification: 5s (green).
-  - System: 3s; Loading: persists until complete (blue).
-- Global loading/error now fully managed by the service.
+**Behavior After Change**
+- Stack is fixed at bottom-right.
+- Newest messages still render above older ones within the stack.
+- Entry remains “drop in” (translateY from -14px to 0); exit remains slide-out to the right.
 
-**Commands (optional)**
-- Build: `cd frontend && npm ci && npm run build`
-- Dev: `cd frontend && npm start`
-- Tests: `cd frontend && npm test`
+**How to Verify**
+- Run the app and trigger messages (warning/notice/system/loading).
+- Confirm the container appears bottom-right; timers and severities behave as before.
+- Ensure newest message appears above older ones in the bottom-right stack.
+
+**Notes**
+- If needed later, we can add safe-area padding for devices with notches: e.g., `bottom: calc(16px + env(safe-area-inset-bottom))`. Currently kept minimal per constraints.
 
 **Residual Risks / Open Questions**
-- Sticky errors have no close button; dismissal is programmatic only. Add an inline close if needed.
-- Successive errors will stack (no dedup). Define dedup or max visible if desired.
-- We left unused CSS for old banners; harmless but can be cleaned up later.
-- Timers don’t pause on hover; can be added if required.
+- Possible overlap with bottom-anchored UI (e.g., chat widgets, FABs, cookie bars). May require small spacing/safe-area adjustments if observed.

@@ -1,33 +1,38 @@
-**Objective**
-Add a centralized hover/toast message manager that stacks messages on the right, newest on top, with entry/exit animations and auto-dismiss per severity. Keep the change minimal and dependency-free.
+**Scope**
 
-**Lean Approach**
-- Add a single service to own queue, timers, and IDs.
-- Add a small host component to render right-side stacked toasts with CSS-only animations.
-- Wire host into the shell template; route existing notifications through the service.
-- No new dependencies; reuse existing design tokens.
+- Minimal change: reposition the existing hover/toast stack from top-right to bottom-right.
+- Keep ordering as originally specified: newest on top.
+- Preserve current entry/exit animations; only adjust positioning and any transform origins if needed.
 
-**Key Behaviors**
-- Order: newest at top; array-backed queue.
-- Durations by severity:
-  - Error: persistent (red).
-  - Warning: 10s (yellow).
-  - Notice: 5s (green).
-  - System/Loading: ≥3s; loading persists until dismissed (blue).
-- Animations: drop-in/slide-in on entry; slide-out-right on dismissal.
-- API: showError, showWarning, showNotice, showLoading (returns id), update(id), dismiss(id), clearAll().
+**Proposed Changes**
 
-**Minimal Diff Integration**
-- Prefer extending any existing notification/toast mechanism if present to avoid duplication.
-- Insert a single host into the app shell; avoid broad refactors.
-- Map severity to existing color/shadow tokens; keep CSS scoped.
+- Update the host stack container styles to anchor at bottom-right instead of top-right.
+  - Replace `top` with `bottom` (respect safe-area: `bottom: calc(1rem + env(safe-area-inset-bottom, 0px))`).
+  - Ensure `right` remains set; position stays `fixed`.
+  - Keep `flex-direction: column` so newest-first rendering still shows “newest above older”.
+- Confirm item animations remain coherent:
+  - Entry “drop from top” still reads fine within a bottom-right stack; no code changes unless there’s a hard-coded `transform-origin: top`.
+  - Exit slide-out-right remains unchanged.
+- No service or API changes needed; queue and timers unaffected.
 
-**Risks / Unknowns**
-- Existing notification system overlap (potential double toasts).
-- Exact color/shadow tokens; may need tuning.
-- Close button requirement for sticky errors not specified.
-- A11y depth (aria-live, roles) and mobile safe-area/z-index not specified.
+**Files Likely Touched**
+
+- `frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss`
+- If inline styles are used, adjust in:
+  - `frontend/src/app/core/layout/hover-messages/hover-message-stack.component.html`
+  - Or component TS `styles` array if applicable.
+
+**Validation**
+
+- Visual: messages appear at bottom-right; newest still at the top of the stack; entry/exit animations behave; z-index remains above app content.
+- Behavior: durations unchanged (error sticky; warning 10s; notice 5s; system ≥3s; loading persists until completed).
+- Cross-check mobile safe area and notches via `env(safe-area-inset-bottom)`.
+
+**Residual Risks / Open Questions**
+
+- Bottom-right overlap with FAB/chat widgets or cookie banners; safe-area/bottom spacing may need small tuning.
+- If a bottom-anchored “grow upward” stack is later desired (newest closest to screen edge), the flex layout and/or `ngFor` order will need an additional (but still small) adjustment.
 
 ```json
-{"steps":["coder"],"notes":"Single-stage (coder) is sufficient to add a central HoverMessageService and a lightweight host component, wire it into the app shell, and route notifications through it. No new dependencies; CSS-only animations. If an existing notification system exists, coder will extend/adapt it instead of replacing to keep the diff minimal.","tests":"Unit: verify queue order (newest first), per-severity durations (error sticky, warning 10s, notice 5s, system >=3s), loading returns id and persists until dismiss/update, dismissal triggers exit flag then removal after ~200–300ms. Manual: confirm right-side stack, slide-in entry and slide-out-right exit, colors/shadows per severity, timers behave as specified, errors and loading persist until explicitly dismissed/updated."}
+{"steps":["coder"],"notes":"Move hover/toast stack from top-right to bottom-right with minimal CSS changes. Keep newest-on-top ordering and existing animations. No service or API changes. Verify safe-area padding and z-index.","tests":"Manual: trigger warning/notice/system/loading toasts and confirm container is bottom-right, newest on top, entry drop-in and exit slide-right animations unchanged, timers behave per severity. Mobile: confirm safe-area inset prevents clipping; verify no overlap with bottom UI elements. Error: ensure it remains persistent at bottom-right until programmatically dismissed."}
 ```

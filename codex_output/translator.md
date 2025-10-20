@@ -1,47 +1,49 @@
 **English Summary**
-Implement a lightweight notification (“hover message/toast”) manager that shows messages on the right side of the screen with animations. Newest messages appear at the top; older ones stack below. Messages auto-dismiss based on severity; errors persist; loading persists until completion. Messages slide out to the right when dismissed.
+Implement a centralized hover/toast message manager that stacks notifications at the bottom-right of the screen (not top-right). Newest messages should appear above older ones within the stack. Messages auto-dismiss by severity; errors persist; loading persists until completion. Dismissal animates by sliding out to the right.
 
 **Expected Behavior**
-- Placement: right side, vertical stack; newest at top.
-- Entry: animated appearance (descend from top).
-- Exit: slide-out to the right.
-- Queue: in-memory array; visual order reflects newest-first.
-- Duration by severity:
-  - Error: persistent (does not auto-dismiss), red shadow.
-  - Warning: 10s, yellow shadow.
-  - Notice: 5s, green shadow.
-  - System/Loading: ≥3s; loading remains until explicitly ended, blue shadow.
-
-**Scope**
-- Add a central “message manager” class/service to own queue, timers, and IDs.
-- Render via a single host in the app shell to show the stack on the right.
-- Replace scattered notification logic to route through this class.
-- No new dependencies; CSS-based animations only.
+- Placement: bottom-right fixed container; vertical stack.
+- Order: newest above older within the stack (confirm for bottom-right).
+- Entry: animated appearance; prior spec said “drop from top,” which may conflict with bottom anchoring; slide-in from right is acceptable if preferred.
+- Exit: slide-out to the right on dismissal.
+- Durations/colors:
+  - Error: persistent, red.
+  - Warning: 10s, yellow.
+  - Notice: 5s, green.
+  - System/Loading: ≥3s; loading persists until completion, blue.
+- Queue: in-memory array; ID-based control for update/dismiss.
 
 **Assumptions**
-- “Hover message” refers to floating toast notifications, not tooltip/hover UI.
-- Angular SPA; service + single host component is acceptable.
-- Use existing design tokens (colors/shadows) where available.
-- Callers can programmatically dismiss or update messages (e.g., loading → success).
+- Angular SPA; implement as a service + a single host component.
+- No new dependencies; CSS-only animations.
+- Use existing design tokens for colors/shadows.
+- Programmatic API supports show/update/dismiss, and loading returns an ID.
 
 **Constraints**
-- Minimize changes to existing code; keep edits tightly scoped.
-- Deliver a self-contained outcome without adding dependencies.
-- Keep implementation achievable within a small diff and short timeframe.
+- Minimal changes; avoid replacing broad UI unless necessary.
+- Deliver a complete, self-contained outcome without new packages.
 
 **Unknowns**
-- Presence of any existing notification/toast mechanism to extend or replace.
-- Exact design tokens for red/yellow/green/blue and shadow intensities.
-- Maximum number of concurrent on-screen messages.
-- Whether a visible close button is required for sticky errors.
-- Accessibility requirements (roles, aria-live, keyboard dismissal).
-- Mobile behavior, safe-area padding, and z-index layering.
+- Exact color/shadow tokens for severities.
+- Max visible toasts and overflow behavior.
+- Whether sticky errors need a close button.
+- A11y requirements (roles, aria-live, keyboard dismissal).
+- Hover-to-pause timers behavior.
+- Deduplication of repeated messages.
+- Interaction with existing notification mechanisms.
 
-**Clarifying Questions**
-- Should we replace any existing notification system, or integrate with it?
-- Do you want a close button on persistent errors, or programmatic dismissal only?
-- What color and shadow tokens should map to each severity (error/warn/notice/system)?
-- Should we cap visible messages (e.g., 4) and queue the rest?
-- Any accessibility requirements (aria-live/role, focus handling, keyboard support)?
-- Any mobile-specific placement or safe-area constraints to observe?
-- Is a simple API acceptable: showError, showWarning, showNotice, showLoading (returns id), update(id), dismiss(id), clearAll()?
+**Clarifying questions**
+- With bottom-right placement, should new messages appear at the bottom (closest to the edge, pushing older upward) or remain “newest on top” as originally specified?
+- Entry animation preference at bottom-right: keep “drop from top,” switch to “slide-in from right,” or a subtle fade/scale-in?
+- Do sticky errors require a visible close button, or are they programmatic-only?
+- Cap visible toasts (e.g., 4) and queue the rest?
+- Any specific a11y requirements (aria-live level, roles, focus handling, keyboard dismissal)?
+- Should timers pause on hover/focus?
+- Dedup policy for identical repeated messages?
+- Any mobile safe-area padding and z-index layering constraints?
+- Should we replace or integrate with any existing notification system?
+
+**Residual risks**
+- Visual mismatch if “drop from top” is retained at bottom-right; may look odd without confirmation.
+- Persistent errors can accumulate without a close affordance.
+- Overlap risks with other bottom-anchored UI (chat widgets, FABs, nav bars) without safe-area rules.
