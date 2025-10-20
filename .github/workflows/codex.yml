@@ -302,11 +302,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY' | {
-            echo "task_input<<EOF"
-            cat
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          payload="$(python3 - <<'PY'
           import json, os
           task = os.environ.get('INPUT_JSON', '')
           prev = os.environ.get('PREV', '')
@@ -321,6 +317,12 @@ jobs:
                   data['PreviousProgressRaw'] = prev
           print(json.dumps(data, ensure_ascii=False))
           PY
+          )"
+          {
+            echo "task_input<<EOF"
+            printf '%s\n' "$payload"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Prepare working branch
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
