@@ -1,52 +1,45 @@
 **Summary**
-Replace any string fields that store user-identifying data (e.g., email, nickname) on domain objects (e.g., Cards, Tasks) with a stable `userId` reference. Display the user’s nickname by resolving from `userId`. Remove logic that overwrites labels from nickname to email.
-
-**Goals**
-- Persist user linkage via `userId` instead of email/nickname strings.
-- Show assignee labels using the resolved user nickname.
-- Eliminate post-processing that overwrites labels with email.
+- Bug: In the competency registration form, the “Level” select shows no options.
+- Objective: Restore the level options so users can select and submit a valid level.
 
 **Assumptions**
-- There is a canonical Users source exposing `userId`, `email`, and `nickname`.
-- `userId` is stable/unique and suitable as a foreign key.
-- Existing objects (e.g., Card, Task) currently store assignee as a string (email or nickname).
-- The SPA (Angular) renders assignee labels from object fields presently.
-- Backend and/or state management can resolve a user by `userId`.
-- Nicknames may change over time; resolving at read-time is acceptable.
+- The app is an Angular SPA; the “Level” field uses a shared select component.
+- Level options are static (design/constant) or otherwise already available client-side.
+- The issue is frontend-timing related (projected options not detected) rather than backend data emptiness.
 
 **Constraints**
-- Minimize scope and avoid unrelated refactors.
-- Deliver a complete, self-contained change (models, persistence, API/contracts, UI).
-- Maintain backward compatibility or provide a safe one-time migration for existing data.
-- Follow repo governance and Angular guidelines when touching SPA code.
+- Minimal, localized change; avoid unrelated edits.
+- Deliver a self-contained, ready-to-merge fix with no API/template contract changes.
+- Preserve existing UX, form bindings, and accessibility.
 
-**Unknowns**
-- Exact entities/fields storing user info as strings (e.g., `Card.assignee`, `Task.owner`).
-- Source of truth for Users (DB table, API endpoint, cache).
-- Type/format of `userId` (UUID, numeric, string).
-- Whether multiple assignees are supported anywhere.
-- Current API contracts: do they already include `userId`?
-- Required handling when `userId` cannot be resolved to a user (deleted/disabled users).
+**Known Context**
+- Prior analysis suggests the shared select component reads projected `<option>`s only once and misses later insertions; observing DOM changes and deferring the initial read likely resolves it.
+- Other pages using the same select may also benefit from the fix.
 
 **Acceptance Criteria**
-- All relevant objects use `userId` for user linkage.
-- UI shows nickname resolved from `userId`.
-- Logic that overwrites nickname with email is removed.
-- Migration path exists for legacy records (email/nickname → userId).
-- Tests or verifiable steps cover resolution and fallback behavior.
+- “Level” dropdown consistently renders expected options.
+- User can open the dropdown, navigate options (mouse/keyboard), select a value, and the form reflects/submits it.
+- No console errors; no regression in other pages using the select.
+- Basic a11y preserved (focus, ARIA roles, keyboard interaction).
 
-**Residual Risks**
-- Data migration mismatches (emails without corresponding users).
-- Performance regressions if nickname resolution adds extra calls without caching/batching.
-- UI/state bugs if `userId` resolution fails; need clear fallback strategy.
-- External integrations relying on email strings may break if not coordinated.
+**Non-Goals**
+- No redesign or dependency changes.
+- No backend or API contract changes.
+- No global refactors beyond the shared select’s minimal stabilization.
 
-## Clarifying questions
-- Which exact models and fields currently store user data as strings (list all: names and locations)?
-- What is the canonical Users interface and its fields (id, email, nickname)? API paths?
-- What is the `userId` type and validation rules?
-- Do any views or APIs require email display alongside nickname?
-- Should we resolve nickname server-side (embed in payload) or client-side (SPA fetch/selector)?
-- What is the fallback if `userId` is unresolved (show email, placeholder, or “Unassigned”)?
-- Is there any multi-assignee or watcher concept that needs the same change?
-- Are there migration windows/constraints (e.g., zero-downtime, versioned API compatibility)?
+**Unknowns**
+- Exact source of “Level” options (purely static vs. async-inserted).
+- Specific component/template rendering the field.
+- Whether the issue reproduces across all environments or only certain builds.
+
+**Clarifying Questions**
+- Are “Level” options strictly static in the template, or can they be added/translated asynchronously?
+- Which component/template renders the competency registration form and “Level” field?
+- Do any console or network errors appear when opening the form?
+- Is this regression recent, tied to a change in the shared select component or rendering lifecycle?
+- Should we verify any other forms using the same select for parity?
+
+**Residual Risks / Open Questions**
+- If options rely on translations, missing i18n keys could still yield blank labels.
+- If options are intended to come from an API and that API returns empty, the UI fix won’t surface choices.
+- SSR/hydration contexts may require guarding DOM observers to browser-only execution.

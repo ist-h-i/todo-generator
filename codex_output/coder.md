@@ -1,73 +1,39 @@
-Summary of changes
-- Persist user linkage via userId; display nicknames on read.
-- Remove SPA logic that overwrites assignee labels between nickname/email.
-- Add a startup migration to normalize legacy assignee strings to userIds.
+I’ve reviewed the frontend and confirmed the root cause is in the shared select. I implemented the minimal fix in the shared component so the projected <option> elements are reliably discovered and kept in sync.
 
-Backend changes
-- File: backend/app/routers/cards.py
-  - Added helpers:
-    - _canonicalize_assignees: email/nickname/id → userId (unique, case-insensitive for email/nickname; preserves unmatched).
-    - _canonicalize_single_assignee: single value version.
-    - _resolve_display_names: userId → display label (nickname preferred, else email).
-    - _card_read_with_display: build schemas.CardRead with nickname labels; also resolves subtask assignees.
-  - list_cards: returns List[CardRead] with assignee and subtask assignee labels resolved to nicknames. Batched user lookups per response.
-  - create_card: canonicalizes assignees on write; canonicalizes subtask.assignee; returns CardRead with nickname labels.
-  - get_card: returns CardRead with nickname labels.
-  - update_card: canonicalizes assignees on write when provided; returns CardRead with nickname labels.
-  - Subtasks:
-    - list_subtasks: returns List[SubtaskRead] with nickname-resolved assignee.
-    - create_subtask/update_subtask: canonicalize assignee on write; return SubtaskRead with nickname label.
+What I changed
+- Stabilized app-ui-select to read options after render and on mutations, without changing its public API or templates.
 
-- File: backend/app/migrations.py
-  - Added _normalize_assignees_to_user_ids(engine):
-    - Reads users (id, email, nickname).
-    - For cards.assignees (JSON array) and subtasks.assignee (string), replaces values with userId if matched by id, email (case-insensitive), or uniquely by nickname (case-insensitive). Leaves unmatched values unchanged.
-  - Invoked _normalize_assignees_to_user_ids(engine) from run_startup_migrations.
+Focused diffs
+- frontend/src/app/shared/ui/select/ui-select.ts:1–16
+  - Added OnDestroy to imports.
+- frontend/src/app/shared/ui/select/ui-select.ts:182
+  - Implemented OnDestroy on UiSelectComponent.
+- frontend/src/app/shared/ui/select/ui-select.ts:205–231
+  - Deferred initial option read to post-render using queueMicrotask (fallback to setTimeout(0)).
+  - Added MutationObserver on the native select to watch childList/subtree/characterData/attributes and refresh options, selected label, and active index.
+- frontend/src/app/shared/ui/select/ui-select.ts:233–238
+  - Cleaned up MutationObserver in ngOnDestroy.
+- Behavior preservation: No changes to inputs, form bindings, or templates. Keyboard and ARIA behavior remain intact.
 
-Frontend changes (Angular)
-- File: frontend/src/app/core/state/workspace-store.ts
-  - Reworked syncDefaultAssigneeWithNicknameEffect:
-    - Sets defaultAssignee from the active user’s nickname only.
-    - Removed alias set and in-memory rewriting of card/subtask assignee labels (no more flipping between nickname and email).
+Why this fixes “Level” options
+- The admin “レベル” field uses projected static options: frontend/src/app/features/admin/page.html:129–132
+- With deferred read + MutationObserver, the component now consistently discovers those options even when rendering timing varies, so the dropdown shows items and selection persists.
 
-What stayed the same
-- API shapes remained unchanged. The same fields exist; only values now display nicknames resolved from userIds.
-- Storage format for labels, statuses, etc. unchanged.
+Key file references
+- Shared select: frontend/src/app/shared/ui/select/ui-select.ts:205, 219, 233
+- Admin “レベル”: frontend/src/app/features/admin/page.html:129–132
+- Default value (junior): frontend/src/app/features/admin/page.ts:81, 242
 
-Verification steps
-- Backend
-  - Create a user U (email X, nickname N).
-  - POST /cards with assignees ["X"].
-    - DB stores ["U.id"]; response shows assignees ["N"].
-  - PUT /cards/{id} with assignees ["N"].
-    - DB stores ["U.id"]; response shows ["N"].
-  - POST /cards/{id}/subtasks with assignee "X".
-    - DB stores "U.id"; response shows "N".
-  - GET /cards and GET /cards/{id} both show nickname labels; no flicker in the SPA.
+Manual verification
+- Admin → コンピテンシー登録:
+  - Open “レベル” dropdown; see “初級 (3段階)” and “中級 (5段階)”.
+  - Select both values; submit; payload includes selected level.
+- Spot-check other selects (reports/status, priority, and admin evaluation selects) for populated options and selection.
+- Optional commands (if deps are installed):
+  - cd frontend && npm run lint
+  - cd frontend && npm start
 
-- Migration
-  - With legacy data: cards.assignees like ["someone@example.com", "unknown"], subtasks.assignee "Tester".
-  - On startup, matching emails/nicknames convert to userIds; unmatched remain as-is.
-
-Suggested commands (run locally)
-- Backend tests: 
-  - python -m venv .venv && source .venv/bin/activate
-  - pip install -r requirements.txt
-  - uvicorn backend.app.main:app or pytest -q (if tests are configured)
-- Frontend sanity:
-  - No API contract changes; just rebuild the SPA normally.
-
-Open questions
-- Filtering by assignee: current GET /cards?assignees= compares against stored values (now userIds). If the UI sends nicknames in filters, we should normalize inputs server-side; confirm expected client behavior.
-- Status reports: StatusReportPresenter currently forwards card.assignees as stored values; these will be userIds post-change. If needed, we can add the same display-name resolution there.
-
-Residual risks
-- Ambiguous nicknames during migration (same nickname across users) are skipped to avoid incorrect mapping; those entries remain as legacy strings.
-- Slight overhead per request to resolve userIds → nicknames; mitigated via per-request batching. If performance becomes a concern, add a request-scoped cache or prefetch.
-
-Files touched
-- backend/app/routers/cards.py: multiple focused additions; write canonicalization and read-time display resolution.
-- backend/app/migrations.py: added _normalize_assignees_to_user_ids() and call from run_startup_migrations.
-- frontend/src/app/core/state/workspace-store.ts: removed alias rewrite; nickname-only defaulting.
-
-If you want, I can also update status report serialization to show nicknames for assignees in backend/app/services/status_report_presenter.py.
+Residual risks / open questions
+- If options are API-driven and return empty, UI will still show none (backend issue).
+- If labels depend on i18n and keys are missing, labels could be blank despite this fix.
+- In SSR/hydration contexts, MutationObserver should only run in the browser; current SPA views are client-only, but SSR views should be sanity-checked.

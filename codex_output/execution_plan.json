@@ -9,7 +9,7 @@
       "coder",
       "code_quality_reviewer"
     ],
-    "notes": "Implement server-side canonicalization (email/nickname/id→userId) on writes and nickname resolution on reads for cards/subtasks; keep API shapes unchanged. Add a startup backfill to convert legacy values when possible. Remove SPA effect that rewrites assignee labels between nickname/email to avoid toggling; optionally prefer nickname-only for defaultAssignee. Batch/cached lookups to avoid performance regressions. Reports presenter update is desirable but may be deferred if time is tight.",
-    "tests": "1) Backend: Create user A (email X, nickname N). POST /cards with assignees [X] → DB stores [A.id]; GET /cards returns assignees [N]. 2) Update card with assignees [N] → DB stores [A.id]; GET returns [N]. 3) Subtask: POST /cards/{id}/subtasks with assignee X → DB stores A.id; GET returns assignee N. 4) Migration: Insert legacy records with assignees ['X','unknown']; run app; verify 'X' becomes A.id while 'unknown' remains. 5) Frontend: Load board with a card assigned to A; verify label shows N and no flicker/overwrite to email; change profile nickname and reload—labels stay consistent (backend resolves on read). 6) Optional: Reports page shows nicknames for assignees if presenter updated; otherwise document as follow-up."
+    "notes": "Implement minimal, shared fix in UiSelect by deferring initial options read and observing projected <option> mutations. No API/template changes. This restores the competency 'Level' options and stabilizes other selects.",
+    "tests": "Manual: (1) Admin → コンピテンシー登録 → verify 'レベル' options render and selection submits; (2) Spot-check other app-ui-select instances (reports status/priority) for proper rendering/selection; (3) Verify no console errors and accessible keyboard navigation remains."
   }
 }
