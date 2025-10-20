@@ -36,7 +36,7 @@ jobs:
       - name: Read Auto-Evolve flags
         id: flags
         shell: bash
-        run: "bash -lc \"if [ -f .codex/flags.json ]; then echo 'found=.codex/flags.json' >> '$GITHUB_OUTPUT'; echo 'json<<EOF' >> '$GITHUB_OUTPUT'; cat .codex/flags.json >> '$GITHUB_OUTPUT'; echo 'EOF' >> '$GITHUB_OUTPUT'; CANARY=$(jq -r '.canary_ratio // 0' .codex/flags.json); else echo 'found=(none)' >> '$GITHUB_OUTPUT'; CANARY=0; fi; echo 'canary_ratio='${CANARY} >> '$GITHUB_OUTPUT'\""
+        run: 'bash -lc "if [ -f .codex/flags.json ]; then echo ''found=.codex/flags.json'' >> ''$GITHUB_OUTPUT''; echo ''json<<EOF'' >> ''$GITHUB_OUTPUT''; cat .codex/flags.json >> ''$GITHUB_OUTPUT''; echo ''EOF'' >> ''$GITHUB_OUTPUT''; CANARY=$(jq -r ''.canary_ratio // 0'' .codex/flags.json); else echo ''found=(none)'' >> ''$GITHUB_OUTPUT''; CANARY=0; fi; echo ''canary_ratio=''${CANARY} >> ''$GITHUB_OUTPUT''"'
 
       - name: Decide route (canary/main)
         id: route
@@ -51,7 +51,7 @@ jobs:
 
       - name: Announce route (log)
         if: always()
-        run: "bash -lc \"echo 'Auto-Evolve route: '\"'\"$VARIANT\"'\"\"; echo 'Security Reviewer skip flag: '\"'\"$SKIP_SECURITY_REVIEWER\"'\"\"; echo 'Code Quality Reviewer skip flag: '\"'\"$SKIP_CODE_QUALITY_REVIEWER\"'\"\"; echo 'UI/UX Reviewer skip flag: '\"'\"$SKIP_UI_UX_REVIEWER\"'\"\"; echo 'AI Safety Reviewer skip flag: '\"'\"$SKIP_AI_SAFETY_REVIEWER\"'\"\""
+        run: 'bash -lc "echo ''Auto-Evolve route: ''"''"$VARIANT"''""; echo ''Security Reviewer skip flag: ''"''"$SKIP_SECURITY_REVIEWER"''""; echo ''Code Quality Reviewer skip flag: ''"''"$SKIP_CODE_QUALITY_REVIEWER"''""; echo ''UI/UX Reviewer skip flag: ''"''"$SKIP_UI_UX_REVIEWER"''""; echo ''AI Safety Reviewer skip flag: ''"''"$SKIP_AI_SAFETY_REVIEWER"''""'
 
       - name: Detect trigger and compose TASK_INPUT
         id: detect
@@ -84,7 +84,7 @@ jobs:
 
       - name: Install Codex CLI
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
-        run: "bash -lc \"npm i -g ${CODEX_NPM_PKG:-@openai/codex}@0.39.0; codex --version\""
+        run: 'bash -lc "npm i -g ${CODEX_NPM_PKG:-@openai/codex}@0.39.0; codex --version"'
 
       - name: Restore ChatGPT auth (no API key)
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -130,7 +130,7 @@ jobs:
 
       - name: Stop after clarification
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' }}
-        run: "bash -lc \"echo '::notice::Waiting for user clarifications.'; exit 0\""
+        run: 'bash -lc "echo ''::notice::Waiting for user clarifications.''; exit 0"'
 
       - name: Upload Codex outputs
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
@@ -235,4 +235,4 @@ jobs:
 
       - name: Enforce completion condition
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed != 'true' && steps.synth.outputs.synthesized != 'true') }}
-        run: "bash -lc \"echo '::error::No changes detected. PR was not created, so completion conditions are not met.'; exit 1\""
+        run: 'bash -lc "echo ''::error::No changes detected. PR was not created, so completion conditions are not met.''; exit 1"'
