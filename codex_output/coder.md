@@ -1,62 +1,30 @@
-I’ve reviewed the current frontend styles and the shared Angular Select component and verified the selector design is already unified with text inputs, fixes the white hover issue, and keeps the icon visible at rest in both light and dark modes with minimal, centralized changes.
+**Summary**
+- Repositioned the global hover/toast stack from top-right to bottom-right with a minimal, CSS-only change.
+- Ordering, durations, and animations remain unchanged (newest on top; drop-in/slide-out).
 
-**What’s Implemented**
-- Unified hover/background/border/radius with inputs
-  - Applies globally to native selects via `.app-select` and `select.form-control`.
-  - Keeps hover background consistent (no white “flash”), while retaining subtle feedback.
-  - File: `frontend/src/styles/pages/_base.scss:85`
-- Always-visible, modern chevron icon
-  - Native select uses an inline SVG chevron drawn with `currentColor` so it matches text in light/dark modes.
-  - Vertically centered; adequate right padding added.
-  - Files:
-    - `frontend/src/styles/pages/_base.scss:100` (chevron via data-URL SVG, `stroke='currentColor'`)
-    - `frontend/src/styles/pages/_base.scss:104` (centered with `background-position: right 1.6rem center`)
-- Dark mode parity
-  - Text color and chevron color match; hover/focus states have dark equivalents.
-  - File: `frontend/src/styles/pages/_base.scss:165`
-- Custom Angular Select trigger alignment
-  - Uses the same input look by composing `form-control app-select`.
-  - Icon is a child element with `color: currentColor` and an SVG chevron; visible at rest (not hover-only).
-  - Files:
-    - `frontend/src/app/shared/ui/select/ui-select.ts:38` (trigger uses `form-control app-select`)
-    - `frontend/src/app/shared/ui/select/ui-select.ts:44` (icon markup)
-    - `frontend/src/app/shared/ui/select/ui-select.ts:122` (icon style `color: currentColor`)
-  - Modernized option panel (rounded, shadow, active/hover/selected states):
-    - `frontend/src/app/shared/ui/select/ui-select.ts:84`
+**Files Updated**
+- frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss:1
+  - Switched logical inset from top to bottom to anchor the stack at the bottom-right:
+    - `inset-block-start` → `inset-block-end` in both base and desktop media query.
 
-**Key File References**
-- `frontend/src/styles/pages/_base.scss:85` base styles for `.app-select, select.form-control`
-- `frontend/src/styles/pages/_base.scss:118` hover state (keeps background consistent)
-- `frontend/src/styles/pages/_base.scss:128` focus-visible state
-- `frontend/src/styles/pages/_base.scss:165` dark mode base
-- `frontend/src/app/shared/ui/select/ui-select.ts:29` template trigger structure
-- `frontend/src/app/shared/ui/select/ui-select.ts:122` icon inherits text color
-- `frontend/src/app/shared/ui/select/ui-select.ts:84` option panel styles
+**Focused Diff**
+- frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss:4
+  - inset-block-start: clamp(16px, 12vh, 144px) → inset-block-end: clamp(16px, 12vh, 144px)
+- frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss:21
+  - inset-block-start: clamp(24px, 8vh, 160px) → inset-block-end: clamp(24px, 8vh, 160px)
 
-**Why This Solves The Issue**
-- Hover turning white: selectors now keep the same base background on hover, matching inputs, while border/inner shadow provide feedback.
-- Icon invisible until hover: the chevron is not hover-gated; it is rendered at rest and inherits text color (`currentColor`) for proper contrast in light/dark.
+**Behavior After Change**
+- Stack is fixed at bottom-right.
+- Newest messages still render above older ones within the stack.
+- Entry remains “drop in” (translateY from -14px to 0); exit remains slide-out to the right.
 
-**Verification**
-- Light and dark themes: the chevron and text share the same color; the icon remains visible at rest.
-- Pages using native selects (e.g., `frontend/src/app/features/settings/page.html:249`, `:428`) and custom selects (e.g., `frontend/src/app/features/admin/page.html:129`) now look and behave consistently.
-- Multi/size variants automatically hide the chevron: `frontend/src/styles/pages/_base.scss:155`
+**How to Verify**
+- Run the app and trigger messages (warning/notice/system/loading).
+- Confirm the container appears bottom-right; timers and severities behave as before.
+- Ensure newest message appears above older ones in the bottom-right stack.
 
-**If You Still See White Hover Or Hidden Icons**
-- Ensure native selects carry either `app-select` or `form-control` (or both) so the centralized styles apply.
-- Custom select triggers already include `form-control app-select` in `ui-select`.
+**Notes**
+- If needed later, we can add safe-area padding for devices with notches: e.g., `bottom: calc(16px + env(safe-area-inset-bottom))`. Currently kept minimal per constraints.
 
-**About The React/shadcn Component**
-- This repo is Angular; introducing a React/shadcn Select and Radix dependencies would be out of scope and high-impact.
-- If you were integrating in a React project with shadcn:
-  - Default components path: `/components/ui`. Create it to keep shadcn-generated imports consistent.
-  - Install: `@radix-ui/react-select` and `@radix-ui/react-icons`.
-  - Add `select.tsx` and `demo.tsx` under `/components/ui`, and `label.tsx` (from “originui/label”) under `/components/ui/label.tsx`.
-  - Ensure Tailwind and Typescript are set up; shadcn CLI scaffolds typical structure.
-- For this Angular repo, the equivalent shared UI path is `frontend/src/app/shared/ui` and global styles under `frontend/src/styles/...`, which are already used.
-
-**Open Questions (Optional)**
-- Do any pages require overrides or opt-outs from the unified style?
-- Should we add RTL logical properties (e.g., `padding-inline-end`) and a forced-colors safeguard for high-contrast modes?
-
-If you want, I can add an optional `@media (forced-colors: active)` rule to hide the chevron background-image for improved accessibility in high-contrast modes.
+**Residual Risks / Open Questions**
+- Possible overlap with bottom-anchored UI (e.g., chat widgets, FABs, cookie bars). May require small spacing/safe-area adjustments if observed.

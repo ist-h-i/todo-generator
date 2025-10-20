@@ -1,47 +1,49 @@
-**Request Summary**
-- Unify the visual design of all selectors (dropdowns) with text inputs.
-- Fix hover: selector background turns white and diverges from inputs.
-- Ensure the down-arrow icon is always visible (not only on hover).
-- Maintain light/dark theme parity; in dark mode, icon color must match text color for contrast.
-- Keep the change minimal, centralized, and safe to apply app‑wide.
+**English Summary**
+Implement a centralized hover/toast message manager that stacks notifications at the bottom-right of the screen (not top-right). Newest messages should appear above older ones within the stack. Messages auto-dismiss by severity; errors persist; loading persists until completion. Dismissal animates by sliding out to the right.
+
+**Expected Behavior**
+- Placement: bottom-right fixed container; vertical stack.
+- Order: newest above older within the stack (confirm for bottom-right).
+- Entry: animated appearance; prior spec said “drop from top,” which may conflict with bottom anchoring; slide-in from right is acceptable if preferred.
+- Exit: slide-out to the right on dismissal.
+- Durations/colors:
+  - Error: persistent, red.
+  - Warning: 10s, yellow.
+  - Notice: 5s, green.
+  - System/Loading: ≥3s; loading persists until completion, blue.
+- Queue: in-memory array; ID-based control for update/dismiss.
 
 **Assumptions**
-- The repository is Angular-based; existing selectors include native `<select>` and a shared Angular UI select.
-- A centralized SCSS/theming layer exists and should be the primary lever (no API/behavior changes).
-- Style tokens (color, border, radius, focus ring) already define the input look we should match.
-- The icon can inherit `currentColor` to remain in sync with text in both themes.
-- Paths used historically: components like `src/app/shared/ui`, styles like `src/styles` (or similar).
+- Angular SPA; implement as a service + a single host component.
+- No new dependencies; CSS-only animations.
+- Use existing design tokens for colors/shadows.
+- Programmatic API supports show/update/dismiss, and loading returns an ID.
 
 **Constraints**
-- Minimize scope and avoid template/TS changes unless necessary for correctness.
-- Deliver a complete, self-contained fix affecting all selectors consistently.
-- Complete within a small diff (single SCSS/CSS source preferred).
-- Do not introduce React/shadcn into an Angular codebase.
+- Minimal changes; avoid replacing broad UI unless necessary.
+- Deliver a complete, self-contained outcome without new packages.
 
 **Unknowns**
-- Exact selector implementations in use (native `<select>`, custom Angular `ui-select`, Angular Material, or a mix).
-- The definitive input styling tokens to mirror (hover, focus, disabled, radius, border, bg).
-- Any page-specific overrides that could conflict with centralized updates.
-- RTL and high-contrast/forced-colors requirements.
-- Target browser support (e.g., allowance for modern CSS like color-mix).
+- Exact color/shadow tokens for severities.
+- Max visible toasts and overflow behavior.
+- Whether sticky errors need a close button.
+- A11y requirements (roles, aria-live, keyboard dismissal).
+- Hover-to-pause timers behavior.
+- Deduplication of repeated messages.
+- Interaction with existing notification mechanisms.
 
-**Notes on React/shadcn Content Provided**
-- The provided React/shadcn/Tailwind/TypeScript Select component and instructions are not applicable to this Angular repo as-is.
-- If the project were React with shadcn:
-  - Default components path is `/components/ui`, styles under `/lib` and Tailwind config.
-  - Creating `/components/ui` standardizes imports and aligns with shadcn generators.
-  - Required deps: `@radix-ui/react-select`, `@radix-ui/react-icons`; Tailwind and TS setup required.
-- For this Angular repo, equivalent structure is typically `src/app/shared/ui` (components) and `src/styles` (global SCSS).
+**Clarifying questions**
+- With bottom-right placement, should new messages appear at the bottom (closest to the edge, pushing older upward) or remain “newest on top” as originally specified?
+- Entry animation preference at bottom-right: keep “drop from top,” switch to “slide-in from right,” or a subtle fade/scale-in?
+- Do sticky errors require a visible close button, or are they programmatic-only?
+- Cap visible toasts (e.g., 4) and queue the rest?
+- Any specific a11y requirements (aria-live level, roles, focus handling, keyboard dismissal)?
+- Should timers pause on hover/focus?
+- Dedup policy for identical repeated messages?
+- Any mobile safe-area padding and z-index layering constraints?
+- Should we replace or integrate with any existing notification system?
 
-**Clarifying Questions**
-- Which selector variants must be covered: native `<select>`, custom `ui-select`, `mat-select`, or all?
-- Which input style tokens are the source of truth (bg, border, radius, hover, focus ring) to mirror exactly?
-- Do any modules/pages require opt-out from the unified appearance?
-- Are RTL and forced-colors (high contrast) modes in scope for this change?
-- What are the target browsers (to confirm acceptable CSS features)?
-
-**Proposed Acceptance Criteria**
-- Selector idle, hover, focus-visible, and disabled states match inputs for bg/border/radius.
-- Icon is always visible and uses `currentColor` to match text (light/dark).
-- Hover no longer turns selector background white; visual feedback matches inputs.
-- No behavior or API changes; minimal, centralized style diff; dark mode parity preserved.
+**Residual risks**
+- Visual mismatch if “drop from top” is retained at bottom-right; may look odd without confirmation.
+- Persistent errors can accumulate without a close affordance.
+- Overlap risks with other bottom-anchored UI (chat widgets, FABs, nav bars) without safe-area rules.

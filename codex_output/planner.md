@@ -1,34 +1,38 @@
-**Summary**
-- Goal: Unify selector (dropdown) visuals with text inputs, fix white hover background and ensure the down-arrow icon is always visible, with light/dark parity.
-- Repo reality: Angular app, not React/shadcn. Minimal, centralized CSS/SCSS update is the safest path to meet requirements within 30 minutes.
+**Scope**
 
-**Default Paths (Angular Repo)**
-- Components: `frontend/src/app/shared/ui`
-- Styles: `frontend/src/styles/pages/_base.scss` (centralized selectors have been handled here previously)
+- Minimal change: reposition the existing hover/toast stack from top-right to bottom-right.
+- Keep ordering as originally specified: newest on top.
+- Preserve current entry/exit animations; only adjust positioning and any transform origins if needed.
 
-**Minimal Plan**
-- Centralize a single SCSS update for all native `<select>` targets (`.app-select`, `select.form-control`) to:
-  - Match input tokens for bg/border/radius/hover/focus/disabled.
-  - Keep icon always visible (not hover-dependent), drawn with a simple chevron using `currentColor`.
-  - Remove “white on hover” by aligning hover background/border with inputs.
-  - Preserve dark theme parity; icon/text color matched via `currentColor`.
-  - Maintain multi/size variants (no caret when `multiple` or `size > 1`).
-- If present, align the shared Angular `ui-select` trigger icon:
-  - Ensure icon inherits `currentColor`, visible at rest (no hover-only opacity tricks).
+**Proposed Changes**
 
-**Why not shadcn/React**
-- The repo is Angular-based; introducing React/shadcn would violate the “minimal change” constraint and expand scope significantly.
-- If this were a React/shadcn stack, the default components path would be `/components/ui`, but it’s out of scope here.
+- Update the host stack container styles to anchor at bottom-right instead of top-right.
+  - Replace `top` with `bottom` (respect safe-area: `bottom: calc(1rem + env(safe-area-inset-bottom, 0px))`).
+  - Ensure `right` remains set; position stays `fixed`.
+  - Keep `flex-direction: column` so newest-first rendering still shows “newest above older”.
+- Confirm item animations remain coherent:
+  - Entry “drop from top” still reads fine within a bottom-right stack; no code changes unless there’s a hard-coded `transform-origin: top`.
+  - Exit slide-out-right remains unchanged.
+- No service or API changes needed; queue and timers unaffected.
 
-**Risks**
-- Page-level overrides might slightly diverge; mitigated by choosing selectors with adequate specificity.
-- RTL and forced-colors modes are not addressed in this pass (can be follow-ups).
+**Files Likely Touched**
 
-**Acceptance Criteria**
-- Selector idle/hover/focus/disabled match inputs for bg/border/radius.
-- Down-arrow icon is always visible and uses `currentColor` (light/dark).
-- Hover no longer turns background white.
-- No template/TS changes required; behavior unchanged.
+- `frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss`
+- If inline styles are used, adjust in:
+  - `frontend/src/app/core/layout/hover-messages/hover-message-stack.component.html`
+  - Or component TS `styles` array if applicable.
+
+**Validation**
+
+- Visual: messages appear at bottom-right; newest still at the top of the stack; entry/exit animations behave; z-index remains above app content.
+- Behavior: durations unchanged (error sticky; warning 10s; notice 5s; system ≥3s; loading persists until completed).
+- Cross-check mobile safe area and notches via `env(safe-area-inset-bottom)`.
+
+**Residual Risks / Open Questions**
+
+- Bottom-right overlap with FAB/chat widgets or cookie banners; safe-area/bottom spacing may need small tuning.
+- If a bottom-anchored “grow upward” stack is later desired (newest closest to screen edge), the flex layout and/or `ngFor` order will need an additional (but still small) adjustment.
 
 ```json
-{"steps":["coder","code_quality_reviewer","integrator"],"notes":"Implement a single centralized SCSS change in frontend/src/styles/pages/_base.scss to unify native <select> with inputs: keep background consistent on hover (no white), ensure the chevron icon is always visible and uses currentColor, preserve focus/disabled states and dark mode. Apply rules to both .app-select and select.form-control. If needed, set the shared Angular ui-select trigger icon color to currentColor and remove hover-only visibility. Do not introduce React/shadcn; the repo is Angular.","tests":"Build frontend and visually verify: (1) selector hover bg matches inputs (no white) in light/dark; (2) icon visible at rest and matches text via currentColor; (3) focus-visible ring and disabled styles match inputs; (4) multi/size>1 variants hide caret correctly; (5) check across pages using .app-select and select.form-control (e.g., Settings, Board, Reports)."}```
+{"steps":["coder"],"notes":"Move hover/toast stack from top-right to bottom-right with minimal CSS changes. Keep newest-on-top ordering and existing animations. No service or API changes. Verify safe-area padding and z-index.","tests":"Manual: trigger warning/notice/system/loading toasts and confirm container is bottom-right, newest on top, entry drop-in and exit slide-right animations unchanged, timers behave per severity. Mobile: confirm safe-area inset prevents clipping; verify no overlap with bottom UI elements. Error: ensure it remains persistent at bottom-right until programmatically dismissed."}
+```
