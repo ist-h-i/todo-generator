@@ -35,6 +35,77 @@ jobs:
         with:
           fetch-depth: 0
 
+      # --- Auto-Evolve: flags 読込 & canary ルート決定 ここから ---
+      - name: Install jq (for flags parsing)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+      - name: Read Auto-Evolve flags
+        id: flags
+        shell: bash
+        run: |
+          if [ -f .codex/flags.json ]; then
+            echo "found=.codex/flags.json" >> "$GITHUB_OUTPUT"
+            echo "json<<EOF" >> "$GITHUB_OUTPUT"
+            cat .codex/flags.json >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+            CANARY=$(jq -r '.canary_ratio // 0' .codex/flags.json)
+          else
+            echo "found=(none)" >> "$GITHUB_OUTPUT"
+            CANARY=0
+          fi
+          echo "canary_ratio=${CANARY}" >> "$GITHUB_OUTPUT"
+
+      - name: Decide route (canary/main)
+        id: route
+        shell: bash
+        run: |
+          # 安定分流用のハッシュ: issue番号 > ref > run_id
+          KEY="${{ github.event.issue.number || github.ref || github.run_id }}"
+          H=$(printf "%s" "$KEY" | cksum | awk '{print $1}')
+          MOD=$(( H % 100 ))
+          CANARY_PCT=$(python3 - <<'PY'
+from decimal import Decimal
+import os
+print(int(Decimal(os.environ.get('CANARY','0')) * 100))
+PY
+          )
+          if [ "$MOD" -lt "$CANARY_PCT" ]; then
+            echo "variant=canary" >> "$GITHUB_OUTPUT"
+          else
+            echo "variant=main" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          CANARY: ${{ steps.flags.outputs.canary_ratio }}
+
+      - name: Export route & role toggles to env
+        shell: bash
+        run: |
+          echo "VARIANT=${{ steps.route.outputs.variant }}" >> "$GITHUB_ENV"
+          if [ -n "${{ steps.flags.outputs.json }}" ]; then
+            # 例: セキュリティレビューを無効化している場合にスキップ変数を立てる
+            SR=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.roles["Security Reviewer"].enabled // true')
+            CQR=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.roles["Code Quality Reviewer"].enabled // true')
+            UXR=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.roles["UI/UX Reviewer"].enabled // true')
+            AIS=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.roles["AI Safety Reviewer"].enabled // true')
+            echo "SKIP_SECURITY_REVIEWER=$([ "$SR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
+            echo "SKIP_CODE_QUALITY_REVIEWER=$([ "$CQR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
+            echo "SKIP_UI_UX_REVIEWER=$([ "$UXR" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
+            echo "SKIP_AI_SAFETY_REVIEWER=$([ "$AIS" = true ] && echo 0 || echo 1)" >> "$GITHUB_ENV"
+          fi
+          echo "ROUTE_WEIGHTS=$(printf "%s" "${{ steps.flags.outputs.json }}" | jq -r '.route.weights // {}' 2>/dev/null)" >> "$GITHUB_ENV"
+      # --- Auto-Evolve: flags 読込 & canary ルート決定 ここまで ---
+
+      - name: Announce route (log)
+        if: always()
+        run: |
+          echo "Auto-Evolve route: $VARIANT"
+          echo "Security Reviewer skip flag: $SKIP_SECURITY_REVIEWER"
+          echo "Code Quality Reviewer skip flag: $SKIP_CODE_QUALITY_REVIEWER"
+          echo "UI/UX Reviewer skip flag: $SKIP_UI_UX_REVIEWER"
+          echo "AI Safety Reviewer skip flag: $SKIP_AI_SAFETY_REVIEWER"
+
       - name: Detect trigger and compose TASK_INPUT
         id: detect
         env:
