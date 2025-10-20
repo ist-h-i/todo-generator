@@ -1,46 +1,47 @@
 **English Summary**
-Implement a lightweight “toast/notification” manager class that displays messages on the right side with animations, stacking newest at the top. Messages auto-dismiss based on severity with colored shadows; errors persist until dismissed, warnings after 10s, notices after 5s, and system/loading after ≥3s (loading persists until completion). Exit animation slides out to the right.
+Implement a lightweight notification (“hover message/toast”) manager that shows messages on the right side of the screen with animations. Newest messages appear at the top; older ones stack below. Messages auto-dismiss based on severity; errors persist; loading persists until completion. Messages slide out to the right when dismissed.
+
+**Expected Behavior**
+- Placement: right side, vertical stack; newest at top.
+- Entry: animated appearance (descend from top).
+- Exit: slide-out to the right.
+- Queue: in-memory array; visual order reflects newest-first.
+- Duration by severity:
+  - Error: persistent (does not auto-dismiss), red shadow.
+  - Warning: 10s, yellow shadow.
+  - Notice: 5s, green shadow.
+  - System/Loading: ≥3s; loading remains until explicitly ended, blue shadow.
+
+**Scope**
+- Add a central “message manager” class/service to own queue, timers, and IDs.
+- Render via a single host in the app shell to show the stack on the right.
+- Replace scattered notification logic to route through this class.
+- No new dependencies; CSS-based animations only.
 
 **Assumptions**
-- “Hover message” refers to floating toast notifications, not hover-triggered UI.
-- Angular SPA with a service + single host component is acceptable and minimal-impact.
-- Visuals use existing design-system tokens (colors, spacing, elevation) where possible.
-- Entrance: slide/fade-in; Stack: vertical, top-aligned; Exit: slide-out to right.
-- Queue is an in-memory array; newest prepended; oldest visually lowest.
-- Errors require manual dismissal (close button or API call).
-- Loading messages return an ID so the caller can complete/dismiss/update them.
-- Reasonable defaults: animation ~200–300ms; max concurrent toasts (e.g., 3–5) to avoid overflow.
+- “Hover message” refers to floating toast notifications, not tooltip/hover UI.
+- Angular SPA; service + single host component is acceptable.
+- Use existing design tokens (colors/shadows) where available.
+- Callers can programmatically dismiss or update messages (e.g., loading → success).
 
 **Constraints**
-- Minimal diff; avoid broad refactors.
-- Self-contained: works without extra infra; no network or new deps.
-- Complete within ~30 minutes of implementation scope.
-- Reuse design system styles; avoid custom theme sprawl.
+- Minimize changes to existing code; keep edits tightly scoped.
+- Deliver a self-contained outcome without adding dependencies.
+- Keep implementation achievable within a small diff and short timeframe.
 
 **Unknowns**
-- Existing toast/notification system in the app (to extend vs replace).
-- Exact color tokens for red/yellow/green/blue and shadow usage.
-- Max visible toasts and overflow behavior (queue vs drop oldest).
-- Close affordance requirements (icon, click-to-dismiss, keyboard).
-- Pause-on-hover requirement for auto-dismiss timers.
-- Accessibility targets (ARIA roles: `alert`, `status`, `progressbar`; focus, screen readers).
-- Mobile/responsive behavior, safe-area insets, and z-index layering.
-- Internationalization and message content sources.
-- Animation library preferences (pure CSS vs Angular animations).
+- Presence of any existing notification/toast mechanism to extend or replace.
+- Exact design tokens for red/yellow/green/blue and shadow intensities.
+- Maximum number of concurrent on-screen messages.
+- Whether a visible close button is required for sticky errors.
+- Accessibility requirements (roles, aria-live, keyboard dismissal).
+- Mobile behavior, safe-area padding, and z-index layering.
 
-**Clarifying questions**
-- Can we confirm this is a toast system (not hover-triggered) and agree on the name (e.g., NotificationManager/ToastService)?
-- Should we extend/replace any existing notification mechanism in the app?
-- What design tokens (color, shadow/elevation) map to error/warn/info/loading?
-- Do errors require a visible close button, or only programmatic dismissal?
-- Should timers pause on user hover/focus for warnings/notices?
-- What is the maximum number of on-screen messages before queuing?
-- Any accessibility requirements to meet (roles, focus behavior, keyboard dismissal)?
-- Do you want a simple service API like: showError, showWarning, showNotice, showLoading (returns id), update(id), dismiss(id)?
-- Any mobile-specific placement or safe-area padding requirements?
-- Preferred animation duration/easing and whether to use CSS only or Angular animations?
-
-**Risks / Notes**
-- Misalignment on design tokens or naming could cause rework.
-- Replacing an existing toast system may introduce regressions without an audit.
-- Accessibility and mobile behavior need explicit acceptance to avoid follow-up work.
+**Clarifying Questions**
+- Should we replace any existing notification system, or integrate with it?
+- Do you want a close button on persistent errors, or programmatic dismissal only?
+- What color and shadow tokens should map to each severity (error/warn/notice/system)?
+- Should we cap visible messages (e.g., 4) and queue the rest?
+- Any accessibility requirements (aria-live/role, focus handling, keyboard support)?
+- Any mobile-specific placement or safe-area constraints to observe?
+- Is a simple API acceptable: showError, showWarning, showNotice, showLoading (returns id), update(id), dismiss(id), clearAll()?

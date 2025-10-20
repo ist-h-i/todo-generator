@@ -1,52 +1,33 @@
-**Approach**
-Implement a minimal, self-contained toast manager: one Angular service to manage a queue and one host component to render toasts on the right with CSS-only animations. Newest appears at the top; auto-dismiss per severity; errors persist; loading returns an id and persists until dismissed/updated. Keep styling token-friendly and avoid new dependencies.
+**Objective**
+Add a centralized hover/toast message manager that stacks messages on the right, newest on top, with entry/exit animations and auto-dismiss per severity. Keep the change minimal and dependency-free.
 
-**Minimal Change Plan**
-- Add `ToastService` with in-memory queue and simple API.
-- Add `ToastHostComponent` to subscribe and render the queue.
-- Add lightweight CSS animations and severity styles (shadow/colors).
-- Wire host into the root app template; no global refactors.
-- Provide usage examples and short inline docs in the service.
+**Lean Approach**
+- Add a single service to own queue, timers, and IDs.
+- Add a small host component to render right-side stacked toasts with CSS-only animations.
+- Wire host into the shell template; route existing notifications through the service.
+- No new dependencies; reuse existing design tokens.
 
-**Deliverables**
-- `ToastService`:
-  - API: `showError(text, opts?)`, `showWarning(text, opts?)`, `showNotice(text, opts?)`, `showLoading(text, opts?) -> id`, `update(id, patch)`, `dismiss(id)`, `clearAll()`, generic `show(input)`.
-  - Queue: newest unshifted; maintains `messages$` BehaviorSubject.
-  - Durations: error `sticky`, warning `10s`, notice `5s`, system/loading `>=3s` (loading sticky until completion).
-  - Max visible (e.g., `maxVisible = 4`) to prevent overflow.
-  - Returns ids for programmatic dismissal.
-- `ToastHostComponent`:
-  - Fixed position, right side, top-aligned column.
-  - Entrance `slide-in-right` (fade/translateX), exit `slide-out-right`.
-  - Close button for manual dismissal; click-to-dismiss optional for non-loading types.
-  - ARIA: container `aria-live="polite"`, per-message role: error/warn `alert`, notice/info `status`, loading `status` optionally with `aria-busy`.
-- Styles:
-  - Use CSS variables where available with sane fallbacks: `--color-error`, `--color-warn`, `--color-success`, `--color-info`, elevation shadows.
-  - Shadow color and intensity vary by severity.
-- Integration:
-  - Add `<app-toast-host></app-toast-host>` into root shell template.
-  - No external libs; pure Angular + CSS.
+**Key Behaviors**
+- Order: newest at top; array-backed queue.
+- Durations by severity:
+  - Error: persistent (red).
+  - Warning: 10s (yellow).
+  - Notice: 5s (green).
+  - System/Loading: ≥3s; loading persists until dismissed (blue).
+- Animations: drop-in/slide-in on entry; slide-out-right on dismissal.
+- API: showError, showWarning, showNotice, showLoading (returns id), update(id), dismiss(id), clearAll().
 
-**Key Decisions**
-- CSS animations over Angular animations to minimize diff and dependencies.
-- Timers managed in the service; hover pause omitted to keep scope minimal.
-- Severity mapping hardcoded with clear constants; colors via tokens with fallback.
-- Errors require explicit dismiss; loading returns id and persists.
+**Minimal Diff Integration**
+- Prefer extending any existing notification/toast mechanism if present to avoid duplication.
+- Insert a single host into the app shell; avoid broad refactors.
+- Map severity to existing color/shadow tokens; keep CSS scoped.
 
-**Risks / Open Questions**
-- Existing notification system may conflict (double toasts). Needs confirmation.
-- Exact design tokens (colors/shadows) unknown; will use conservative defaults with token hooks.
-- Accessibility depth (focus management, keyboard shortcuts) beyond basics not defined.
-- Mobile/safe-area behavior unspecified; default positions may need later adjustment.
-
-**Verification (Tests)**
-- Unit: service queue ordering (newest first), duration scheduling per severity, manual dismissal, loading lifecycle (show → update/dismiss), exit animation flagging.
-- Manual smoke:
-  - Trigger one of each severity; confirm colors, shadow, and timers: warning ~10s, notice ~5s, loading persists, error persists.
-  - Confirm newest appears on top; exit animates to the right.
-  - Dismiss error via close button; dismiss loading via API; verify removal after exit animation.
-  - Add >4 toasts; ensure max visible behavior is sane.
+**Risks / Unknowns**
+- Existing notification system overlap (potential double toasts).
+- Exact color/shadow tokens; may need tuning.
+- Close button requirement for sticky errors not specified.
+- A11y depth (aria-live, roles) and mobile safe-area/z-index not specified.
 
 ```json
-{"steps":["coder"],"notes":"Single-stage (coder) is sufficient to add a service + host component, CSS animations, and wire into the app with a minimal diff. No new deps or refactors. If an existing toast system exists, coder will adapt to extend it instead of replacing.","tests":"Add unit tests for ToastService: (1) newest-first order, (2) per-severity durations and sticky error, (3) loading returns id and persists until dismiss/update, (4) dismissal triggers exit state then removal. Manual QA: visually confirm right-side stack, colors/shadows per severity, timers (10s/5s/sticky), slide-in/out animations, and close behavior."}
+{"steps":["coder"],"notes":"Single-stage (coder) is sufficient to add a central HoverMessageService and a lightweight host component, wire it into the app shell, and route notifications through it. No new dependencies; CSS-only animations. If an existing notification system exists, coder will extend/adapt it instead of replacing to keep the diff minimal.","tests":"Unit: verify queue order (newest first), per-severity durations (error sticky, warning 10s, notice 5s, system >=3s), loading returns id and persists until dismiss/update, dismissal triggers exit flag then removal after ~200–300ms. Manual: confirm right-side stack, slide-in entry and slide-out-right exit, colors/shadows per severity, timers behave as specified, errors and loading persist until explicitly dismissed/updated."}
 ```
