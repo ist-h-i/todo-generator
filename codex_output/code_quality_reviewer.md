@@ -1,28 +1,73 @@
 **Summary**
-- Fix meets goal: dark-mode arrow inherits text color and remains visible.
-- Scope is minimal (SCSS + existing Angular component styles), no behavior changes.
+- The backend now persists user linkage via userId and resolves assignee display names to nicknames on reads. The frontend removed the nickname/email overwrite logic and prefers nickname for defaults. A best‑effort migration normalizes legacy assignee strings to userIds at startup.
 
-**What I Checked**
-- Native/select styles use inline SVG caret with `stroke='currentColor'`: frontend/src/styles/pages/_base.scss:102
-- Dark-mode sets `color` so caret inherits high-contrast text: frontend/src/styles/pages/_base.scss:164
-- Caret positioning and spacing remain modern and centered: frontend/src/styles/pages/_base.scss:85, frontend/src/styles/pages/_base.scss:101
-- Custom Angular select icon inherits `currentColor`: frontend/src/app/shared/ui/select/ui-select.ts:122
-- Inline SVGs for trigger/check use `stroke='currentColor'`: frontend/src/app/shared/ui/select/ui-select.ts:56, frontend/src/app/shared/ui/select/ui-select.ts:86
-- Multi/size variants hide caret: frontend/src/styles/pages/_base.scss:154
+**What Looks Good**
+- Write‑time canonicalization: email/nickname/id → userId
+  - backend/app/routers/cards.py:105–156, 173–178 (_canonicalize_assignees/_canonicalize_single_assignee)
+- Read‑time display: userId → nickname (fallback email)
+  - backend/app/routers/cards.py:180–203 (_resolve_display_names)
+  - Applied consistently in list/get/create/update cards and in subtask list/create/update:
+    - list_cards: backend/app/routers/cards.py:492–520
+    - create_card: backend/app/routers/cards.py:604–680
+    - get_card: backend/app/routers/cards.py:689–699
+    - update_card: backend/app/routers/cards.py:720–758
+    - list_subtasks: backend/app/routers/cards.py:787–805
+    - create_subtask: backend/app/routers/cards.py:829–842
+    - update_subtask: backend/app/routers/cards.py:858–896
+- Data model remains minimally invasive (strings remain, values now userIds):
+  - backend/app/models.py:50–104 (Card.assignees JSON of strings)
+  - backend/app/models.py:214–242 (Subtask.assignee string)
+- Startup migration backfills legacy strings to userIds, preserving unmatched values:
+  - backend/app/migrations.py:1000–1080 (_normalize_assignees_to_user_ids)
+  - Invoked in run_startup_migrations: backend/app/migrations.py:1119–1140
+- SPA stops label flipping and prefers nickname for default assignee:
+  - frontend/src/app/core/state/workspace-store.ts:742–758, 780–816
+- API shapes unchanged; Cards API and board rendering remain compatible:
+  - frontend/src/app/core/api/cards-api.service.ts:139–171 (assignees typed as strings for display)
 
-**Findings**
-- In dark mode, `color: var(--text-primary)` ensures both text and caret use the same, high-contrast token: frontend/src/styles/pages/_base.scss:167
-- The caret data-URI explicitly uses `currentColor` in both normal and dark modes, so it follows theme text color: frontend/src/styles/pages/_base.scss:102, frontend/src/styles/pages/_base.scss:174
-- The Angular UI select trigger icon is styled with `color: currentColor`; SVG uses `stroke='currentColor'`, so it tracks text color as intended: frontend/src/app/shared/ui/select/ui-select.ts:122, frontend/src/app/shared/ui/select/ui-select.ts:56
+**Correctness & Edge Cases**
+- Unique nickname handling during canonicalization and migration avoids ambiguity by skipping duplicates. Good.
+- Read‑time resolution batches ids per response; avoids N+1. Good.
+- Update and create paths canonicalize both card assignees and subtask assignee. Good.
+- Filters: server‑side `assignees` query filters by stored values (now userIds). UI appears to filter client‑side; no current breakage spotted.
 
-**Edge Cases**
-- Disabled state reduces opacity for the entire control, which will also dim the caret—consistent and acceptable: frontend/src/styles/pages/_base.scss:138
-- Multi-select/size>1 removes the caret; unaffected by the change: frontend/src/styles/pages/_base.scss:154
-- Focus-visible and hover states preserved in both light/dark modes: frontend/src/styles/pages/_base.scss:127, frontend/src/styles/pages/_base.scss:177, frontend/src/styles/pages/_base.scss:186
+**Gaps / Risks**
+- Status reports still emit raw stored assignee values (now userIds):
+  - backend/app/services/status_report_presenter.py:63–92, 112–128
+  - Impact: Status report cards may display userIds instead of nicknames.
+- Display fallback might be empty when both nickname and email are empty:
+  - backend/app/routers/cards.py:198–203 returns “” if email missing; consider falling back to userId for non‑empty display.
+- Filtering by assignees via `GET /cards?assignees=` expects userIds now. If any external caller sends emails/nicknames, results will differ. The SPA doesn’t use this param currently, but integrations might.
+- Migration ambiguity: duplicate nicknames are skipped by design; those records remain as legacy strings until updated. Acceptable, but consider logging count for observability.
 
-**Lightweight Suggestions (Optional)**
-- High-contrast mode: consider hiding the background-image caret to avoid UA overrides causing poor visibility similar to the custom icon rule already present: add an equivalent `@media (forced-colors: active)` rule for `.app-select, select.form-control`.
-- RTL: current `background-position: right 1.6rem center` is physical; if RTL is needed, add a small `[dir='rtl']` override to position the caret on the left.
+**Lightweight Fixes (recommended)**
+- Resolve assignee display names in status report serialization (mirrors cards router):
+  - In backend/app/services/status_report_presenter.py, batch map card.assignees and subtask.assignee via `object_session` to nickname/email.
+  - Sketch:
+    - Import: `from sqlalchemy.orm import object_session`
+    - Collect `user_ids` from linked cards/subtasks; query users; build map like `_resolve_display_names`.
+    - Replace assignees/subtasks in `serialize_card_link` similar to `_card_read_with_display`.
+- Improve fallback in display resolution:
+  - backend/app/routers/cards.py:198–203: if neither nickname nor email is present, fall back to `user.id`.
 
-**Verdict**
-- Approve. The dark-mode arrow now matches the text color via `currentColor`, fixing visibility while keeping the change minimal and centralized.
+**Performance**
+- Per‑request batching for id→name is used; good. If usage grows, consider request‑scoped caching to avoid repeat mapping across multiple endpoints in the same request (optional).
+
+**Tests/Verification**
+- Existing tests don’t assert assignee display content; they should still pass.
+- Add/extend tests to cover:
+  - Create with email → GET returns nickname
+  - Create with nickname → GET returns nickname
+  - Subtask assignee resolution
+  - Migration path with legacy email in `cards.assignees` and `subtasks.assignee`
+  - Optional: status report card summaries reflect nicknames after the above fix
+
+**Open Questions**
+- Should `GET /status-reports/*` display nicknames for assignees consistently with cards?
+- Should `GET /cards?assignees=` accept email/nickname inputs and canonicalize to userIds for filtering (backward compatibility)?
+- What is the desired display when a user is deleted/disabled? Current behavior: label remains raw stored value.
+
+**Residual Risks**
+- Unmatched legacy values remain as strings post‑migration; they’ll display as‑is until edited.
+- Status report UX inconsistency (userIds visible) until presenter is updated.
+- External integrations filtering by email/nickname may break if they rely on `assignees` query semantics.

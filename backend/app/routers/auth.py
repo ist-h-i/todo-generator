@@ -13,7 +13,7 @@ from ..auth import (
     verify_password,
 )
 from ..database import get_db
-from ..services.profile import build_user_profile
+from ..services.profile import build_user_profile, normalize_nickname
 from ..services.status_defaults import ensure_default_statuses
 from ..services.workspace_template_defaults import ensure_default_workspace_template
 
@@ -45,6 +45,9 @@ def register(
     password = payload_data.get("password", payload.password)
     normalized_email = normalize_email(raw_email)
     remaining_fields = {key: value for key, value in payload_data.items() if key not in {"email", "password"}}
+    # Validate and sanitize nickname (required)
+    sanitized_nickname = normalize_nickname(remaining_fields.get("nickname"))
+    remaining_fields["nickname"] = sanitized_nickname
     user_values = {
         **remaining_fields,
         "email": normalized_email,
@@ -56,6 +59,12 @@ def register(
     db.flush()
     ensure_default_statuses(db, owner_id=user.id)
     ensure_default_workspace_template(db, owner_id=user.id)
+    # Ensure a private channel and membership for this user
+    channel = models.Channel(name="My Channel", owner_user_id=user.id, is_private=True)
+    db.add(channel)
+    db.flush()
+    member = models.ChannelMember(channel_id=channel.id, user_id=user.id, role="owner")
+    db.add(member)
     token_value = create_session_token(db, user)
     db.commit()
     db.refresh(user)

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Generate per-file recipe stubs under docs/recipes/ following the convention in
-docs/recipes/README.md. By default, scans common source roots and creates
-missing recipes only (does not overwrite existing files).
+Generate per-file recipe stubs co-located next to the source files.
+
+Output location and naming:
+- For a source file `<path>/<name>.<ext>`, create `<path>/<name>.<ext>.recipe.md`.
+- Never overwrite existing recipe files.
 
 Scope (default):
 - backend/app/**/*.py (excluding tests)
@@ -20,7 +22,7 @@ import re
 from typing import Iterable, List, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RECIPES_ROOT = REPO_ROOT / "docs" / "recipes"
+RECIPES_ROOT = None  # deprecated central folder; kept for backward compat in comments only
 
 
 def rel_to_repo(path: Path) -> Path:
@@ -28,8 +30,11 @@ def rel_to_repo(path: Path) -> Path:
 
 
 def recipe_path_for(source_path: Path) -> Path:
-    rel = rel_to_repo(source_path).as_posix().replace("/", "__")
-    return RECIPES_ROOT / f"{rel}.recipe.md"
+    """Return the co-located recipe path next to the source file.
+
+    Example: backend/app/main.py -> backend/app/main.py.recipe.md
+    """
+    return source_path.with_suffix(source_path.suffix + ".recipe.md")
 
 
 def is_test_path(p: Path) -> bool:
@@ -194,4 +199,3 @@ def main(argv: List[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

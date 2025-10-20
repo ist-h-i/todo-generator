@@ -3,6 +3,7 @@
 Verbalize Yourself is an AI-assisted operations workspace that turns free-form shift notes into structured tasks, analytics, and competency insights. An Angular 20 single-page application collaborates with a FastAPI backend so teams can triage feedback, publish automated proposals, and oversee quotas from one control plane.
 
 ## Table of contents
+
 - [Overview](#overview)
 - [Architecture at a glance](#architecture-at-a-glance)
 - [Repository layout](#repository-layout)
@@ -20,6 +21,7 @@ Verbalize Yourself is an AI-assisted operations workspace that turns free-form s
 - [Troubleshooting](#troubleshooting)
 
 ## Overview
+
 | Area | Highlights |
 | --- | --- |
 | Task operations hub | Drag cards across dynamic board columns, manage subtasks and comments, and apply quick filters powered by the workspace signal store. |
@@ -32,6 +34,7 @@ Verbalize Yourself is an AI-assisted operations workspace that turns free-form s
 Gemini powers analyzer, status report, and appeal workflows. Follow the [Gemini migration spec](docs/spec-updates/gemini-migration.md) for configuration and rollout guidance.
 
 ## Architecture at a glance
+
 - **Frontend**: Angular standalone components with signal-based state management, Angular CDK drag-and-drop, Tailwind-inspired design tokens, ESLint, and Prettier.
 - **Backend**: FastAPI with SQLAlchemy ORM models, layered routers and services, startup migrations, and JSON schema validation for AI responses.
 - **Database**: SQLite by default with PostgreSQL support via `DATABASE_URL`.
@@ -41,6 +44,7 @@ Gemini powers analyzer, status report, and appeal workflows. Follow the [Gemini 
 Refer to `docs/architecture.md` for an end-to-end component breakdown and `docs/data-flow-overview.md` for request lifecycles across the stack.
 
 ## Repository layout
+
 ```
 .
 |-- backend/                # FastAPI application, routers, services, migrations, tests
@@ -61,6 +65,7 @@ Refer to `docs/architecture.md` for an end-to-end component breakdown and `docs/
 ## Local development
 
 ### Prerequisites
+
 - Python 3.11 or later with `pip`.
 - Node.js 20+ and npm.
 - Access to the managed Neon PostgreSQL instance (obtain the connection string from the secure secret store).
@@ -68,6 +73,7 @@ Refer to `docs/architecture.md` for an end-to-end component breakdown and `docs/
 - Set `SECRET_ENCRYPTION_KEY` to a sufficiently long random value before storing secrets.
 
 ### Configure environment variables
+
 Create a `.env` file in the repository root or export variables before launching the backend.
 
 | Variable | Description | Default |
@@ -84,16 +90,19 @@ Create a `.env` file in the repository root or export variables before launching
 Store the Neon credentials outside the repository (for example, in a `.env` file that is excluded from version control) and inject them through `DATABASE_URL` before starting the backend service.
 
 ### One-click startup on Windows
+
 Run the bundled script from the repository root. It creates a virtual environment, installs Python and npm dependencies, and launches both servers in separate terminals.
 
 ```
 start-localhost.bat
 ```
 
-The backend starts on http://localhost:8000 (with auto-applied migrations and `/docs` for Swagger) and the Angular dev server runs on http://localhost:4200.
+The backend starts on <http://localhost:8000> (with auto-applied migrations and `/docs` for Swagger) and the Angular dev server runs on <http://localhost:4200>.
 
 ### Manual setup (macOS/Linux)
+
 1. **Backend**
+
    ```bash
    python -m venv .venv
    source .venv/bin/activate
@@ -101,36 +110,44 @@ The backend starts on http://localhost:8000 (with auto-applied migrations and `/
    pip install -r backend/requirements-dev.txt  # optional tooling
    uvicorn app.main:app --reload --app-dir backend
    ```
+
    Startup migrations run automatically and provision the Neon PostgreSQL schema (or upgrade the configured database).
 
 2. **Frontend** (new terminal)
+
    ```bash
    cd frontend
    npm install
    npm start
    ```
-   The Angular dev server provides hot module replacement at http://localhost:4200. Adjust the backend origin in `frontend/src/app/core/api/api.config.ts` if necessary.
+
+   The Angular dev server provides hot module replacement at <http://localhost:4200>. Adjust the backend origin in `frontend/src/app/core/api/api.config.ts` if necessary.
 
 ### Run the stack
+
 - Login with the seeded administrator account or create a new user via `/auth`.
 - Store secrets and Gemini keys through the admin console once `SECRET_ENCRYPTION_KEY` is configured.
 - Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers when running Codex automation or MCP tooling.
 
 ## Quality and automation
+
 Run the relevant checks before sending changes for review. Documentation-only updates may skip automated checks, but keep README and `docs/` aligned with the latest behavior.
 
 ### Backend commands
+
 - `pytest backend/tests`
 - `ruff check backend`
 - `black --check backend/app backend/tests`
 
 ### Frontend commands
+
 - `cd frontend && npm run lint`
 - `cd frontend && npm run format:check`
 - `cd frontend && npm test -- --watch=false`
 - `cd frontend && npm run build`
 
 ### Coverage and SonarQube
+
 Generate coverage reports before invoking `sonar-scanner` so SonarQube can display backend and frontend unit test coverage.
 
 ```bash
@@ -154,6 +171,7 @@ The helper script runs `coverage run -m pytest` inside `backend/` and `npm run t
 - [UI Layout Requirements](docs/ui-layout-requirements.md)
 
 How to use these guides:
+
 - Start with the Development Governance Handbook for repository structure, backend practices, quality gates, and AI-driven expectations.
 - Apply the Angular Coding & Design Guidelines whenever you touch the SPA.
 - Keep design and workflow docs in sync when updating components, flows, or build tooling. Document intentional deviations.
@@ -165,10 +183,13 @@ How to use these guides:
 - [Security hotspots](docs/security-review.md) – known risks and recommended remediation paths.
 
 ## Troubleshooting
+
 ### WinError 10055 on Windows
+
 Long-running async workloads (for example, repeated backend test runs) can exhaust Windows socket buffers and raise `OSError: [WinError 10055]`. Close stray processes holding sockets (`Get-NetTCPConnection`), stagger concurrent test runs, or reboot to reclaim ephemeral ports. Consider increasing `MaxUserPort` and reducing `TcpTimedWaitDelay` if you control the environment.
 
 ### Gemini 404 errors after submitting `/analysis`
+
 When the backend raises `google.api_core.exceptions.NotFound: 404 models/gemini-2.0-flash is not found for API version v1beta, or is not supported for generateContent`, the Google Generative AI SDK is hitting the legacy `v1beta` API. That endpoint does not expose `gemini-2.0-flash` (or other `2.0` Flash variants), so FastAPI ultimately returns `502 Bad Gateway` to the Angular client.
 
 The stack traces point back to `backend/app/services/gemini.py`, where the client invokes `generate_content()` via gRPC. You may also notice `ALTS creds ignored. Not running on GCP ...` in the logs—this warning is safe to ignore outside Google Cloud.

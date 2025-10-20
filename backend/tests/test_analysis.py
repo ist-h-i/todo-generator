@@ -18,7 +18,7 @@ def _register_and_login(client: TestClient, email: str) -> dict[str, str]:
     password = "Analysis123!"  # noqa: S105 - test credential
     register = client.post(
         "/auth/register",
-        json={"email": email, "password": password},
+        json={"email": email, "password": password, "nickname": "Analyst"},
     )
     assertions.assertEqual(register.status_code, 201, register.text)
 

@@ -1,0 +1,13 @@
+{
+  "roles": [],
+  "global_fail_patterns": [
+    {
+      "topic": "i18n_missing",
+      "count": 0
+    },
+    {
+      "topic": "sbom_gap",
+      "count": 0
+    }
+  ]
+}

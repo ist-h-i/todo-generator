@@ -300,7 +300,7 @@ function flattenRoleOptions(
 const ROLE_OPTIONS = flattenRoleOptions(ROLE_TREE);
 const ROLE_OPTION_LOOKUP = new Map(ROLE_OPTIONS.map((option) => [option.value, option] as const));
 
-const MAX_NICKNAME_LENGTH = 30;
+const MAX_NICKNAME_LENGTH = 64;
 const MAX_BIO_LENGTH = 500;
 const MAX_EXPERIENCE_YEARS = 50;
 const MAX_ROLES = 10;

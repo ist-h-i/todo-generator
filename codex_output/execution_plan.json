@@ -1,11 +1,13 @@
 {
   "steps": [
-    "coder"
+    "coder",
+    "code_quality_reviewer"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder"
+      "coder",
+      "code_quality_reviewer"
     ],
     "notes": "Single-stage (coder) is sufficient to add a central HoverMessageService and a lightweight host component, wire it into the app shell, and route notifications through it. No new dependencies; CSS-only animations. If an existing notification system exists, coder will extend/adapt it instead of replacing to keep the diff minimal.",
     "tests": "Unit: verify queue order (newest first), per-severity durations (error sticky, warning 10s, notice 5s, system >=3s), loading returns id and persists until dismiss/update, dismissal triggers exit flag then removal after ~200–300ms. Manual: confirm right-side stack, slide-in entry and slide-out-right exit, colors/shadows per severity, timers behave as specified, errors and loading persist until explicitly dismissed/updated."

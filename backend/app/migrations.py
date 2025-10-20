@@ -161,6 +161,41 @@ def _ensure_user_profile_columns(engine: Engine) -> None:
             )
 
 
+def _backfill_user_nickname(engine: Engine) -> None:
+    """Backfill missing user nicknames with a stable default.
+
+    Uses the format "user-{id}" to ensure every existing user row has a non-empty
+    nickname without introducing new dependencies or uniqueness constraints.
+    """
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "users"):
+            return
+
+        if "nickname" not in _column_names(inspector, "users"):
+            return
+
+    # Populate nickname only where it's NULL or empty.
+    with engine.begin() as connection:
+        dialect = engine.dialect.name
+        if dialect == "sqlite":
+            # SQLite uses || for concatenation
+            connection.execute(
+                text(
+                    "UPDATE users SET nickname = 'user-' || id "
+                    "WHERE nickname IS NULL OR nickname = ''"
+                )
+            )
+        else:
+            # PostgreSQL/MySQL: use CONCAT for portability
+            connection.execute(
+                text(
+                    "UPDATE users SET nickname = CONCAT('user-', id) "
+                    "WHERE nickname IS NULL OR nickname = ''"
+                )
+            )
+
+
 def _datetime_column_type(dialect_name: str) -> str:
     if dialect_name == "postgresql":
         return "TIMESTAMP WITH TIME ZONE"
@@ -291,6 +326,181 @@ def _ensure_comment_subtask_column(engine: Engine) -> None:
     except SQLAlchemyError as exc:
         if not _is_duplicate_column_error(exc):
             raise
+
+
+def _ensure_channel_tables(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        # If users table doesn't exist yet, let ORM create tables later
+        if not _table_exists(inspector, "users"):
+            return
+        channels_exists = _table_exists(inspector, "channels")
+        members_exists = _table_exists(inspector, "channel_members")
+
+    if not channels_exists:
+        with engine.begin() as connection:
+            dialect = engine.dialect.name
+            string_type = _string_column_type(dialect)
+            datetime_type = _datetime_column_type(dialect)
+            bool_default = _false_literal(dialect)
+            connection.execute(
+                text(
+                    "CREATE TABLE IF NOT EXISTS channels ("
+                    " id "
+                    f"{string_type} PRIMARY KEY,"
+                    " name "
+                    f"{string_type} NOT NULL,"
+                    " owner_user_id "
+                    f"{string_type} NOT NULL REFERENCES users(id) ON DELETE CASCADE,"
+                    " is_private BOOLEAN NOT NULL DEFAULT "
+                    f"{bool_default},"
+                    " created_at "
+                    f"{datetime_type},"
+                    " updated_at "
+                    f"{datetime_type}"
+                    ")"
+                )
+            )
+
+    if not members_exists:
+        with engine.begin() as connection:
+            dialect = engine.dialect.name
+            string_type = _string_column_type(dialect)
+            datetime_type = _datetime_column_type(dialect)
+            connection.execute(
+                text(
+                    "CREATE TABLE IF NOT EXISTS channel_members ("
+                    " id "
+                    f"{string_type} PRIMARY KEY,"
+                    " channel_id "
+                    f"{string_type} NOT NULL REFERENCES channels(id) ON DELETE CASCADE,"
+                    " user_id "
+                    f"{string_type} NOT NULL REFERENCES users(id) ON DELETE CASCADE,"
+                    " role "
+                    f"{string_type} NOT NULL,"
+                    " created_at "
+                    f"{datetime_type},"
+                    " updated_at "
+                    f"{datetime_type}"
+                    ")"
+                )
+            )
+            # Unique constraint (channel_id, user_id)
+            try:
+                connection.execute(
+                    text(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS uq_channel_user ON channel_members (channel_id, user_id)"
+                    )
+                )
+            except SQLAlchemyError:
+                pass
+
+
+def _ensure_card_channel_column(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "cards"):
+            return
+        column_names = _column_names(inspector, "cards")
+
+    if "channel_id" in column_names:
+        return
+
+    dialect = engine.dialect.name
+    string_type = _string_column_type(dialect)
+
+    # Keep FK-like reference for consistency with ORM (best-effort across dialects)
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE cards "
+                    "ADD COLUMN channel_id "
+                    f"{string_type} REFERENCES channels(id) ON DELETE SET NULL"
+                )
+            )
+    except SQLAlchemyError as exc:
+        if not _is_duplicate_column_error(exc):
+            raise
+
+
+def _ensure_private_channels_and_backfill(engine: Engine) -> None:
+    with engine.begin() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "users") or not _table_exists(inspector, "channels"):
+            return
+
+        # Load users
+        users = connection.execute(text("SELECT id, email FROM users")).fetchall()
+        if not users:
+            return
+
+        now = datetime.now(timezone.utc)
+
+        # Ensure private channel and membership for each user
+        for row in users:
+            user_id = row.id
+            existing = connection.execute(
+                text(
+                    "SELECT id FROM channels WHERE owner_user_id = :uid AND is_private = :priv LIMIT 1"
+                ),
+                {"uid": user_id, "priv": True},
+            ).first()
+
+            if existing:
+                channel_id = existing.id
+            else:
+                channel_id = str(uuid4())
+                connection.execute(
+                    text(
+                        "INSERT INTO channels (id, name, owner_user_id, is_private, created_at, updated_at) "
+                        "VALUES (:id, :name, :owner, :priv, :created, :updated)"
+                    ),
+                    {
+                        "id": channel_id,
+                        "name": "My Channel",
+                        "owner": user_id,
+                        "priv": True,
+                        "created": now,
+                        "updated": now,
+                    },
+                )
+
+            # Ensure membership
+            member_exists = connection.execute(
+                text(
+                    "SELECT 1 FROM channel_members WHERE channel_id = :cid AND user_id = :uid LIMIT 1"
+                ),
+                {"cid": channel_id, "uid": user_id},
+            ).first()
+            if not member_exists:
+                connection.execute(
+                    text(
+                        "INSERT INTO channel_members (id, channel_id, user_id, role, created_at, updated_at) "
+                        "VALUES (:id, :cid, :uid, :role, :created, :updated)"
+                    ),
+                    {
+                        "id": str(uuid4()),
+                        "cid": channel_id,
+                        "uid": user_id,
+                        "role": "owner",
+                        "created": now,
+                        "updated": now,
+                    },
+                )
+
+        # Backfill cards.channel_id from card owner private channel
+        if _table_exists(inspector, "cards"):
+            connection.execute(
+                text(
+                    "UPDATE cards SET channel_id = ("
+                    "  SELECT c.id FROM channels c"
+                    "  WHERE c.owner_user_id = cards.owner_id AND c.is_private = :priv"
+                    "  LIMIT 1"
+                    ") WHERE (channel_id IS NULL OR channel_id = '') AND owner_id IS NOT NULL"
+                ),
+                {"priv": True},
+            )
 
 
 def _backfill_owner_from_cards(connection, table: str, owner_column: str) -> None:
@@ -747,11 +957,94 @@ def _ensure_api_credentials_model_column(engine: Engine) -> None:
         )
 
 
+def _normalize_assignees_to_user_ids(engine: Engine) -> None:
+    """Backfill cards.assignees (JSON) and subtasks.assignee (TEXT) to user IDs.
+
+    - Matches existing values against users.id, users.email (case-insensitive), and
+      users.nickname (case-insensitive, unique only).
+    - Preserves unmatched values to avoid data loss.
+    """
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "users"):
+            return
+        cards_exists = _table_exists(inspector, "cards")
+        subtasks_exists = _table_exists(inspector, "subtasks")
+        if not cards_exists and not subtasks_exists:
+            return
+
+    # Load users
+    with engine.begin() as connection:
+        rows = connection.execute(text("SELECT id, email, nickname FROM users")).fetchall()
+        id_set = {row.id for row in rows}
+        email_map = {str(row.email or "").strip().lower(): row.id for row in rows}
+        # Build nickname buckets to handle duplicates
+        nick_buckets: dict[str, set[str]] = {}
+        for row in rows:
+            key = str(row.nickname or "").strip().lower()
+            if not key:
+                continue
+            nick_buckets.setdefault(key, set()).add(row.id)
+        nickname_map = {k: next(iter(v)) for k, v in nick_buckets.items() if len(v) == 1}
+
+        def to_user_id(value: str) -> str:
+            raw = (value or "").strip()
+            if not raw:
+                return raw
+            if raw in id_set:
+                return raw
+            key = raw.lower()
+            if key in email_map:
+                return email_map[key]
+            if key in nickname_map:
+                return nickname_map[key]
+            return raw
+
+        # Cards
+        if cards_exists:
+            # ruff: noqa: S608 - controlled SQL identifiers
+            card_rows = connection.execute(text("SELECT id, assignees FROM cards")).fetchall()
+            for row in card_rows:
+                try:
+                    values = row.assignees or []
+                    if not isinstance(values, (list, tuple)):
+                        continue
+                    mapped = [to_user_id(str(v)) for v in values]
+                    if list(values) != mapped:
+                        connection.execute(
+                            text("UPDATE cards SET assignees = :vals WHERE id = :id").bindparams(
+                                bindparam("vals", type_=JSON),
+                                bindparam("id"),
+                            ),
+                            {"vals": mapped, "id": row.id},
+                        )
+                except Exception:
+                    continue
+
+        # Subtasks
+        if subtasks_exists:
+            sub_rows = connection.execute(text("SELECT id, assignee FROM subtasks")).fetchall()
+            for row in sub_rows:
+                try:
+                    current = row.assignee
+                    if current is None or str(current).strip() == "":
+                        continue
+                    mapped = to_user_id(str(current))
+                    if mapped != current:
+                        connection.execute(
+                            text("UPDATE subtasks SET assignee = :val WHERE id = :id"),
+                            {"val": mapped, "id": row.id},
+                        )
+                except Exception:
+                    continue
+
+
 def run_startup_migrations(engine: Engine) -> None:
     """Ensure database upgrades that rely on application startup are applied."""
 
     _ensure_users_is_admin_column(engine)
     _ensure_user_profile_columns(engine)
+    _backfill_user_nickname(engine)
     _promote_first_user_to_admin(engine)
     _ensure_completion_timestamps(engine)
     _ensure_card_error_category_column(engine)
@@ -767,6 +1060,10 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_workspace_template_default_flag(engine)
     _ensure_workspace_default_templates(engine)
     _ensure_api_credentials_model_column(engine)
+    _ensure_channel_tables(engine)
+    _ensure_card_channel_column(engine)
+    _ensure_private_channels_and_backfill(engine)
+    _normalize_assignees_to_user_ids(engine)
 
 
 __all__: Iterable[str] = ["run_startup_migrations"]
