@@ -172,15 +172,13 @@ The helper script runs `coverage run -m pytest` inside `backend/` and `npm run t
 
 How to use these guides:
 
-- Start with the Development Governance Handbook for repository structure, backend practices, quality gates, and AI-driven expectations.
+- Start with the Development Governance Handbook for repository structure, backend practices, quality gates, and AI expectations.
 - Apply the Angular Coding & Design Guidelines whenever you touch the SPA.
-- Keep design and workflow docs in sync when updating components, flows, or build tooling. Document intentional deviations.
-- [Documentation index](docs/README.md) – curated map of the most frequently referenced specs and playbooks.
-- [Architecture overview](docs/architecture.md) – high-level system diagram and component breakdown.
-- [Data flow reference](docs/data-flow-overview.md) – end-to-end traces for core workflows.
-- [Development governance handbook](docs/governance/development-governance-handbook.md) – unified standards, workflow agreements, and quality bars.
-- [System architecture playbook](docs/system-architecture-playbook.md) – reusable principles and workflow guidance for similar products.
-- [Security hotspots](docs/security-review.md) – known risks and recommended remediation paths.
+- Keep design and workflow docs in sync when updating components, flows, or build tooling, and document intentional deviations.
+- Use the [Documentation Index](docs/README.md) to locate architecture, governance, and feature playbooks quickly.
+- Consult the [Architecture overview](docs/architecture.md) for the system diagram and component breakdown.
+- Review the [Data flow reference](docs/data-flow-overview.md) for end-to-end traces of core workflows.
+- Check the [Security hotspot review](docs/security-review.md) when addressing known risks or regression testing fixes.
 
 ## Troubleshooting
 
@@ -196,8 +194,9 @@ The stack traces point back to `backend/app/services/gemini.py`, where the clien
 
 To recover:
 
-1. **Enumerate supported models** – Run `from google.generativeai import list_models; print(list_models())` in a Python shell to verify which models and methods your account can access. The backend performs this discovery step automatically and will either map `models/gemini-2.0-flash` to an available variant (for example `models/gemini-2.0-flash-002`) or return `503 Service Unavailable` with the supported model names.
-2. **Switch to an available model** – Configure `GEMINI_MODEL` (or the admin credential form) with an identifier surfaced by the error, such as `models/gemini-2.0-flash`, `models/gemini-2.0-flash-lite`, or `gemini-1.5-pro-latest`, that your account can access.
-3. **Upgrade the SDK for `v1` support** – Install the latest `google-generativeai` release so you can target the `v1` API and restore access to the Flash families if you are pinned to older runtimes.
+1. **Enumerate supported models**  ERun `from google.generativeai import list_models; print(list_models())` in a Python shell to verify which models and methods your account can access. The backend performs this discovery step automatically and will either map `models/gemini-2.0-flash` to an available variant (for example `models/gemini-2.0-flash-002`) or return `503 Service Unavailable` with the supported model names.
+2. **Switch to an available model**  EConfigure `GEMINI_MODEL` (or the admin credential form) with an identifier surfaced by the error, such as `models/gemini-2.0-flash`, `models/gemini-2.0-flash-lite`, or `gemini-1.5-pro-latest`, that your account can access.
+3. **Upgrade the SDK for `v1` support**  EInstall the latest `google-generativeai` release so you can target the `v1` API and restore access to the Flash families if you are pinned to older runtimes.
 
 Re-run the `list_models()` check after each change to confirm the API now exposes the desired model before retrying the `/analysis` workflow.
+

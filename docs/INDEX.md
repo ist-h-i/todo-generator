@@ -1,88 +1,91 @@
 # Repository Index & Map
 
-This page helps newcomers quickly find the right code and docs. It complements the [Documentation Index](README.md) by focusing on repository layout and key entry points.
+Use this map when you need to find code fast. For a full catalogue of written guidance, switch to the [Documentation Index](README.md).
 
 ## Quick Pointers
 
-- Setup, scripts, and common tasks: [README.md](../README.md)
-- Specs and playbooks: [Documentation Index](README.md)
-- UI standards and layout: [UI Design System](ui-design-system.md), [UI Layout Requirements](ui-layout-requirements.md)
-- Governance and quality bars: [Development Governance Handbook](governance/development-governance-handbook.md)
-- Angular coding rules: [Angular Coding & Design Guidelines](guidelines/angular-coding-guidelines.md)
+- Project setup and local workflows: [../README.md](../README.md)
+- SPA bootstrap and routes: `frontend/src/app/app.routes.ts`
+- FastAPI entry point and middleware: `backend/app/main.py`
+- Quality automation: `.github/workflows/` and `scripts/`
+- Documentation catalogue: [Documentation Index](README.md)
 
 ## Top-level Layout
 
 - `frontend/` — Angular SPA (standalone components, signals, feature routing)
-  - `src/app/app.routes.ts` — Route map and feature entry points.
-  - `src/app/features/` — Feature areas (e.g., `board/`, `reports/`, `analytics/`, `admin/`).
-  - `src/app/core/` — Cross-cutting concerns and APIs:
-    - `core/api/*.service.ts` — HTTP clients (e.g., `CardsApiService`, `AdminApiService`).
-    - `core/state/*store.ts` — Signal stores (e.g., `WorkspaceStore`).
-    - `auth/`, `profile/`, `logger/`, `models/`, `utils/` — Auth, profile, logging, types, and helpers.
-  - `src/app/shared/` — Reusable UI primitives and utilities.
+  - `src/app/app.routes.ts` — route map and lazy-loaded feature entry points
+  - `src/app/features/` — feature areas such as `board/`, `reports/`, `analytics/`, `admin/`
+  - `src/app/core/` — cross-cutting concerns
+    - `core/api/*.service.ts` — HTTP clients (e.g., `CardsApiService`, `AdminApiService`)
+    - `core/state/*store.ts` — signal stores (e.g., `WorkspaceStore`)
+    - `auth/`, `profile/`, `logger/`, `models/`, `utils/` — authentication, identity, logging, shared types, helpers
+  - `src/app/shared/` — reusable UI primitives and utilities
 
 - `backend/` — FastAPI backend (routers, services, schemas, tests)
-  - `app/main.py` — Application entrypoint and middleware.
-  - `app/routers/` — API surface by domain (e.g., `cards.py`, `reports.py`, `analytics.py`).
-  - `app/services/` — Domain logic, Gemini integrations, content builders.
-  - `app/schemas.py`, `app/models.py` — Pydantic schemas and ORM models.
-  - `tests/` — Pytest suites mirroring the routers/services.
+  - `app/main.py` — application bootstrap and middleware
+  - `app/routers/` — API surface by domain (`cards.py`, `reports.py`, `analytics.py`, etc.)
+  - `app/services/` — domain logic, Gemini integrations, content builders
+  - `app/schemas.py`, `app/models.py` — Pydantic schemas and ORM models
+  - `tests/` — pytest suites mirroring routers and services
 
-- `docs/` — Architecture notes, feature requirements, and playbooks
-  - Start at docs/README.md for a curated, topic-based index.
-  - Deep dives: `architecture.md`, `data-flow-overview.md`, `persistence-detail-design.md`.
+- `docs/` — architecture notes, governance rules, feature requirements; start at `docs/README.md`
+- `scripts/` — local automation helpers (`run_codex_pipeline.sh`, `bootstrap_database.py`, `generate_*_recipes.py`)
+- `prompts/` — prompt assets used by backend services and tooling
+- `.github/workflows/` — CI definitions for lint, tests, scans, and quality gates
+- `workflow/` — internal contributor workflow guidance
+- `codex_output/` — automation artefacts (planning logs, reviews, release notes)
 
-- `scripts/` — Local ops and automation helpers
-  - `run_codex_pipeline.sh` — Auto‑dev pipeline runner.
-  - `generate_*_recipes.py` — Creates code recipe docs co-located next to source files (`*.recipe.md`).
-  - `bootstrap_database.py` — Initialize local DB state.
+## Frontend Hotspots
 
-- `prompts/` — Prompt materials used by services and tooling.
+- Complex component guides: `frontend/src/app/**/**/*.recipe.md`
+- Styling tokens and theming: `frontend/src/styles/` plus feature SCSS
+- Shared UI primitives: `frontend/src/app/shared/ui/`
+- Build configuration: `frontend/angular.json`, `frontend/tailwind.config.js`
 
-- `.github/workflows/` — CI pipelines (lint, tests, secret scans, SonarQube).
+## Backend Hotspots
 
-- `workflow/` — Internal workflow documentation for contributors.
+- Router registration: `backend/app/main.py`
+- Domain services and integrations: `backend/app/services/`
+- Utilities for quotas, encryption, scheduling: `backend/app/utils/`
+- Database bootstrap and migrations: `backend/app/models.py`, `backend/migrations/`
 
-- `codex_output/` — Automation artifacts (planning, reviews, release notes). Safe to keep in-repo.
+## Common Tasks — Where to Start
 
-## Common Tasks → Where to Look
+- **Add a new SPA page**
+  - Register the route in `frontend/src/app/app.routes.ts`
+  - Create the feature module under `frontend/src/app/features/<feature>/`
+  - Wire API calls via `frontend/src/app/core/api` and state via `core/state`
 
-- Add a new page (SPA)
-  - Define route in `frontend/src/app/app.routes.ts` and add a feature under `frontend/src/app/features/<feature>/`.
-  - Follow Angular rules in `docs/guidelines/angular-coding-guidelines.md` and UI conventions in `docs/ui-design-system.md`.
+- **Call a backend API from the SPA**
+  - Extend or add a client in `frontend/src/app/core/api/*.service.ts`
+  - Mirror contracts in `frontend/src/app/core/models/`
 
-- Call a backend API from the SPA
-  - Add/extend an API client in `frontend/src/app/core/api/*.service.ts`.
-  - Manage state in a store under `frontend/src/app/core/state/*store.ts`.
+- **Add a FastAPI endpoint**
+  - Create a router in `backend/app/routers/<domain>.py` and mount it from `app/main.py`
+  - Implement business logic inside `backend/app/services/`
+  - Update schemas in `backend/app/schemas.py` and test via `backend/tests/`
 
-- Add a new API endpoint (FastAPI)
-  - Create a router in `backend/app/routers/<domain>.py`, plug it into `app/main.py` if needed.
-  - Implement logic in `backend/app/services/`, define request/response in `backend/app/schemas.py`.
-  - Add tests in `backend/tests/` mirroring the new router.
-
-- Update data contracts and models
-  - Adjust Pydantic schemas in `backend/app/schemas.py` and clients/types in `frontend/src/app/core/models/`.
+- **Adjust data contracts**
+  - Source of truth: `backend/app/schemas.py` and `backend/app/models.py`
+  - Frontend mirror: `frontend/src/app/core/models/` and mapper helpers in `core/api`
 
 ## Search Tips (ripgrep)
 
-- Routes (Angular): `rg -n "export const .*Routes|appRoutes|Routes\s*=\s*\[" frontend/src/app`
-- Components: `rg -n "@Component\(" frontend/src/app`
+- Routes (Angular): `rg -n "export const .*Routes|appRoutes|Routes\\s*=\\s*\\[" frontend/src/app`
+- Components: `rg -n "@Component\\(" frontend/src/app`
 - Stores: `rg -n "class .*Store" frontend/src/app/core/state`
 - API clients: `rg -n "export class .*ApiService" frontend/src/app/core/api`
-- FastAPI routers: `rg -n "APIRouter\(|router = APIRouter" backend/app/routers`
-- Service functions: `rg -n "def .*\(" backend/app/services`
+- FastAPI routers: `rg -n "APIRouter\\(|router = APIRouter" backend/app/routers`
+- Service functions: `rg -n "def .*\\(" backend/app/services`
 
-## Configuration & Quality
+## Configuration & Quality Files
 
 - Python tooling: `pyproject.toml`, `backend/requirements*.txt`
 - Frontend tooling: `frontend/package.json`, `frontend/angular.json`, `frontend/tailwind.config.js`
-- SonarQube: `sonar-project.properties` (coverage paths and quality gate inputs)
-- CI: `.github/workflows/*.yml`
+- Quality gates: `.github/workflows/*.yml`, `sonar-project.properties`
 
 ## See Also
 
-- [Documentation Index](README.md)
-- [UI Design System](ui-design-system.md)
-- [UI Layout Requirements](ui-layout-requirements.md)
-- [Development Governance Handbook](governance/development-governance-handbook.md)
-- [Angular Coding & Design Guidelines](guidelines/angular-coding-guidelines.md)
+- [Documentation Index](README.md) — curated guide to architecture, governance, and feature docs
+- [Development Governance Handbook](governance/development-governance-handbook.md) — coding standards and quality gates
+- [Angular Coding & Design Guidelines](guidelines/angular-coding-guidelines.md) — SPA-specific rules

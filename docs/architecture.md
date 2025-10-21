@@ -14,6 +14,23 @@ flowchart LR
     Backend -->|Reports & analytics| AdminTools[(Admin & analytics UIs)]
 ```
 
+## Guiding Priorities
+
+1. **Security first** – enforce role-based access, encrypt secrets, and gate API credentials at the backend even when the SPA applies optimistic UI flows.
+2. **Consistent UX** – pair optimistic UI updates with idempotent APIs so retries or failures never leave the board or reports in an indeterminate state.
+3. **Extensibility** – keep domain logic modular: new AI-powered features or governance rules should land inside bounded contexts without cross-cutting rewrites.
+4. **Observability** – capture token usage, status-report events, and analyzer adoption signals to validate AI behaviour and reinforce governance workflows.
+
+## Bounded Contexts
+
+The product is modelled around five bounded contexts shared by the frontend and backend:
+
+- **Workspace operations** – board management, subtasks, comments, and workspace configuration.
+- **Analysis intake** – AI-assisted proposal generation, eligibility filtering, and publication to the board.
+- **Status reporting** – drafting, submission, AI analysis, retries, and audit trails for daily/weekly reports.
+- **Competency evaluations** – quota-governed skill assessments and profile-aligned prompts.
+- **Administration & governance** – quotas, credentials, policy settings, and compliance reporting.
+
 ## Frontend Architecture
 
 ### Route map
@@ -137,3 +154,29 @@ Timestamp mixins enforce UTC-aware audit fields, and helper methods normalise ID
 - User management endpoints surface aggregated quota data, recent activity, and role settings to support governance flows.
 
 Docs under `docs/features/` provide deeper functional requirements for each feature area; consult them alongside this architecture summary when planning enhancements.
+
+## Design Principles
+
+- **Domain-driven structure** – each bounded context owns its routers, services, schemas, and UI features so changes stay localized.
+- **API-first development** – Pydantic schemas and generated OpenAPI contracts drive cross-team alignment; schema updates precede implementation.
+- **Explicit side effects** – isolate external calls (Gemini, email, encryption) inside services to keep routers thin and tests focused.
+
+## Development Workflow
+
+1. **Plan & design** – facilitators and architects outline requirements, surface dependencies, and document acceptance criteria.
+2. **Implementation** – contributors follow coding standards, keep stores/services cohesive, and update documentation alongside code.
+3. **Quality gates** – static analysis, unit tests, dependency audits, and AI-safety checks must pass locally before review.
+4. **Multistage review** – design, code, and release reviews ensure compliance with security, UX, and governance expectations before PRs merge.
+
+## Operations & Security
+
+- Secrets are encrypted with AES-GCM helpers driven by `SECRET_ENCRYPTION_KEY`; admin APIs fail fast (HTTP 503) when the key is absent.
+- Router dependencies such as `require_admin` enforce role checks server-side; the SPA mirrors roles in guards to keep UI flows aligned.
+- Audit logging records status-report events, AI proposal adoption, and quota changes so support teams can trace decisions.
+- Quota enforcement centralizes daily and per-user limits, backing off API usage when AI workloads spike.
+
+## Documentation & Knowledge Sharing
+
+- Keep `docs/` synchronized with feature work: update requirements, playbooks, and indices when flows change.
+- Capture architectural decisions in spec updates or repo issues so onboarding contributors understand prior rationale.
+- Co-locate recipes (`*.recipe.md`) with source files to document complex components or services without bloating the primary docs.
