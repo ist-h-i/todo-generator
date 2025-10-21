@@ -689,13 +689,8 @@ def update_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.Subtask:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    # Allow updates if the user has access to the card via channel membership
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     subtask = get_resource_or_404(
         db,
@@ -742,13 +737,8 @@ def delete_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    get_owned_resource_or_404(
-        db,
-        models.Card,
-        card_id,
-        owner_id=current_user.id,
-        detail="Card not found",
-    )
+    # Allow deletes if the user has access to the card via channel membership
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     subtask = get_resource_or_404(
         db,
