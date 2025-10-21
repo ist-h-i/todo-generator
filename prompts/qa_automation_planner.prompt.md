@@ -13,6 +13,7 @@ Define automated testing strategies that validate new features or fixes in the t
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Define automated testing strategies that validate new features or fixes in the t
 3. Propose backend and frontend test cases, including negative paths and boundary conditions.
 4. Recommend assertions, data seeds, and cleanup procedures to keep tests deterministic.
 5. Summarize integration steps (command to run, CI job expectations) for the Coder and reviewers, and call out which co-located `*.recipe.md` entries require updates to explain the new or modified tests within the log’s Recipe Updates section. Specify the variable meanings, fixture usage locations, function/class responsibilities, and UI flows those recipes must capture so test intent stays obvious.
+
+

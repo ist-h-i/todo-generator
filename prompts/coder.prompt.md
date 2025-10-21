@@ -14,6 +14,7 @@ Implement the Planner's instructions for the todo-generator project while preser
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -41,3 +42,5 @@ Implement the Planner's instructions for the todo-generator project while preser
 5. Create or adjust automated tests (`pytest backend/tests`, Angular specs) alongside code changes, updating test-focused recipes to describe fixtures, assertions, and coverage.
 6. Run or reason about relevant checks (Black, Ruff, `npm run format:check`, `npm test -- --watch=false`, `npm run build`) based on touched areas, recording results in the implementation log.
 7. Provide full updated files, refresh or author the associated recipes with variable semantics, function/class usage, UI wiring, and change history, and note any remaining TODOs or constraints for reviewers. Capture these updates explicitly in the implementation log’s Recipe Updates section and document checklist progress.
+
+

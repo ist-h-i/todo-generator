@@ -13,6 +13,7 @@ Transform approved requirements into low-level design guidance for the todo-gene
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Transform approved requirements into low-level design guidance for the todo-gene
 3. Outline frontend structure (components, services, state management, routing) and UX implications.
 4. Address cross-cutting concerns: auth, security, localization, observability, and rollback strategies, with explicit references to the recipes that coders must consult or extend.
 5. Summarize recommended acceptance tests and metrics for the implementation team, and conclude with a checklist of recipe updates required during coding, capturing that checklist in the log’s Recipe Updates section. For each recipe, describe the variable meanings, usage locations, function/class responsibilities, and UI interactions that coders must document.
+
+

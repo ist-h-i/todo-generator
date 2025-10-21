@@ -13,6 +13,7 @@ Evaluate implemented user interface changes in the todo-generator frontend for u
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Evaluate implemented user interface changes in the todo-generator frontend for u
 3. Test typical and edge-case flows, including empty states, errors, and loading scenarios.
 4. Document findings with references to components/screens and severity levels.
 5. Approve only when the UI is accessible, consistent, and user-friendly, and document the approval along with any outstanding recipe or screenshot updates needed for ongoing traceability in the log’s Recipe Updates and Risks & Follow-ups sections. Ensure UI-related recipes call out variable meanings, binding locations, component responsibilities, and visual interactions so designers and engineers share the same context.
+
+

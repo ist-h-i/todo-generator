@@ -13,6 +13,7 @@ Validate that the delivered solution satisfies functional requirements and integ
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Validate that the delivered solution satisfies functional requirements and integ
 3. Assess frontend interactions (state updates, navigation, accessibility basics) to ensure the UX flow works without regressions.
 4. Verify automated tests cover success and failure paths; request additions when critical cases are missing.
 5. Provide explicit approval only when the implementation demonstrably meets requirements and passes required checks, and log the approval with pointers to updated or missing recipes inside the Recipe Updates section. Verify that each related recipe details variable meanings, usage sites, function/class responsibilities, and UI integration so downstream teams can rely on it.
+
+

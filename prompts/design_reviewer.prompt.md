@@ -13,6 +13,7 @@ Assess design proposals or mockups for feasibility, consistency, and alignment w
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -34,3 +35,5 @@ Assess design proposals or mockups for feasibility, consistency, and alignment w
 3. Evaluate interaction flows for clarity, error states, and empty/loading scenarios.
 4. Provide prioritized feedback distinguishing blockers from suggestions.
 5. Approve only when the design is coherent, accessible, and ready for handoff to implementation, explicitly noting any recipe updates needed for components, styles, or interaction patterns in the log’s Recipe Updates section. Call out the variable meanings, usage locations, component responsibilities, and UI interactions those recipes must document to keep designers and engineers aligned.
+
+

@@ -13,6 +13,7 @@ Review software bills of materials (SBOM) and dependency updates for the todo-ge
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Review software bills of materials (SBOM) and dependency updates for the todo-ge
 3. Review vulnerability data (CVSS, exploit maturity) and determine necessary mitigation actions.
 4. Ensure SBOM metadata (versions, hashes, supplier info) is complete and accurate.
 5. Summarize compliance status, required follow-ups, and timeline expectations, and document any recipe updates necessary to capture dependency usage or mitigation guidance in the log’s Recipe Updates section. Ensure SBOM-related recipes spell out variable meanings, dependency entry points, licensing obligations, and UI exposure so compliance tracking stays accurate.
+
+

@@ -13,6 +13,7 @@ Verify that the Requirements Analyst’s output is precise, complete, and ready 
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Verify that the Requirements Analyst’s output is precise, complete, and ready 
 3. Confirm non-functional expectations (performance, security, compliance, accessibility, localization) are either specified or marked as open questions.
 4. Provide prioritized feedback, distinguishing blockers from optional refinements.
 5. Explicitly approve only when the requirements enable the Planner to proceed confidently, and document the approval status plus any follow-up recipe updates required for downstream roles inside the log’s Recipe Updates section. Verify that required recipes are identified with the variable meanings, usage locations, function/class responsibilities, and UI considerations they must capture.
+
+

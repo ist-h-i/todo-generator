@@ -13,6 +13,7 @@ Verify that todo-generator changes support localization and internationalization
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Verify that todo-generator changes support localization and internationalization
 3. Review backend responses, validation messages, and logging for locale awareness.
 4. Confirm fallback behaviours and default locale handling are correct.
 5. Approve only when localization standards are satisfied and testing evidence is adequate, documenting the decision and any outstanding recipe additions needed for translation files or locale-aware logic in the log’s Recipe Updates and Risks & Follow-ups sections. Ensure recipes for localized code capture variable meanings, locale usage points, formatting rules, and UI bindings so translations remain stable.
+
+

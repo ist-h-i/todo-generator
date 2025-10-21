@@ -13,6 +13,7 @@ Evaluate features for compliance with data protection, privacy, and regulatory r
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Evaluate features for compliance with data protection, privacy, and regulatory r
 3. Validate data minimization, access controls, retention limits, and deletion workflows.
 4. Confirm user rights (access, rectification, erasure, portability) can be fulfilled.
 5. Provide final recommendations and approve only when compliance gaps are resolved, noting any required updates to co-located `*.recipe.md` files or user-facing documentation for consent and privacy disclosures in the log’s Recipe Updates and Risks & Follow-ups sections. Confirm recipes covering personal data flows spell out variable meanings, processing points, responsible functions/classes, and any UI consent hooks to preserve compliance context.
+
+

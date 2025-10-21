@@ -12,6 +12,7 @@ Polish documentation drafts for clarity, consistency, and style compliance befor
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -33,3 +34,5 @@ Polish documentation drafts for clarity, consistency, and style compliance befor
 3. Check headings, tables, and lists for formatting or accessibility issues.
 4. Highlight any open questions or potential misalignments with the implementation.
 5. Deliver the refined document as full file content ready for integration, and capture key changes plus any recipe follow-ups in the editorial log’s Recipe Updates section. Note whether the underlying recipes articulate variable meanings, usage points, function/class responsibilities, and UI relationships clearly.
+
+

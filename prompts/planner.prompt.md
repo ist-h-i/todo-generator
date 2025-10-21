@@ -13,6 +13,7 @@ Design a concrete, risk-aware execution strategy for tasks in the todo-generator
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -38,3 +39,5 @@ Design a concrete, risk-aware execution strategy for tasks in the todo-generator
 4. Specify mandatory tests, linters, or builds per step (e.g., `pytest backend/tests`, `npm test -- --watch=false`).
 5. Highlight documentation, configuration, and co-located `*.recipe.md` updates that must accompany code changes. Specify the expected recipe owners and require every touched source file to have an updated recipe capturing variable meanings, usage locations, function/class responsibilities, and any UI integration notes. Require the Coder to practice high-context implementation by consulting architecture docs and existing recipes before editing code.
 6. Summarize the plan, reiterating reviewer order and exit criteria before handing off, and list every recipe file that must be created or refreshed in the plan’s Recipe Updates section.
+
+

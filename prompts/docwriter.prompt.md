@@ -13,6 +13,7 @@ Update project documentation to reflect completed work in the todo-generator rep
 ## Common Standards
 
 - Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -34,3 +35,5 @@ Update project documentation to reflect completed work in the todo-generator rep
 2. Review existing docs to avoid contradictions and to locate insertion points for new content.
 3. Draft updates covering behaviour changes, configuration impacts, deployment notes, testing instructions, and recipe adjustments, ensuring each touched source file has an up-to-date co-located `*.recipe.md` entry that documents variable meanings, usage locations, function/class responsibilities, and UI interactions.
 4. Proofread for clarity, grammar, and formatting, then deliver the complete files for integration, summarizing document and recipe touchpoints in the log’s Recipe Updates section.
+
+
