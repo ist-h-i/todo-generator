@@ -25,7 +25,6 @@ import {
   CompetencyInput,
   QuotaDefaults,
 } from '@core/models';
-import { signalForms } from '@shared/utils/signal-forms';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time.pipe';
 import { UiSelectComponent } from '@shared/ui/select/ui-select';
 
@@ -87,7 +86,6 @@ export class AdminPageComponent {
     is_active: new FormControl(true, { nonNullable: true }),
     criteria: this.competencyCriteria,
   });
-  private readonly competencyFormState = signalForms(this.competencyForm);
 
   public readonly evaluationForm: FormGroup<{
     userId: FormControl<string>;
@@ -106,7 +104,6 @@ export class AdminPageComponent {
     periodStart: new FormControl('', { nonNullable: true }),
     periodEnd: new FormControl('', { nonNullable: true }),
   });
-  private readonly evaluationFormState = signalForms(this.evaluationForm);
 
   public readonly apiForm: FormGroup<{
     model: FormControl<string>;
@@ -115,7 +112,6 @@ export class AdminPageComponent {
     model: new FormControl(this.defaultGeminiModel, { nonNullable: true }),
     secret: new FormControl('', { nonNullable: true }),
   });
-  private readonly apiFormState = signalForms(this.apiForm);
 
   public readonly quotaDefaultsForm: FormGroup<{
     cardDailyLimit: FormControl<number | null>;
@@ -128,7 +124,6 @@ export class AdminPageComponent {
       validators: [Validators.required],
     }),
   });
-  private readonly quotaDefaultsFormState = signalForms(this.quotaDefaultsForm);
 
   private readonly userQuotaForms = signal(new Map<string, UserQuotaForm>());
   public readonly geminiModelOptions: ReadonlyArray<{ value: string; label: string }> = [
