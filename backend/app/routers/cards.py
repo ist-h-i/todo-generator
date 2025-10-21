@@ -834,8 +834,9 @@ def update_subtask(
     payload: schemas.SubtaskUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> schemas.SubtaskRead:
-    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
+) -> models.Subtask:
+    # Allow updates if the user has access to the card via channel membership
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     subtask = get_resource_or_404(
         db,
@@ -887,7 +888,8 @@ def delete_subtask(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> Response:
-    card = _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
+    # Allow deletes if the user has access to the card via channel membership
+    _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
 
     subtask = get_resource_or_404(
         db,

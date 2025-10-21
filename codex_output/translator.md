@@ -1,43 +1,52 @@
 **Summary**
-- Options inside `app-ui-select` are not rendered. Update all usages to pass options in the correct way expected by the component so they display properly.
+- Introduce “Channels” for team-scoped collaboration on boards.
+- Each user’s current board workspace becomes their own private channel.
+- Only board-related features live inside channels; other modules remain unchanged.
+- Cards (and subtasks) are scoped to a channel; creating a card requires a channel.
+- Members of a channel can see and collaborate on each other’s cards/subtasks.
+- Users can invite others to a channel; members can leave, and owners (or defined role) can kick.
 
-**Observed Problem**
-- Example shows `<option>` children inside `<app-ui-select>`, but they don’t appear. Likely the component doesn’t project `<option>` content or expects an input (e.g., `[options]`) instead.
+**Objectives**
+- Add Channel concept with membership.
+- Scope cards/subtasks and queries by channel membership.
+- Require a channel on card creation (default to user’s private channel to preserve UX).
+- Support invite, leave, and kick actions.
 
-**Goal**
-- Ensure all `app-ui-select` instances render options correctly and integrate with forms (e.g., `formControlName`) without breaking existing behavior.
+**Non-Goals**
+- Do not move non-board features into channels.
+- No broad refactors or complex role/permission system beyond MVP needs.
+- No cross-channel card moves unless explicitly defined.
+- No notification/audit system in this iteration.
 
 **Assumptions**
-- `app-ui-select` is an Angular component used within reactive forms.
-- The component either:
-  - expects an input like `[options]` with `{ label, value }[]`, or
-  - needs `<ng-content>`/`<ng-content select="option">` to support child `<option>` elements (currently missing).
-- The fix should prioritize updating call sites if a stable input API already exists; otherwise, minimally adjust the component to support the prevalent usage pattern.
+- Existing “board workspace” maps 1:1 to a new private channel per user.
+- Existing cards can be backfilled to each creator’s private channel.
+- Minimal roles are acceptable (e.g., owner/member).
+- Frontend can defer major UI changes by defaulting to the private channel.
 
 **Constraints**
-- Avoid unnecessary changes; keep impact minimal.
-- Deliver a complete, self-contained fix across all usages of `app-ui-select`.
-- Maintain existing UI/UX and form bindings.
+- Minimize diffs and limit impact on existing flows.
+- Maintain backward compatibility where possible (default channel auto-selection).
+- Deliver within a small, self-contained change set.
+- Prefer idempotent, safe migrations; block changing `channel_id` on card update for now.
 
-**Acceptance Criteria**
-- All `app-ui-select` usages display the intended option list.
-- Form bindings (`ngModel`/`formControlName`) continue to work.
-- No console errors or template binding warnings.
-- Option labels/values match current expectations (e.g., “初級 (3段階)” for `junior`).
-
-**Potential Approaches (for planner)**
-- If component already supports `[options]`: refactor all usages to pass an options array and remove child `<option>` tags.
-- If not: add content projection support to `app-ui-select` to render child `<option>` elements with correct selection/value propagation.
-
-**Residual Risks / Open Questions**
-- Unknown correct API of `app-ui-select` (does it support `[options]`, content projection, or both?).
-- Whether any usages rely on complex option templates (icons, tooltips) requiring `ng-template` support.
-- i18n handling for option labels—are labels hardcoded or pulled from translations?
-- Existence of disabled/optgroup/multiple-select requirements not shown in the example.
+**Unknowns**
+- Exact channel roles and permissions (who can invite/kick).
+- Invitation method (username, email, link) and whether approval is required.
+- Whether channels contain multiple boards or cards attach directly to channels.
+- Tenant/organization scoping of channels.
+- Policy on moving cards between channels and required auditing.
+- Migration behavior for currently shared boards/cards across users.
+- Required UI changes now vs later (channel selector/filter, member management).
+- Any compliance/audit or notification requirements.
 
 **Clarifying Questions**
-- What is the intended API for `app-ui-select`: input-based options, content projection of `<option>`, or both?
-- Do we need to support advanced features (disabled options, groups, custom templates, multiple selection)?
-- Are there project-wide translation keys for these labels, or should we preserve current static strings?
-- Should we change the component or only update call sites to the intended API?
-- Can you confirm all locations where `app-ui-select` is used, or should we search the codebase comprehensively?
+- Should channels contain multiple boards, or do cards associate directly to a channel regardless of board?
+- What roles are needed (owner/admin/member), and who can invite or kick?
+- How do invitations work (username, email, shareable link), and is acceptance required?
+- Are channels scoped within an organization/team or globally?
+- Can cards be moved between channels? If yes, who is authorized and how is it audited?
+- How should we migrate currently shared cards/boards where multiple users have access?
+- What is the expected default for new users (auto-create private channel name/visibility)?
+- Do we need a UI channel selector in card create/list now, or can we defer?
+- Are notifications or audit logs required for invite/leave/kick events?
