@@ -16,7 +16,7 @@ DEFAULT_PASSWORD = "Register123!"
 def register_and_login(client: TestClient, email: str, password: str = DEFAULT_PASSWORD) -> dict[str, str]:
     response = client.post(
         "/auth/register",
-        json={"email": email, "password": password},
+        json={"email": email, "password": password, "nickname": "Tester"},
     )
     assertions.assertTrue(response.status_code == 201, response.text)
     token_payload = response.json()

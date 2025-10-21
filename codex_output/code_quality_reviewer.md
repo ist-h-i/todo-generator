@@ -1,28 +1,40 @@
 **Summary**
-- Fix meets goal: dark-mode arrow inherits text color and remains visible.
-- Scope is minimal (SCSS + existing Angular component styles), no behavior changes.
+- The fix correctly synchronizes programmatic values into the native select so projected <option> elements are reliably read and the label reflects the selected value.
 
-**What I Checked**
-- Native/select styles use inline SVG caret with `stroke='currentColor'`: frontend/src/styles/pages/_base.scss:102
-- Dark-mode sets `color` so caret inherits high-contrast text: frontend/src/styles/pages/_base.scss:164
-- Caret positioning and spacing remain modern and centered: frontend/src/styles/pages/_base.scss:85, frontend/src/styles/pages/_base.scss:101
-- Custom Angular select icon inherits `currentColor`: frontend/src/app/shared/ui/select/ui-select.ts:122
-- Inline SVGs for trigger/check use `stroke='currentColor'`: frontend/src/app/shared/ui/select/ui-select.ts:56, frontend/src/app/shared/ui/select/ui-select.ts:86
-- Multi/size variants hide caret: frontend/src/styles/pages/_base.scss:154
+**Correctness**
+- `writeValue` mirrors the control value into the native select and then updates the label: frontend/src/app/shared/ui/select/ui-select.ts:240. This resolves the “no options/empty label” perception on init.
+- Options are built from projected `<option>` nodes and kept up to date via `MutationObserver`, with label sync after updates: frontend/src/app/shared/ui/select/ui-select.ts:216, frontend/src/app/shared/ui/select/ui-select.ts:220.
+- Selection logic is normalized for both single and multiple; label derives from current options and selected values: frontend/src/app/shared/ui/select/ui-select.ts:323.
+- Click, keyboard, and change paths maintain internal/native sync and propagate changes to the form control: frontend/src/app/shared/ui/select/ui-select.ts:266, frontend/src/app/shared/ui/select/ui-select.ts:293, frontend/src/app/shared/ui/select/ui-select.ts:362.
 
-**Findings**
-- In dark mode, `color: var(--text-primary)` ensures both text and caret use the same, high-contrast token: frontend/src/styles/pages/_base.scss:167
-- The caret data-URI explicitly uses `currentColor` in both normal and dark modes, so it follows theme text color: frontend/src/styles/pages/_base.scss:102, frontend/src/styles/pages/_base.scss:174
-- The Angular UI select trigger icon is styled with `color: currentColor`; SVG uses `stroke='currentColor'`, so it tracks text color as intended: frontend/src/app/shared/ui/select/ui-select.ts:122, frontend/src/app/shared/ui/select/ui-select.ts:56
+**Readability**
+- The component maintains a clean separation of concerns: option reading, value/label sync, and UI event handling.
+- Public `onTouched` is clearly annotated for template usage; other callbacks are private and typed.
+- Template and styles are cohesive; comments succinctly document intent.
 
 **Edge Cases**
-- Disabled state reduces opacity for the entire control, which will also dim the caret—consistent and acceptable: frontend/src/styles/pages/_base.scss:138
-- Multi-select/size>1 removes the caret; unaffected by the change: frontend/src/styles/pages/_base.scss:154
-- Focus-visible and hover states preserved in both light/dark modes: frontend/src/styles/pages/_base.scss:127, frontend/src/styles/pages/_base.scss:177, frontend/src/styles/pages/_base.scss:186
+- Multiple select: `writeValue` selects matching native options; label shows joined labels: frontend/src/app/shared/ui/select/ui-select.ts:247, frontend/src/app/shared/ui/select/ui-select.ts:331.
+- No options: active index defaults to 0; guarded usage prevents crashes, though -1 could be a cleaner sentinel (see suggestion).
+- Async option population: deferred initial read and observer-based updates handle late-projected options without console errors.
 
-**Lightweight Suggestions (Optional)**
-- High-contrast mode: consider hiding the background-image caret to avoid UA overrides causing poor visibility similar to the custom icon rule already present: add an equivalent `@media (forced-colors: active)` rule for `.app-select, select.form-control`.
-- RTL: current `background-position: right 1.6rem center` is physical; if RTL is needed, add a small `[dir='rtl']` override to position the caret on the left.
+**Usages Checked**
+- All current usages correctly project `<option>` children:
+  - frontend/src/app/features/admin/page.html:129
+  - frontend/src/app/features/admin/page.html:218
+  - frontend/src/app/features/admin/page.html:231
+  - frontend/src/app/features/admin/page.html:423
+  - frontend/src/app/features/reports/reports-page.component.html:255
+  - frontend/src/app/features/reports/reports-page.component.html:274
+- Placeholders are provided where needed; no refactor to a different API is required.
 
-**Verdict**
-- Approve. The dark-mode arrow now matches the text color via `currentColor`, fixing visibility while keeping the change minimal and centralized.
+**Risks / Open Questions**
+- Inert support on the hidden native select is broadly available, but older browsers may behave inconsistently. If issues arise, consider removing `inert` and rely on `aria-hidden` + styling.
+- No support for optgroups or custom templating beyond simple `<option disabled>`; confirm that’s acceptable for all current use cases.
+- For values not present in options (e.g., persisted “unknown” model), the label renders empty until the option appears. Current settings often inject an explicit `<option>` for the saved value (admin model picker), which is good.
+
+**Suggestions (Non-blocking)**
+- Consider setting `activeIndex` to -1 when `options.length === 0` for semantic clarity: frontend/src/app/shared/ui/select/ui-select.ts:347.
+- Add `aria-labelledby` on the panel, pointing to the trigger, and optionally `aria-activedescendant` on the trigger when open for slightly improved a11y.
+- In `onDocClick`, rename `host` to `target` for clarity: frontend/src/app/shared/ui/select/ui-select.ts:355.
+
+Overall, the implementation is correct, minimal, and aligns with existing usage patterns. No further call-site changes are needed.

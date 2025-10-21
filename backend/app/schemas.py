@@ -66,6 +66,7 @@ class AuthCredentials(BaseModel):
 class RegistrationRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
+    nickname: str
 
     @field_validator("email", mode="before")
     @classmethod

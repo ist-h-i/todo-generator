@@ -1,0 +1,4 @@
+- [ ] Validate inputs against schema
+- [ ] Produce Evidence with references
+- [ ] Propose recipe updates if recurring
+- [ ] Report risks and mitigation

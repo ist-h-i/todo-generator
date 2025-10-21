@@ -3,8 +3,8 @@
 Generate per-class/component recipe stubs for Angular TypeScript sources.
 
 Output location:
-- docs/recipes/classes/<mirrored path from repo root>/
-- One file per exported class: <ClassName>.recipe.md
+- Co-located next to the TypeScript source file directory.
+- One file per exported class in the same directory: <ClassName>.recipe.md
 
 Scope (default):
 - frontend/src/app/**/*.ts (excluding *.spec.ts and test bootstrap files)
@@ -27,7 +27,7 @@ import re
 from typing import Iterable, List, Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CLASSES_RECIPES_ROOT = REPO_ROOT / "docs" / "recipes" / "classes"
+CLASSES_RECIPES_ROOT = None  # deprecated central folder; retained for context
 
 
 def rel_to_repo(path: Path) -> Path:
@@ -156,9 +156,12 @@ def filter_public_api(body: str) -> Tuple[List[str], List[str]]:
 
 
 def recipe_path_for(ts_file: Path, class_name: str) -> Path:
-    # Mirror the directory path under docs/recipes/classes/, with one md per class
-    rel_dir = rel_to_repo(ts_file).parent  # drop file name
-    return CLASSES_RECIPES_ROOT / rel_dir / f"{class_name}.recipe.md"
+    """Place class recipe next to the TS file's directory.
+
+    Example: frontend/src/app/core/api/status-reports-gateway.ts ->
+    frontend/src/app/core/api/StatusReportsGateway.recipe.md
+    """
+    return ts_file.parent / f"{class_name}.recipe.md"
 
 
 def generate_recipe_content(ts_file: Path, class_name: str, methods: List[str], props: List[str]) -> str:
@@ -244,4 +247,3 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

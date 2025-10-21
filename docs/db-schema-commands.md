@@ -21,6 +21,7 @@ python scripts/bootstrap_database.py --database-url postgresql://username:passwo
 > **補足**: 外部キーの `ON DELETE` 動作はアプリケーションの期待値を保つため必ず有効化してください。SQLite を使用する場合は `PRAGMA foreign_keys = ON;` を忘れずに設定します。
 
 ## users
+
 ```sql
 CREATE TABLE users (
     id TEXT PRIMARY KEY,
@@ -42,6 +43,7 @@ CREATE INDEX ix_users_email ON users(email);
 ```
 
 ## session_tokens
+
 ```sql
 CREATE TABLE session_tokens (
     token TEXT PRIMARY KEY,
@@ -54,6 +56,7 @@ CREATE TABLE session_tokens (
 ```
 
 ## statuses
+
 ```sql
 CREATE TABLE statuses (
     id TEXT PRIMARY KEY,
@@ -71,6 +74,7 @@ CREATE TABLE statuses (
 ```
 
 ## error_categories
+
 ```sql
 CREATE TABLE error_categories (
     id TEXT PRIMARY KEY,
@@ -86,6 +90,7 @@ CREATE TABLE error_categories (
 ```
 
 ## daily_card_quotas
+
 ```sql
 CREATE TABLE daily_card_quotas (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -98,6 +103,7 @@ CREATE TABLE daily_card_quotas (
 ```
 
 ## workspace_templates
+
 ```sql
 CREATE TABLE workspace_templates (
     id TEXT PRIMARY KEY,
@@ -117,6 +123,7 @@ CREATE TABLE workspace_templates (
 ```
 
 ## improvement_initiatives
+
 ```sql
 CREATE TABLE improvement_initiatives (
     id TEXT PRIMARY KEY,
@@ -135,6 +142,7 @@ CREATE TABLE improvement_initiatives (
 ```
 
 ## cards
+
 ```sql
 CREATE TABLE cards (
     id TEXT PRIMARY KEY,
@@ -169,6 +177,7 @@ CREATE TABLE cards (
 ```
 
 ## labels
+
 ```sql
 CREATE TABLE labels (
     id TEXT PRIMARY KEY,
@@ -185,6 +194,7 @@ CREATE TABLE labels (
 ```
 
 ## card_labels
+
 ```sql
 CREATE TABLE card_labels (
     card_id TEXT NOT NULL,
@@ -196,6 +206,7 @@ CREATE TABLE card_labels (
 ```
 
 ## analytics_snapshots
+
 ```sql
 CREATE TABLE analytics_snapshots (
     id TEXT PRIMARY KEY,
@@ -212,6 +223,7 @@ CREATE TABLE analytics_snapshots (
 ```
 
 ## root_cause_analyses
+
 ```sql
 CREATE TABLE root_cause_analyses (
     id TEXT PRIMARY KEY,
@@ -230,6 +242,7 @@ CREATE TABLE root_cause_analyses (
 ```
 
 ## root_cause_nodes
+
 ```sql
 CREATE TABLE root_cause_nodes (
     id TEXT PRIMARY KEY,
@@ -249,6 +262,7 @@ CREATE TABLE root_cause_nodes (
 ```
 
 ## subtasks
+
 ```sql
 CREATE TABLE subtasks (
     id TEXT PRIMARY KEY,
@@ -274,6 +288,7 @@ CREATE TABLE subtasks (
 ```
 
 ## user_preferences
+
 ```sql
 CREATE TABLE user_preferences (
     user_id TEXT PRIMARY KEY,
@@ -288,6 +303,7 @@ CREATE TABLE user_preferences (
 ```
 
 ## comments
+
 ```sql
 CREATE TABLE comments (
     id TEXT PRIMARY KEY,
@@ -303,6 +319,7 @@ CREATE TABLE comments (
 ```
 
 ## activity_logs
+
 ```sql
 CREATE TABLE activity_logs (
     id TEXT PRIMARY KEY,
@@ -317,6 +334,7 @@ CREATE TABLE activity_logs (
 ```
 
 ## initiative_progress_logs
+
 ```sql
 CREATE TABLE initiative_progress_logs (
     id TEXT PRIMARY KEY,
@@ -332,6 +350,7 @@ CREATE TABLE initiative_progress_logs (
 ```
 
 ## suggested_actions
+
 ```sql
 CREATE TABLE suggested_actions (
     id TEXT PRIMARY KEY,
@@ -356,6 +375,7 @@ CREATE TABLE suggested_actions (
 ```
 
 ## status_reports
+
 ```sql
 CREATE TABLE status_reports (
     id TEXT PRIMARY KEY,
@@ -378,6 +398,7 @@ CREATE TABLE status_reports (
 ```
 
 ## status_report_cards
+
 ```sql
 CREATE TABLE status_report_cards (
     id TEXT PRIMARY KEY,
@@ -393,6 +414,7 @@ CREATE TABLE status_report_cards (
 ```
 
 ## status_report_events
+
 ```sql
 CREATE TABLE status_report_events (
     id TEXT PRIMARY KEY,
@@ -406,6 +428,7 @@ CREATE TABLE status_report_events (
 ```
 
 ## report_templates
+
 ```sql
 CREATE TABLE report_templates (
     id TEXT PRIMARY KEY,
@@ -421,6 +444,7 @@ CREATE TABLE report_templates (
 ```
 
 ## generated_reports
+
 ```sql
 CREATE TABLE generated_reports (
     id TEXT PRIMARY KEY,
@@ -436,6 +460,7 @@ CREATE TABLE generated_reports (
 ```
 
 ## saved_filters
+
 ```sql
 CREATE TABLE saved_filters (
     id TEXT PRIMARY KEY,
@@ -451,6 +476,7 @@ CREATE TABLE saved_filters (
 ```
 
 ## similarity_feedback
+
 ```sql
 CREATE TABLE similarity_feedback (
     id TEXT PRIMARY KEY,
@@ -466,6 +492,7 @@ CREATE TABLE similarity_feedback (
 ```
 
 ## competencies
+
 ```sql
 CREATE TABLE competencies (
     id TEXT PRIMARY KEY,
@@ -481,6 +508,7 @@ CREATE TABLE competencies (
 ```
 
 ## competency_criteria
+
 ```sql
 CREATE TABLE competency_criteria (
     id TEXT PRIMARY KEY,
@@ -499,6 +527,7 @@ CREATE TABLE competency_criteria (
 ```
 
 ## competency_evaluation_jobs
+
 ```sql
 CREATE TABLE competency_evaluation_jobs (
     id TEXT PRIMARY KEY,
@@ -523,6 +552,7 @@ CREATE TABLE competency_evaluation_jobs (
 ```
 
 ## competency_evaluations
+
 ```sql
 CREATE TABLE competency_evaluations (
     id TEXT PRIMARY KEY,
@@ -549,6 +579,7 @@ CREATE TABLE competency_evaluations (
 ```
 
 ## competency_evaluation_items
+
 ```sql
 CREATE TABLE competency_evaluation_items (
     id TEXT PRIMARY KEY,
@@ -567,6 +598,7 @@ CREATE TABLE competency_evaluation_items (
 ```
 
 ## daily_evaluation_quotas
+
 ```sql
 CREATE TABLE daily_evaluation_quotas (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -579,6 +611,7 @@ CREATE TABLE daily_evaluation_quotas (
 ```
 
 ## quota_defaults
+
 ```sql
 CREATE TABLE quota_defaults (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -590,6 +623,7 @@ CREATE TABLE quota_defaults (
 ```
 
 ## user_quota_overrides
+
 ```sql
 CREATE TABLE user_quota_overrides (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -604,6 +638,7 @@ CREATE TABLE user_quota_overrides (
 ```
 
 ## analysis_sessions
+
 ```sql
 CREATE TABLE analysis_sessions (
     id TEXT PRIMARY KEY,
@@ -624,6 +659,7 @@ CREATE TABLE analysis_sessions (
 ```
 
 ## appeal_generations
+
 ```sql
 CREATE TABLE appeal_generations (
     id TEXT PRIMARY KEY,
@@ -643,6 +679,7 @@ CREATE TABLE appeal_generations (
 ```
 
 ## api_credentials
+
 ```sql
 CREATE TABLE api_credentials (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

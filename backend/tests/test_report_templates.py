@@ -8,7 +8,10 @@ assertions = TestCase()
 def _register_user(
     client: TestClient, email: str, password: str = "SecurePass123!",  # noqa: S107
 ) -> dict:
-    response = client.post("/auth/register", json={"email": email, "password": password})
+    response = client.post(
+        "/auth/register",
+        json={"email": email, "password": password, "nickname": "Admin"},
+    )
     assertions.assertTrue(response.status_code == 201, response.text)
     return response.json()
 

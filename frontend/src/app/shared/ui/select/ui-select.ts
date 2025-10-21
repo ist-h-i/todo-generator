@@ -8,6 +8,7 @@ import {
   forwardRef,
   Input,
   AfterViewInit,
+  OnDestroy,
 } from '@angular/core';
 import {
   ControlValueAccessor,
@@ -178,7 +179,7 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
+export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, OnDestroy {
   @Input() id?: string;
   @Input() name?: string;
   @Input() multiple: boolean | null = null;
@@ -199,14 +200,57 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   private onChange: (val: string | string[] | null) => void = () => {};
   // Must be public to be callable from the template (blur) handler
   public onTouched: () => void = () => {};
+  private mo?: MutationObserver;
 
   ngAfterViewInit(): void {
-    this.readOptions();
-    this.syncLabelFromValue();
+    // Defer initial read to ensure projected <option> nodes render
+    const defer: (fn: () => void) => void =
+      typeof queueMicrotask === 'function'
+        ? queueMicrotask
+        : (fn) => setTimeout(fn, 0);
+    defer(() => {
+      this.readOptions();
+      this.syncLabelFromValue();
+    });
+
+    // Observe changes to projected <option> elements (added/removed/updated)
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (sel && typeof MutationObserver !== 'undefined') {
+      this.mo = new MutationObserver(() => {
+        this.readOptions();
+        this.syncLabelFromValue();
+        this.ensureActiveIndex();
+      });
+      this.mo.observe(sel, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.mo) {
+      this.mo.disconnect();
+      this.mo = undefined;
+    }
   }
 
   writeValue(obj: any): void {
     this.value = obj as string | string[] | null;
+    // Reflect programmatic value into the native <select> so that
+    // initial state stays in sync and labels resolve correctly even
+    // before the first user interaction.
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (sel) {
+      if (this.multiple) {
+        const selected = Array.isArray(this.value) ? this.value.map(String) : [];
+        Array.from(sel.options).forEach((o) => (o.selected = selected.includes(o.value)));
+      } else {
+        sel.value = this.value != null ? String(this.value) : '';
+      }
+    }
     this.syncLabelFromValue();
   }
   registerOnChange(fn: (val: string | string[] | null) => void): void {
