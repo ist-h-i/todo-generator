@@ -147,12 +147,8 @@
                       cdkDrag
                       [cdkDragData]="card.id"
                       [cdkDragDisabled]="groupingSignal() !== 'status'"
-                      [style.borderColor]="statusColor(card.statusId) + '55'"
-                      [style.background]="
-                        'linear-gradient(180deg, ' +
-                        statusColor(card.statusId) +
-                        '18 0%, var(--surface-layer-1) 55%, var(--surface-layer-2) 100%)'
-                      "
+                      [style.borderColor]="statusBorderColor(card.statusId)"
+                      [style.background]="cardBackground(card.statusId)"
                       [class.board-card--compact]="isCardResolved(card)"
                       [class.board-card--active]="isActiveCard(card.id)"
                     >
@@ -231,7 +227,7 @@
           >
             <header class="board-column__header">
               <div>
-                <h3 class="board-column__title" [style.color]="column.accent">
+                <h3 class="board-column__title" [style.color]="columnAccent(column)">
                   {{ column.title }}
                 </h3>
               </div>
@@ -246,12 +242,8 @@
                     class="board-card subtask-card surface-card flex min-w-0 flex-col gap-3 px-4 py-4"
                     cdkDrag
                     [cdkDragData]="subtask"
-                    [style.borderColor]="column.accent + '55'"
-                    [style.background]="
-                      'linear-gradient(180deg, ' +
-                      column.accent +
-                      '18 0%, var(--surface-layer-1) 55%, var(--surface-layer-2) 100%)'
-                    "
+                    [style.borderColor]="columnBorderColor(column)"
+                    [style.background]="columnBackground(column)"
                     [class.subtask-card--highlight]="subtask.highlight"
                     [class.subtask-card--compact]="subtask.isCompact"
                   >

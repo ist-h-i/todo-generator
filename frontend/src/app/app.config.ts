@@ -13,7 +13,11 @@ import { errorInterceptor } from '@core/api/error.interceptor';
  */
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideZoneChangeDetection({
+      eventCoalescing: true,
+      runCoalescing: true,
+      polyfill: false,
+    }),
     provideRouter(
       appRoutes,
       withComponentInputBinding(),

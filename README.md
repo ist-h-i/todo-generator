@@ -199,4 +199,3 @@ To recover:
 3. **Upgrade the SDK for `v1` support**  EInstall the latest `google-generativeai` release so you can target the `v1` API and restore access to the Flash families if you are pinned to older runtimes.
 
 Re-run the `list_models()` check after each change to confirm the API now exposes the desired model before retrying the `/analysis` workflow.
-

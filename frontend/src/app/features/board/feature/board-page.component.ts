@@ -1,11 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  signal,
-} from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
@@ -24,7 +17,7 @@ import {
 } from '@core/models';
 import { createSignalForm } from '@lib/forms/signal-forms';
 
-const DEFAULT_STATUS_COLOR = '#94a3b8';
+const DEFAULT_STATUS_COLOR = 'var(--text-muted)';
 
 interface QuickFilterOption {
   readonly id: BoardQuickFilter;
@@ -110,10 +103,10 @@ interface SubtaskColumnView {
 }
 
 const SUBTASK_STATUS_META: readonly SubtaskStatusMeta[] = [
-  { id: 'todo', title: '未着手', accent: '#94a3b8' },
-  { id: 'in-progress', title: '進行中', accent: '#2563eb' },
-  { id: 'done', title: '完了', accent: '#16a34a' },
-  { id: 'non-issue', title: 'NonIssue', accent: '#f59e0b' },
+  { id: 'todo', title: '未着手', accent: 'var(--text-muted)' },
+  { id: 'in-progress', title: '進行中', accent: 'var(--accent)' },
+  { id: 'done', title: '完了', accent: 'var(--success)' },
+  { id: 'non-issue', title: 'NonIssue', accent: 'var(--warning)' },
 ];
 
 const SUBTASK_STATUS_META_LOOKUP = new Map(
@@ -136,7 +129,9 @@ export class BoardPageComponent {
   private readonly workspace = inject(WorkspaceStore);
 
   public constructor() {
-    void this.workspace.refreshWorkspaceData();
+    afterNextRender(() => {
+      void this.workspace.refreshWorkspaceData();
+    });
   }
 
   public readonly subtaskStatusOptions = SUBTASK_STATUS_META;
@@ -701,12 +696,28 @@ export class BoardPageComponent {
   public readonly isActiveCard = (cardId: string): boolean =>
     this.workspace.selectedCardId() === cardId;
 
-  public readonly statusColor = (statusId: string): string => {
-    const status = this.statusesByIdSignal().get(statusId);
-    return status?.color ?? DEFAULT_STATUS_COLOR;
-  };
+  private readonly mixWithTransparency = (color: string, ratio: number): string =>
+    `color-mix(in srgb, ${color} ${Math.round(ratio * 100)}%, transparent)`;
 
-  public readonly columnAccent = (column: BoardColumnView): string => column.accent;
+  private readonly resolveAccent = (color?: string): string => color ?? DEFAULT_STATUS_COLOR;
+
+  public readonly statusColor = (statusId: string): string =>
+    this.resolveAccent(this.statusesByIdSignal().get(statusId)?.color);
+
+  public readonly statusBorderColor = (statusId: string): string =>
+    this.mixWithTransparency(this.statusColor(statusId), 0.35);
+
+  public readonly cardBackground = (statusId: string): string =>
+    `linear-gradient(180deg, ${this.mixWithTransparency(this.statusColor(statusId), 0.18)} 0%, var(--surface-layer-1) 55%, var(--surface-layer-2) 100%)`;
+
+  public readonly columnAccent = (column: BoardColumnView): string =>
+    this.resolveAccent(column.accent);
+
+  public readonly columnBorderColor = (column: BoardColumnView): string =>
+    this.mixWithTransparency(this.columnAccent(column), 0.35);
+
+  public readonly columnBackground = (column: BoardColumnView): string =>
+    `linear-gradient(180deg, ${this.mixWithTransparency(this.columnAccent(column), 0.18)} 0%, var(--surface-layer-1) 55%, var(--surface-layer-2) 100%)`;
 
   public readonly statusName = (statusId: string): string => {
     const status = this.statusesByIdSignal().get(statusId);
@@ -717,7 +728,7 @@ export class BoardPageComponent {
     SUBTASK_STATUS_META_LOOKUP.get(status)?.title ?? status;
 
   public readonly subtaskStatusAccent = (status: SubtaskStatus): string =>
-    SUBTASK_STATUS_META_LOOKUP.get(status)?.accent ?? DEFAULT_STATUS_COLOR;
+    this.resolveAccent(SUBTASK_STATUS_META_LOOKUP.get(status)?.accent);
 
   public readonly priorityLabel = (priority: Card['priority']): string =>
     PRIORITY_LABEL_LOOKUP[priority] ?? priority;
