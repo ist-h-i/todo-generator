@@ -1,34 +1,45 @@
 **背景**
-- app-ui-select 内に書いた `<option>` が表示されない事象を確認。各画面では `<app-ui-select>…<option>…</option></app-ui-select>` の投影パターンで利用しており、API 自体は統一されているが、初期化時の値とネイティブ select 状態の同期不足により、ラベルや選択状態が空に見えるケースが発生していました。
+- Introduced “Channels” for team-scoped collaboration while keeping non-board modules untouched.
+- Each user has a private channel; cards and subtasks are visible to channel members.
+- Card creation now requires a channel; default is the caller’s private channel to preserve UX.
 
 **変更概要**
-- 既存の投影 `<option>` パターンを維持（API 変更なし・呼び出し側変更なし）。
-- `writeValue` でフォーム値をネイティブ `<select>` にも反映し、その後にラベル同期を実行するよう強化。
-  - 単一/複数選択の両方で、プログラム的な値設定時に UI と内部状態が乖離しないように修正。
-- 変更ファイル
-  - `frontend/src/app/shared/ui/select/ui-select.ts:240` 付近（`writeValue` 内でネイティブ select の選択状態を更新後、`syncLabelFromValue()` を実行）
+- Data model: Added `channels` and `channel_members`; added `cards.channel_id` (backfilled; intended non-null), with a future index on `cards.channel_id`.
+- Migrations: Idempotent startup creates private channels and owner memberships per user; backfills existing cards to creators’ private channels.
+- Backend:
+  - Scoped all card/subtask queries and mutations to channels where caller is a member.
+  - `POST /cards` requires membership; defaults to private channel if omitted.
+  - Block changing `channel_id` on update (409) to prevent uncontrolled cross-channel moves.
+  - Channels API: `GET /channels/mine`, `POST /channels/{id}/invite`, `POST /channels/{id}/leave`, `POST /channels/{id}/kick`.
+  - On registration: auto-create private channel + owner membership.
+- Schemas/Docs: Card DTOs include `channel_id`; brief docs note channel requirement and defaults.
+- UI: No breaking changes; channel selector deferred to minimize scope.
 
 **影響**
-- 画面表示: すべての app-ui-select でオプションが確実に表示され、初期選択も正しく反映。
-- 互換性: 既存テンプレートやフォーム連携（`formControlName` 等）を維持。API 変更なし・副作用最小。
-- パフォーマンス/安定性: 既存の MutationObserver ベースのオプション同期と整合。エラーメッセージやテンプレート警告なし想定。
+- Visibility: Users now see only cards in channels they belong to; prior implicit sharing may narrow.
+- Permissions: Any member can invite; kick is owner-only; sole owner cannot leave.
+- API semantics: Some endpoints may return 403 (not a member) or 409 (channel move blocked).
+- Performance: Additional channel filter predicate; add index on `cards.channel_id` when needed.
 
 **検証**
-- 手動確認（代表ケース）
-  - 管理系: レベル選択（初級/中級）で初期値・選択反映、ラベル表示を確認。
-  - 手動判定: ユーザ/コンピテンシーの動的リストが表示・選択可能。
-  - Gemini API キー: モデル選択が保存値/既知モデルを表示し選択保持。
-  - レポート: ステータス/優先度でオプション表示・選択保持。
-- 共通確認: 初期描画直後のオプション表示、選択変更の双方向同期、コンソールエラーなし。
+- Channels
+  - `GET /channels/mine` returns the private channel after registration.
+  - Invite adds membership; leave removes self (blocked if sole owner); kick works for owner.
+- Cards
+  - Create without `channel_id` → 201 with default private channel; response includes `channel_id`.
+  - Create with non-member `channel_id` → 403.
+  - List endpoints return only cards from member channels.
+  - Update with `channel_id` present → 409.
+- Subtasks
+  - Non-owner channel members can update/delete subtasks on member-channel cards.
+- Migration
+  - Existing users have private channels and memberships.
+  - All existing cards have non-null `channel_id` pointing to the creator’s private channel (post-backfill).
 
 **レビュー観点**
-- 正しさ: `writeValue` がネイティブ select と内部ラベルの同期を常に確保できているか（単一/複数）。
-- 回帰: 既存の `<option disabled>` 等の基本属性が維持されるか。
-- アクセシビリティ: パネル/トリガの ARIA 連携の改善余地（任意）。
-- 余剰変更の有無: 呼び出し側テンプレートの不必要な改変が入っていないこと。
-
-【Residual Risks / Open Questions】
-- 旧ブラウザでの `inert` の挙動差異（必要なら `aria-hidden` とスタイル運用へ切替検討）。
-- 未知の保存値（オプション未提供時）の表示ポリシー。現状はオプション出現後に同期される前提。
-- 高度機能（optgroup/カスタムテンプレート/ツールチップ等）の要否。現実装は基本 `<option>` のみ想定。
-- i18n 方針（現状は静的文字列維持）。翻訳キー化の要否があれば別途対応。
+- Authorization coverage: Confirm every card/subtask endpoint enforces channel membership.
+- Ownership edge cases: Sole-owner leave policy and future owner transfer.
+- Invitation flow: Identifier (email/username), uniqueness, and lack of approval—align with product intent.
+- Migration impact: Previously shared artifacts potentially narrowed—confirm acceptability or exceptions.
+- Indexing: Add/verify `cards.channel_id` index for list performance at scale.
+- API/UI contract: Frontend tolerance to added `channel_id`; timing for a minimal channel selector.

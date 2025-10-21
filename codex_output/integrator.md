@@ -1,45 +1,56 @@
-I’ve verified the selector styles and the shared Select component, and unified them with inputs. No React/shadcn was introduced (Angular repo).
+**Integration Summary**
 
-**What Changed**
-- Native selects `.app-select, select.form-control`
-  - Always-visible chevron using `currentColor`; vertically centered, with padding to match inputs: frontend/src/styles/pages/_base.scss:85
-  - Hover keeps same background as idle (no white flash); subtle border/shadow feedback: frontend/src/styles/pages/_base.scss:118
-  - Focus/disabled states match inputs; multi/size>1 hides caret: frontend/src/styles/pages/_base.scss:128, frontend/src/styles/pages/_base.scss:155
-  - Dark theme parity; chevron inherits text color for contrast: frontend/src/styles/pages/_base.scss:165
-- Shared Angular Select trigger
-  - Trigger composes input styles; icon element uses `currentColor` (visible at rest, not hover-gated): frontend/src/app/shared/ui/select/ui-select.ts:34, frontend/src/app/shared/ui/select/ui-select.ts:122
-  - Dark mode: trigger text set to `var(--text-primary)` so icon matches: frontend/src/app/shared/ui/select/ui-select.ts:169
-  - Modernized option panel (rounded, shadowed, clear hover/selected/active): frontend/src/app/shared/ui/select/ui-select.ts:127
+- Channels model, membership, and card scoping are fully wired across models, migrations, routers, and schemas.
+- Startup migrations create channel tables, backfill private channels/memberships, and set `cards.channel_id`; backend enforces channel membership on reads/writes.
+- New users auto‑receive a private channel; card creation defaults to it if no channel is specified.
 
-**Why This Fixes The Report**
-- Hover turning white: hover now uses the same base background as inputs; only border/shadow adjust, maintaining consistency.
-- Icon invisible until hover: chevron is always present (native via background-image; custom via inline SVG) and inherits text color, so it remains visible in both themes.
+**What I Verified**
 
-**How To Verify**
-- Light/dark themes, check:
-  - Idle/hover/focus-visible/disabled match text inputs.
-  - Chevron is visible at rest and matches text color.
-  - Multi/size>1 variants show no chevron and proper padding.
-- Pages using both forms:
-  - Settings: frontend/src/app/features/settings/page.html:249, frontend/src/app/features/settings/page.html:428
-  - Board: frontend/src/app/features/board/page.html:565, frontend/src/app/features/board/page.html:730
-  - Reports: frontend/src/app/features/reports/reports-page.component.html:255, frontend/src/app/features/reports/reports-page.component.html:274
-  - Custom component usage: frontend/src/app/features/admin/page.html:129
+- Models
+  - `Card.channel_id` FK to channels: backend/app/models.py:123
+  - `Channel` and `ChannelMember` with relationships: backend/app/models.py:257, backend/app/models.py:272
+- Migrations
+  - Create `channels`/`channel_members`: backend/app/migrations.py:302
+  - Add `cards.channel_id`: backend/app/migrations.py:371
+  - Backfill private channels + memberships + card channel: backend/app/migrations.py:392
+  - Wired in startup sequence: backend/app/migrations.py:947
+- Routers
+  - Channels API: mine/invite/leave/kick: backend/app/routers/channels.py:11, backend/app/routers/channels.py:35, backend/app/routers/channels.py:73, backend/app/routers/channels.py:105
+  - Cards scoped to member channels: backend/app/routers/cards.py:52, backend/app/routers/cards.py:71
+  - Create card requires membership or defaults to private channel: backend/app/routers/cards.py:491, backend/app/routers/cards.py:498
+  - Updating `channel_id` is blocked (MVP safety): backend/app/routers/cards.py:570
+  - Subtasks authorized via channel membership: backend/app/routers/cards.py:685, backend/app/routers/cards.py:734
+  - Router inclusion: backend/app/main.py:185
+- Auth
+  - Registration auto-creates private channel + owner membership: backend/app/routers/auth.py:60, backend/app/routers/auth.py:63
+- Schemas/Docs
+  - Card DTOs include `channel_id`; channel DTOs present: backend/app/schemas.py:283, backend/app/schemas.py:310, backend/app/schemas.py:695
+  - Docs note channels + default behavior: docs/governance/development-governance-handbook.md:21, docs/guidelines/angular-coding-guidelines.md:33
 
-**Paths (Angular Repo)**
-- Components: frontend/src/app/shared/ui
-- Styles: frontend/src/styles/pages/_base.scss
+**Behavioral Outcomes**
 
-**About The Provided React/shadcn Select**
-- This repo is Angular. Introducing React/shadcn and Radix would be high-impact and outside the “minimal change” constraint.
-- If you were integrating in a React + shadcn + Tailwind + TS app:
-  - Default components path: `/components/ui` (create it to keep shadcn imports consistent).
-  - Add `components/ui/select.tsx` and `components/ui/demo.tsx` from your snippet; add `components/ui/label.tsx` from “originui/label”.
-  - Install: `@radix-ui/react-select @radix-ui/react-icons`.
-  - Ensure Tailwind and TS are configured; shadcn CLI scaffolds typical structure.
+- Reads and writes are limited to channels where the caller is a member.
+- Card creation without `channel_id` succeeds and stores the private channel.
+- Attempting to move a card across channels via update returns 409.
+- Members can invite; owners can kick; sole owner cannot leave.
 
-**Optional (low risk)**
-- High-contrast mode: hide background-image chevron for native selects.
-  - Add to `frontend/src/styles/pages/_base.scss`: `@media (forced-colors: active) { .app-select, select.form-control { background-image: none; } }`
+**Residual Risks / Follow‑ups**
 
-If any specific page still shows a white hover or missing icon, point me to the file/path and I’ll align that instance.
+- `cards.channel_id` is nullable (by design for safe migration). Optionally enforce NOT NULL later.
+- No DB index on `cards.channel_id`; add if list queries grow.
+- Invitation uses email and auto‑joins; no approval/notifications yet.
+- No cross‑channel move policy (explicitly blocked).
+
+**Verification Steps**
+
+- Start backend: `uvicorn app.main:app --reload --app-dir backend`
+- Channels
+  - `GET /channels/mine` returns private channel after register.
+  - `POST /channels/{id}/invite { email }` adds member; `leave` removes; `kick` owner‑only.
+- Cards
+  - `POST /cards` without `channel_id` → created with private channel; response has `channel_id`.
+  - `POST /cards` with non‑member `channel_id` → 403.
+  - `GET /cards` only returns member‑channel cards.
+  - `PUT /cards/{id}` with `channel_id` → 409.
+- Subtasks
+  - As non‑owner member, `PUT`/`DELETE` subtask on a member‑channel card succeeds.

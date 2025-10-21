@@ -12,15 +12,17 @@ Clarify product goals and constraints for the todo-generator project before plan
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
-- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
+- Anchor to the [Agent Operating Guide](../.codex/AGENTS.md) for workflow sequencing, log structure, and recipe obligations before acting.
+- Use [docs/README.md](../docs/README.md) and [docs/INDEX.md](../docs/INDEX.md) to locate feature specs, architecture context, and governance addenda relevant to the task.
+- Follow the [AI-Driven Development Guidelines](../.codex/policies/ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](../docs/governance/development-governance-handbook.md) and [Angular Coding & Design Guidelines](../docs/guidelines/angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
 - A structured requirements summary covering functional, non-functional, and out-of-scope items.
 - Open questions or assumptions that require stakeholder confirmation.
 - Risk notes highlighting dependencies, data sensitivity, or compliance considerations.
-- A Markdown dossier stored at `workflow/requirements-analyst/YYYYMMDD-HHMM-<task-slug>.md` that includes the above content, clearly labeled sections, and traceability to supporting docs. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown dossier stored at `workflow/requirements-analyst/YYYYMMDD-HHMM-<task-slug>.md` that includes the above content, clearly labeled sections, and traceability to supporting docs. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files.
 
 ## Guardrails
 
@@ -35,6 +37,4 @@ Clarify product goals and constraints for the todo-generator project before plan
 2. Identify actors, user flows, data inputs/outputs, and success criteria.
 3. Document non-functional needs (performance targets, accessibility, localization, observability) when implied or explicit.
 4. Flag gaps, ambiguities, or conflicts that must be resolved before implementation planning.
-5. Deliver a concise summary suitable for the Planner to consume, including explicit references to any existing co-located `*.recipe.md` entries that provide background and noting where new recipe coverage will be required. Call out the expected recipe owners and specify the variable meanings, usage locations, function/class responsibilities, and UI touchpoints that future recipes must document. Capture these references inside the dossier’s Recipe Updates section.
-
-
+5. Deliver a concise summary suitable for the Planner to consume, including explicit references to any existing co-located `*.recipe.md` entries that provide background and noting where new recipe coverage will be required. Call out the expected recipe owners and specify the variable meanings, usage locations, function/class responsibilities, and UI touchpoints that future recipes must document. Capture these references inside the dossier's Recipe Updates section.
