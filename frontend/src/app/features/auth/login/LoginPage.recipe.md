@@ -1,6 +1,6 @@
-# Recipe: LoginPage
+# Recipe: LoginPageComponent
 
-Source: `frontend/src/app/features/auth/login/page.ts`
+Source: `frontend/src/app/features/auth/login/feature/login-page.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

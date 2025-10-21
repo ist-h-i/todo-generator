@@ -1,6 +1,6 @@
-# Recipe: SettingsPageComponent
+# Recipe: HoverMessageComponent
 
-Source: `frontend/src/app/features/settings/feature/settings-page.component.ts`
+Source: `frontend/src/app/features/shell/ui/hover-messages/hover-message.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

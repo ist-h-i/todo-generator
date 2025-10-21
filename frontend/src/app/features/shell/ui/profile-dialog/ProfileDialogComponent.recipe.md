@@ -1,6 +1,6 @@
-# Recipe: SettingsPageComponent
+# Recipe: ProfileDialogComponent
 
-Source: `frontend/src/app/features/settings/feature/settings-page.component.ts`
+Source: `frontend/src/app/features/shell/ui/profile-dialog/profile-dialog.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

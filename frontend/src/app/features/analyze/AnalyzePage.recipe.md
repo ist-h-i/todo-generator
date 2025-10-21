@@ -1,6 +1,6 @@
-# Recipe: AnalyzePage
+# Recipe: AnalyzePageComponent
 
-Source: `frontend/src/app/features/analyze/page.ts`
+Source: `frontend/src/app/features/analyze/feature/analyze-page.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

@@ -1,6 +1,6 @@
-# Recipe: SettingsPageComponent
+# Recipe: ShellComponent
 
-Source: `frontend/src/app/features/settings/feature/settings-page.component.ts`
+Source: `frontend/src/app/features/shell/feature/shell.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.
