@@ -1,13 +1,15 @@
 {
   "steps": [
-    "coder"
+    "coder",
+    "code_quality_reviewer"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder"
+      "coder",
+      "code_quality_reviewer"
     ],
-    "notes": "Move hover/toast stack from top-right to bottom-right with minimal CSS changes. Keep newest-on-top ordering and existing animations. No service or API changes. Verify safe-area padding and z-index.",
-    "tests": "Manual: trigger warning/notice/system/loading toasts and confirm container is bottom-right, newest on top, entry drop-in and exit slide-right animations unchanged, timers behave per severity. Mobile: confirm safe-area inset prevents clipping; verify no overlap with bottom UI elements. Error: ensure it remains persistent at bottom-right until programmatically dismissed."
+    "notes": "Standardize on projected <option> usage and minimally harden UiSelectComponent to reflect writeValue to the native select to ensure label/options sync. All usages already pass <option> children; only verify placeholders and bindings. Keep scope minimal and avoid introducing a new [options] API.",
+    "tests": "Manual checks: 1) Admin > コンピテンシー登録: the レベル dropdown shows 初級/中級 and selects correctly; label updates. 2) Admin > 手動判定: ユーザ and コンピテンシー dropdowns show dynamic lists; selecting updates form controls. 3) Admin > Gemini API キー: モデル select shows saved or known models; selecting updates form. 4) Reports > 提案編集: ステータス and 優先度 dropdowns show options; selection persists. 5) Verify no Angular template errors; no console errors; focusing away triggers onTouched without exceptions."
   }
 }

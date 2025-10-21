@@ -1,49 +1,43 @@
-**English Summary**
-Implement a centralized hover/toast message manager that stacks notifications at the bottom-right of the screen (not top-right). Newest messages should appear above older ones within the stack. Messages auto-dismiss by severity; errors persist; loading persists until completion. Dismissal animates by sliding out to the right.
+**Summary**
+- Options inside `app-ui-select` are not rendered. Update all usages to pass options in the correct way expected by the component so they display properly.
 
-**Expected Behavior**
-- Placement: bottom-right fixed container; vertical stack.
-- Order: newest above older within the stack (confirm for bottom-right).
-- Entry: animated appearance; prior spec said “drop from top,” which may conflict with bottom anchoring; slide-in from right is acceptable if preferred.
-- Exit: slide-out to the right on dismissal.
-- Durations/colors:
-  - Error: persistent, red.
-  - Warning: 10s, yellow.
-  - Notice: 5s, green.
-  - System/Loading: ≥3s; loading persists until completion, blue.
-- Queue: in-memory array; ID-based control for update/dismiss.
+**Observed Problem**
+- Example shows `<option>` children inside `<app-ui-select>`, but they don’t appear. Likely the component doesn’t project `<option>` content or expects an input (e.g., `[options]`) instead.
+
+**Goal**
+- Ensure all `app-ui-select` instances render options correctly and integrate with forms (e.g., `formControlName`) without breaking existing behavior.
 
 **Assumptions**
-- Angular SPA; implement as a service + a single host component.
-- No new dependencies; CSS-only animations.
-- Use existing design tokens for colors/shadows.
-- Programmatic API supports show/update/dismiss, and loading returns an ID.
+- `app-ui-select` is an Angular component used within reactive forms.
+- The component either:
+  - expects an input like `[options]` with `{ label, value }[]`, or
+  - needs `<ng-content>`/`<ng-content select="option">` to support child `<option>` elements (currently missing).
+- The fix should prioritize updating call sites if a stable input API already exists; otherwise, minimally adjust the component to support the prevalent usage pattern.
 
 **Constraints**
-- Minimal changes; avoid replacing broad UI unless necessary.
-- Deliver a complete, self-contained outcome without new packages.
+- Avoid unnecessary changes; keep impact minimal.
+- Deliver a complete, self-contained fix across all usages of `app-ui-select`.
+- Maintain existing UI/UX and form bindings.
 
-**Unknowns**
-- Exact color/shadow tokens for severities.
-- Max visible toasts and overflow behavior.
-- Whether sticky errors need a close button.
-- A11y requirements (roles, aria-live, keyboard dismissal).
-- Hover-to-pause timers behavior.
-- Deduplication of repeated messages.
-- Interaction with existing notification mechanisms.
+**Acceptance Criteria**
+- All `app-ui-select` usages display the intended option list.
+- Form bindings (`ngModel`/`formControlName`) continue to work.
+- No console errors or template binding warnings.
+- Option labels/values match current expectations (e.g., “初級 (3段階)” for `junior`).
 
-**Clarifying questions**
-- With bottom-right placement, should new messages appear at the bottom (closest to the edge, pushing older upward) or remain “newest on top” as originally specified?
-- Entry animation preference at bottom-right: keep “drop from top,” switch to “slide-in from right,” or a subtle fade/scale-in?
-- Do sticky errors require a visible close button, or are they programmatic-only?
-- Cap visible toasts (e.g., 4) and queue the rest?
-- Any specific a11y requirements (aria-live level, roles, focus handling, keyboard dismissal)?
-- Should timers pause on hover/focus?
-- Dedup policy for identical repeated messages?
-- Any mobile safe-area padding and z-index layering constraints?
-- Should we replace or integrate with any existing notification system?
+**Potential Approaches (for planner)**
+- If component already supports `[options]`: refactor all usages to pass an options array and remove child `<option>` tags.
+- If not: add content projection support to `app-ui-select` to render child `<option>` elements with correct selection/value propagation.
 
-**Residual risks**
-- Visual mismatch if “drop from top” is retained at bottom-right; may look odd without confirmation.
-- Persistent errors can accumulate without a close affordance.
-- Overlap risks with other bottom-anchored UI (chat widgets, FABs, nav bars) without safe-area rules.
+**Residual Risks / Open Questions**
+- Unknown correct API of `app-ui-select` (does it support `[options]`, content projection, or both?).
+- Whether any usages rely on complex option templates (icons, tooltips) requiring `ng-template` support.
+- i18n handling for option labels—are labels hardcoded or pulled from translations?
+- Existence of disabled/optgroup/multiple-select requirements not shown in the example.
+
+**Clarifying Questions**
+- What is the intended API for `app-ui-select`: input-based options, content projection of `<option>`, or both?
+- Do we need to support advanced features (disabled options, groups, custom templates, multiple selection)?
+- Are there project-wide translation keys for these labels, or should we preserve current static strings?
+- Should we change the component or only update call sites to the intended API?
+- Can you confirm all locations where `app-ui-select` is used, or should we search the codebase comprehensively?

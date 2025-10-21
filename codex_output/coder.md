@@ -1,30 +1,46 @@
-**Summary**
-- Repositioned the global hover/toast stack from top-right to bottom-right with a minimal, CSS-only change.
-- Ordering, durations, and animations remain unchanged (newest on top; drop-in/slide-out).
+Here’s the minimal, targeted fix to ensure options render and stay in sync for all app-ui-select usages.
 
-**Files Updated**
-- frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss:1
-  - Switched logical inset from top to bottom to anchor the stack at the bottom-right:
-    - `inset-block-start` → `inset-block-end` in both base and desktop media query.
+What I Changed
+- Synced programmatic value into the native select in writeValue so the component’s internal label/options mapping initializes correctly and reliably reflects the selected state, even before user interaction.
 
-**Focused Diff**
-- frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss:4
-  - inset-block-start: clamp(16px, 12vh, 144px) → inset-block-end: clamp(16px, 12vh, 144px)
-- frontend/src/app/core/layout/hover-messages/hover-message-stack.component.scss:21
-  - inset-block-start: clamp(24px, 8vh, 160px) → inset-block-end: clamp(24px, 8vh, 160px)
+Files Updated
+- frontend/src/app/shared/ui/select/ui-select.ts:240
+  - Replacement block (focused change):
 
-**Behavior After Change**
-- Stack is fixed at bottom-right.
-- Newest messages still render above older ones within the stack.
-- Entry remains “drop in” (translateY from -14px to 0); exit remains slide-out to the right.
+    writeValue(obj: any): void {
+      this.value = obj as string | string[] | null;
+      // Reflect programmatic value into the native <select> so that
+      // initial state stays in sync and labels resolve correctly even
+      // before the first user interaction.
+      const sel = this.nativeSelectRef?.nativeElement;
+      if (sel) {
+        if (this.multiple) {
+          const selected = Array.isArray(this.value) ? this.value.map(String) : [];
+          Array.from(sel.options).forEach((o) => (o.selected = selected.includes(o.value)));
+        } else {
+          sel.value = this.value != null ? String(this.value) : '';
+        }
+      }
+      this.syncLabelFromValue();
+    }
 
-**How to Verify**
-- Run the app and trigger messages (warning/notice/system/loading).
-- Confirm the container appears bottom-right; timers and severities behave as before.
-- Ensure newest message appears above older ones in the bottom-right stack.
+Why
+- All current usages already project <option> children into app-ui-select, e.g.:
+  - frontend/src/app/features/admin/page.html:129, :218, :231, :423
+  - frontend/src/app/features/reports/reports-page.component.html:255, :274
+- The component builds its option list from the native select. Without reflecting initial form control values into the native select, the label/options sync could appear empty or stale, leading to “no options” being perceived in the UI. The patch keeps the native select state aligned on initialization and when programmatic updates occur.
 
-**Notes**
-- If needed later, we can add safe-area padding for devices with notches: e.g., `bottom: calc(16px + env(safe-area-inset-bottom))`. Currently kept minimal per constraints.
+No Call-Site Changes Needed
+- The existing usage pattern with projected <option> is correct for this component. No templates were modified.
 
-**Residual Risks / Open Questions**
-- Possible overlap with bottom-anchored UI (e.g., chat widgets, FABs, cookie bars). May require small spacing/safe-area adjustments if observed.
+How to Validate
+- Click each app-ui-select and verify the dropdown panel contains expected options:
+  - Admin > コンピテンシー登録: レベル shows 初級/中級 and selects properly.
+  - Admin > 手動判定: 対象ユーザ/コンピテンシー show dynamic lists and selection updates form values.
+  - Admin > Gemini API キー: 利用モデル list shows saved/known models; selection persists.
+  - Reports > 提案編集: ステータス and 優先度 show correct options; selection persists.
+- Confirm no console/template errors appear.
+
+Residual Risks / Open Questions
+- If any view relies on advanced option features (optgroup/custom templates), current implementation doesn’t support them; scope here is single-select with disabled/multiple/basic options.
+- Cross‑browser inert support is generally good, but if a legacy browser behaves oddly, removing inert from the hidden native select could be a fallback.

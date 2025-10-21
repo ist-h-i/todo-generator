@@ -239,6 +239,18 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, O
 
   writeValue(obj: any): void {
     this.value = obj as string | string[] | null;
+    // Reflect programmatic value into the native <select> so that
+    // initial state stays in sync and labels resolve correctly even
+    // before the first user interaction.
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (sel) {
+      if (this.multiple) {
+        const selected = Array.isArray(this.value) ? this.value.map(String) : [];
+        Array.from(sel.options).forEach((o) => (o.selected = selected.includes(o.value)));
+      } else {
+        sel.value = this.value != null ? String(this.value) : '';
+      }
+    }
     this.syncLabelFromValue();
   }
   registerOnChange(fn: (val: string | string[] | null) => void): void {
