@@ -1,6 +1,6 @@
-# Recipe: BoardPage
+# Recipe: BoardPageComponent
 
-Source: `frontend/src/app/features/board/page.ts`
+Source: `frontend/src/app/features/board/feature/board-page.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

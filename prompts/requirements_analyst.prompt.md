@@ -12,7 +12,8 @@ Clarify product goals and constraints for the todo-generator project before plan
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Clarify product goals and constraints for the todo-generator project before plan
 3. Document non-functional needs (performance targets, accessibility, localization, observability) when implied or explicit.
 4. Flag gaps, ambiguities, or conflicts that must be resolved before implementation planning.
 5. Deliver a concise summary suitable for the Planner to consume, including explicit references to any existing co-located `*.recipe.md` entries that provide background and noting where new recipe coverage will be required. Call out the expected recipe owners and specify the variable meanings, usage locations, function/class responsibilities, and UI touchpoints that future recipes must document. Capture these references inside the dossier’s Recipe Updates section.
+
+

@@ -1,47 +1,43 @@
-**Request Summary**
-- Unify the visual design of all selectors (dropdowns) with text inputs.
-- Fix hover: selector background turns white and diverges from inputs.
-- Ensure the down-arrow icon is always visible (not only on hover).
-- Maintain light/dark theme parity; in dark mode, icon color must match text color for contrast.
-- Keep the change minimal, centralized, and safe to apply app‑wide.
+**Summary**
+- Options inside `app-ui-select` are not rendered. Update all usages to pass options in the correct way expected by the component so they display properly.
+
+**Observed Problem**
+- Example shows `<option>` children inside `<app-ui-select>`, but they don’t appear. Likely the component doesn’t project `<option>` content or expects an input (e.g., `[options]`) instead.
+
+**Goal**
+- Ensure all `app-ui-select` instances render options correctly and integrate with forms (e.g., `formControlName`) without breaking existing behavior.
 
 **Assumptions**
-- The repository is Angular-based; existing selectors include native `<select>` and a shared Angular UI select.
-- A centralized SCSS/theming layer exists and should be the primary lever (no API/behavior changes).
-- Style tokens (color, border, radius, focus ring) already define the input look we should match.
-- The icon can inherit `currentColor` to remain in sync with text in both themes.
-- Paths used historically: components like `src/app/shared/ui`, styles like `src/styles` (or similar).
+- `app-ui-select` is an Angular component used within reactive forms.
+- The component either:
+  - expects an input like `[options]` with `{ label, value }[]`, or
+  - needs `<ng-content>`/`<ng-content select="option">` to support child `<option>` elements (currently missing).
+- The fix should prioritize updating call sites if a stable input API already exists; otherwise, minimally adjust the component to support the prevalent usage pattern.
 
 **Constraints**
-- Minimize scope and avoid template/TS changes unless necessary for correctness.
-- Deliver a complete, self-contained fix affecting all selectors consistently.
-- Complete within a small diff (single SCSS/CSS source preferred).
-- Do not introduce React/shadcn into an Angular codebase.
+- Avoid unnecessary changes; keep impact minimal.
+- Deliver a complete, self-contained fix across all usages of `app-ui-select`.
+- Maintain existing UI/UX and form bindings.
 
-**Unknowns**
-- Exact selector implementations in use (native `<select>`, custom Angular `ui-select`, Angular Material, or a mix).
-- The definitive input styling tokens to mirror (hover, focus, disabled, radius, border, bg).
-- Any page-specific overrides that could conflict with centralized updates.
-- RTL and high-contrast/forced-colors requirements.
-- Target browser support (e.g., allowance for modern CSS like color-mix).
+**Acceptance Criteria**
+- All `app-ui-select` usages display the intended option list.
+- Form bindings (`ngModel`/`formControlName`) continue to work.
+- No console errors or template binding warnings.
+- Option labels/values match current expectations (e.g., “初級 (3段階)” for `junior`).
 
-**Notes on React/shadcn Content Provided**
-- The provided React/shadcn/Tailwind/TypeScript Select component and instructions are not applicable to this Angular repo as-is.
-- If the project were React with shadcn:
-  - Default components path is `/components/ui`, styles under `/lib` and Tailwind config.
-  - Creating `/components/ui` standardizes imports and aligns with shadcn generators.
-  - Required deps: `@radix-ui/react-select`, `@radix-ui/react-icons`; Tailwind and TS setup required.
-- For this Angular repo, equivalent structure is typically `src/app/shared/ui` (components) and `src/styles` (global SCSS).
+**Potential Approaches (for planner)**
+- If component already supports `[options]`: refactor all usages to pass an options array and remove child `<option>` tags.
+- If not: add content projection support to `app-ui-select` to render child `<option>` elements with correct selection/value propagation.
+
+**Residual Risks / Open Questions**
+- Unknown correct API of `app-ui-select` (does it support `[options]`, content projection, or both?).
+- Whether any usages rely on complex option templates (icons, tooltips) requiring `ng-template` support.
+- i18n handling for option labels—are labels hardcoded or pulled from translations?
+- Existence of disabled/optgroup/multiple-select requirements not shown in the example.
 
 **Clarifying Questions**
-- Which selector variants must be covered: native `<select>`, custom `ui-select`, `mat-select`, or all?
-- Which input style tokens are the source of truth (bg, border, radius, hover, focus ring) to mirror exactly?
-- Do any modules/pages require opt-out from the unified appearance?
-- Are RTL and forced-colors (high contrast) modes in scope for this change?
-- What are the target browsers (to confirm acceptable CSS features)?
-
-**Proposed Acceptance Criteria**
-- Selector idle, hover, focus-visible, and disabled states match inputs for bg/border/radius.
-- Icon is always visible and uses `currentColor` to match text (light/dark).
-- Hover no longer turns selector background white; visual feedback matches inputs.
-- No behavior or API changes; minimal, centralized style diff; dark mode parity preserved.
+- What is the intended API for `app-ui-select`: input-based options, content projection of `<option>`, or both?
+- Do we need to support advanced features (disabled options, groups, custom templates, multiple selection)?
+- Are there project-wide translation keys for these labels, or should we preserve current static strings?
+- Should we change the component or only update call sites to the intended API?
+- Can you confirm all locations where `app-ui-select` is used, or should we search the codebase comprehensively?

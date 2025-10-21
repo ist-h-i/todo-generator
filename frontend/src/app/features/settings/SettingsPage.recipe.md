@@ -1,6 +1,6 @@
-# Recipe: SettingsPage
+# Recipe: SettingsPageComponent
 
-Source: `frontend/src/app/features/settings/page.ts`
+Source: `frontend/src/app/features/settings/feature/settings-page.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

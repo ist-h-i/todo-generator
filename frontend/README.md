@@ -35,14 +35,12 @@ The application is served at `http://localhost:4200/` with hot reload enabled.
 
 ## Project Structure Highlights
 
-- `src/app/core` – Domain models, state, API clients, and the application shell.
-- `src/app/core/layout` – Navigation shell and history sidebar primitives.
-- `src/app/features/analyze` – AI input analyzer components.
-- `src/app/features/board` – Board UI, card previews, and detail drawer.
-- `src/app/features/analytics` – Progress and distribution insights.
-- `src/app/features/settings` – Workspace configuration forms.
-- `src/app/lib/forms` – Signal-powered form utilities shared across features.
-
+- `src/app/core` — Domain models, authenticated API clients, and singleton state stores.
+- `src/app/features/*/feature` — Smart routed components that coordinate each feature flow.
+- `src/app/features/shell` — Navigation chrome, hover message infrastructure, and profile dialog.
+- `src/app/features/*/ui` — Presentational building blocks scoped to their feature.
+- `src/app/features/*/data-access` — Feature-scoped services and facades that call backend APIs.
+- `src/app/lib/forms` — Signal-powered form utilities shared across features.
 ## Design Tokens & Accessibility
 
 Global styles in `src/styles.scss` expose variables for color, spacing, typography, and dark-mode variants. Layout landmarks (`banner`, `main`, `complementary`, `contentinfo`) aid navigation, focus rings remain visible, and dynamic regions use polite announcements.

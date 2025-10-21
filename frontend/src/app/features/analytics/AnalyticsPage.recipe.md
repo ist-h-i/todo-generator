@@ -1,6 +1,6 @@
-# Recipe: AnalyticsPage
+# Recipe: AnalyticsPageComponent
 
-Source: `frontend/src/app/features/analytics/page.ts`
+Source: `frontend/src/app/features/analytics/feature/analytics-page.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

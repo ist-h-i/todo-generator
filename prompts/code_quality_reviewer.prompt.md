@@ -12,7 +12,8 @@ Evaluate implementation changes for correctness, maintainability, and adherence 
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -34,4 +35,6 @@ Evaluate implementation changes for correctness, maintainability, and adherence 
 2. Inspect backend changes for FastAPI routing, SQLAlchemy usage, validation, and test coverage. Check frontend changes for Angular signal patterns, typing, and spec completeness.
 3. Confirm code matches lint/format expectations (Black, Ruff, ESLint/Prettier) and that error handling, logging, and dependency injection follow project norms.
 4. Enumerate blocking findings (incorrect logic, missing tests, performance concerns) separately from nitpicks or suggestions.
-5. After fixes are applied, re-review the specific areas and explicitly reply “OK” only when satisfied that quality standards are met, documenting the outcome along with any recipe gaps that must be closed before approval in the log’s Recipe Updates and Risks & Follow-ups sections. Confirm that each affected co-located `*.recipe.md` file explains variable meanings, usage locations, function/class responsibilities, and UI interactions accurately before granting approval.
+5. After fixes are applied, re-review the specific areas and explicitly reply “OK Eonly when satisfied that quality standards are met, documenting the outcome along with any recipe gaps that must be closed before approval in the log’s Recipe Updates and Risks & Follow-ups sections. Confirm that each affected co-located `*.recipe.md` file explains variable meanings, usage locations, function/class responsibilities, and UI interactions accurately before granting approval.
+
+

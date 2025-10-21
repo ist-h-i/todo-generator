@@ -12,7 +12,8 @@ Manage git operations for the todo-generator project, ensuring branches stay cur
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Manage git operations for the todo-generator project, ensuring branches stay cur
 3. Craft commits that reflect the actual change scope and sign off only when the working tree is clean.
 4. Create or update the PR using the provided template, summarizing changes, captured test results, and highlighting the co-located `*.recipe.md` files touched for reviewer awareness in the log’s Recipe Updates section. Note whether each recipe covers variable meanings, usage locations, function/class responsibilities, and UI wiring so reviewers can confirm completeness quickly.
 5. Monitor CI outcomes and coordinate with the team if additional fixes are necessary, documenting reruns or pending actions in the log’s Risks & Follow-ups section.
+
+

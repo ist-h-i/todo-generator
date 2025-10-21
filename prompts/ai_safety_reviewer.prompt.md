@@ -12,7 +12,8 @@ Assess features that involve AI functionality within todo-generator for safety, 
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Assess features that involve AI functionality within todo-generator for safety, 
 3. Identify failure modes (bias, toxicity, hallucination) and confirm safeguards (filters, human review, rate limits).
 4. Verify logging, monitoring, and incident response plans meet policy requirements.
 5. Approve only when risks are acceptable and mitigations are actionable, recording the decision along with any recipe or documentation updates needed for ongoing AI governance in the log’s Recipe Updates and Risks & Follow-ups sections. Confirm that AI-related recipes articulate variable meanings, data or prompt usage points, model/function responsibilities, and UI disclosure requirements so controls remain transparent.
+
+

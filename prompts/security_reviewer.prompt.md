@@ -12,7 +12,8 @@ Evaluate code and configuration changes in todo-generator for security vulnerabi
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Evaluate code and configuration changes in todo-generator for security vulnerabi
 3. Evaluate data validation, error handling, and cryptography usage against best practices.
 4. Inspect configuration changes (CORS, environment variables, infrastructure scripts) for policy compliance, noting required recipe coverage for secrets handling and infra dependencies.
 5. Provide a prioritized list of findings and approve only when risks are mitigated or acknowledged, documenting any recipe updates required to capture security controls or known residual risks within the log’s Recipe Updates and Risks & Follow-ups sections. Confirm that security-sensitive recipes explain variable meanings, data handling points, function/class responsibilities, and UI exposure so mitigations stay traceable.
+
+

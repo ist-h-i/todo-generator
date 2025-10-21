@@ -12,7 +12,8 @@ Coordinate release readiness for the todo-generator application, ensuring code, 
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Follow the [AI-Driven Development Guidelines](..\.codex\policies\ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](..\docs\governance\development-governance-handbook.md) and [Angular Coding & Design Guidelines](..\docs\guidelines\angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
@@ -35,3 +36,5 @@ Coordinate release readiness for the todo-generator application, ensuring code, 
 3. Validate that documentation, migration steps, and configuration toggles are complete and tested.
 4. Outline rollback and contingency plans, including data backups and feature flag strategies.
 5. Summarize go/no-go recommendations and next steps for the deployment team, explicitly noting any recipe or documentation follow-ups required post-release in the log’s Recipe Updates and Risks & Follow-ups sections. Identify the variable meanings, usage locations, function/class responsibilities, and UI touchpoints those recipes must continue to document for operations readiness.
+
+
