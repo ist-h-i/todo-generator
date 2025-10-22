@@ -199,7 +199,7 @@ def trigger_evaluation(
         job.error_message = str(exc)
         db.add(job)
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
 
     job.status = "succeeded"
     job.completed_at = datetime.now(timezone.utc)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -31,6 +32,9 @@ def _false_literal(dialect_name: str) -> str:
 
 def _string_column_type(dialect_name: str) -> str:
     return "TEXT" if dialect_name == "sqlite" else "VARCHAR(255)"
+
+
+logger = logging.getLogger(__name__)
 
 
 _DUPLICATE_COLUMN_TOKENS = (
@@ -1018,7 +1022,8 @@ def _normalize_assignees_to_user_ids(engine: Engine) -> None:
                             ),
                             {"vals": mapped, "id": row.id},
                         )
-                except Exception:
+                except Exception:  # pragma: no cover - best effort fallback
+                    logger.exception("Skipping card %s while normalizing assignees", getattr(row, "id", "<unknown>"))
                     continue
 
         # Subtasks
@@ -1035,7 +1040,8 @@ def _normalize_assignees_to_user_ids(engine: Engine) -> None:
                             text("UPDATE subtasks SET assignee = :val WHERE id = :id"),
                             {"val": mapped, "id": row.id},
                         )
-                except Exception:
+                except Exception:  # pragma: no cover - best effort fallback
+                    logger.exception("Skipping subtask %s while normalizing assignee", getattr(row, "id", "<unknown>"))
                     continue
 
 

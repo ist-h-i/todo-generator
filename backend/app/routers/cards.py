@@ -23,7 +23,6 @@ from ..utils.repository import (
     apply_updates,
     delete_model,
     ensure_optional_owned_resource,
-    get_owned_resource_or_404,
     get_resource_or_404,
 )
 
