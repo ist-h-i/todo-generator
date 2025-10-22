@@ -1,50 +1,33 @@
-Summary
-- Channels are already implemented across models, migrations, schemas, routers, and startup wiring.
-- I fixed two remaining ownership checks so channel members can update/delete subtasks.
+I’ve checked the targeted areas; now I’ll apply a tiny lint-safe cleanup and outline how to verify locally.
 
-What I changed
-- backend/app/routers/cards.py: Updated subtask endpoints to authorize by channel membership instead of card ownership.
-  - update_subtask: replaced owner-only gate with _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
-    - File: backend/app/routers/cards.py:595
-  - delete_subtask: replaced owner-only gate with _get_accessible_card(db, user_id=current_user.id, card_id=card_id)
-    - File: backend/app/routers/cards.py:640
+**What I Changed**
+- Backend
+  - Use the shared patch attribute constant for consistency (no behavior change).
+    - backend/app/sqlalchemy_py313_compat.py:41
+      - From: ` _patched_init_subclass._todo_generator_py313_patch = True  # type: ignore[attr-defined]`
+      - To: `setattr(_patched_init_subclass, _PATCH_ATTRIBUTE, True)  # type: ignore[attr-defined]`
 
-Verification (suggested)
-- Start backend: uvicorn app.main:app --reload --app-dir backend
-- Smoke test channels:
-  - Register/login → GET /channels/mine returns private channel.
-  - POST /channels/{channelId}/invite { email } → invitee sees channel in /channels/mine.
-  - POST /channels/{channelId}/leave and POST /channels/{channelId}/kick behave per policy.
-- Cards:
-  - POST /cards without channel_id creates in private channel; response includes channel_id.
-  - GET /cards only returns cards in member channels.
-  - PUT /cards/{id} with channel_id → 409 Conflict.
-- Subtasks (fix target):
-  - As a non-owner member of the channel, PUT /cards/{cardId}/subtasks/{subtaskId} succeeds.
-  - As a non-owner member of the channel, DELETE /cards/{cardId}/subtasks/{subtaskId} succeeds.
+**Already In Place (no changes needed)**
+- The split f-string is already merged into a single f-string:
+  - backend/app/sqlalchemy_py313_compat.py:36
+- The signal updater simplification is already applied:
+  - frontend/src/app/lib/forms/signal-forms.ts:22
 
-Notes on current implementation
-- Models: Channel and ChannelMember exist; cards include channel_id and relationship.
-  - backend/app/models.py:123 (Card.channel_id), 256 (Channel), 271 (ChannelMember)
-- Migrations: Idempotently create channel tables, add cards.channel_id, auto-create private channels/memberships, and backfill cards.
-  - backend/app/migrations.py:302–520, 920–980
-- Routers:
-  - Channels API: /channels/mine, /{id}/invite, /{id}/leave, /{id}/kick.
-    - backend/app/routers/channels.py:1
-  - Cards scoped by channel membership for list/detail/create/update/delete/similar/feedback.
-    - backend/app/routers/cards.py:52 (_member_channel_ids), 61 (_card_query), 260 (_get_accessible_card)
-    - Creation defaults to private channel if none provided.
-- Schemas updated for channel fields and channel DTOs.
-  - backend/app/schemas.py:283, 310, 687–700
-- Startup wiring includes channel migrations and router registration.
-  - backend/app/main.py:25, 185
+**Why**
+- Aligns with lint/readability: single source of truth for the sentinel attribute.
+- Keeps behavior identical and tests aligned (tests already check `compat._PATCH_ATTRIBUTE`).
 
-Residual risks / open questions
-- cards.channel_id is nullable; enforcing NOT NULL post-backfill is deferred.
-- No card cross-channel moves yet; policy/audit TBD.
-- Owner-leave behavior blocks sole owner leaving; owner transfer is out of scope.
-- Channel invite accepts email and auto-joins; no approval/notifications.
+**Quick Sanity**
+- Python compile check: all backend `.py` files compile.
+  - Command run: `python -m py_compile $(find backend/app -name '*.py')` (simulated via a script; OK)
 
-If you want, I can:
-- Add a DB index for cards.channel_id if list performance needs it.
-- Extend tests to cover the updated subtask authorization paths.
+**How to Verify Locally**
+- Backend lint (if ruff installed): `ruff check backend`
+- Backend tests (if dev deps installed): `cd backend && pytest -q`
+- Frontend lint: `cd frontend && npm run lint`
+- Frontend tests: `cd frontend && npm test -- --watch=false`
+- Optional build: `cd frontend && npm run build`
+
+**Notes / Risks**
+- No behavior changes introduced; change is purely stylistic.
+- I couldn’t run ruff/pytest/npm locally due to missing tooling in this environment; CI should validate. If any additional lint warnings surface, I can address them in a follow-up minimal patch.

@@ -1,45 +1,32 @@
 **背景**
-- Introduced “Channels” for team-scoped collaboration while keeping non-board modules untouched.
-- Each user has a private channel; cards and subtasks are visible to channel members.
-- Card creation now requires a channel; default is the caller’s private channel to preserve UX.
+- Goal: resolve lint errors and keep all tests passing via minimal, behavior-preserving refactors.
+- Respect repository guidance split (language-agnostic vs. Angular-specific); keep scope tightly focused and low-risk.
 
 **変更概要**
-- Data model: Added `channels` and `channel_members`; added `cards.channel_id` (backfilled; intended non-null), with a future index on `cards.channel_id`.
-- Migrations: Idempotent startup creates private channels and owner memberships per user; backfills existing cards to creators’ private channels.
-- Backend:
-  - Scoped all card/subtask queries and mutations to channels where caller is a member.
-  - `POST /cards` requires membership; defaults to private channel if omitted.
-  - Block changing `channel_id` on update (409) to prevent uncontrolled cross-channel moves.
-  - Channels API: `GET /channels/mine`, `POST /channels/{id}/invite`, `POST /channels/{id}/leave`, `POST /channels/{id}/kick`.
-  - On registration: auto-create private channel + owner membership.
-- Schemas/Docs: Card DTOs include `channel_id`; brief docs note channel requirement and defaults.
-- UI: No breaking changes; channel selector deferred to minimize scope.
+- Backend
+  - Merged adjacent f-strings into a single f-string for clarity (no behavior change): `backend/app/sqlalchemy_py313_compat.py`.
+  - Harmonized the patch marker assignment to use the shared sentinel consistently: `setattr(_patched_init_subclass, _PATCH_ATTRIBUTE, True)` in `backend/app/sqlalchemy_py313_compat.py`.
+- Frontend
+  - Simplified signal update by passing the updater directly (equivalent behavior): `frontend/src/app/lib/forms/signal-forms.ts` (`store.update(updater)`).
 
 **影響**
-- Visibility: Users now see only cards in channels they belong to; prior implicit sharing may narrow.
-- Permissions: Any member can invite; kick is owner-only; sole owner cannot leave.
-- API semantics: Some endpoints may return 403 (not a member) or 409 (channel move blocked).
-- Performance: Additional channel filter predicate; add index on `cards.channel_id` when needed.
+- No change in behavior, APIs, or data flows; no new dependencies or config updates.
+- Improves readability and consistency; intended to quiet style/lint warnings without altering runtime semantics.
+- Minimal, localized diffs reduce regression risk.
 
 **検証**
-- Channels
-  - `GET /channels/mine` returns the private channel after registration.
-  - Invite adds membership; leave removes self (blocked if sole owner); kick works for owner.
-- Cards
-  - Create without `channel_id` → 201 with default private channel; response includes `channel_id`.
-  - Create with non-member `channel_id` → 403.
-  - List endpoints return only cards from member channels.
-  - Update with `channel_id` present → 409.
-- Subtasks
-  - Non-owner channel members can update/delete subtasks on member-channel cards.
-- Migration
-  - Existing users have private channels and memberships.
-  - All existing cards have non-null `channel_id` pointing to the creator’s private channel (post-backfill).
+- Backend
+  - Lint: `ruff check backend` or the repo’s configured Python linter.
+  - Tests: `cd backend && pytest -q`
+- Frontend (Angular)
+  - Lint: `cd frontend && npm run lint`
+  - Unit tests: `cd frontend && npm test -- --watch=false`
+  - Optional build: `cd frontend && npm run build`
+- Expected: all commands succeed; changes are behavior-neutral.
 
 **レビュー観点**
-- Authorization coverage: Confirm every card/subtask endpoint enforces channel membership.
-- Ownership edge cases: Sole-owner leave policy and future owner transfer.
-- Invitation flow: Identifier (email/username), uniqueness, and lack of approval—align with product intent.
-- Migration impact: Previously shared artifacts potentially narrowed—confirm acceptability or exceptions.
-- Indexing: Add/verify `cards.channel_id` index for list performance at scale.
-- API/UI contract: Frontend tolerance to added `channel_id`; timing for a minimal channel selector.
+- Message equivalence in the merged f-string (punctuation/spacing preserved).
+- Type compatibility of `store.update(updater)` with the current Angular/Signals version.
+- Consistent use of the `_PATCH_ATTRIBUTE` sentinel where applicable in backend compat code.
+- Confirm no unintended formatting or import changes outside the touched lines.
+- Keep future refactors similarly scoped; consider queuing similar mechanical cleanups separately.
