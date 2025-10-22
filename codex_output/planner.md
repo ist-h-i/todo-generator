@@ -1,23 +1,17 @@
-Plan focus: solve lint failures and keep tests green with minimal, behavior-preserving edits. Backend uses Ruff; frontend uses ESLint + Prettier on Angular 20.
+**Findings**
+- Backend already includes a security-headers middleware in `backend/app/main.py:156` and a focused test in `backend/tests/test_security_headers.py:1`.
+- Documentation updated at `docs/security-review.md` describing changes and residual risks.
+- Scope and constraints satisfied with minimal, low-risk changes; no further coding needed.
 
-What to change
-- Backend: keep the merged f-string and the shared `_PATCH_ATTRIBUTE` sentinel in `backend/app/sqlalchemy_py313_compat.py`.
-- Frontend: keep direct updater form `store.update(updater)` in `frontend/src/app/lib/forms/signal-forms.ts`.
+**Minimal Route**
+- Skip coder/integrator; proceed directly to release_manager to publish the summary and close out the cycle.
 
-Why this is sufficient
-- These address the previously flagged lint concerns without altering runtime behavior.
-- Tooling is already configured: Ruff (pyproject.toml) and ESLint/Prettier (frontend/.eslintrc.cjs, scripts).
-
-Residual risks / open questions
-- CI might enforce formatting gates (Black/Prettier) beyond local checks; run format tasks if needed.
-- Node/ChromeHeadless availability for Angular tests in CI; assumed configured.
-- If additional, unrelated lint errors appear, limit changes to the smallest local fixes rather than broad refactors.
-- Angular Signals API is v20; `store.update(updater)` is compatible.
-
-Validation outline
-- Backend: run Ruff and pytest.
-- Frontend: run ESLint, unit tests, optional build.
+**Residual Risks**
+- HSTS effective only over HTTPS; confirm production TLS.
+- Referrer-Policy is strict; analytics depending on referrer may be impacted.
+- SPA tokens still in `localStorage`; migration to httpOnly cookies deferred.
+- CSP for SPA host deferred to a future, coordinated pass.
 
 ```json
-{"steps":["coder"],"notes":"Apply and keep minimal, behavior-preserving lint fixes in two spots: backend/app/sqlalchemy_py313_compat.py (single f-string; use shared _PATCH_ATTRIBUTE via setattr) and frontend/src/app/lib/forms/signal-forms.ts (use store.update(updater)). If any additional lint errors appear, fix them surgically in-place without expanding scope or changing tooling/config. No dependency or config changes.","tests":"Backend: `ruff check backend` and `cd backend && pytest -q`. Frontend: `cd frontend && npm run lint`, `npm test -- --watch=false`, optional `npm run build`."}
+{"steps":["release_manager"],"notes":"Code and tests already in place: security-headers middleware in backend/app/main.py and verification in backend/tests/test_security_headers.py; docs updated at docs/security-review.md. Proceed with release summary and closure to keep changes minimal.","tests":"Run: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck && pytest -q backend/tests"}
 ```

@@ -1,37 +1,39 @@
-**Background**
-- Goal: resolve lint errors and keep all tests passing via minimal, behavior-preserving refactors.
-- Scope: pinpointed backend/Angular edits only; no dependency or config changes.
+**背景**
+- Periodic security review with minimal, low-risk hardening under ~30 minutes.
+- Scope: Backend API (FastAPI) only; avoid SPA/architectural changes.
+- Constraints: Minimal diffs, no networked audits, keep builds/tests green, document residual risks.
 
-**Changes**
-- Backend
-  - Merge adjacent f-strings for clarity (no behavior change): `backend/app/sqlalchemy_py313_compat.py:36`
-  - Use the shared sentinel consistently when marking the patched method: `backend/app/sqlalchemy_py313_compat.py:41`
-- Frontend
-  - Simplify signal update by passing the updater directly (equivalent form): `frontend/src/app/lib/forms/signal-forms.ts:32`
+**変更概要**
+- Added security headers middleware to harden all non-OPTIONS responses (`backend/app/main.py:156`):
+  - `Strict-Transport-Security: max-age=15552000; includeSubDomains`
+  - `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+  - `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`
+  - Placed after existing CORS logic; uses `response.headers.setdefault` to avoid clobbering.
+- Added focused test for `GET /health` headers (`backend/tests/test_security_headers.py:1`).
+- Updated documentation with rationale and residual risks (`docs/security-review.md:1`).
 
-**Impact**
-- No runtime behavior, API, or data-flow changes.
-- No new dependencies; no build/test config updates.
-- Improves readability and consistency; addresses style/lint noise only.
+**影響**
+- Runtime: All API responses gain standard hardening headers; no API shape changes.
+- Compatibility: Safe defaults for APIs; note `Referrer-Policy: no-referrer` may reduce analytics referrer data.
+- Ops: HSTS applies over HTTPS only; COOP/CORP constrain cross-origin embedding (appropriate for APIs).
 
-**Verification**
-- Static review: confirmed message equivalence and sentinel usage; files compile syntactically.
-- Backend
-  - Lint: `ruff check backend`
-  - Tests: `cd backend && pytest -q`
-- Frontend (Angular)
-  - Lint: `cd frontend && npm run lint`
-  - Unit tests: `cd frontend && npm test -- --watch=false`
-  - Optional build: `cd frontend && npm run build`
+**検証**
+- Targeted test: `pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck`
+- Full backend: `pytest -q backend/tests`
+- Manual spot-check:
+  - Start: `uvicorn app.main:app --reload --app-dir backend`
+  - Verify: `curl -s -D - http://localhost:8000/health | grep -E 'Strict-Transport|Content-Type-Options|Referrer-Policy|X-Frame-Options|Permissions-Policy|Cross-Origin'`
+- Files to review:
+  - Middleware: `backend/app/main.py:156`
+  - Test: `backend/tests/test_security_headers.py:1`
+  - Doc: `docs/security-review.md:1`
 
-**Review Focus**
-- Confirm f-string content parity (spacing/punctuation intact): `backend/app/sqlalchemy_py313_compat.py:36`
-- Verify sentinel naming and application via `setattr(..., _PATCH_ATTRIBUTE, True)`: `backend/app/sqlalchemy_py313_compat.py:41`
-- Ensure Angular Signals `store.update(updater)` is compatible with the project version: `frontend/src/app/lib/forms/signal-forms.ts:32`
-- Check no incidental formatting/import diffs outside the touched lines.
-
-**Residual Risks / Open Questions**
-- CI toolchain specifics (exact lint/test scripts and format gates) may differ; adjust commands to repo scripts if needed.
-- Additional, unrelated lint issues could surface; handle surgically without widening scope.
-- Angular Signals API version drift could affect `update` typing in older versions (expected OK on v16+).
-- Local environment here lacks tool execution; rely on CI to validate lint/tests end-to-end.
+**レビュー観点**
+- Middleware placement post-CORS; confirm `setdefault` prevents overriding upstream headers.
+- Header names/values as specified; HSTS `max-age` and `Permissions-Policy` directives correct.
+- `GET /health` exists and test follows existing fixture patterns.
+- Environment runs HTTPS in production for HSTS effectiveness.
+- Residual risks acknowledged and deferred:
+  - SPA tokens in `localStorage` (recommend secure, httpOnly cookies later).
+  - CSP on SPA host to be added in a future, coordinated pass.
