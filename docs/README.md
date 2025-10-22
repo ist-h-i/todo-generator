@@ -50,7 +50,7 @@ Welcome to the Verbalize Yourself knowledge base. Use this index to navigate arc
 
 - [`prompts/`](../prompts): Prompt definitions for AI interactions used across backend services and operational flows.
 - [`scripts/`](../scripts): Automation scripts, including Codex pipelines and helper launchers for MCP servers.
-- [MCP helper servers](mcp-helper-servers.md): Instructions for running local Git and filesystem helpers that power automation.
+- [MCP helper servers](mcp-helper-servers.md): Instructions for running the MCP helper suite (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, and optional adapters).
 - [Auto-evolve operations](auto-evolve/operations.md): Guardrails and workflows for the auto-evolve automation loop.
 
 ## Recipes & Reusable Patterns

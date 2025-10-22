@@ -59,7 +59,7 @@ Refer to `docs/architecture.md` for an end-to-end component breakdown and `docs/
 |-- prompts/                # Prompt references for AI interactions
 |-- scripts/                # Automation scripts (Codex pipeline, MCP helpers)
 |-- start-localhost.bat     # Windows helper that installs deps and launches both servers
-`-- start-mcp-servers.bat   # Starts the MCP Git and filesystem helper servers
+`-- start-mcp-servers.bat   # Launches the MCP helper servers (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, optional adapters)
 ```
 
 ## Local development
@@ -129,7 +129,7 @@ The backend starts on <http://localhost:8000> (with auto-applied migrations and 
 
 - Login with the seeded administrator account or create a new user via `/auth`.
 - Store secrets and Gemini keys through the admin console once `SECRET_ENCRYPTION_KEY` is configured.
-- Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers when running Codex automation or MCP tooling.
+- Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, with optional Magic and Playwright adapters) when running Codex automation or other MCP-aware tooling.
 
 ## Quality and automation
 
