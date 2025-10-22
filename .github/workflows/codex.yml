@@ -31,12 +31,20 @@ jobs:
     timeout-minutes: 60
     env:
       CODEX_NPM_PKG: "@openai/codex"
+      CODEX_OUTPUT_DIR: "${{ runner.temp }}/codex/${{ github.run_id }}"
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Prepare Codex output directory
+        run: |
+          set -euo pipefail
+          mkdir -p "${CODEX_OUTPUT_DIR}"
+          echo "CODEX_OUTPUT_DIR=${CODEX_OUTPUT_DIR}" >> "$GITHUB_ENV"
+
+      # --- Auto-Evolve: flags 読込 & canary ルート決定 ここから ---
       - name: Install jq (for flags parsing)
         run: |
           sudo apt-get update -y
@@ -412,10 +420,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_CODEX: ${{ steps.detect.outputs.run_codex }}
           TASK_INPUT: ${{ steps.merge.outputs.task_input }}
+          ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p codex_output
+          mkdir -p "${CODEX_OUTPUT_DIR}"
           printf '%s' "$TASK_INPUT" | ./scripts/run_codex_pipeline.sh
 
       - name: Check for clarification request
@@ -425,18 +434,30 @@ jobs:
         run: |
           set -euo pipefail
           status="$(python3 - <<'PY'
-          from pathlib import Path
-          import json
-          p = Path('codex_output/status.json')
-          print((p.exists() and json.loads(p.read_text(encoding='utf-8')).get('status','')) or '')
+          import json, os, pathlib
+
+          base = pathlib.Path(os.environ["CODEX_OUTPUT_DIR"])
+          p = base / "status.json"
+          status = ""
+          if p.exists():
+              try:
+                  data = json.loads(p.read_text(encoding="utf-8"))
+              except Exception:
+                  pass
+              else:
+                  if isinstance(data, dict):
+                      status = str(data.get("status") or "")
+                  elif isinstance(data, str):
+                      status = data
+          print(status)
           PY
           )"
-          if [ "$status" = "needs_clarification" ]; then
+          if [ "${status}" = "needs_clarification" ]; then
             echo "needs_clarification=true" >> "$GITHUB_OUTPUT"
-            if [ -f codex_output/clarifying_questions.md ]; then
+            if [ -f "${CODEX_OUTPUT_DIR}/clarifying_questions.md" ]; then
               {
                 echo "questions<<EOF"
-                cat codex_output/clarifying_questions.md
+                cat "${CODEX_OUTPUT_DIR}/clarifying_questions.md"
                 echo "EOF"
               } >> "$GITHUB_OUTPUT"
             fi
@@ -455,50 +476,53 @@ jobs:
           state_dir=".codex/state"
           mkdir -p "$state_dir"
           ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; export ts
-          python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import os, json, pathlib
-          issue = (os.environ.get('ISSUE_NUMBER') or 'manual').strip() or 'manual'
-          run_id = os.environ.get('GITHUB_RUN_ID', '')
-          ts = os.environ.get('ts', '')
-          out = {'issue': issue, 'run_id': run_id, 'timestamp': ts}
+          python3 -c "import sys, textwrap; exec(textwrap.dedent(sys.stdin.read()))" <<'PY' >> "$GITHUB_OUTPUT"
+            import os, json, pathlib
+            issue = (os.environ.get('ISSUE_NUMBER') or 'manual').strip() or 'manual'
+            run_id = os.environ.get('GITHUB_RUN_ID', '')
+            ts = os.environ.get('ts', '')
+            out = {'issue': issue, 'run_id': run_id, 'timestamp': ts}
 
-          p = pathlib.Path('codex_output/status.json')
-          if p.exists():
-              try:
-                  out['status'] = json.loads(p.read_text(encoding='utf-8'))
-              except Exception:
-                  out['status_raw'] = p.read_text(encoding='utf-8')
+            # status.json (structured if possible)
+            output_dir = pathlib.Path(os.environ['CODEX_OUTPUT_DIR'])
+            p = output_dir / 'status.json'
+            if p.exists():
+                try:
+                    out['status'] = json.loads(p.read_text(encoding='utf-8'))
+                except Exception:
+                    out['status_raw'] = p.read_text(encoding='utf-8')
 
-          q = pathlib.Path('codex_output/clarifying_questions.md')
-          if q.exists():
-              out['clarifying_questions'] = q.read_text(encoding='utf-8')[:4000]
+            # clarifying questions preview
+            q = output_dir / 'clarifying_questions.md'
+            if q.exists():
+                out['clarifying_questions'] = q.read_text(encoding='utf-8')[:4000]
 
-          files = []
-          base = pathlib.Path('codex_output')
-          if base.exists():
-              for q in base.rglob('*'):
-                  if q.is_file():
-                      sz = q.stat().st_size
-                      item = {'path': str(q), 'size': sz}
-                      if sz <= 20000:
-                          try:
-                              item['preview'] = q.read_text(encoding='utf-8', errors='ignore')[:4000]
-                          except Exception:
-                              pass
-                      files.append(item)
-          out['files'] = files
+            # file inventory with small previews
+            files = []
+            if output_dir.exists():
+                for q in output_dir.rglob('*'):
+                    if q.is_file():
+                        sz = q.stat().st_size
+                        item = {'path': str(q), 'size': sz}
+                        if sz <= 20000:
+                            try:
+                                item['preview'] = q.read_text(encoding='utf-8', errors='ignore')[:4000]
+                            except Exception:
+                                pass
+                        files.append(item)
+            out['files'] = files
 
-          index_path = pathlib.Path('.codex/state/index.json')
-          if index_path.exists():
-              try:
-                  data = json.loads(index_path.read_text(encoding='utf-8'))
-              except Exception:
-                  data = {}
-          else:
-              data = {}
-          data[issue] = out
-          index_path.parent.mkdir(parents=True, exist_ok=True)
-          index_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+            index_path = pathlib.Path('.codex/state/index.json')
+            if index_path.exists():
+                try:
+                    data = json.loads(index_path.read_text(encoding='utf-8'))
+                except Exception:
+                    data = {}
+            else:
+                data = {}
+            data[issue] = out
+            index_path.parent.mkdir(parents=True, exist_ok=True)
+            index_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
           PY
           echo "path=$state_dir/index.json" >> "$GITHUB_OUTPUT"
 
@@ -543,7 +567,7 @@ jobs:
         continue-on-error: true
         with:
           name: codex-agent-outputs
-          path: codex_output
+          path: ${{ env.CODEX_OUTPUT_DIR }}
           retention-days: 7
 
       - name: Check repository diff
@@ -838,6 +862,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const path = require('path');
             const issueNumber = Number("${{ steps.detect.outputs.issue_number }}");
             const prUrl = "${{ steps.pr.outputs.result.pull_request_url }}";
             const prNumber = Number("${{ steps.pr.outputs.result.pull_request_number }}");
@@ -861,3 +886,11 @@ jobs:
         run: |
           echo "::error::No changes detected. PR was not created, so completion conditions are not met."
           exit 1
+
+      - name: Clean up Codex output directory
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          if [ -d "${CODEX_OUTPUT_DIR}" ]; then
+            rm -rf "${CODEX_OUTPUT_DIR}"
+          fi

@@ -79,30 +79,98 @@ fi
 echo 'preferred_auth_method = "chatgpt"' > "${AUTH_DIR}/config.toml"
 
 # ---------- Pipeline ----------
-mkdir -p codex_output
+CODEX_OUTPUT_ROOT="${CODEX_OUTPUT_DIR:-codex_output}"
+export CODEX_OUTPUT_ROOT
+mkdir -p "${CODEX_OUTPUT_ROOT}"
+
+OUTPUT_SUBDIR="${CODEX_OUTPUT_ROOT}"
+if [ -n "${ISSUE_NUMBER:-}" ]; then
+  OUTPUT_SUBDIR="${CODEX_OUTPUT_ROOT}/issue-${ISSUE_NUMBER}"
+elif [ -n "${GITHUB_RUN_ID:-}" ]; then
+  OUTPUT_SUBDIR="${CODEX_OUTPUT_ROOT}/run-${GITHUB_RUN_ID}"
+fi
+mkdir -p "${OUTPUT_SUBDIR}"
+
+CODEX_STAGE_OUTPUT_DIR="${OUTPUT_SUBDIR}"
+export CODEX_STAGE_OUTPUT_DIR
 
 AVAILABLE_DYNAMIC_STAGES=(
-  qa_automation_planner
+  requirements_analyst
+  requirements_reviewer
+  detail_designer
+  design_reviewer
   coder
+  implementation_reviewer
   code_quality_reviewer
+  security_reviewer
+  threat_modeler
+  ai_safety_reviewer
+  performance_reviewer
+  dpo_reviewer
+  oss_sbom_auditor
+  uiux_reviewer
+  a11y_reviewer
+  i18n_reviewer
+  qa_automation_planner
+  docwriter
+  doc_editor
   integrator
   release_manager
 )
 
 DEFAULT_POST_PLAN_STEPS=(
+  requirements_analyst
+  requirements_reviewer
+  detail_designer
+  design_reviewer
   coder
+  implementation_reviewer
   code_quality_reviewer
+  security_reviewer
+  threat_modeler
+  ai_safety_reviewer
+  performance_reviewer
+  dpo_reviewer
+  oss_sbom_auditor
+  uiux_reviewer
+  a11y_reviewer
+  i18n_reviewer
+  qa_automation_planner
+  docwriter
+  doc_editor
   integrator
+  release_manager
 )
 
-PRE_PLANNER_STEPS=(translator)
+# Pre-planner stages run before the planner so that the pipeline can validate
+# and clarify the task before any execution planning happens.
+PRE_PLANNER_STEPS=(translator requirements_analyst)
 
 declare -A STAGE_INSTRUCTIONS=(
   [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points and write 'None' when no follow-up is needed."
-  [planner]="Outline an execution plan that stays within the 30-minute task cap and highlight critical risks."
-  [qa_automation_planner]="Recommend only the high-impact tests (unit, integration, or manual) required to validate the scoped change."
+  # The requirements_analyst collects requirements and outstanding questions so
+  # the pipeline can pause and ask the user for additional details when
+  # necessary.
+  [requirements_analyst]="Summarize functional, non-functional and out-of-scope requirements. Document risks and assumptions, and list clarifying questions under '## Clarifying questions', writing 'None' when no further information is required."
+  [planner]="Outline an execution plan that selects only the necessary stages, highlights critical risks, and sequences the work for smooth hand-offs."
+  [requirements_reviewer]="Audit the proposed requirements for completeness, spot conflicts, and note any missing acceptance criteria."
+  [detail_designer]="Translate requirements into module- and component-level design notes, covering data flow, contracts, and integration points."
+  [design_reviewer]="Review the design for consistency with architecture standards, spotting scalability or maintainability risks."
   [coder]="Describe the exact files to edit with focused diffs or replacement blocks and list any commands to run. Avoid touching unrelated areas."
+  [implementation_reviewer]="Check that the proposed implementation aligns with the design details and coding standards, pointing out risky shortcuts."
   [code_quality_reviewer]="Validate correctness, readability, and edge cases. Supply lightweight fixes when needed to keep the implementation tight."
+  [security_reviewer]="Evaluate security posture, call out vulnerabilities, and request mitigations for authentication, authorization, and data handling."
+  [threat_modeler]="Enumerate plausible attack paths, assess impact, and recommend control updates for the threat model."
+  [ai_safety_reviewer]="Assess AI or automated behaviour for misuse, hallucination, and alignment risks, proposing safeguards where needed."
+  [performance_reviewer]="Review performance characteristics, highlight bottlenecks, and outline measurement or optimisation steps."
+  [dpo_reviewer]="Check privacy and data-protection obligations, ensuring data minimisation, consent, and retention policies are respected."
+  [oss_sbom_auditor]="Track open-source dependencies, licensing, and SBOM updates tied to the change."
+  [uiux_reviewer]="Evaluate UI and UX implications, verify adherence to the design system, and request clarity on workflows when necessary."
+  [a11y_reviewer]="Assess accessibility impacts, referencing WCAG requirements and inclusive design practices."
+  [i18n_reviewer]="Check internationalisation readiness, including localisation hooks, translatable strings, and locale fallbacks."
+  [qa_automation_planner]="Recommend only the high-impact tests (unit, integration, or manual) required to validate the scoped change."
+  [docwriter]="Draft or update documentation, release notes, and recipes reflecting the implemented work."
+  [doc_editor]="Polish documentation for clarity, tone, and consistency, ensuring references and links remain accurate."
   [integrator]="Confirm all planned work is covered, note remaining follow-ups, and explain how to land the change safely."
   [release_manager]="State release readiness, outline minimal verification steps, and call out approvals or rollbacks if needed."
   [work_report]="Draft the issue comment work report using sections for 背景, 変更概要, 影響, 検証, and レビュー観点. Synthesize prior stage outputs to fill each section with concise, actionable context."
@@ -112,13 +180,13 @@ PREVIOUS_CONTEXT=""
 
 run_stage() {
   local STEP="$1"
-  local OUTPUT_FILE="codex_output/${STEP}.md"
+  local OUTPUT_FILE="${CODEX_STAGE_OUTPUT_DIR}/${STEP}.md"
   local HUMAN_STEP_NAME
   HUMAN_STEP_NAME=$(echo "${STEP}" | tr '_' ' ')
 
   local PROMPT
   PROMPT="You are the ${HUMAN_STEP_NAME} stage in an auto-dev workflow.\n\n"
-  PROMPT+="Order: translator -> planner -> selected execution stages (qa_automation_planner, coder, code_quality_reviewer, integrator, release_manager).\n\n"
+  PROMPT+="Order: translator -> planner -> selected execution stages chosen from the available role list.\n\n"
   PROMPT+="Working language: English.\n"
   PROMPT+="Overall task: ${TASK_INPUT}.\n\n"
   PROMPT+="Constraints:\n"
@@ -133,8 +201,7 @@ run_stage() {
     local AVAILABLE_FOR_PROMPT
     AVAILABLE_FOR_PROMPT=$(IFS=', '; echo "${AVAILABLE_DYNAMIC_STAGES[*]}")
     PROMPT+="Select the minimum necessary execution stages from: ${AVAILABLE_FOR_PROMPT}.\n"
-    PROMPT+="Keep the route lean: default to the lightest-stage combination (even coder-only when safe) that can deliver a working fix within 30 minutes, and justify any additional stages.\n"
-    PROMPT+="If no route can finish within 30 minutes, state that explicitly before proposing contingency steps.\n"
+    PROMPT+="Keep the route lean: default to the smallest stage combination that achieves the goal while meeting quality and compliance expectations, and justify any additional stages.\n"
     PROMPT+="Your final message MUST end with a \`\`\`json code block containing {\"steps\":[\"stage_id\",...],\"notes\":\"...\",\"tests\":\"...\"}. Only use stage IDs from the allowed list.\n\n"
   fi
   PROMPT+="Provide your findings for this stage in Markdown. Keep it concise and scoped to this stage."
@@ -165,7 +232,10 @@ run_stage() {
     PREVIOUS_CONTEXT="${STEP_OUTPUT}"
   fi
 
-  if [ "${STEP}" = "translator" ]; then
+  # After the translator or requirements_analyst stage, scan for clarifying
+  # questions and pause the pipeline if more details are required from the
+  # user.
+  if [ "${STEP}" = "translator" ] || [ "${STEP}" = "requirements_analyst" ]; then
     local CLARIFYING_SECTION
     CLARIFYING_SECTION=$(printf '%s\n' "${STEP_OUTPUT}" |
       python3 - <<'PY'
@@ -250,11 +320,12 @@ PY
       {
         printf '## Clarifying questions\n'
         printf '%s\n' "${CLARIFYING_SECTION}" | sed 's/[[:space:]]*$//'
-      } > codex_output/clarifying_questions.md
-      cat <<'JSON' > codex_output/status.json
+      } > "${CODEX_OUTPUT_ROOT}/clarifying_questions.md"
+      cat <<'JSON' > "${CODEX_OUTPUT_ROOT}/status.json"
 {"status":"needs_clarification"}
 JSON
-      oneline "::notice::Translator stage requested clarifications. Stopping pipeline early."
+      local HUMAN_STAGE_LABEL="${HUMAN_STEP_NAME^}"
+      oneline "::notice::${HUMAN_STAGE_LABEL} stage requested clarifications. Stopping pipeline early."
       exit 0
     fi
   fi
@@ -291,7 +362,8 @@ if not default:
     default = allowed.copy()
 
 text = ""
-planner_path = pathlib.Path("codex_output/planner.md")
+output_dir = pathlib.Path(os.environ["CODEX_STAGE_OUTPUT_DIR"])
+planner_path = output_dir / "planner.md"
 if planner_path.exists():
     text = planner_path.read_text(encoding="utf-8")
 
@@ -333,7 +405,7 @@ output = {"steps": plan_steps, "source": source}
 if planner_payload is not None:
     output["planner_payload"] = planner_payload
 
-pathlib.Path("codex_output/execution_plan.json").write_text(
+(output_dir / "execution_plan.json").write_text(
     json.dumps(output, ensure_ascii=False, indent=2),
     encoding="utf-8",
 )
@@ -361,10 +433,14 @@ if [ ${#EXECUTION_PLAN[@]} -eq 0 ]; then
 fi
 
 oneline "$(printf '::notice::Planner selected stages: %s' "$(IFS=', '; echo "${EXECUTION_PLAN[*]}")")"
-printf '%s\n' "${EXECUTION_PLAN[@]}" > codex_output/execution_plan_steps.txt
+printf '%s\n' "${EXECUTION_PLAN[@]}" > "${CODEX_STAGE_OUTPUT_DIR}/execution_plan_steps.txt"
 
 for STEP in "${EXECUTION_PLAN[@]}"; do
   run_stage "${STEP}"
 done
 
 run_stage "work_report"
+
+if [ -f "${CODEX_STAGE_OUTPUT_DIR}/work_report.md" ]; then
+  cp "${CODEX_STAGE_OUTPUT_DIR}/work_report.md" "${CODEX_OUTPUT_ROOT}/work_report.md"
+fi
