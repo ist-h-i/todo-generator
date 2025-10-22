@@ -21,8 +21,8 @@ It ensures that human and AI contributors follow **consistent**, **safe**, and *
 
 ### 2.1 Core Philosophy
 
-- Deliver **more than working code**—aim for quality, maintainability, safety.
-- Apply **Boy Scout Rule**: leave every file cleaner than you found it.
+- Deliver **more than working code**—aim for quality, maintainability, and safety.
+- Apply the **Boy Scout Rule**: leave every file cleaner than you found it.
 - Prefer **clarity over cleverness**. Name by **intent**, not implementation.
 
 ### 2.2 Delete What You Don’t Use
@@ -31,21 +31,31 @@ It ensures that human and AI contributors follow **consistent**, **safe**, and *
 - **One-callsite helpers** → scope locally:
   - **TypeScript:** non-exported or nested in same file.
   - **Python:** inner function or `_module_private`.
-- If intentionally retained (API, DI, reflection): comment with rationale + ticket reference.
+- If intentionally retained (API, DI, reflection): comment with rationale and ticket reference.
 
-#### CI Enforcement (Python)
+#### CI Enforcement (Unused Code)
 
 - **Python:** Ruff `F401,F841,B018` → fail build.  
 - **TypeScript:** ESLint `no-unused-vars`, `no-unused-expressions`, plus `ts-prune`/`knip` in CI.
+
+#### Git Hygiene (Commit Process)
+
+- Write imperative, capitalized commit subjects around 65 characters.
+- Squash fixups before merging.
+- Sync with `develop` frequently (`git pull origin develop`) and resolve conflicts early.
+- Rebase or merge `develop` before requesting review.
+- PR descriptions must link the relevant issue, explain behavioural changes, and mention migrations or configuration updates.
+- Include before/after screenshots for UI adjustments and record any manual QA completed.
+
+---
 
 ### 2.3 Single Responsibility & Function Budgets
 
 - One function = one reason to change.  
   - ≤ 40 lines, complexity ≤ 10, ≤ 5 parameters.
 - Duplicate logic → extract or delete.
-- Keep utilities precise and small.
 
-#### CI Enforcement (TypeScript)
+#### CI Enforcement (Function Complexity)
 
 - **ESLint:** `"complexity": ["error",10]`, `"max-lines-per-function": ["warn",40]`  
 - **Python:** Ruff `C901` or `flake8-cognitive-complexity`.
@@ -121,6 +131,9 @@ It ensures that human and AI contributors follow **consistent**, **safe**, and *
 - Angular v20+ uses **OnPush** & **Signals** by default.
 - Presentational vs coordinator components separated.
 - Styling uses tokens (`var(--*)`); accessible WCAG AA contrast.
+- Use Conventional Commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`).
+- Keep commits atomic and focused on a single change.
+- Avoid committing directly to `develop` or `main`.
 
 ---
 
@@ -133,8 +146,6 @@ It ensures that human and AI contributors follow **consistent**, **safe**, and *
 line-length = 100
 target-version = "py311"
 lint.select = ["E","F","W","B","C90"]
-[tool.ruff.lint]
-select = ["F401","F841","B018","B006","E","W","B","C90"]
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 ```
@@ -179,7 +190,7 @@ max-complexity = 10
 
 ## 6. Quality Gates & Automation
 
-- Lint, format, and test only relevant areas:
+- Run only relevant checks:
   - `pytest backend/tests`
   - `ruff check backend`
   - `black --check backend/app backend/tests`
@@ -191,11 +202,11 @@ max-complexity = 10
 
 ## 7. Security & Configuration
 
-- Secrets only via env vars; never hard-code.
-- Validate external input.
-- Operate on **least privilege**.
-- Avoid unnecessary dependencies; audit regularly.
-- Secure CORS origins; prevent PII leakage.
+- Secrets only via environment variables.
+- Validate all external input.
+- Operate on least privilege.
+- Audit dependencies regularly.
+- Secure CORS origins and prevent PII leakage.
 
 ---
 
@@ -203,16 +214,20 @@ max-complexity = 10
 
 ### 8.1 Code Quality & Maintainability
 
-- Follow DRY; repair small issues immediately.
+- Follow DRY; fix small issues immediately.
 - Remove unused code proactively.
 - Update dependencies regularly.
 - Comment deviations with rationale.
-
-### 8.2 Error Handling
-
 - Fix causes, not symptoms.
 - Cover error paths with tests.
 - Return actionable messages.
+
+### 8.2 Error Handling and Privacy
+
+- Model only fields needed by the UI; prefer narrow `Pick<>`s per feature.
+- Do not put PII in logs, URLs, or client storage.
+- Keep sensitive values in memory only.
+- Gate telemetry/analytics behind consent and scrub values client-side.
 
 ### 8.3 Testing Discipline
 
@@ -227,7 +242,8 @@ max-complexity = 10
 ### 8.5 Performance & Reliability
 
 - Optimize via measurement.
-- Guard against N+1, add caching and circuit breakers.
+- Guard against N+1.
+- Add caching and circuit breakers.
 
 ### 8.6 Continuous Improvement
 
@@ -242,7 +258,7 @@ max-complexity = 10
 3. Run relevant checks.  
 4. Keep documentation current.  
 5. Capture UI evidence for visual changes.  
-6. Rebase or merge latest main before PR.
+6. Rebase or merge latest `main` before PR.
 
 ### Commit Rules
 
@@ -273,6 +289,7 @@ export class BillingFacade {
   constructor(private readonly svc: BillingService) {}
   async charge(orderId: string) { return this.svc.chargeOrder(orderId); }
 }
+
 class BillingService {
   async chargeOrder(orderId: string) {
     const parse = (s: string) => Number.parseInt(s, 10);
@@ -300,7 +317,7 @@ def charge(order_id: str) -> Receipt:
 ## 12. Workflow Automation & AI Constraints
 
 - Codex runs skip external contributor secrets.
-- Auth via ChatGPT (not API key).  
+- Authentication via ChatGPT (not API key).  
 - For Agent Mode: branch from latest `main`, commit per stage, push frequently.  
 - Conflicts must be resolved; no markers in tree.  
 - Review all auto-generated diffs for correctness.
