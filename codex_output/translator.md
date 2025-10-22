@@ -1,28 +1,35 @@
 **Restated Request**
-- Fix lint errors and adjust code so all tests pass.
-- Keep changes minimal, behavior-preserving, and self-contained.
-- Prioritize readability/consistency; respect repo’s split between general and Angular-specific guidelines.
+- Resolve all lint errors and ensure all tests pass.
+- Keep diffs minimal and behavior-preserving across backend and Angular frontend.
+- Respect repo guidance: language-agnostic rules vs. Angular-specific guidelines.
 
 **Assumptions**
-- Both backend and Angular frontend exist and have linters/tests configured.
-- No new dependencies or tooling changes are allowed.
-- Prior minimal refactors (string formatting and signal update) are acceptable and behavior-neutral.
-- Environment has workspace write access; network access is restricted.
+- Backend and frontend each have established lint/test commands.
+- No dependency or toolchain changes are allowed (network is restricted).
+- Prior minor refactors (string formatting, signal update) are acceptable and behavior-neutral.
+- CI gates lint, tests, and possibly formatting.
 
 **Constraints**
-- Minimal-diff changes; avoid creating new tasks or scope creep.
-- Deliver a finished, shippable outcome within a short time window (~30 minutes).
-- Follow Development Governance Handbook and Angular Coding & Design Guidelines where applicable.
-- Approval policy is non-interactive; proceed without waiting for confirmations.
+- Minimal-impact, targeted changes only; no broad cleanups.
+- No new dependencies or substantial config changes.
+- Deliver a self-contained, finished outcome quickly (≈30 minutes).
+- Follow repo governance and coding conventions.
 
 **Unknowns**
-- Exact linting toolchains and configurations (e.g., flake8/ruff/black for backend; ESLint/TSLint/Prettier for frontend).
-- Current failing lint rules and failing test suites.
-- CI expectations (required scripts, coverage thresholds, formatting gates).
-- Whether the repo contains alluded backend/frontend paths or is partially docs-only.
+- Exact linters in use (e.g., ruff/flake8, ESLint) and their configs.
+- Which rules/tests currently fail and their scope.
+- CI-required commands, coverage thresholds, and format requirements.
+- Runtime versions (Python/Node) used in CI.
 
 **Clarifying Questions**
-- Which linters and test commands are authoritative for backend and frontend?
-- Are there known failing rules/tests to target first?
-- Should we confine changes strictly to formatting/typing and trivial refactors (no logic changes)?
-- Any directories to exclude from this pass (e.g., generated, legacy, or archived code)?
+- What are the authoritative commands for lint and tests for backend and frontend?
+- Are there known failing rules/tests to prioritize?
+- Any files/directories to exclude from this pass (generated/legacy)?
+- Should we update snapshots (if any) or treat them as failures requiring code changes?
+- Is disabling lint rules acceptable, or should we prefer code fixes only?
+
+**Residual Risks / Open Questions**
+- Widespread lint issues could expand scope; we will fix only blockers.
+- Small refactors might affect edge-case tests; careful, localized changes are required.
+- Angular Signals API differences by version could affect “direct updater” usage.
+- CI might enforce formatters (Black/Prettier); formatting mismatches could fail builds.
