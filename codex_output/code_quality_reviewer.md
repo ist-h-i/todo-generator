@@ -1,60 +1,40 @@
 **Summary**
-Overall implementation is close and follows existing patterns. I found and fixed three concrete issues that would have caused runtime errors or test failures:
-- Length mismatch between DB column and UI/server validation for nickname.
-- Two backend tests still registering without nickname.
-- Frontend test double for `AuthService.register` not matching the updated method signature.
+- The fix correctly synchronizes programmatic values into the native select so projected <option> elements are reliably read and the label reflects the selected value.
 
-What I verified:
-- Backend accepts and persists `nickname` on register and returns it in the profile.
-- Startup migration backfills existing users’ nicknames and runs at app boot.
-- Frontend registration form includes a “ニックネーム” field, validates client-side, and sends the value.
-- Profile update flow also uses the same nickname validation style.
+**Correctness**
+- `writeValue` mirrors the control value into the native select and then updates the label: frontend/src/app/shared/ui/select/ui-select.ts:240. This resolves the “no options/empty label” perception on init.
+- Options are built from projected `<option>` nodes and kept up to date via `MutationObserver`, with label sync after updates: frontend/src/app/shared/ui/select/ui-select.ts:216, frontend/src/app/shared/ui/select/ui-select.ts:220.
+- Selection logic is normalized for both single and multiple; label derives from current options and selected values: frontend/src/app/shared/ui/select/ui-select.ts:323.
+- Click, keyboard, and change paths maintain internal/native sync and propagate changes to the form control: frontend/src/app/shared/ui/select/ui-select.ts:266, frontend/src/app/shared/ui/select/ui-select.ts:293, frontend/src/app/shared/ui/select/ui-select.ts:362.
 
-**Fixes Applied**
-- Align nickname max length to DB column (64 chars) to avoid DB errors.
-  - backend/app/services/profile.py:1 – set max to 64
-  - frontend/src/app/features/auth/login/page.ts:220 – client nickname validation max 64
-  - frontend/src/app/core/profile/profile-dialog.ts:360 – profile dialog max 64
+**Readability**
+- The component maintains a clean separation of concerns: option reading, value/label sync, and UI event handling.
+- Public `onTouched` is clearly annotated for template usage; other callbacks are private and typed.
+- Template and styles are cohesive; comments succinctly document intent.
 
-- Update missed tests to include nickname on registration:
-  - backend/tests/test_admin_users.py:128, 171 – add `nickname: "Second"`
+**Edge Cases**
+- Multiple select: `writeValue` selects matching native options; label shows joined labels: frontend/src/app/shared/ui/select/ui-select.ts:247, frontend/src/app/shared/ui/select/ui-select.ts:331.
+- No options: active index defaults to 0; guarded usage prevents crashes, though -1 could be a cleaner sentinel (see suggestion).
+- Async option population: deferred initial read and observer-based updates handle late-projected options without console errors.
 
-- Fix frontend test double to match new register signature:
-  - frontend/src/app/features/auth/login/page.spec.ts:39 – add `nickname` to `RegisterCall`
-  - frontend/src/app/features/auth/login/page.spec.ts:57 – mock `register(email, password, nickname)`
+**Usages Checked**
+- All current usages correctly project `<option>` children:
+  - frontend/src/app/features/admin/page.html:129
+  - frontend/src/app/features/admin/page.html:218
+  - frontend/src/app/features/admin/page.html:231
+  - frontend/src/app/features/admin/page.html:423
+  - frontend/src/app/features/reports/reports-page.component.html:255
+  - frontend/src/app/features/reports/reports-page.component.html:274
+- Placeholders are provided where needed; no refactor to a different API is required.
 
-**Correctness & Edge Cases**
-- Registration
-  - API: `POST /auth/register` expects `{ email, password, nickname }`; missing/empty nickname returns 422 via `normalize_nickname`.
-  - Duplicate email yields 400; other validations unchanged.
-- Persistence
-  - DB column is `VARCHAR(64)` nullable; migration backfills NULL/empty with `user-{id}` ensuring non-empty values post-migration while keeping schema lenient.
-- Client/Server Validation
-  - Both sides enforce non-empty + max length 64; trimming is consistent.
-- Profile Update
-  - Uses the same max length (64) and error messaging; consistent with DB.
+**Risks / Open Questions**
+- Inert support on the hidden native select is broadly available, but older browsers may behave inconsistently. If issues arise, consider removing `inert` and rely on `aria-hidden` + styling.
+- No support for optgroups or custom templating beyond simple `<option disabled>`; confirm that’s acceptable for all current use cases.
+- For values not present in options (e.g., persisted “unknown” model), the label renders empty until the option appears. Current settings often inject an explicit `<option>` for the saved value (admin model picker), which is good.
 
-**Readability & Consistency**
-- Reused existing error message patterns (Japanese messages) and validators. The nickname validation logic is concise and co-located with other profile validations.
+**Suggestions (Non-blocking)**
+- Consider setting `activeIndex` to -1 when `options.length === 0` for semantic clarity: frontend/src/app/shared/ui/select/ui-select.ts:347.
+- Add `aria-labelledby` on the panel, pointing to the trigger, and optionally `aria-activedescendant` on the trigger when open for slightly improved a11y.
+- In `onDocClick`, rename `host` to `target` for clarity: frontend/src/app/shared/ui/select/ui-select.ts:355.
 
-**Residual Risks / Open Questions**
-- Uniqueness: Not enforced; duplicates remain possible.
-- DB NOT NULL: Column remains nullable by schema (mitigated by backfill and required registration). If a hard guarantee is desired, consider a follow-up migration to set NOT NULL once backfill is broadly deployed.
-- Validation scope: No profanity/character-set rules; acceptable per current scope but may need refinement later.
-- SSO/social login: Not evaluated; ensure those flows also supply or prompt for nickname if they hit the same endpoint.
-- i18n/accessibility: Registration label does not visually mark “必須”; errors do communicate requirement.
-
-**File References (key changes)**
-- backend/app/services/profile.py:1
-- backend/app/routers/auth.py:1
-- backend/app/migrations.py:121, 164, 960
-- frontend/src/app/core/auth/auth.service.ts:69
-- frontend/src/app/features/auth/login/page.ts:1
-- frontend/src/app/features/auth/login/page.html:127
-- frontend/src/app/features/auth/login/page.spec.ts:39
-- frontend/src/app/core/profile/profile-dialog.ts:360
-- backend/tests/test_admin_users.py:128, 171
-
-If you want, I can also:
-- Add a small server-side min length (e.g., 2) to reduce accidental single-character nicknames.
-- Propose a phased plan to enforce DB NOT NULL on `users.nickname` once backfill is safely rolled out.
+Overall, the implementation is correct, minimal, and aligns with existing usage patterns. No further call-site changes are needed.

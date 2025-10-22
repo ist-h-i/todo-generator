@@ -1,14 +1,14 @@
 import { CommonModule } from '@angular/common';
 import {
+  AfterContentInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   HostListener,
+  OnDestroy,
   ViewChild,
   forwardRef,
   Input,
-  AfterViewInit,
-  OnDestroy,
 } from '@angular/core';
 import {
   ControlValueAccessor,
@@ -179,7 +179,9 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, OnDestroy {
+export class UiSelectComponent
+  implements ControlValueAccessor, AfterContentInit, OnDestroy
+{
   @Input() id?: string;
   @Input() name?: string;
   @Input() multiple: boolean | null = null;
@@ -196,49 +198,40 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, O
   @ViewChild('nativeSelect', { static: true }) nativeSelectRef!: ElementRef<HTMLSelectElement>;
 
   options: Array<{ value: string; label: string; disabled: boolean }> = [];
+  private optionsSignature = '';
+  private scheduledReconcile = false;
+  private pendingForceReconcile = false;
+  private destroyed = false;
+  private optionsObserver?: MutationObserver;
 
   private onChange: (val: string | string[] | null) => void = () => {};
   // Must be public to be callable from the template (blur) handler
   public onTouched: () => void = () => {};
-  private mo?: MutationObserver;
 
-  ngAfterViewInit(): void {
-    // Defer initial read to ensure projected <option> nodes render
-    const defer: (fn: () => void) => void =
-      typeof queueMicrotask === 'function'
-        ? queueMicrotask
-        : (fn) => setTimeout(fn, 0);
-    defer(() => {
-      this.readOptions();
-      this.syncLabelFromValue();
-    });
-
-    // Observe changes to projected <option> elements (added/removed/updated)
-    const sel = this.nativeSelectRef?.nativeElement;
-    if (sel && typeof MutationObserver !== 'undefined') {
-      this.mo = new MutationObserver(() => {
-        this.readOptions();
-        this.syncLabelFromValue();
-        this.ensureActiveIndex();
-      });
-      this.mo.observe(sel, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-        attributes: true,
-      });
-    }
+  ngAfterContentInit(): void {
+    this.scheduleProjectedOptionsReconciliation(true);
+    this.observeProjectedOptions();
   }
 
   ngOnDestroy(): void {
-    if (this.mo) {
-      this.mo.disconnect();
-      this.mo = undefined;
-    }
+    this.destroyed = true;
+    this.optionsObserver?.disconnect();
   }
 
   writeValue(obj: any): void {
     this.value = obj as string | string[] | null;
+    // Reflect programmatic value into the native <select> so that
+    // initial state stays in sync and labels resolve correctly even
+    // before the first user interaction.
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (sel) {
+      if (this.multiple) {
+        const selected = Array.isArray(this.value) ? this.value.map(String) : [];
+        Array.from(sel.options).forEach((o) => (o.selected = selected.includes(o.value)));
+      } else {
+        sel.value = this.value != null ? String(this.value) : '';
+      }
+    }
     this.syncLabelFromValue();
   }
   registerOnChange(fn: (val: string | string[] | null) => void): void {
@@ -305,7 +298,11 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, O
     const sel = this.nativeSelectRef?.nativeElement;
     if (!sel) return;
     const opts = Array.from(sel.options || []);
-    this.options = opts.map((o) => ({ value: o.value, label: o.label, disabled: o.disabled }));
+    this.options = opts.map((o) => ({
+      value: o.value,
+      label: this.resolveOptionLabel(o),
+      disabled: o.disabled,
+    }));
   }
 
   private syncLabelFromValue(): void {
@@ -335,6 +332,84 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, O
   private ensureActiveIndex(): void {
     const idx = this.options.findIndex((o) => this.isSelected(o.value));
     this.activeIndex = idx >= 0 ? idx : 0;
+  }
+
+  private scheduleProjectedOptionsReconciliation(force = false): void {
+    if (force) {
+      this.pendingForceReconcile = true;
+    }
+    if (this.scheduledReconcile) {
+      return;
+    }
+    this.scheduledReconcile = true;
+    Promise.resolve().then(() => {
+      this.scheduledReconcile = false;
+      if (this.destroyed) {
+        this.pendingForceReconcile = false;
+        return;
+      }
+      const runForce = this.pendingForceReconcile;
+      this.pendingForceReconcile = false;
+      this.reconcileProjectedOptions(runForce);
+    });
+  }
+
+  private observeProjectedOptions(): void {
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (!sel || typeof MutationObserver === 'undefined') {
+      return;
+    }
+
+    if (this.optionsObserver) {
+      this.optionsObserver.disconnect();
+    }
+
+    this.optionsObserver = new MutationObserver(() => {
+      this.scheduleProjectedOptionsReconciliation();
+    });
+
+    this.optionsObserver.observe(sel, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true,
+    });
+  }
+
+  private reconcileProjectedOptions(force = false): void {
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (!sel) {
+      return;
+    }
+
+    const nativeOptions = Array.from(sel.options || []);
+    const nextSignature = nativeOptions
+      .map((option) => {
+        const label = this.resolveOptionLabel(option);
+        return `${option.value}::${label}::${option.disabled ? '1' : '0'}`;
+      })
+      .join('|');
+
+    if (!force && nextSignature === this.optionsSignature) {
+      return;
+    }
+
+    this.optionsSignature = nextSignature;
+    this.readOptions();
+    this.syncLabelFromValue();
+    if (this.panelOpen) {
+      this.ensureActiveIndex();
+    }
+  }
+
+  private resolveOptionLabel(option: HTMLOptionElement): string {
+    const label = option.label?.trim();
+    if (label) {
+      return label;
+    }
+
+    const text = option.textContent ?? '';
+    return text.trim();
   }
 
   @HostListener('document:click', ['$event'])

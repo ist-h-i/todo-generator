@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, timezone, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Iterable
 
 from sqlalchemy.orm import Session
 
 from .. import models
-
 
 RECENT_COMPLETION_WINDOW_DAYS = 30
 RECENT_COMPLETION_WEIGHT = 2.0

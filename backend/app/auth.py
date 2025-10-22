@@ -3,9 +3,9 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
+import unicodedata
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-import unicodedata
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -17,7 +17,7 @@ from .models import SessionToken, User
 _PBKDF2_ITERATIONS = 120_000
 _TOKEN_TTL_HOURS = 24
 _AUTH_SCHEME = HTTPBearer(auto_error=False)
-_TOKEN_HASH_ALGORITHM = "sha256"
+_TOKEN_HASH_ALGORITHM = hashlib.sha256().name
 
 
 def _utcnow() -> datetime:

@@ -1,32 +1,39 @@
 **背景**
-- Goal: Require a “Nickname” during user registration so every account has an associated nickname.
-- Scope: Minimal surface change limited to registration, persistence, and i18n; no broad UI/API refactors.
-- Existing users: Must be handled without blocking; backfill approach selected.
+- Periodic security review with minimal, low-risk hardening under ~30 minutes.
+- Scope: Backend API (FastAPI) only; avoid SPA/architectural changes.
+- Constraints: Minimal diffs, no networked audits, keep builds/tests green, document residual risks.
 
 **変更概要**
-- Data model/migration: Add `nickname` (VARCHAR 64). Startup backfills `user-{id}` where nickname is null/empty; schema remains nullable for compatibility.
-- API: Extend `POST /auth/register` to require `nickname`. Normalize/trim; validate non-empty and max length 64; persist and return with user profile.
-- Frontend: Add required “ニックネーム” field to the registration form with client-side validation mirroring server rules; include in payload.
-- Tests: Update registration helpers and specs to provide nicknames; add cases for missing/too short/too long inputs.
+- Added security headers middleware to harden all non-OPTIONS responses (`backend/app/main.py:156`):
+  - `Strict-Transport-Security: max-age=15552000; includeSubDomains`
+  - `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+  - `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Resource-Policy: same-origin`
+  - Placed after existing CORS logic; uses `response.headers.setdefault` to avoid clobbering.
+- Added focused test for `GET /health` headers (`backend/tests/test_security_headers.py:1`).
+- Updated documentation with rationale and residual risks (`docs/security-review.md:1`).
 
 **影響**
-- Breaking for old clients: Registrations without `nickname` now fail with a clear validation error.
-- Existing users: Receive default `user-{id}` nickname after backfill; may become visible wherever nickname is displayed.
-- Uniqueness: Not enforced in this pass; duplicates are possible.
-- SSO/social: Unchanged; must supply or prompt for nickname if they hit the same registration path.
+- Runtime: All API responses gain standard hardening headers; no API shape changes.
+- Compatibility: Safe defaults for APIs; note `Referrer-Policy: no-referrer` may reduce analytics referrer data.
+- Ops: HSTS applies over HTTPS only; COOP/CORP constrain cross-origin embedding (appropriate for APIs).
 
 **検証**
-- API: Verified 400/422 on missing/invalid nickname; valid values are trimmed, persisted, and returned.
-- Migration: Verified backfill assigns non-empty `user-{id}`; post-migration users have non-null values in practice.
-- UI: Registration form blocks submit when nickname invalid/empty; successful submit includes nickname.
-- Consistency: Server/client share non-empty + 64-char max; messages follow existing i18n pattern.
+- Targeted test: `pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck`
+- Full backend: `pytest -q backend/tests`
+- Manual spot-check:
+  - Start: `uvicorn app.main:app --reload --app-dir backend`
+  - Verify: `curl -s -D - http://localhost:8000/health | grep -E 'Strict-Transport|Content-Type-Options|Referrer-Policy|X-Frame-Options|Permissions-Policy|Cross-Origin'`
+- Files to review:
+  - Middleware: `backend/app/main.py:156`
+  - Test: `backend/tests/test_security_headers.py:1`
+  - Doc: `docs/security-review.md:1`
 
 **レビュー観点**
-- Validation policy: Confirm min length and allowed characters; current pass uses trim + non-empty + max 64, no profanity/emoji filtering.
-- Uniqueness: Decide whether to enforce globally (case/Unicode rules) and when to add constraints/indexing.
-- Schema hardening: When to migrate `nickname` to NOT NULL after safe rollout.
-- SSO flows: Confirm nickname capture behavior for social/enterprise providers.
-- UX/i18n: Finalize label/help/error copy and accessibility cues; confirm languages supported.
-- Visibility/editability: Where nickname appears and whether users can change it (rules/rate limits).
-
-Residual risks/open questions are called out above; guidance on uniqueness, stricter validation, and NOT NULL timing will shape any follow-up.
+- Middleware placement post-CORS; confirm `setdefault` prevents overriding upstream headers.
+- Header names/values as specified; HSTS `max-age` and `Permissions-Policy` directives correct.
+- `GET /health` exists and test follows existing fixture patterns.
+- Environment runs HTTPS in production for HSTS effectiveness.
+- Residual risks acknowledged and deferred:
+  - SPA tokens in `localStorage` (recommend secure, httpOnly cookies later).
+  - CSP on SPA host to be added in a future, coordinated pass.

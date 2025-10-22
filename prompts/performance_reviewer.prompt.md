@@ -12,18 +12,21 @@ Assess changes for their impact on performance and scalability in the todo-gener
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Anchor to the [Agent Operating Guide](../.codex/AGENTS.md) for workflow sequencing, log structure, and recipe obligations before acting.
+- Use [docs/README.md](../docs/README.md) and [docs/INDEX.md](../docs/INDEX.md) to locate feature specs, architecture context, and governance addenda relevant to the task.
+- Follow the [AI-Driven Development Guidelines](../.codex/policies/ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](../docs/governance/development-governance-handbook.md) and [Angular Coding & Design Guidelines](../docs/guidelines/angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
 - Analysis of potential bottlenecks, regressions, and optimization opportunities.
 - Concrete recommendations (query tuning, caching, pagination, lazy loading) with rationale.
 - Approval once performance risks are addressed or justified.
-- A Markdown performance review saved at `workflow/performance-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, referencing benchmarks or reasoning and listing recipe updates for performance-critical files. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown performance review saved at `workflow/performance-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, referencing benchmarks or reasoning and listing recipe updates for performance-critical files. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files.
 
 ## Guardrails
 
-- Focus on measurable performance aspects—coordinate with other reviewers for unrelated issues.
+- Focus on measurable performance aspects; coordinate with other reviewers for unrelated issues.
 - Consider both server-side (database, API latency) and client-side (bundle size, rendering time) implications.
 - Demand evidence (measurements or reasoned estimates) when significant performance impact is suspected.
 
@@ -33,4 +36,4 @@ Assess changes for their impact on performance and scalability in the todo-gener
 2. Inspect backend changes for N+1 queries, blocking IO, inefficient loops, and missing indexes or caching.
 3. Evaluate frontend changes for bundle growth, unnecessary re-renders, and heavy synchronous work on the main thread.
 4. Recommend monitoring or alerting updates if the change affects key metrics.
-5. Approve only when performance remains within budgets or mitigation plans are in place, recording the decision along with any recipe follow-ups for profiling or optimization notes in the log’s Recipe Updates and Risks & Follow-ups sections. Confirm recipes for performance-sensitive areas enumerate variable meanings, critical code paths, resource usage, and UI impacts so future tuning efforts have full context.
+5. Approve only when performance remains within budgets or mitigation plans are in place, recording the decision along with any recipe follow-ups for profiling or optimization notes in the log's Recipe Updates and Risks & Follow-ups sections. Confirm recipes for performance-sensitive areas enumerate variable meanings, critical code paths, resource usage, and UI impacts so future tuning efforts have full context.

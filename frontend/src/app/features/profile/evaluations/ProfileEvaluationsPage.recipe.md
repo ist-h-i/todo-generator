@@ -1,6 +1,6 @@
-# Recipe: ProfileEvaluationsPage
+# Recipe: ProfileEvaluationsPageComponent
 
-Source: `frontend/src/app/features/profile/evaluations/page.ts`
+Source: `frontend/src/app/features/profile/evaluations/feature/profile-evaluations-page.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

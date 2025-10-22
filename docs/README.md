@@ -1,49 +1,68 @@
 # Documentation Index
 
-Use this index to locate the specs, playbooks, and references that keep Verbalize Yourself aligned across teams. Entries are grouped so you can jump straight to the material you need.
+Welcome to the Verbalize Yourself knowledge base. Use this index to navigate architecture references, feature playbooks, and operations guidance that keep the product aligned across teams.
 
-## Architecture & System Design
+## Start Here
 
-- [Architecture overview](architecture.md) — System context, component breakdown, and service responsibilities.
-- [Feature data flow reference](data-flow-overview.md) — End-to-end traces of the main product workflows, from UI signals to SQLAlchemy models.
-- [Persistence detail design](persistence-detail-design.md) — Schema relationships, startup migration strategy, and storage conventions.
-- [System architecture playbook](system-architecture-playbook.md) — Reusable principles, decision workflows, and role expectations that generalise beyond this product.
+- [Repository Index & Map](INDEX.md): Quick tour of source directories, entry points, and supporting tools.
+- [Development Governance Handbook](governance/development-governance-handbook.md): Source of truth for repository structure, quality gates, and AI-assisted delivery expectations.
+- [Angular Coding & Design Guidelines](guidelines/angular-coding-guidelines.md): Standards for the SPA, including state management, patterns, and shared component design.
+- [UI Design System](ui-design-system.md): Tokens, components, and accessibility rules for consistent UI primitives.
+- [UI Layout Requirements](ui-layout-requirements.md): Responsive layout grids, navigation heuristics, and multi-pane workflow guidance.
 
-## Governance & Delivery
+## How to Use These Guides
 
-- [Development governance handbook](governance/development-governance-handbook.md) - Unified coding standards, workflow agreements, and AI-driven development expectations.
-- [Angular coding & design guidelines](guidelines/angular-coding-guidelines.md) - Coding standards, state management, and design-system rules for the SPA.
-- [Known issues & workarounds](known-issues.md) — Actively tracked gaps with mitigation ideas for support and QA teams.
-- [MCP helper servers](mcp-helper-servers.md) — How to launch the local MCP Git and filesystem helpers used in automation tooling.
-- [Security hotspot review](security-review.md) — Findings from the last security sweep with remediation guidance.
+- Start with the governance handbook when planning changes that affect architecture, quality workflows, or delivery guardrails.
+- Apply the Angular guidelines whenever you touch the SPA so state, styling, and data flow stay consistent.
+- Keep design documents and workflow specs in sync with component or tooling updates, documenting intentional deviations for the next contributor.
+- Cross-check the Repository Index whenever you need a refresher on file locations or new entry points.
+
+## Architecture & Platform
+
+- [Architecture overview](architecture.md): System context, service boundaries, and operational posture.
+- [Feature data flow reference](data-flow-overview.md): End-to-end traces for primary workflows from UI signals to persistence.
+- [Persistence detail design](persistence-detail-design.md): Storage conventions, migration strategy, and schema relationships.
+- [Database schema commands](db-schema-commands.md): Reference for managing migrations and schema tooling.
+- [Security hotspot review](security-review.md): Findings from the latest security audit with mitigation guidance.
+- [Metrics schema](metrics/schema.md): Definitions for telemetry points consumed by observability dashboards.
 
 ## Feature Playbooks
 
-- **Analyzer & status reports**: [AI intake requirements](features/analysis-intake/requirements.md), [Status reporting requirements](features/status-reporting/requirements.md), and [AI intake + status report detail design](features/ai-intake-status-reports/requirements.md).
+- **Analyzer & status reports**: [AI intake requirements](features/analysis-intake/requirements.md) and [Status reporting detail design](features/status-reporting/detail-design.md).
 - **Board operations**: [Board collaboration requirements](features/board/requirements.md) and [Recommendation scoring specs](features/recommendation-scoring/requirements.md).
 - **Governance & competencies**: [Governance feature requirements](features/governance/requirements.md) and [Competency evaluations workflow](features/competency-evaluations/requirements.md).
-- **Analytics**: [Analytics insights requirements](features/analytics-insights/requirements.md) plus the [analysis intake detail design](features/analysis-intake/detail-design.md) for proposal handling internals.
+- **Analytics**: [Analytics insights requirements](features/analytics-insights/requirements.md) and [Analysis intake detail design](features/analysis-intake/detail-design.md).
+- **Appeals**: [Appeal generation requirements](features/appeal-generation/requirements.md) and [Appeal detail design](features/appeal-generation/detail-design.md).
 
 ## UI & Experience Design
 
-- [UI design system](ui-design-system.md) — Tokens, components, and accessibility expectations for shared UI primitives.
-- [UI layout requirements](ui-layout-requirements.md) — Responsive layout constraints and navigation heuristics for multi-pane workflows.
+- [UI design system](ui-design-system.md): Token definitions, component catalog, and accessibility expectations.
+- [UI layout requirements](ui-layout-requirements.md): Layout constraints, responsive rules, and navigation heuristics for complex flows.
 
-## Spec Updates & Implementation Notes
+## Spec Updates & Operational Notes
 
-- [HTTP error interceptor requirements](spec-updates/http-error-interceptor.md) — Shared error handling banner and notifier contract for API failures.
-- [Notification layer relocation](spec-updates/toast-layer-layout.md) — Placement rules for the global error banner, hover message stack, and analyzer toasts.
-- [Gemini migration](spec-updates/gemini-migration.md) — Configuration and rollout plan for the Gemini-powered AI flows.
+- [Known issues & workarounds](known-issues.md): Active gaps with mitigation ideas for QA, support, and incident response.
+- [HTTP error interceptor requirements](spec-updates/http-error-interceptor.md): Shared error handling banner contract for API failures.
+- [Notification layer relocation](spec-updates/toast-layer-layout.md): Placement rules for the global error banner and toast stack.
+- [Gemini migration](spec-updates/gemini-migration.md): Configuration and rollout plan for Gemini-powered AI flows.
 
-## Prompts & Automation
+## Prompts, Automation, and MCP Tooling
 
-- [`prompts/`](../prompts) — Prompt references for AI interactions used by backend services and content moderation flows.
-- [`scripts/`](../scripts) — Operational scripts, including the Codex automation pipeline and helper launchers for MCP servers.
-- Code recipes are co-located next to their source files as `*.recipe.md` (for Angular classes, `ClassName.recipe.md` in the same directory). See files adjacent to the code they document.
+- [`prompts/`](../prompts): Prompt definitions for AI interactions used across backend services and operational flows.
+- [`scripts/`](../scripts): Automation scripts, including Codex pipelines and helper launchers for MCP servers.
+- [MCP helper servers](mcp-helper-servers.md): Instructions for running the MCP helper suite (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, and optional adapters).
+- [Auto-evolve operations](auto-evolve/operations.md): Guardrails and workflows for the auto-evolve automation loop.
 
-## Contribution Tips
+## Recipes & Reusable Patterns
 
-- Sync with `README.md` for setup instructions spanning both Angular and FastAPI stacks.
-- When introducing or modifying features, update the relevant requirements and detail design documents listed above to keep this index accurate.
-- Capture architecture or workflow changes in the playbooks so the next contributor inherits the latest rationale.
-- See the [Repository Index & Map](INDEX.md) for a quick tour of code layout and entry points.
+- [Recipes overview](recipes/README.md): Index of `*.recipe.md` files co-located with their source modules for ready-to-copy implementation snippets.
+
+## Analysis & Research
+
+- [Immune map](analysis/immune-map.md): Research notes that inform anomaly detection and analyst workflows.
+
+## Keeping Documentation Fresh
+
+- Update requirements, design notes, and specs alongside feature or workflow changes so contributors inherit accurate context.
+- Record architecture and decision outcomes in spec updates or project issues when deviating from the established guidance.
+- Link new documents from this index (and the Repository Index) so navigation stays comprehensive.

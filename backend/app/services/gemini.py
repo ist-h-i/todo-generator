@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 import logging
 import re
-from dataclasses import dataclass
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Any, ClassVar, List, Optional, Sequence
 
 from fastapi import Depends, HTTPException, status
@@ -924,15 +924,15 @@ def _status_sort_key(status: models.Status) -> tuple[int, str]:
 
 
 def _select_default_status(statuses: Sequence[models.Status]) -> models.Status | None:
-    for status in statuses:
-        category = (status.category or "").strip().casefold()
+    for candidate in statuses:
+        category = (candidate.category or "").strip().casefold()
         if category == "todo":
-            return status
+            return candidate
 
-    for status in statuses:
-        name = (status.name or "").strip().casefold()
+    for candidate in statuses:
+        name = (candidate.name or "").strip().casefold()
         if name in {"todo", "to do"}:
-            return status
+            return candidate
 
     return statuses[0] if statuses else None
 

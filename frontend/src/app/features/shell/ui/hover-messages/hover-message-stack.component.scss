@@ -1,0 +1,26 @@
+:host {
+  position: fixed;
+  inset-inline-end: clamp(12px, 5vw, 48px);
+  inset-block-end: clamp(16px, 12vh, 144px);
+  display: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.85rem;
+  z-index: 60;
+  pointer-events: none;
+}
+
+:host.hover-message-stack--visible {
+  display: flex;
+}
+
+.hover-message-stack__list {
+  display: contents;
+}
+
+@media (min-width: 64rem) {
+  :host {
+    inset-inline-end: clamp(24px, 6vw, 72px);
+    inset-block-end: clamp(24px, 8vh, 160px);
+  }
+}

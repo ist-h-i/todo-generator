@@ -59,7 +59,7 @@ Refer to `docs/architecture.md` for an end-to-end component breakdown and `docs/
 |-- prompts/                # Prompt references for AI interactions
 |-- scripts/                # Automation scripts (Codex pipeline, MCP helpers)
 |-- start-localhost.bat     # Windows helper that installs deps and launches both servers
-`-- start-mcp-servers.bat   # Starts the MCP Git and filesystem helper servers
+`-- start-mcp-servers.bat   # Launches the MCP helper servers (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, optional adapters)
 ```
 
 ## Local development
@@ -88,6 +88,8 @@ Create a `.env` file in the repository root or export variables before launching
 | `ALLOWED_ORIGINS` | Comma-separated list of CORS origins for the SPA. | `http://localhost:4200` |
 
 Store the Neon credentials outside the repository (for example, in a `.env` file that is excluded from version control) and inject them through `DATABASE_URL` before starting the backend service.
+
+If you plan to use the `@21st-dev/magic` MCP server, define `MAGIC_API_KEY` in your environment (or `.env`) before running `start-mcp-servers.*`; both `.modelcontext.json` and `.codex/config.toml` now load the API key from that variable at runtime.
 
 ### One-click startup on Windows
 
@@ -127,7 +129,7 @@ The backend starts on <http://localhost:8000> (with auto-applied migrations and 
 
 - Login with the seeded administrator account or create a new user via `/auth`.
 - Store secrets and Gemini keys through the admin console once `SECRET_ENCRYPTION_KEY` is configured.
-- Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers when running Codex automation or MCP tooling.
+- Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, with optional Magic and Playwright adapters) when running Codex automation or other MCP-aware tooling.
 
 ## Quality and automation
 
@@ -172,15 +174,13 @@ The helper script runs `coverage run -m pytest` inside `backend/` and `npm run t
 
 How to use these guides:
 
-- Start with the Development Governance Handbook for repository structure, backend practices, quality gates, and AI-driven expectations.
+- Start with the Development Governance Handbook for repository structure, backend practices, quality gates, and AI expectations.
 - Apply the Angular Coding & Design Guidelines whenever you touch the SPA.
-- Keep design and workflow docs in sync when updating components, flows, or build tooling. Document intentional deviations.
-- [Documentation index](docs/README.md) – curated map of the most frequently referenced specs and playbooks.
-- [Architecture overview](docs/architecture.md) – high-level system diagram and component breakdown.
-- [Data flow reference](docs/data-flow-overview.md) – end-to-end traces for core workflows.
-- [Development governance handbook](docs/governance/development-governance-handbook.md) – unified standards, workflow agreements, and quality bars.
-- [System architecture playbook](docs/system-architecture-playbook.md) – reusable principles and workflow guidance for similar products.
-- [Security hotspots](docs/security-review.md) – known risks and recommended remediation paths.
+- Keep design and workflow docs in sync when updating components, flows, or build tooling, and document intentional deviations.
+- Use the [Documentation Index](docs/README.md) to locate architecture, governance, and feature playbooks quickly.
+- Consult the [Architecture overview](docs/architecture.md) for the system diagram and component breakdown.
+- Review the [Data flow reference](docs/data-flow-overview.md) for end-to-end traces of core workflows.
+- Check the [Security hotspot review](docs/security-review.md) when addressing known risks or regression testing fixes.
 
 ## Troubleshooting
 
@@ -196,8 +196,8 @@ The stack traces point back to `backend/app/services/gemini.py`, where the clien
 
 To recover:
 
-1. **Enumerate supported models** – Run `from google.generativeai import list_models; print(list_models())` in a Python shell to verify which models and methods your account can access. The backend performs this discovery step automatically and will either map `models/gemini-2.0-flash` to an available variant (for example `models/gemini-2.0-flash-002`) or return `503 Service Unavailable` with the supported model names.
-2. **Switch to an available model** – Configure `GEMINI_MODEL` (or the admin credential form) with an identifier surfaced by the error, such as `models/gemini-2.0-flash`, `models/gemini-2.0-flash-lite`, or `gemini-1.5-pro-latest`, that your account can access.
-3. **Upgrade the SDK for `v1` support** – Install the latest `google-generativeai` release so you can target the `v1` API and restore access to the Flash families if you are pinned to older runtimes.
+1. **Enumerate supported models**  ERun `from google.generativeai import list_models; print(list_models())` in a Python shell to verify which models and methods your account can access. The backend performs this discovery step automatically and will either map `models/gemini-2.0-flash` to an available variant (for example `models/gemini-2.0-flash-002`) or return `503 Service Unavailable` with the supported model names.
+2. **Switch to an available model**  EConfigure `GEMINI_MODEL` (or the admin credential form) with an identifier surfaced by the error, such as `models/gemini-2.0-flash`, `models/gemini-2.0-flash-lite`, or `gemini-1.5-pro-latest`, that your account can access.
+3. **Upgrade the SDK for `v1` support**  EInstall the latest `google-generativeai` release so you can target the `v1` API and restore access to the Flash families if you are pinned to older runtimes.
 
 Re-run the `list_models()` check after each change to confirm the API now exposes the desired model before retrying the `/analysis` workflow.

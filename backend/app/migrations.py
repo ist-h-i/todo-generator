@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -31,6 +32,9 @@ def _false_literal(dialect_name: str) -> str:
 
 def _string_column_type(dialect_name: str) -> str:
     return "TEXT" if dialect_name == "sqlite" else "VARCHAR(255)"
+
+
+logger = logging.getLogger(__name__)
 
 
 _DUPLICATE_COLUMN_TOKENS = (
@@ -957,6 +961,90 @@ def _ensure_api_credentials_model_column(engine: Engine) -> None:
         )
 
 
+def _normalize_assignees_to_user_ids(engine: Engine) -> None:
+    """Backfill cards.assignees (JSON) and subtasks.assignee (TEXT) to user IDs.
+
+    - Matches existing values against users.id, users.email (case-insensitive), and
+      users.nickname (case-insensitive, unique only).
+    - Preserves unmatched values to avoid data loss.
+    """
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "users"):
+            return
+        cards_exists = _table_exists(inspector, "cards")
+        subtasks_exists = _table_exists(inspector, "subtasks")
+        if not cards_exists and not subtasks_exists:
+            return
+
+    # Load users
+    with engine.begin() as connection:
+        rows = connection.execute(text("SELECT id, email, nickname FROM users")).fetchall()
+        id_set = {row.id for row in rows}
+        email_map = {str(row.email or "").strip().lower(): row.id for row in rows}
+        # Build nickname buckets to handle duplicates
+        nick_buckets: dict[str, set[str]] = {}
+        for row in rows:
+            key = str(row.nickname or "").strip().lower()
+            if not key:
+                continue
+            nick_buckets.setdefault(key, set()).add(row.id)
+        nickname_map = {k: next(iter(v)) for k, v in nick_buckets.items() if len(v) == 1}
+
+        def to_user_id(value: str) -> str:
+            raw = (value or "").strip()
+            if not raw:
+                return raw
+            if raw in id_set:
+                return raw
+            key = raw.lower()
+            if key in email_map:
+                return email_map[key]
+            if key in nickname_map:
+                return nickname_map[key]
+            return raw
+
+        # Cards
+        if cards_exists:
+            # ruff: noqa: S608 - controlled SQL identifiers
+            card_rows = connection.execute(text("SELECT id, assignees FROM cards")).fetchall()
+            for row in card_rows:
+                try:
+                    values = row.assignees or []
+                    if not isinstance(values, (list, tuple)):
+                        continue
+                    mapped = [to_user_id(str(v)) for v in values]
+                    if list(values) != mapped:
+                        connection.execute(
+                            text("UPDATE cards SET assignees = :vals WHERE id = :id").bindparams(
+                                bindparam("vals", type_=JSON),
+                                bindparam("id"),
+                            ),
+                            {"vals": mapped, "id": row.id},
+                        )
+                except Exception:  # pragma: no cover - best effort fallback
+                    logger.exception("Skipping card %s while normalizing assignees", getattr(row, "id", "<unknown>"))
+                    continue
+
+        # Subtasks
+        if subtasks_exists:
+            sub_rows = connection.execute(text("SELECT id, assignee FROM subtasks")).fetchall()
+            for row in sub_rows:
+                try:
+                    current = row.assignee
+                    if current is None or str(current).strip() == "":
+                        continue
+                    mapped = to_user_id(str(current))
+                    if mapped != current:
+                        connection.execute(
+                            text("UPDATE subtasks SET assignee = :val WHERE id = :id"),
+                            {"val": mapped, "id": row.id},
+                        )
+                except Exception:  # pragma: no cover - best effort fallback
+                    logger.exception("Skipping subtask %s while normalizing assignee", getattr(row, "id", "<unknown>"))
+                    continue
+
+
 def run_startup_migrations(engine: Engine) -> None:
     """Ensure database upgrades that rely on application startup are applied."""
 
@@ -981,6 +1069,7 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_channel_tables(engine)
     _ensure_card_channel_column(engine)
     _ensure_private_channels_and_backfill(engine)
+    _normalize_assignees_to_user_ids(engine)
 
 
 __all__: Iterable[str] = ["run_startup_migrations"]

@@ -1,6 +1,15 @@
 # MCP Helper Servers
 
-Launch the Model Context Protocol helper servers when you need Codex or other MCP-aware tooling to interact with this repository. The helper pair exposes Git operations through the `mcp-server-git` package and filesystem APIs through `@modelcontextprotocol/server-filesystem`.
+Launch the Model Context Protocol helper servers when you need Codex or other MCP-aware tooling to interact with this repository. The batch script starts the following services:
+
+- Filesystem (`@modelcontextprotocol/server-filesystem`)
+- Memory (`@modelcontextprotocol/server-memory`)
+- Fetch (`mcp-server-fetch`)
+- Puppeteer (`@modelcontextprotocol/server-puppeteer`)
+- Sequential thinking (`@modelcontextprotocol/server-sequential-thinking`)
+- Time (`mcp-server-time`)
+- Serena (`serena start-mcp-server`)
+- Optional adapters: Brave Search (when `BRAVE_API_KEY` is defined), Magic (`@21st-dev/magic`) when `MAGIC_API_KEY` is available, and Playwright (`@playwright/mcp`).
 
 ## Prerequisites
 
@@ -9,7 +18,7 @@ Launch the Model Context Protocol helper servers when you need Codex or other MC
 
 ## Windows
 
-Run the batch helper from the repository root. It opens two terminals that host the MCP Git and filesystem servers. Close the windows to stop the services.
+Run the batch helper from the repository root. A separate terminal window opens for each server. Optional adapters only start when their required environment variables are present. Close the windows to stop the services.
 
 ```@bash
 start-mcp-servers.bat
@@ -17,7 +26,7 @@ start-mcp-servers.bat
 
 ## macOS/Linux
 
-Grant execute permission once, then launch the script. It keeps both servers running until you press Ctrl+C.
+Grant execute permission once, then launch the script. It keeps the full MCP server suite running until you press Ctrl+C.
 
 ```@linux
 chmod +x scripts/start-mcp-servers.sh

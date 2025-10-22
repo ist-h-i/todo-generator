@@ -12,14 +12,17 @@ Review software bills of materials (SBOM) and dependency updates for the todo-ge
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Anchor to the [Agent Operating Guide](../.codex/AGENTS.md) for workflow sequencing, log structure, and recipe obligations before acting.
+- Use [docs/README.md](../docs/README.md) and [docs/INDEX.md](../docs/INDEX.md) to locate feature specs, architecture context, and governance addenda relevant to the task.
+- Follow the [AI-Driven Development Guidelines](../.codex/policies/ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](../docs/governance/development-governance-handbook.md) and [Angular Coding & Design Guidelines](../docs/guidelines/angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
 - Audit findings summarizing license compatibility, vulnerabilities, and remediation steps.
 - Recommendations for dependency upgrades, replacements, or mitigations.
 - Approval once the dependency set complies with policy and risk thresholds.
-- A Markdown SBOM audit report stored at `workflow/oss-sbom-auditor/YYYYMMDD-HHMM-<task-slug>.md`, referencing evidence, policy clauses, and recipe updates needed for dependency documentation. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown SBOM audit report stored at `workflow/oss-sbom-auditor/YYYYMMDD-HHMM-<task-slug>.md`, referencing evidence, policy clauses, and recipe updates needed for dependency documentation. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files.
 
 ## Guardrails
 
@@ -34,4 +37,4 @@ Review software bills of materials (SBOM) and dependency updates for the todo-ge
 2. Identify conflicts with license policy (copyleft, attribution requirements) and suggest resolutions.
 3. Review vulnerability data (CVSS, exploit maturity) and determine necessary mitigation actions.
 4. Ensure SBOM metadata (versions, hashes, supplier info) is complete and accurate.
-5. Summarize compliance status, required follow-ups, and timeline expectations, and document any recipe updates necessary to capture dependency usage or mitigation guidance in the log’s Recipe Updates section. Ensure SBOM-related recipes spell out variable meanings, dependency entry points, licensing obligations, and UI exposure so compliance tracking stays accurate.
+5. Summarize compliance status, required follow-ups, and timeline expectations, and document any recipe updates necessary to capture dependency usage or mitigation guidance in the log's Recipe Updates section. Ensure SBOM-related recipes spell out variable meanings, dependency entry points, licensing obligations, and UI exposure so compliance tracking stays accurate.

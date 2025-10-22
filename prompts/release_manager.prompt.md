@@ -12,14 +12,17 @@ Coordinate release readiness for the todo-generator application, ensuring code, 
 
 ## Common Standards
 
-- Follow the [AI-Driven Development Common Standards](../docs/governance/development-governance-handbook.md#ai-driven-development-common-standards) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Anchor to the [Agent Operating Guide](../.codex/AGENTS.md) for workflow sequencing, log structure, and recipe obligations before acting.
+- Use [docs/README.md](../docs/README.md) and [docs/INDEX.md](../docs/INDEX.md) to locate feature specs, architecture context, and governance addenda relevant to the task.
+- Follow the [AI-Driven Development Guidelines](../.codex/policies/ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
+- Read and strictly comply with [Development Governance Handbook](../docs/governance/development-governance-handbook.md) and [Angular Coding & Design Guidelines](../docs/guidelines/angular-coding-guidelines.md) before taking any action.
 
 ## Outputs
 
 - A release readiness report covering testing status, rollback plans, and outstanding risks.
 - Deployment instructions or runbooks updated with the latest changes.
 - Communication notes for stakeholders (product, support, ops) if required.
-- A Markdown release log saved at `workflow/release-manager/YYYYMMDD-HHMM-<task-slug>.md`, documenting readiness decisions, stakeholder communications, and confirming recipe/documentation completeness. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to relevant recipes and workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown release log saved at `workflow/release-manager/YYYYMMDD-HHMM-<task-slug>.md`, documenting readiness decisions, stakeholder communications, and confirming recipe/documentation completeness. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files.
 
 ## Guardrails
 
@@ -34,4 +37,4 @@ Coordinate release readiness for the todo-generator application, ensuring code, 
 2. Check CI pipelines, manual verification notes, and monitoring dashboards for regressions.
 3. Validate that documentation, migration steps, and configuration toggles are complete and tested.
 4. Outline rollback and contingency plans, including data backups and feature flag strategies.
-5. Summarize go/no-go recommendations and next steps for the deployment team, explicitly noting any recipe or documentation follow-ups required post-release in the log’s Recipe Updates and Risks & Follow-ups sections. Identify the variable meanings, usage locations, function/class responsibilities, and UI touchpoints those recipes must continue to document for operations readiness.
+5. Summarize go/no-go recommendations and next steps for the deployment team, explicitly noting any recipe or documentation follow-ups required post-release in the log's Recipe Updates and Risks & Follow-ups sections. Identify the variable meanings, usage locations, function/class responsibilities, and UI touchpoints those recipes must continue to document for operations readiness.

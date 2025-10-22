@@ -1,20 +1,22 @@
-# Recipe: BoardPage
+# Recipe: BoardPageComponent
 
-Source: `frontend/src/app/features/board/page.ts`
+Source: `frontend/src/app/features/board/feature/board-page.component.ts`
 
 ## Purpose & Responsibilities
-Briefly describe what this class/component does and when it is used.
+- Hosts the board feature page template and delegates all stateful logic to `BoardPageStore`.
+- Provides the UI with bound signals/actions exposed by the store to keep the template lean.
 
 ## Public API
 - Methods: (none detected)
 - Properties: (none detected)
 
 ## Notable Dependencies
-List injected services, inputs/outputs, and important collaborators.
+- `BoardPageStore` (feature facade/state)
+- Angular CDK drag & drop directives via the template
 
 ## Usage Notes
-How to integrate or extend; constraints and side-effects.
+- Injected store is provided at the component level so each board shell has an isolated state instance.
+- Tests should mock or provide `BoardPageStore` rather than relying on `WorkspaceStore` directly.
 
 ## Change History
-- Seeded by generator. Append context on future changes.
-
+- 2025-10-22: Converted to thin shell delegating to `BoardPageStore` to satisfy the governance facade pattern.

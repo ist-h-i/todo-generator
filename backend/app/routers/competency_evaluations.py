@@ -12,12 +12,12 @@ from .. import models, schemas
 from ..auth import get_current_user
 from ..database import get_db
 from ..services.competency_evaluator import CompetencyEvaluator
+from ..utils.dependencies import require_admin
 from ..utils.quotas import (
     get_daily_usage,
     get_evaluation_daily_limit,
     reserve_daily_quota,
 )
-from ..utils.dependencies import require_admin
 
 router = APIRouter(tags=["competencies"])
 

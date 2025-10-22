@@ -1,6 +1,6 @@
 # Recipe: ReportAssistantPageComponent
 
-Source: `frontend/src/app/features/reports/report-assistant-page.component.ts`
+Source: `frontend/src/app/features/reports/feature/reports-page.component.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.
