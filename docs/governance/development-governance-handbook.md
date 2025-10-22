@@ -51,7 +51,7 @@ The Angular single-page application follows the complementary guidance in [`guid
 ### Git Workflow & Pull Requests
 
 - Write imperative, capitalised commit subjects around 65 characters. Squash fixups before merging.
-- Sync with `main` frequently (`git pull origin main`) and resolve conflicts early. Rebase or merge main before requesting review.
+- Sync with `develop` frequently (`git pull origin develop`) and resolve conflicts early. Rebase or merge develop before requesting review.
 - PR descriptions must link the relevant issue, explain behavioural changes, and mention migrations or configuration updates. Include before/after screenshots for UI adjustments and record any manual QA completed.
 
 ### Security & Configuration
@@ -155,7 +155,7 @@ Refer to the detailed [AI Agent Development Guidelines](../../.codex/policies/ai
 - Use Conventional Commit prefixes (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`).
 - Keep commits atomic and focused on a single change.
 - Write clear, descriptive commit messages in English.
-- Avoid committing directly to the `main` or `master` branches.
+- Avoid committing directly to the `develop`, `main`, or `master` branches.
 
 #### Code Review Mindset
 
@@ -241,8 +241,8 @@ const user = raw // typed via guard
 
 ### Daily Flow
 
-1. **Sync with the latest `main`**
-   - Run `git pull origin main` before you start and periodically during development.
+1. **Sync with the latest `develop`**
+   - Run `git pull origin develop` before you start and periodically during development.
    - Resolve conflicts early to avoid large merge chores at the end.
 2. **Implement in small steps and self-review**
    - Confirm requirements or ticket acceptance criteria before coding.
@@ -255,8 +255,8 @@ const user = raw // typed via guard
    - Double-check cross references and diagrams for accuracy before merging.
 5. **Capture UI evidence when visuals change**
    - Run `npm start` from `frontend/`, take screenshots that cover key states and breakpoints, and attach them to the pull request with annotations when useful.
-6. **Rebase or merge the latest `main` before completion**
-   - Use `git fetch origin main && git merge origin/main` (or rebase) near the end of your work.
+6. **Rebase or merge the latest `develop` before completion**
+   - Use `git fetch origin develop && git merge origin/develop` (or rebase) near the end of your work.
    - Resolve conflicts and rerun the relevant tests or builds afterwards.
 
 ### Codex Workflow Limitations
@@ -264,14 +264,14 @@ const user = raw // typed via guard
 - Runs triggered by external contributors cannot access repository secrets (e.g., `CODEX_AUTH_JSON_B64`).
 - If secrets are unavailable, Codex cannot run. A maintainer with write access should re-run via **Run workflow**, or an authorised user can trigger by commenting `/codex ...` on the issue.
 - This workflow uses ChatGPT authentication. `OPENAI_API_KEY` is not required.
-- When you work in **Agent Mode**, create a feature branch from the latest `main`, commit each meaningful output, and push regularly so that every automated run has a clean history to diff against.
+- When you work in **Agent Mode**, create a feature branch from the latest `develop`, commit each meaningful output, and push regularly so that every automated run has a clean history to diff against.
 
 ### Pre-merge Requirements
 
 1. **Complete the necessary quality checks**
    - Code changes: run all tests, linters, and builds that apply to the touched areas.
    - Documentation-only updates: automated checks are optional, but review for correctness and tone.
-2. **Bring in the latest `main`**
+2. **Bring in the latest `develop`**
    - Resolve every conflict before requesting review.
    - After resolving conflicts, rerun the impacted checks.
 3. **Conflict resolution expectations**
@@ -289,7 +289,7 @@ The following JSON mirrors the workflow and quality expectations for tooling tha
 {
   "development_rules": {
     "workflow": [
-      "Pull the latest main branch at the start and during development to resolve differences early.",
+      "Pull the latest develop branch at the start and during development to resolve differences early.",
       "Confirm requirements, commit in small increments, and perform self-review.",
       "Re-read your diff before requesting review and complete a self-check."
     ],
@@ -323,13 +323,13 @@ The following JSON mirrors the workflow and quality expectations for tooling tha
     "pre_merge_requirements": {
       "code_changes": [
         "All required checks must pass for code changes.",
-        "Merge or rebase main before requesting review."
+        "Merge or rebase develop before requesting review."
       ],
       "doc_or_comment_changes": [
         "Documentation-only or comment-only changes focus on accuracy; automated checks are optional."
       ],
       "common": [
-        "Resolve conflicts and rerun impacted checks after merging main.",
+        "Resolve conflicts and rerun impacted checks after merging develop.",
         "Attach screenshots for UI changes.",
         "Explain any manual verification performed during QA."
       ]
