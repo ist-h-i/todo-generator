@@ -844,7 +844,7 @@ def update_subtask(
         subtask_id,
         detail="Subtask not found",
     )
-    if subtask.card_id != card.id:
+    if subtask.card_id != card_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
     previous_status = subtask.status
@@ -897,7 +897,7 @@ def delete_subtask(
         subtask_id,
         detail="Subtask not found",
     )
-    if subtask.card_id != card.id:
+    if subtask.card_id != card_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subtask not found")
 
     record_activity(

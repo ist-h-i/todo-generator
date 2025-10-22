@@ -1,27 +1,27 @@
-**Plan Overview**
-- Implement minimal Channels: tables, membership, and `cards.channel_id`.
-- Scope all card/subtask reads/writes by channel membership.
-- Default card creation to caller’s private channel; block `channel_id` changes on update.
-- Add minimal endpoints: `GET /channels/mine`, `POST /channels/{id}/invite|leave|kick`.
-- Idempotent startup migrations: create private channels per user and backfill existing cards.
+**Plan Summary**
+- Keep changes minimal and behavior-preserving; focus on fixing lint and ensuring tests pass.
+- Apply small, mechanical refactors in pinpointed spots only; avoid deps/config changes.
+
+**Targeted Fixes**
+- Backend: merge adjacent f-strings for readability (no-op behavior).
+- Frontend: simplify signal state update by passing the updater directly (equivalent behavior).
 
 **Why This Route**
-- Smallest diff to meet requirements; no frontend refactor needed now.
-- Preserves current UX by defaulting to private channel.
-- Avoids broad permission refactors; simple owner/member model.
+- Smallest viable diff to address common lint/style issues without risking behavior.
+- Fits comfortably in ≤30 minutes; avoids scope creep.
 
-**Deliverables**
-- Backend models, migrations, and routers for channels and membership.
-- Scoped queries and create/update guards for cards/subtasks.
-- Brief docs note on channel requirement and defaults.
+**Risks**
+- Unknown exact linters; coder must align to repo’s configured tools (ruff/flake8, ESLint).
+- If other unrelated lint failures exist, follow-up might be needed; keep changes scoped.
 
-**Critical Risks / Open Questions**
-- Migration may reduce visibility of previously shared cards.
-- Sole owner cannot leave; ownership transfer deferred.
-- Invite by unique username/email without approval; confirm product intent.
-- No cross-channel moves yet; audit policy TBD.
-- Consider index on `cards.channel_id` if lists grow.
+**Validation**
+- Run backend and frontend tests; run linters using repo scripts if available.
+- No build or API changes; expect all tests to pass after fixes.
 
 ```json
-{"steps":["coder","integrator"],"notes":"Coder adds Channel + ChannelMember, cards.channel_id, membership-scoped queries, default channel on card create, and invite/leave/kick endpoints; blocks channel_id changes. Integrator wires startup migrations to create private channels per user and backfill cards, registers routers, and verifies endpoints. Frontend selector deferred to keep scope minimal.","tests":"Backend: (1) GET /channels/mine returns private channel after registration. (2) POST /cards without channel_id creates in private channel; response includes channel_id. (3) POST /cards with non-member channel → 403. (4) List cards only returns member-channel cards. (5) Attempt to update card with channel_id → 409. (6) Invite user → invitee can list/create in channel. (7) Leave removes membership; access revoked. (8) Kick by owner removes member; access revoked. Migration: existing users have private channels; existing cards have non-null channel_id pointing to creator’s channel."}
+{
+  "steps": ["coder"],
+  "notes": "Implement minimal, behavior-preserving lint fixes: (1) merge split f-string in backend/app/sqlalchemy_py313_compat.py; (2) simplify signal update in frontend/src/app/lib/forms/signal-forms.ts by passing updater directly. Use repo lint scripts if present, avoid dependency/config changes, and keep diffs minimal.",
+  "tests": "Backend: `cd backend && pytest -q` | Lint (pick what's configured): `cd backend && ruff check .` or `flake8`.\nFrontend: `cd frontend && npm test -- --watch=false` | Lint: `cd frontend && npm run lint`.\nOptional build: `cd frontend && npm run build`."
+}
 ```

@@ -38,7 +38,7 @@ def _patch_langhelpers(module: ModuleType) -> None:
 
         original_init_subclass_func(cls)
 
-    _patched_init_subclass._todo_generator_py313_patch = True  # type: ignore[attr-defined]
+    setattr(_patched_init_subclass, _PATCH_ATTRIBUTE, True)  # type: ignore[attr-defined]
     typing_only_cls.__init_subclass__ = _patched_init_subclass
 
 
