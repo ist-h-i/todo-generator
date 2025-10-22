@@ -3,7 +3,6 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
 import {
-  BoardColumnView,
   BoardGrouping,
   BoardQuickFilter,
   Card,
