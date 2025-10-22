@@ -9,6 +9,8 @@ import {
   ApiCredential,
   ApiCredentialUpdate,
   Competency,
+  CompetencyLevelDefinition,
+  CompetencyLevelInput,
   CompetencyEvaluation,
   CompetencyInput,
   EvaluationTriggerRequest,
@@ -44,6 +46,14 @@ export class AdminApiService {
 
   public listEvaluations(): Observable<CompetencyEvaluation[]> {
     return this.http.get<CompetencyEvaluation[]>(buildApiUrl('/admin/evaluations'));
+  }
+
+  public listCompetencyLevels(): Observable<CompetencyLevelDefinition[]> {
+    return this.http.get<CompetencyLevelDefinition[]>(buildApiUrl('/admin/competency-levels'));
+  }
+
+  public createCompetencyLevel(payload: CompetencyLevelInput): Observable<CompetencyLevelDefinition> {
+    return this.http.post<CompetencyLevelDefinition>(buildApiUrl('/admin/competency-levels'), payload);
   }
 
   public listUsers(): Observable<AdminUser[]> {

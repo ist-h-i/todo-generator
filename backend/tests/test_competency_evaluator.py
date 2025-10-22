@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest import TestCase
 
 import pytest
@@ -132,3 +132,27 @@ def test_editing_completed_work_does_not_count_as_recent(db_session):
     assertions.assertTrue(metrics["recent_subtasks_completed"] == 0)
     assertions.assertTrue(metrics["recent_completed_total"] == 0)
     assertions.assertTrue(metrics["older_completed_total"] == 2)
+
+    assertions.assertTrue(evaluation.score_value == 1)
+    assertions.assertTrue(evaluation.score_label == "未達")
+
+
+def test_custom_competency_level_uses_configured_scale(db_session):
+    today = date.today()
+    user = models.User(email="custom@example.com", password_hash="hashed")  # noqa: S106
+    level = models.CompetencyLevel(value="advanced", label="上級", scale=3)
+    competency = models.Competency(name="カスタム", level="advanced")
+    db_session.add_all([user, level, competency])
+    db_session.commit()
+
+    evaluator = CompetencyEvaluator(db_session)
+    evaluation = evaluator.evaluate(
+        user=user,
+        competency=competency,
+        period_start=today.replace(day=1),
+        period_end=today,
+        triggered_by="test",
+    )
+
+    assertions.assertTrue(evaluation.scale == 3)
+    assertions.assertTrue(evaluation.score_value == 1)

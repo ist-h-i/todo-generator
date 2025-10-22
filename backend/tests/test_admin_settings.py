@@ -119,3 +119,41 @@ def test_existing_gemini_credential_is_accessible_via_case_insensitive_alias(cli
     payload = fetch.json()
     assertions.assertTrue(payload["model"] == "gemini-1.5-pro")
     assertions.assertTrue(payload["secret_hint"] == build_secret_hint("sk-alias-token"))
+
+
+def test_admin_can_manage_competency_levels(client: TestClient) -> None:
+    headers = _admin_headers(client)
+
+    create = client.post(
+        "/admin/competency-levels",
+        headers=headers,
+        json={"value": "senior", "label": "上級", "scale": 5, "description": "経験豊富", "sort_order": 2},
+    )
+    assertions.assertTrue(create.status_code == 201, create.text)
+    level = create.json()
+    assertions.assertTrue(level["value"] == "senior")
+    assertions.assertTrue(level["label"] == "上級")
+    assertions.assertTrue(level["scale"] == 5)
+
+    listing = client.get("/admin/competency-levels", headers=headers)
+    assertions.assertTrue(listing.status_code == 200, listing.text)
+    values = {item["value"] for item in listing.json()}
+    assertions.assertIn("senior", values)
+
+
+def test_competency_level_identifier_is_unique(client: TestClient) -> None:
+    headers = _admin_headers(client)
+
+    first = client.post(
+        "/admin/competency-levels",
+        headers=headers,
+        json={"value": "Advanced", "label": "上級", "scale": 5},
+    )
+    assertions.assertTrue(first.status_code == 201, first.text)
+
+    duplicate = client.post(
+        "/admin/competency-levels",
+        headers=headers,
+        json={"value": "advanced", "label": "Advanced", "scale": 5},
+    )
+    assertions.assertTrue(duplicate.status_code == 409, duplicate.text)

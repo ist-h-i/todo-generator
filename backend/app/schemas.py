@@ -926,9 +926,29 @@ class CompetencyCriterionRead(CompetencyCriterionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CompetencyLevelBase(BaseModel):
+    value: str
+    label: str
+    scale: Literal[3, 5] = 5
+    description: Optional[str] = None
+    sort_order: int = 0
+
+
+class CompetencyLevelCreate(CompetencyLevelBase):
+    pass
+
+
+class CompetencyLevelRead(CompetencyLevelBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CompetencyBase(BaseModel):
     name: str
-    level: Literal["junior", "intermediate"]
+    level: str
     description: Optional[str] = None
     rubric: Dict[str, Any] = Field(default_factory=dict)
     sort_order: int = 0
@@ -941,7 +961,7 @@ class CompetencyCreate(CompetencyBase):
 
 class CompetencyUpdate(BaseModel):
     name: Optional[str] = None
-    level: Optional[Literal["junior", "intermediate"]] = None
+    level: Optional[str] = None
     description: Optional[str] = None
     rubric: Optional[Dict[str, Any]] = None
     sort_order: Optional[int] = None
@@ -954,6 +974,7 @@ class CompetencyRead(CompetencyBase):
     created_at: datetime
     updated_at: datetime
     criteria: List[CompetencyCriterionRead] = Field(default_factory=list)
+    level_definition: Optional[CompetencyLevelRead] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -961,7 +982,7 @@ class CompetencyRead(CompetencyBase):
 class CompetencySummary(BaseModel):
     id: str
     name: str
-    level: Literal["junior", "intermediate"]
+    level: str
 
     model_config = ConfigDict(from_attributes=True)
 

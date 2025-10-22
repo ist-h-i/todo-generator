@@ -19,7 +19,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
 
 from .database import Base
 
@@ -610,6 +610,23 @@ class SimilarityFeedback(Base, TimestampMixin):
     card: Mapped[Card] = relationship("Card")
 
 
+class CompetencyLevel(Base, TimestampMixin):
+    __tablename__ = "competency_levels"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
+    value: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    label: Mapped[str] = mapped_column(String, nullable=False)
+    scale: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    description: Mapped[str | None] = mapped_column(Text)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+    competencies: Mapped[list["Competency"]] = relationship(
+        "Competency",
+        primaryjoin="foreign(Competency.level) == CompetencyLevel.value",
+        viewonly=True,
+    )
+
+
 class Competency(Base, TimestampMixin):
     __tablename__ = "competencies"
 
@@ -620,6 +637,12 @@ class Competency(Base, TimestampMixin):
     rubric: Mapped[dict] = mapped_column(JSON, default=dict)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    level_definition: Mapped[CompetencyLevel | None] = relationship(
+        "CompetencyLevel",
+        primaryjoin="foreign(Competency.level) == CompetencyLevel.value",
+        viewonly=True,
+    )
 
     criteria: Mapped[list["CompetencyCriterion"]] = relationship(
         "CompetencyCriterion",

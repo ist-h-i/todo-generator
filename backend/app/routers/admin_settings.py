@@ -148,6 +148,62 @@ def deactivate_api_credential(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.get("/competency-levels", response_model=list[schemas.CompetencyLevelRead])
+def list_competency_levels(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> list[models.CompetencyLevel]:
+    levels = (
+        db.query(models.CompetencyLevel)
+        .order_by(models.CompetencyLevel.sort_order.asc(), models.CompetencyLevel.created_at.asc())
+        .all()
+    )
+    return levels
+
+
+@router.post(
+    "/competency-levels",
+    response_model=schemas.CompetencyLevelRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_competency_level(
+    payload: schemas.CompetencyLevelCreate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> models.CompetencyLevel:
+    value = payload.value.strip().lower()
+    if not value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="レベル識別子を入力してください。")
+
+    label = payload.label.strip()
+    if not label:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="レベル名を入力してください。")
+
+    existing = (
+        db.query(models.CompetencyLevel)
+        .filter(func.lower(models.CompetencyLevel.value) == value)
+        .one_or_none()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="同じ識別子のコンピテンシーレベルが既に存在します。",
+        )
+
+    level = models.CompetencyLevel(
+        value=value,
+        label=label,
+        scale=payload.scale,
+        description=payload.description.strip() if payload.description else None,
+        sort_order=payload.sort_order,
+    )
+
+    db.add(level)
+    db.commit()
+    db.refresh(level)
+    return level
+
+
 @router.get("/quotas/defaults", response_model=schemas.QuotaDefaultsRead)
 def get_defaults(
     db: Session = Depends(get_db),
