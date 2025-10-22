@@ -1,27 +1,23 @@
-**Plan Summary**
-- Keep changes minimal and behavior-preserving; focus on fixing lint and ensuring tests pass.
-- Apply small, mechanical refactors in pinpointed spots only; avoid deps/config changes.
+Plan focus: solve lint failures and keep tests green with minimal, behavior-preserving edits. Backend uses Ruff; frontend uses ESLint + Prettier on Angular 20.
 
-**Targeted Fixes**
-- Backend: merge adjacent f-strings for readability (no-op behavior).
-- Frontend: simplify signal state update by passing the updater directly (equivalent behavior).
+What to change
+- Backend: keep the merged f-string and the shared `_PATCH_ATTRIBUTE` sentinel in `backend/app/sqlalchemy_py313_compat.py`.
+- Frontend: keep direct updater form `store.update(updater)` in `frontend/src/app/lib/forms/signal-forms.ts`.
 
-**Why This Route**
-- Smallest viable diff to address common lint/style issues without risking behavior.
-- Fits comfortably in ≤30 minutes; avoids scope creep.
+Why this is sufficient
+- These address the previously flagged lint concerns without altering runtime behavior.
+- Tooling is already configured: Ruff (pyproject.toml) and ESLint/Prettier (frontend/.eslintrc.cjs, scripts).
 
-**Risks**
-- Unknown exact linters; coder must align to repo’s configured tools (ruff/flake8, ESLint).
-- If other unrelated lint failures exist, follow-up might be needed; keep changes scoped.
+Residual risks / open questions
+- CI might enforce formatting gates (Black/Prettier) beyond local checks; run format tasks if needed.
+- Node/ChromeHeadless availability for Angular tests in CI; assumed configured.
+- If additional, unrelated lint errors appear, limit changes to the smallest local fixes rather than broad refactors.
+- Angular Signals API is v20; `store.update(updater)` is compatible.
 
-**Validation**
-- Run backend and frontend tests; run linters using repo scripts if available.
-- No build or API changes; expect all tests to pass after fixes.
+Validation outline
+- Backend: run Ruff and pytest.
+- Frontend: run ESLint, unit tests, optional build.
 
 ```json
-{
-  "steps": ["coder"],
-  "notes": "Implement minimal, behavior-preserving lint fixes: (1) merge split f-string in backend/app/sqlalchemy_py313_compat.py; (2) simplify signal update in frontend/src/app/lib/forms/signal-forms.ts by passing updater directly. Use repo lint scripts if present, avoid dependency/config changes, and keep diffs minimal.",
-  "tests": "Backend: `cd backend && pytest -q` | Lint (pick what's configured): `cd backend && ruff check .` or `flake8`.\nFrontend: `cd frontend && npm test -- --watch=false` | Lint: `cd frontend && npm run lint`.\nOptional build: `cd frontend && npm run build`."
-}
+{"steps":["coder"],"notes":"Apply and keep minimal, behavior-preserving lint fixes in two spots: backend/app/sqlalchemy_py313_compat.py (single f-string; use shared _PATCH_ATTRIBUTE via setattr) and frontend/src/app/lib/forms/signal-forms.ts (use store.update(updater)). If any additional lint errors appear, fix them surgically in-place without expanding scope or changing tooling/config. No dependency or config changes.","tests":"Backend: `ruff check backend` and `cd backend && pytest -q`. Frontend: `cd frontend && npm run lint`, `npm test -- --watch=false`, optional `npm run build`."}
 ```
