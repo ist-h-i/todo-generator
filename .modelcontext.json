@@ -1,20 +1,105 @@
 {
   "mcpServers": {
-    "git": {
-      "command": "uvx",
+    "filesystem": {
+      "command": "npx.cmd",
       "args": [
-        "mcp-server-git",
-        "--repository",
-        "${workspaceFolder}"
+        "--yes",
+        "@modelcontextprotocol/server-filesystem",
+        "${workspaceFolder}/.."
       ],
       "disabledTools": []
     },
-    "filesystem": {
+    "memory": {
+      "command": "npx.cmd",
+      "args": [
+        "--yes",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "disabledTools": []
+    },
+    "brave-search": {
       "command": "npx",
       "args": [
-        "@modelcontextprotocol/server-filesystem",
+        "--yes",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY_HERE"
+      },
+      "disabledTools": []
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch"
+      ],
+      "disabledTools": []
+    },
+    "puppeteer": {
+      "command": "npx.cmd",
+      "args": [
+        "--yes",
+        "@modelcontextprotocol/server-puppeteer"
+      ],
+      "disabledTools": []
+    },
+    "sequential-thinking": {
+      "command": "npx.cmd",
+      "args": [
+        "--yes",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "disabledTools": []
+    },
+    "time": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-time"
+      ],
+      "timeoutSeconds": 120,
+      "disabledTools": []
+    },
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "codex",
+        "--project",
         "${workspaceFolder}"
       ],
+      "timeoutSeconds": 180,
+      "disabledTools": []
+    },
+    "@21st-dev/magic": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "dotenv",
+        "-e",
+        ".env",
+        "--",
+        "npx",
+        "-y",
+        "@21st-dev/magic@latest"
+      ],
+      "env": {
+        "API_KEY": "${env:MAGIC_API_KEY}"
+      },
+      "disabledTools": []
+    },
+    "mcp-playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ],
+      "env": {},
       "disabledTools": []
     }
   }

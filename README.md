@@ -59,7 +59,7 @@ Refer to `docs/architecture.md` for an end-to-end component breakdown and `docs/
 |-- prompts/                # Prompt references for AI interactions
 |-- scripts/                # Automation scripts (Codex pipeline, MCP helpers)
 |-- start-localhost.bat     # Windows helper that installs deps and launches both servers
-`-- start-mcp-servers.bat   # Starts the MCP Git and filesystem helper servers
+`-- start-mcp-servers.bat   # Launches the MCP helper servers (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, optional adapters)
 ```
 
 ## Local development
@@ -88,6 +88,8 @@ Create a `.env` file in the repository root or export variables before launching
 | `ALLOWED_ORIGINS` | Comma-separated list of CORS origins for the SPA. | `http://localhost:4200` |
 
 Store the Neon credentials outside the repository (for example, in a `.env` file that is excluded from version control) and inject them through `DATABASE_URL` before starting the backend service.
+
+If you plan to use the `@21st-dev/magic` MCP server, define `MAGIC_API_KEY` in your environment (or `.env`) before running `start-mcp-servers.*`; both `.modelcontext.json` and `.codex/config.toml` now load the API key from that variable at runtime.
 
 ### One-click startup on Windows
 
@@ -127,7 +129,7 @@ The backend starts on <http://localhost:8000> (with auto-applied migrations and 
 
 - Login with the seeded administrator account or create a new user via `/auth`.
 - Store secrets and Gemini keys through the admin console once `SECRET_ENCRYPTION_KEY` is configured.
-- Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers when running Codex automation or MCP tooling.
+- Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, with optional Magic and Playwright adapters) when running Codex automation or other MCP-aware tooling.
 
 ## Quality and automation
 
@@ -199,4 +201,3 @@ To recover:
 3. **Upgrade the SDK for `v1` support**  EInstall the latest `google-generativeai` release so you can target the `v1` API and restore access to the Flash families if you are pinned to older runtimes.
 
 Re-run the `list_models()` check after each change to confirm the API now exposes the desired model before retrying the `/analysis` workflow.
-
