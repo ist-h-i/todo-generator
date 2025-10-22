@@ -16,7 +16,6 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({
       eventCoalescing: true,
       runCoalescing: true,
-      polyfill: false,
     }),
     provideRouter(
       appRoutes,
