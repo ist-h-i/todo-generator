@@ -9,9 +9,11 @@ on:
         required: false
   issue_comment:
     types: [created, edited]
+  pull_request_review_comment:
+    types: [created, edited]
 
 concurrency:
-  group: codex-auto-dev-${{ github.event_name }}-${{ github.event.issue.number || github.ref || 'manual' }}
+  group: codex-auto-dev-${{ github.event_name }}-${{ github.event.issue.number || github.event.pull_request.number || github.ref || 'manual' }}
   cancel-in-progress: true
 
 permissions:
@@ -23,7 +25,7 @@ jobs:
   codex:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issue_comment' &&
+      ((github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') &&
        contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -59,7 +61,7 @@ jobs:
         env:
           CANARY: ${{ steps.flags.outputs.canary_ratio }}
         run: |
-          KEY="${{ github.event.issue.number || github.ref || github.run_id }}"
+          KEY="${{ github.event.issue.number || github.event.pull_request.number || github.ref || github.run_id }}"
           H=$(printf "%s" "$KEY" | cksum | awk '{print $1}')
           MOD=$(( H % 100 ))
           CANARY_PCT=$(awk -v c="${CANARY:-0}" 'BEGIN{printf("%d", c*100)}')
@@ -113,7 +115,7 @@ jobs:
           python3 - <<'PY'
           import json, os, re, sys, uuid, urllib.request
 
-          name = os.environ.get("GITHUB_EVENT_NAME","")
+          name = os.environ.get("GITHUB_EVENT_NAME", "")
           path = os.environ.get("GITHUB_EVENT_PATH")
           if not path:
               print("::error::GITHUB_EVENT_PATH is not set.")
@@ -134,18 +136,42 @@ jobs:
           def coerce(x):
               return "" if x is None else str(x)
 
-          if name == "workflow_dispatch":
-              inputs = event.get("inputs") or {}
-              task = coerce(inputs.get("task_input")).strip() or "Manual trigger: Please implement the requested feature."
-              out("run_codex","true")
-              out("task_input", task)
+          def fetch_issue_comments(ev, issue_obj, limit=15, clip=800):
+              repo = (ev.get("repository") or {})
+              owner = ((repo.get("owner") or {}).get("login")) or ""
+              name = repo.get("name") or ""
+              num = (issue_obj or {}).get("number")
+              if not (owner and name and num):
+                  return []
+              url = f"https://api.github.com/repos/{owner}/{name}/issues/{num}/comments?per_page=100"
+              headers = {"Accept": "application/vnd.github+json"}
+              tok = os.environ.get("GITHUB_TOKEN", "")
+              if tok:
+                  headers["Authorization"] = f"Bearer {tok}"
+              req = urllib.request.Request(url, headers=headers)
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      arr = json.loads(r.read().decode("utf-8"))
+              except Exception as e:
+                  print(f"::warning::Failed to fetch comments: {e}")
+                  return []
+              arr = arr[-limit:]
+              out_items = []
+              for c in arr:
+                  by = ((c.get("user") or {}).get("login")) or ""
+                  at = c.get("created_at") or ""
+                  bd = (c.get("body") or "").strip()
+                  if len(bd) > clip:
+                      bd = bd[:clip] + " ...(truncated)"
+                  out_items.append({"by": by, "at": at, "body": bd})
+              return out_items
 
-          elif name == "issue_comment":
-              issue = event.get("issue") or {}
-              comment = event.get("comment") or {}
-              title = coerce(issue.get("title")).strip()
-              issue_body = coerce(issue.get("body")).strip()
-              body = coerce(comment.get("body")).replace("\r","")
+          def process_comment(source_issue, comment, trigger_label, extra_payload=None):
+              issue_obj = source_issue or {}
+              comment_obj = comment or {}
+              title = coerce(issue_obj.get("title")).strip()
+              issue_body = coerce(issue_obj.get("body")).strip()
+              body = coerce(comment_obj.get("body")).replace("\r", "")
 
               lines = body.split("\n")
               trigger_pattern = re.compile(r"^@?codex_agents\b[:\s-]*", re.IGNORECASE)
@@ -166,11 +192,11 @@ jobs:
                       command_start = m.end()
                       break
               if trigger_index < 0:
-                  out("run_codex","false")
+                  out("run_codex", "false")
                   sys.exit(0)
 
               head = trigger_line[command_start:].lstrip(" \t:-")
-              command = ("\n".join([head] + lines[trigger_index+1:])).strip()
+              command = ("\n".join([head] + lines[trigger_index + 1:])).strip()
               if not command:
                   command = '""'
 
@@ -181,60 +207,72 @@ jobs:
               )
               augmented_command = f"{command}\n\n{policy}".strip()
 
-              def fetch_issue_comments(ev, limit=15, clip=800):
-                  repo = (ev.get("repository") or {})
-                  owner = ((repo.get("owner") or {}).get("login")) or ""
-                  name  = repo.get("name") or ""
-                  num   = issue.get("number")
-                  if not (owner and name and num):
-                      return []
-                  url = f"https://api.github.com/repos/{owner}/{name}/issues/{num}/comments?per_page=100"
-                  headers = {"Accept":"application/vnd.github+json"}
-                  tok = os.environ.get("GITHUB_TOKEN","")
-                  if tok:
-                      headers["Authorization"] = f"Bearer {tok}"
-                  req = urllib.request.Request(url, headers=headers)
-                  try:
-                      with urllib.request.urlopen(req, timeout=60) as r:
-                          arr = json.loads(r.read().decode("utf-8"))
-                  except Exception as e:
-                      print(f"::warning::Failed to fetch comments: {e}")
-                      return []
-                  arr = arr[-limit:]
-                  out_items = []
-                  for c in arr:
-                      by = ((c.get("user") or {}).get("login")) or ""
-                      at = c.get("created_at") or ""
-                      bd = (c.get("body") or "").strip()
-                      if len(bd) > clip:
-                          bd = bd[:clip] + " ...(truncated)"
-                      out_items.append({"by":by, "at":at, "body":bd})
-                  return out_items
+              conversation = fetch_issue_comments(event, issue_obj)
 
-              conversation = fetch_issue_comments(event)
-
-              payload = json.dumps({
+              payload_dict = {
                   "Issue Title": title,
                   "Issue Body": issue_body,
                   "Instruction": augmented_command,
                   "Conversation": conversation
-              }, ensure_ascii=False)
+              }
+              payload_dict["Trigger"] = trigger_label
+              payload_dict["OriginalComment"] = body
+              if extra_payload:
+                  for k, v in extra_payload.items():
+                      if v not in (None, ""):
+                          payload_dict[k] = v
 
-              out("run_codex","true")
+              payload = json.dumps(payload_dict, ensure_ascii=False)
+
+              out("run_codex", "true")
               out("task_input", payload)
-              out("issue_number", coerce(issue.get("number")))
+              out("issue_number", coerce(issue_obj.get("number")))
+              return payload
+
+          if name == "workflow_dispatch":
+              inputs = event.get("inputs") or {}
+              task = coerce(inputs.get("task_input")).strip() or "Manual trigger: Please implement the requested feature."
+              out("run_codex", "true")
+              out("task_input", task)
+              payload = None
+
+          elif name == "issue_comment":
+              issue = event.get("issue") or {}
+              comment = event.get("comment") or {}
+              payload = process_comment(issue, comment, trigger_label="issue_comment")
+
+          elif name == "pull_request_review_comment":
+              pr = event.get("pull_request") or {}
+              comment = event.get("comment") or {}
+              review_context = {
+                  "path": comment.get("path"),
+                  "line": comment.get("line"),
+                  "original_line": comment.get("original_line"),
+                  "side": comment.get("side"),
+                  "original_side": comment.get("original_side"),
+                  "diff_hunk": comment.get("diff_hunk"),
+                  "commit_id": comment.get("commit_id"),
+                  "original_commit_id": comment.get("original_commit_id"),
+                  "in_reply_to_id": comment.get("in_reply_to_id"),
+                  "html_url": comment.get("html_url"),
+              }
+              review_context = {k: v for k, v in review_context.items() if v not in (None, "")}
+              extra = {"ReviewCommentContext": review_context or None}
+              payload = process_comment(pr, comment, trigger_label="pull_request_review_comment", extra_payload=extra)
 
           else:
               print("::error::Unsupported event.")
               sys.exit(1)
 
-          prev = (locals().get("payload") or locals().get("task") or "").replace("\n"," ").replace("\r"," ")
+          prev = payload or locals().get("task") or ""
+          prev = prev.replace("\n", " ").replace("\r", " ")
           if prev:
               print(f"TASK_INPUT preview: {prev[:200]}{'...' if len(prev)>200 else ''}")
+
           PY
 
       - name: Load previous progress for this issue
-        if: ${{ steps.detect.outputs.run_codex == 'true' && github.event_name == 'issue_comment' }}
+        if: ${{ steps.detect.outputs.run_codex == 'true' && contains(fromJson('["issue_comment","pull_request_review_comment"]'), github.event_name) }}
         id: progress
         shell: bash
         run: |
@@ -329,7 +367,7 @@ jobs:
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
         id: prepare_branch
         env:
-          BRANCH_NAME: ${{ github.event_name == 'issue_comment' && steps.detect.outputs.issue_number != '' && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
+          BRANCH_NAME: ${{ (contains(fromJson('["issue_comment","pull_request_review_comment"]'), github.event_name) && steps.detect.outputs.issue_number != '') && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
           BASE_BRANCH: develop
         shell: bash
         run: |
@@ -407,7 +445,7 @@ jobs:
           fi
 
       - name: Persist progress snapshot
-        if: ${{ steps.detect.outputs.run_codex == 'true' && github.event_name == 'issue_comment' }}
+        if: ${{ steps.detect.outputs.run_codex == 'true' && contains(fromJson('["issue_comment","pull_request_review_comment"]'), github.event_name) }}
         id: persist
         env:
           ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
@@ -472,7 +510,7 @@ jobs:
           echo "progress_saved=${{ steps.persist.outputs.path || 'n/a' }}"
 
       - name: Comment clarifying questions to issue
-        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' && github.event_name == 'issue_comment' }}
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' && contains(fromJson('["issue_comment","pull_request_review_comment"]'), github.event_name) }}
         uses: actions/github-script@v7
         env:
           QUESTIONS: ${{ steps.clarifications.outputs.questions }}
@@ -578,10 +616,10 @@ jobs:
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed == 'true' || steps.synth.outputs.synthesized == 'true') }}
         id: grouped_commits
         env:
-          BRANCH_NAME: ${{ github.event_name == 'issue_comment' && steps.detect.outputs.issue_number != '' && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
+          BRANCH_NAME: ${{ (contains(fromJson('["issue_comment","pull_request_review_comment"]'), github.event_name) && steps.detect.outputs.issue_number != '') && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
           BRANCH_EXISTS: ${{ steps.prepare_branch.outputs.exists || 'false' }}
           ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
-          ISSUE_TITLE: ${{ github.event.issue.title || '' }}
+          ISSUE_TITLE: ${{ github.event.issue.title || github.event.pull_request.title || '' }}
           CHANGE_SUMMARY: ${{ steps.summary.outputs.change_summary }}
         shell: bash
         run: |
@@ -719,7 +757,7 @@ jobs:
         id: pr
         uses: actions/github-script@v7
         env:
-          BRANCH_NAME: ${{ github.event_name == 'issue_comment' && steps.detect.outputs.issue_number != '' && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
+          BRANCH_NAME: ${{ (contains(fromJson('["issue_comment","pull_request_review_comment"]'), github.event_name) && steps.detect.outputs.issue_number != '') && format('codex/issue-{0}', steps.detect.outputs.issue_number) || format('codex/run-{0}', github.run_id) }}
           BASE_BRANCH: develop
           ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
           TASK_INPUT: ${{ steps.merge.outputs.task_input }}
@@ -792,7 +830,7 @@ jobs:
             }
 
       - name: Comment work report to issue
-        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed == 'true' || steps.synth.outputs.synthesized == 'true') && github.event_name == 'issue_comment' }}
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed == 'true' || steps.synth.outputs.synthesized == 'true') && contains(fromJson('["issue_comment","pull_request_review_comment"]'), github.event_name) }}
         uses: actions/github-script@v7
         env:
           CHANGE_SUMMARY: ${{ steps.summary.outputs.change_summary }}
