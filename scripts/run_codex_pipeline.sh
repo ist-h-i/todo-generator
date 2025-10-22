@@ -142,12 +142,17 @@ DEFAULT_POST_PLAN_STEPS=(
   release_manager
 )
 
-PRE_PLANNER_STEPS=(translator)
+# Pre-planner stages run before the planner so that the pipeline can validate
+# and clarify the task before any execution planning happens.
+PRE_PLANNER_STEPS=(translator requirements_analyst)
 
 declare -A STAGE_INSTRUCTIONS=(
   [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points and write 'None' when no follow-up is needed."
+  # The requirements_analyst collects requirements and outstanding questions so
+  # the pipeline can pause and ask the user for additional details when
+  # necessary.
+  [requirements_analyst]="Summarize functional, non-functional and out-of-scope requirements. Document risks and assumptions, and list clarifying questions under '## Clarifying questions', writing 'None' when no further information is required."
   [planner]="Outline an execution plan that selects only the necessary stages, highlights critical risks, and sequences the work for smooth hand-offs."
-  [requirements_analyst]="Consolidate functional and non-functional requirements, surface ambiguities, and confirm alignment with documented context."
   [requirements_reviewer]="Audit the proposed requirements for completeness, spot conflicts, and note any missing acceptance criteria."
   [detail_designer]="Translate requirements into module- and component-level design notes, covering data flow, contracts, and integration points."
   [design_reviewer]="Review the design for consistency with architecture standards, spotting scalability or maintainability risks."
@@ -227,7 +232,10 @@ run_stage() {
     PREVIOUS_CONTEXT="${STEP_OUTPUT}"
   fi
 
-  if [ "${STEP}" = "translator" ]; then
+  # After the translator or requirements_analyst stage, scan for clarifying
+  # questions and pause the pipeline if more details are required from the
+  # user.
+  if [ "${STEP}" = "translator" ] || [ "${STEP}" = "requirements_analyst" ]; then
     local CLARIFYING_SECTION
     CLARIFYING_SECTION=$(printf '%s\n' "${STEP_OUTPUT}" |
       python3 - <<'PY'
@@ -316,7 +324,8 @@ PY
       cat <<'JSON' > "${CODEX_OUTPUT_ROOT}/status.json"
 {"status":"needs_clarification"}
 JSON
-      oneline "::notice::Translator stage requested clarifications. Stopping pipeline early."
+      local HUMAN_STAGE_LABEL="${HUMAN_STEP_NAME^}"
+      oneline "::notice::${HUMAN_STAGE_LABEL} stage requested clarifications. Stopping pipeline early."
       exit 0
     fi
   fi
