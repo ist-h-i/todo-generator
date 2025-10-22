@@ -31,7 +31,6 @@ jobs:
     timeout-minutes: 60
     env:
       CODEX_NPM_PKG: "@openai/codex"
-      CODEX_OUTPUT_DIR: "${{ runner.temp }}/codex/${{ github.run_id }}"
 
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +40,9 @@ jobs:
       - name: Prepare Codex output directory
         run: |
           set -euo pipefail
-          mkdir -p "${CODEX_OUTPUT_DIR}"
+          CODEX_DIR="${RUNNER_TEMP}/codex/${{ github.run_id }}"
+          mkdir -p "${CODEX_DIR}"
+          export CODEX_OUTPUT_DIR="${CODEX_DIR}"
           echo "CODEX_OUTPUT_DIR=${CODEX_OUTPUT_DIR}" >> "$GITHUB_ENV"
 
       # --- Auto-Evolve: flags 読込 & canary ルート決定 ここから ---

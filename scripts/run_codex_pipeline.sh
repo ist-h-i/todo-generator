@@ -120,22 +120,12 @@ AVAILABLE_DYNAMIC_STAGES=(
 
 DEFAULT_POST_PLAN_STEPS=(
   requirements_analyst
-  requirements_reviewer
   detail_designer
-  design_reviewer
   coder
-  implementation_reviewer
   code_quality_reviewer
   security_reviewer
-  threat_modeler
   ai_safety_reviewer
-  performance_reviewer
-  dpo_reviewer
-  oss_sbom_auditor
   uiux_reviewer
-  a11y_reviewer
-  i18n_reviewer
-  qa_automation_planner
   docwriter
   doc_editor
   integrator
