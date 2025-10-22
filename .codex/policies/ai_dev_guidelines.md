@@ -7,6 +7,11 @@
 * Each phase (design, implementation, testing, documentation) is autonomously filtered to avoid unnecessary execution.
 * Improvement opportunities must be logged and proposed without redundant loops or repeated runs.
 
+## 1.1 Mandatory References
+
+* Always read and fully comply with the [Development Governance Handbook](..\..\docs\governance\development-governance-handbook.md) and the [Angular Coding & Design Guidelines](..\..\docs\guidelines\angular-coding-guidelines.md) before defining strategies, prompts, or automation routines.
+* Reference the documentation index at [docs/README.md](..\..\docs\README.md) to confirm any additional domain, architecture, or workflow guidance that applies to the task.
+
 ---
 
 ## 2. Task Scope Rules
@@ -71,5 +76,3 @@ else:
 * Periodically evaluate waste ratio and refine task minimization.
 
 ---
-
-This version can be stored as `.codex/policies/ai_dev_guidelines.md` and applied consistently to both Codex pipelines and GitHub Actions.

@@ -3,6 +3,7 @@
 This replaces "5 Whys" with an Immunity Map structure for retrospectives. Paste the Mermaid snippet below into Mermaid Live Editor to render and tailor it. Only add nodes and edges that have content; leaving examples commented keeps empty items hidden.
 
 ## Usage
+
 - Open Mermaid Live Editor and paste the snippet.
 - Duplicate/uncomment example nodes (A1, B1, …) and rename labels with actual content.
 - Add edges only between existing nodes to reflect: A→B, A→C, B→D, B→E, C→E, C→F.
@@ -59,12 +60,13 @@ flowchart TD
 ```
 
 ## Mapping
+
 - Level 1 (A): Things to do / Can't do / Want to do
 - Level 2 (B): Inhibitors; (C): Shadow goals / ideal self / goals
 - Level 3 (D): Deep psychology/bias (from B); (E): True needs (from B & C); (F): Fundamental fixed concepts (from C)
 
 ## Tips
+
 - Prefer concise, specific labels for each node.
 - If you want a left-to-right layout, change the first line to `flowchart LR`.
 - Keep letters A–F as structural hints in subgraph titles; omit from node labels if you prefer cleaner output.
-

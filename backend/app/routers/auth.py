@@ -13,7 +13,7 @@ from ..auth import (
     verify_password,
 )
 from ..database import get_db
-from ..services.profile import build_user_profile
+from ..services.profile import build_user_profile, normalize_nickname
 from ..services.status_defaults import ensure_default_statuses
 from ..services.workspace_template_defaults import ensure_default_workspace_template
 
@@ -45,6 +45,9 @@ def register(
     password = payload_data.get("password", payload.password)
     normalized_email = normalize_email(raw_email)
     remaining_fields = {key: value for key, value in payload_data.items() if key not in {"email", "password"}}
+    # Validate and sanitize nickname (required)
+    sanitized_nickname = normalize_nickname(remaining_fields.get("nickname"))
+    remaining_fields["nickname"] = sanitized_nickname
     user_values = {
         **remaining_fields,
         "email": normalized_email,

@@ -1,11 +1,13 @@
 {
   "steps": [
-    "coder"
+    "coder",
+    "code_quality_reviewer"
   ],
   "source": "planner",
   "planner_payload": {
     "steps": [
-      "coder"
+      "coder",
+      "code_quality_reviewer"
     ],
     "notes": "Implement minimal, behavior-preserving lint fixes: (1) merge split f-string in backend/app/sqlalchemy_py313_compat.py; (2) simplify signal update in frontend/src/app/lib/forms/signal-forms.ts by passing updater directly. Use repo lint scripts if present, avoid dependency/config changes, and keep diffs minimal.",
     "tests": "Backend: `cd backend && pytest -q` | Lint (pick what's configured): `cd backend && ruff check .` or `flake8`.\nFrontend: `cd frontend && npm test -- --watch=false` | Lint: `cd frontend && npm run lint`.\nOptional build: `cd frontend && npm run build`."

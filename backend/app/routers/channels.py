@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -38,7 +38,7 @@ def invite_to_channel(
     payload: schemas.ChannelInviteRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> None:
+) -> Response:
     channel = db.get(models.Channel, channel_id)
     if not channel:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found")
@@ -63,11 +63,13 @@ def invite_to_channel(
         .first()
     )
     if existing:
-        return
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     membership = models.ChannelMember(channel_id=channel_id, user_id=invitee.id, role="member")
     db.add(membership)
     db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{channel_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
@@ -75,7 +77,7 @@ def leave_channel(
     channel_id: str,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> None:
+) -> Response:
     channel = db.get(models.Channel, channel_id)
     if not channel:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found")
@@ -101,6 +103,8 @@ def leave_channel(
     db.delete(membership)
     db.commit()
 
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @router.post("/{channel_id}/kick", status_code=status.HTTP_204_NO_CONTENT)
 def kick_from_channel(
@@ -108,7 +112,7 @@ def kick_from_channel(
     payload: schemas.ChannelKickRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-) -> None:
+) -> Response:
     channel = db.get(models.Channel, channel_id)
     if not channel:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found")
@@ -133,7 +137,7 @@ def kick_from_channel(
         .first()
     )
     if not target:
-        return
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     # Prevent kicking the sole owner
     if target.role == "owner":
@@ -141,4 +145,6 @@ def kick_from_channel(
 
     db.delete(target)
     db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 

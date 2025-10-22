@@ -1,39 +1,46 @@
-[mcp_servers.git]
-command = "uvx"
-args = ["mcp-server-git", "--repository", "${workspaceFolder}"]
-
 [mcp_servers.filesystem]
-command = "npx"
-args = ["@modelcontextprotocol/server-filesystem", "${workspaceFolder}"]
+command = "npx.cmd"
+args = ["--yes", "@modelcontextprotocol/server-filesystem", "${workspaceFolder}/.."]
 
 [mcp_servers.memory]
-command = "npx"
-args = ["@modelcontextprotocol/server-memory"]
+command = "npx.cmd"
+args = ["--yes", "@modelcontextprotocol/server-memory"]
 
-[mcp_servers.sqlite]
-command = "uvx"
-args = ["mcp-server-sqlite", "--db-path", "${workspaceFolder}/db.sqlite"]
+[mcp_servers.brave-search]
+command = "npx"
+args = ["--yes", "@modelcontextprotocol/server-brave-search"]
+env = { BRAVE_API_KEY = "YOUR_BRAVE_API_KEY_HERE" }
 
 [mcp_servers.fetch]
 command = "uvx"
 args = ["mcp-server-fetch"]
 
 [mcp_servers.puppeteer]
-command = "npx"
-args = ["@modelcontextprotocol/server-puppeteer"]
+command = "npx.cmd"
+args = ["--yes", "@modelcontextprotocol/server-puppeteer"]
 
 [mcp_servers.sequential-thinking]
-command = "npx"
-args = ["@modelcontextprotocol/server-sequential-thinking"]
+command = "npx.cmd"
+args = ["--yes", "@modelcontextprotocol/server-sequential-thinking"]
 
 [mcp_servers.time]
 command = "uvx"
 args = ["mcp-server-time"]
 
-[mcp_servers.playwright]
+[mcp_servers.serena]
+command = "uvx"
+args = ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "codex", "--project", "${workspaceFolder}"]
+
+["mcp_servers"."@21st-dev/magic"]
+command = "cmd"
+args = ["/c", "npx", "-y", "dotenv", "-e", ".env", "--", "npx", "-y", "@21st-dev/magic@latest"]
+env = { API_KEY = "${env:MAGIC_API_KEY}" }
+
+[mcp_servers.mcp-playwright]
 command = "npx"
 args = ["-y", "@playwright/mcp@latest"]
+env = {}
 
 [pipelines.auto-dev]
-description = "Translator → Requirements Analyst → Detail Designer → Planner pipeline"
+description = "Translator -> Requirements Analyst -> Detail Designer -> Planner pipeline"
 steps = ["translator", "requirements_analyst", "detail_designer", "planner"]

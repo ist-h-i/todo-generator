@@ -1,52 +1,56 @@
 **Integration Summary**
 
-- Models and migrations
-  - `channels` and `channel_members` tables exist with relationships wired in `backend/app/models.py:256` and `backend/app/models.py:271`.
-  - `cards.channel_id` added and related to `Channel` (`backend/app/models.py:123`, `backend/app/models.py:166`).
-  - Startup migrations create channel tables, add `cards.channel_id`, and backfill private channels + memberships + card associations (`backend/app/migrations.py:296`, `backend/app/migrations.py:364`, `backend/app/migrations.py:392`, `backend/app/migrations.py:947`).
-  - `run_startup_migrations` calls are in `backend/app/main.py` and run during app lifespan; ORM `create_all` follows to ensure schema.
+- Channels model, membership, and card scoping are fully wired across models, migrations, routers, and schemas.
+- Startup migrations create channel tables, backfill private channels/memberships, and set `cards.channel_id`; backend enforces channel membership on reads/writes.
+- New users auto‑receive a private channel; card creation defaults to it if no channel is specified.
 
-- Routers and behavior
-  - Channel endpoints implemented and registered:
-    - `GET /channels/mine` (`backend/app/routers/channels.py:14`)
-    - `POST /channels/{channel_id}/invite` by email (`backend/app/routers/channels.py:35`)
-    - `POST /channels/{channel_id}/leave` with sole-owner guard (`backend/app/routers/channels.py:73`)
-    - `POST /channels/{channel_id}/kick` owner-only (`backend/app/routers/channels.py:105`)
-    - Router included in `backend/app/main.py:185`.
-  - Card scoping by channel membership:
-    - Helper `_member_channel_ids` (`backend/app/routers/cards.py:52`)
-    - Query scoping via `_card_query(..., member_user_id=...)` for list/details/similar, etc. (calls at `backend/app/routers/cards.py:372`, `backend/app/routers/cards.py:551`, `backend/app/routers/cards.py:820`).
-    - Card creation requires membership if `channel_id` provided; defaults to user’s private channel (`backend/app/routers/cards.py:491`–`511`).
-  - Registration auto-creates a private channel + owner membership (`backend/app/routers/auth.py:60`–`63`).
+**What I Verified**
 
-- Schemas and docs
-  - Card schemas include `channel_id` (`backend/app/schemas.py:283`, `backend/app/schemas.py:310`) and channel DTOs added (`backend/app/schemas.py:687`–`700`).
-  - Docs updated to note channel model and card default channel (`docs/governance/development-governance-handbook.md:21`) and UI guidance for future selector (`docs/guidelines/angular-coding-guidelines.md:33`).
+- Models
+  - `Card.channel_id` FK to channels: backend/app/models.py:123
+  - `Channel` and `ChannelMember` with relationships: backend/app/models.py:257, backend/app/models.py:272
+- Migrations
+  - Create `channels`/`channel_members`: backend/app/migrations.py:302
+  - Add `cards.channel_id`: backend/app/migrations.py:371
+  - Backfill private channels + memberships + card channel: backend/app/migrations.py:392
+  - Wired in startup sequence: backend/app/migrations.py:947
+- Routers
+  - Channels API: mine/invite/leave/kick: backend/app/routers/channels.py:11, backend/app/routers/channels.py:35, backend/app/routers/channels.py:73, backend/app/routers/channels.py:105
+  - Cards scoped to member channels: backend/app/routers/cards.py:52, backend/app/routers/cards.py:71
+  - Create card requires membership or defaults to private channel: backend/app/routers/cards.py:491, backend/app/routers/cards.py:498
+  - Updating `channel_id` is blocked (MVP safety): backend/app/routers/cards.py:570
+  - Subtasks authorized via channel membership: backend/app/routers/cards.py:685, backend/app/routers/cards.py:734
+  - Router inclusion: backend/app/main.py:185
+- Auth
+  - Registration auto-creates private channel + owner membership: backend/app/routers/auth.py:60, backend/app/routers/auth.py:63
+- Schemas/Docs
+  - Card DTOs include `channel_id`; channel DTOs present: backend/app/schemas.py:283, backend/app/schemas.py:310, backend/app/schemas.py:695
+  - Docs note channels + default behavior: docs/governance/development-governance-handbook.md:21, docs/guidelines/angular-coding-guidelines.md:33
 
-**Integrator Fix (MVP safety)**
-- Block changing a card’s `channel_id` during update to avoid unauthorized or accidental cross-channel moves until policies/UI are defined.
-  - Change: `backend/app/routers/cards.py:...` raises 409 if `channel_id` is present in update payload.
+**Behavioral Outcomes**
 
-**Landing Plan**
+- Reads and writes are limited to channels where the caller is a member.
+- Card creation without `channel_id` succeeds and stores the private channel.
+- Attempting to move a card across channels via update returns 409.
+- Members can invite; owners can kick; sole owner cannot leave.
 
-- No extra ops steps: migrations run automatically at startup; ORM ensures tables.
+**Residual Risks / Follow‑ups**
+
+- `cards.channel_id` is nullable (by design for safe migration). Optionally enforce NOT NULL later.
+- No DB index on `cards.channel_id`; add if list queries grow.
+- Invitation uses email and auto‑joins; no approval/notifications yet.
+- No cross‑channel move policy (explicitly blocked).
+
+**Verification Steps**
+
 - Start backend: `uvicorn app.main:app --reload --app-dir backend`
-- Quick smoke checks (manual or via API client):
-  - Register/login → ensure `GET /channels/mine` returns one private channel.
-  - Create a card without `channel_id` → verify response includes `channel_id`.
-  - List cards → only cards from member channels are returned.
-  - Invite a second user via `/channels/{id}/invite` → login as invitee and confirm listing/creation works.
-  - Attempt to update a card with `channel_id` change → expect 409.
-
-**Residual Risks / Open Questions**
-
-- Index: no explicit index on `cards.channel_id`; consider adding if listing grows.
-- Invitation: email-based, assumes unique emails; no approval/notifications included.
-- Sole-owner edge cases: owner cannot leave; ownership transfer is out of scope.
-- Migration of pre-existing shared artifacts: all cards backfilled to creator’s private channel; visibility may narrow.
-- Frontend: UI lacks a channel selector; backend defaults preserve current UX. Add selector later using `GET /channels/mine`.
-
-**Follow-ups (minimal)**
-- Add DB index for `cards.channel_id` when performance requires.
-- Define and implement channel transfer policy (owner-only? audit?) and enable controlled channel updates.
-- Add basic frontend dropdown for `Channel` in card creation with default selection; hide if only one channel.
+- Channels
+  - `GET /channels/mine` returns private channel after register.
+  - `POST /channels/{id}/invite { email }` adds member; `leave` removes; `kick` owner‑only.
+- Cards
+  - `POST /cards` without `channel_id` → created with private channel; response has `channel_id`.
+  - `POST /cards` with non‑member `channel_id` → 403.
+  - `GET /cards` only returns member‑channel cards.
+  - `PUT /cards/{id}` with `channel_id` → 409.
+- Subtasks
+  - As non‑owner member, `PUT`/`DELETE` subtask on a member‑channel card succeeds.
