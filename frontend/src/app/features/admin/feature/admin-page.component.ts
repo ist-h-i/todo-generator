@@ -548,7 +548,7 @@ export class AdminPageComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (levels) => {
-          const resolved = levels.length > 0 ? levels : this.defaultCompetencyLevels;
+          const resolved = this.mergeWithDefaultCompetencyLevels(levels);
           this.competencyLevels.set(this.sortLevels(resolved));
           this.ensureCompetencyLevelSelection();
         },
@@ -744,6 +744,18 @@ export class AdminPageComponent {
       }
       return a.label.localeCompare(b.label, 'ja');
     });
+  }
+
+  private mergeWithDefaultCompetencyLevels(
+    levels: ReadonlyArray<CompetencyLevelDefinition>,
+  ): CompetencyLevelDefinition[] {
+    const byValue = new Map(levels.map((level) => [level.value, level]));
+    for (const defaultLevel of this.defaultCompetencyLevels) {
+      if (!byValue.has(defaultLevel.value)) {
+        byValue.set(defaultLevel.value, defaultLevel);
+      }
+    }
+    return [...byValue.values()];
   }
 
   private ensureCompetencyLevelSelection(): void {
