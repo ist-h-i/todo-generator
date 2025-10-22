@@ -1,28 +1,36 @@
-**Restated Request**
-- Fix lint errors and adjust code so all tests pass.
-- Keep changes minimal, behavior-preserving, and self-contained.
-- Prioritize readability/consistency; respect repo’s split between general and Angular-specific guidelines.
+**Request Summary**
+- Perform a periodic security review to identify vulnerabilities and apply minimal, low‑risk hardening changes. Deliver a finished, self‑contained outcome without broad architectural impact.
 
-**Assumptions**
-- Both backend and Angular frontend exist and have linters/tests configured.
-- No new dependencies or tooling changes are allowed.
-- Prior minimal refactors (string formatting and signal update) are acceptable and behavior-neutral.
-- Environment has workspace write access; network access is restricted.
+**Objectives / Definition of Done**
+- Identify clear, actionable security issues within scope.
+- Implement the smallest viable fixes with minimal diffs.
+- Keep builds/tests green; add/adjust targeted tests as needed.
+- Document changes made and residual risks.
 
 **Constraints**
-- Minimal-diff changes; avoid creating new tasks or scope creep.
-- Deliver a finished, shippable outcome within a short time window (~30 minutes).
-- Follow Development Governance Handbook and Angular Coding & Design Guidelines where applicable.
-- Approval policy is non-interactive; proceed without waiting for confirmations.
+- Minimize scope and code churn; avoid unnecessary tasks.
+- Complete within ~30 minutes of focused changes.
+- Prefer backend (FastAPI) scope; avoid SPA/architectural changes this cycle.
+- Network access is restricted; avoid networked audits.
+- Maintain compatibility and avoid breaking existing behavior.
+
+**Assumptions**
+- Backend uses FastAPI and has a simple health endpoint for checks.
+- Adding small middleware or config hardening is acceptable.
+- Tests exist or can be added in a targeted way.
+- Dependency upgrades (if any) should be minimal (patch/minor) and only when clearly necessary.
 
 **Unknowns**
-- Exact linting toolchains and configurations (e.g., flake8/ruff/black for backend; ESLint/TSLint/Prettier for frontend).
-- Current failing lint rules and failing test suites.
-- CI expectations (required scripts, coverage thresholds, formatting gates).
-- Whether the repo contains alluded backend/frontend paths or is partially docs-only.
+- Exact severity thresholds (e.g., fix Critical/High only?).
+- Allowed level of dependency changes (patch/minor/major).
+- Whether any flows depend on referrer data or cross-origin embedding.
+- CI/CD expectations and existing security gates.
+- Environment targets (dev/staging/prod) and HTTPS guarantees.
 
-**Clarifying Questions**
-- Which linters and test commands are authoritative for backend and frontend?
-- Are there known failing rules/tests to target first?
-- Should we confine changes strictly to formatting/typing and trivial refactors (no logic changes)?
-- Any directories to exclude from this pass (e.g., generated, legacy, or archived code)?
+**Clarifying questions**
+- Which areas are explicitly in scope this cycle: backend only, or also CI/config?
+- Are dependency updates allowed, and to what level (patch/minor/major)?
+- Do any features rely on referrer headers or cross-origin embedding that would constrain header tightening?
+- Can we add small, focused tests to lock in security behavior (e.g., headers on health endpoint)?
+- Are there specific high-priority risks to address first (e.g., auth/session, data exposure, SSRF)?
+- Is production guaranteed to run over HTTPS (relevant for HSTS effectiveness)?

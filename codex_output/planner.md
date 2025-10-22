@@ -1,27 +1,17 @@
-**Plan Summary**
-- Keep changes minimal and behavior-preserving; focus on fixing lint and ensuring tests pass.
-- Apply small, mechanical refactors in pinpointed spots only; avoid deps/config changes.
+**Findings**
+- Backend already includes a security-headers middleware in `backend/app/main.py:156` and a focused test in `backend/tests/test_security_headers.py:1`.
+- Documentation updated at `docs/security-review.md` describing changes and residual risks.
+- Scope and constraints satisfied with minimal, low-risk changes; no further coding needed.
 
-**Targeted Fixes**
-- Backend: merge adjacent f-strings for readability (no-op behavior).
-- Frontend: simplify signal state update by passing the updater directly (equivalent behavior).
+**Minimal Route**
+- Skip coder/integrator; proceed directly to release_manager to publish the summary and close out the cycle.
 
-**Why This Route**
-- Smallest viable diff to address common lint/style issues without risking behavior.
-- Fits comfortably in ≤30 minutes; avoids scope creep.
-
-**Risks**
-- Unknown exact linters; coder must align to repo’s configured tools (ruff/flake8, ESLint).
-- If other unrelated lint failures exist, follow-up might be needed; keep changes scoped.
-
-**Validation**
-- Run backend and frontend tests; run linters using repo scripts if available.
-- No build or API changes; expect all tests to pass after fixes.
+**Residual Risks**
+- HSTS effective only over HTTPS; confirm production TLS.
+- Referrer-Policy is strict; analytics depending on referrer may be impacted.
+- SPA tokens still in `localStorage`; migration to httpOnly cookies deferred.
+- CSP for SPA host deferred to a future, coordinated pass.
 
 ```json
-{
-  "steps": ["coder"],
-  "notes": "Implement minimal, behavior-preserving lint fixes: (1) merge split f-string in backend/app/sqlalchemy_py313_compat.py; (2) simplify signal update in frontend/src/app/lib/forms/signal-forms.ts by passing updater directly. Use repo lint scripts if present, avoid dependency/config changes, and keep diffs minimal.",
-  "tests": "Backend: `cd backend && pytest -q` | Lint (pick what's configured): `cd backend && ruff check .` or `flake8`.\nFrontend: `cd frontend && npm test -- --watch=false` | Lint: `cd frontend && npm run lint`.\nOptional build: `cd frontend && npm run build`."
-}
+{"steps":["release_manager"],"notes":"Code and tests already in place: security-headers middleware in backend/app/main.py and verification in backend/tests/test_security_headers.py; docs updated at docs/security-review.md. Proceed with release summary and closure to keep changes minimal.","tests":"Run: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck && pytest -q backend/tests"}
 ```
