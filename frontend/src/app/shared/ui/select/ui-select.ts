@@ -1,13 +1,15 @@
 import { CommonModule } from '@angular/common';
 import {
+  AfterContentChecked,
+  AfterContentInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   HostListener,
+  OnDestroy,
   ViewChild,
   forwardRef,
   Input,
-  AfterViewInit,
 } from '@angular/core';
 import {
   ControlValueAccessor,
@@ -178,7 +180,9 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
+export class UiSelectComponent
+  implements ControlValueAccessor, AfterContentInit, AfterContentChecked, OnDestroy
+{
   @Input() id?: string;
   @Input() name?: string;
   @Input() multiple: boolean | null = null;
@@ -195,18 +199,41 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   @ViewChild('nativeSelect', { static: true }) nativeSelectRef!: ElementRef<HTMLSelectElement>;
 
   options: Array<{ value: string; label: string; disabled: boolean }> = [];
+  private optionsSignature = '';
+  private scheduledReconcile = false;
+  private pendingForceReconcile = false;
+  private destroyed = false;
 
   private onChange: (val: string | string[] | null) => void = () => {};
   // Must be public to be callable from the template (blur) handler
   public onTouched: () => void = () => {};
 
-  ngAfterViewInit(): void {
-    this.readOptions();
-    this.syncLabelFromValue();
+  ngAfterContentInit(): void {
+    this.scheduleProjectedOptionsReconciliation(true);
+  }
+
+  ngAfterContentChecked(): void {
+    this.scheduleProjectedOptionsReconciliation();
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
   }
 
   writeValue(obj: any): void {
     this.value = obj as string | string[] | null;
+    // Reflect programmatic value into the native <select> so that
+    // initial state stays in sync and labels resolve correctly even
+    // before the first user interaction.
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (sel) {
+      if (this.multiple) {
+        const selected = Array.isArray(this.value) ? this.value.map(String) : [];
+        Array.from(sel.options).forEach((o) => (o.selected = selected.includes(o.value)));
+      } else {
+        sel.value = this.value != null ? String(this.value) : '';
+      }
+    }
     this.syncLabelFromValue();
   }
   registerOnChange(fn: (val: string | string[] | null) => void): void {
@@ -273,7 +300,11 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
     const sel = this.nativeSelectRef?.nativeElement;
     if (!sel) return;
     const opts = Array.from(sel.options || []);
-    this.options = opts.map((o) => ({ value: o.value, label: o.label, disabled: o.disabled }));
+    this.options = opts.map((o) => ({
+      value: o.value,
+      label: this.resolveOptionLabel(o),
+      disabled: o.disabled,
+    }));
   }
 
   private syncLabelFromValue(): void {
@@ -303,6 +334,62 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit {
   private ensureActiveIndex(): void {
     const idx = this.options.findIndex((o) => this.isSelected(o.value));
     this.activeIndex = idx >= 0 ? idx : 0;
+  }
+
+  private scheduleProjectedOptionsReconciliation(force = false): void {
+    if (force) {
+      this.pendingForceReconcile = true;
+    }
+    if (this.scheduledReconcile) {
+      return;
+    }
+    this.scheduledReconcile = true;
+    Promise.resolve().then(() => {
+      this.scheduledReconcile = false;
+      if (this.destroyed) {
+        this.pendingForceReconcile = false;
+        return;
+      }
+      const runForce = this.pendingForceReconcile;
+      this.pendingForceReconcile = false;
+      this.reconcileProjectedOptions(runForce);
+    });
+  }
+
+  private reconcileProjectedOptions(force = false): void {
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (!sel) {
+      return;
+    }
+
+    const nativeOptions = Array.from(sel.options || []);
+    const nextSignature = nativeOptions
+      .map((option) => {
+        const label = this.resolveOptionLabel(option);
+        return `${option.value}::${label}::${option.disabled ? '1' : '0'}`;
+      })
+      .join('|');
+
+    if (!force && nextSignature === this.optionsSignature) {
+      return;
+    }
+
+    this.optionsSignature = nextSignature;
+    this.readOptions();
+    this.syncLabelFromValue();
+    if (this.panelOpen) {
+      this.ensureActiveIndex();
+    }
+  }
+
+  private resolveOptionLabel(option: HTMLOptionElement): string {
+    const label = option.label?.trim();
+    if (label) {
+      return label;
+    }
+
+    const text = option.textContent ?? '';
+    return text.trim();
   }
 
   @HostListener('document:click', ['$event'])

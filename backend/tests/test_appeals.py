@@ -42,7 +42,7 @@ def _extract_response_schema(config: Any) -> dict[str, Any]:
 def register_and_login(client: TestClient, email: str, password: str = CARD_DEFAULT_PASSWORD) -> dict[str, str]:
     response = client.post(
         "/auth/register",
-        json={"email": email, "password": password},
+        json={"email": email, "password": password, "nickname": "AppealsUser"},
     )
     assertions.assertTrue(response.status_code == 201, response.text)
     login_response = client.post(

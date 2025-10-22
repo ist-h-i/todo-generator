@@ -15,7 +15,10 @@ def _create_admin(client: TestClient) -> tuple[dict[str, str], str]:
     email = "owner@example.com"
     password = "AdminPass123!"  # noqa: S105 - test credential
 
-    register = client.post("/auth/register", json={"email": email, "password": password})
+    register = client.post(
+        "/auth/register",
+        json={"email": email, "password": password, "nickname": "Owner"},
+    )
     assertions.assertTrue(register.status_code == 201, register.text)
     admin_id = register.json()["user"]["id"]
 
@@ -30,7 +33,7 @@ def test_admin_can_delete_user(client: TestClient) -> None:
 
     user_register = client.post(
         "/auth/register",
-        json={"email": "member@example.com", "password": "Password123!"},
+        json={"email": "member@example.com", "password": "Password123!", "nickname": "Member"},
     )
     assertions.assertTrue(user_register.status_code == 201, user_register.text)
     user_id = user_register.json()["user"]["id"]
@@ -62,7 +65,7 @@ def test_admin_can_delete_other_admin(client: TestClient) -> None:
 
     other_register = client.post(
         "/auth/register",
-        json={"email": "second@example.com", "password": "Password123!"},
+        json={"email": "second@example.com", "password": "Password123!", "nickname": "Second"},
     )
     assertions.assertTrue(other_register.status_code == 201, other_register.text)
     other_id = other_register.json()["user"]["id"]
@@ -90,7 +93,7 @@ def test_deleting_admin_nulls_related_jobs(client: TestClient) -> None:
 
     member_register = client.post(
         "/auth/register",
-        json={"email": "member@example.com", "password": "Password123!"},
+        json={"email": "member@example.com", "password": "Password123!", "nickname": "Member"},
     )
     assertions.assertTrue(member_register.status_code == 201, member_register.text)
     member_id = member_register.json()["user"]["id"]
@@ -123,7 +126,7 @@ def test_deleting_admin_nulls_related_jobs(client: TestClient) -> None:
 
     other_register = client.post(
         "/auth/register",
-        json={"email": "second@example.com", "password": "Password123!"},
+        json={"email": "second@example.com", "password": "Password123!", "nickname": "Second"},
     )
     assertions.assertTrue(other_register.status_code == 201, other_register.text)
     other_id = other_register.json()["user"]["id"]
@@ -166,7 +169,7 @@ def test_admin_can_delete_admin_who_created_api_credentials(client: TestClient) 
 
     other_register = client.post(
         "/auth/register",
-        json={"email": "second@example.com", "password": "Password123!"},
+        json={"email": "second@example.com", "password": "Password123!", "nickname": "Second"},
     )
     assertions.assertTrue(other_register.status_code == 201, other_register.text)
     other_id = other_register.json()["user"]["id"]

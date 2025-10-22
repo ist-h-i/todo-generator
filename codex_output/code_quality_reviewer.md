@@ -1,42 +1,40 @@
-Summary
-- Backend middleware sets safe security headers on all non-OPTIONS responses. Implementation is correct, minimal, and preserves existing headers via setdefault.
-- Tests validate headers on GET /health using existing fixture patterns; consistent with repo style.
-- Documentation updated to reflect actual crypto state (hardened with Fernet + legacy auto-rotate) and correct secret masking behavior.
+**Summary**
+- The fix correctly synchronizes programmatic values into the native select so projected <option> elements are reliably read and the label reflects the selected value.
 
-What I Reviewed
-- backend/app/main.py: Security headers middleware
-  - Correctly after CORS preflight middleware; non-OPTIONS responses get:
-    - Strict-Transport-Security: max-age=15552000; includeSubDomains
-    - X-Content-Type-Options: nosniff
-    - Referrer-Policy: no-referrer
-    - X-Frame-Options: DENY
-    - Permissions-Policy: camera=(), microphone=(), geolocation=()
-    - Cross-Origin-Opener-Policy: same-origin
-    - Cross-Origin-Resource-Policy: same-origin
-  - Uses response.headers.setdefault to avoid clobbering upstream values.
-  - OPTIONS handling is harmless even if preflight short-circuits earlier.
-- backend/tests/test_security_headers.py: Focused header assertions
-  - Aligns with existing TestCase/assertTrue style used elsewhere.
-  - Leverages standard TestClient fixture from backend/tests/conftest.py.
-- Crypto and secrets utilities (sanity check):
-  - backend/app/utils/crypto.py implements Fernet with legacy auto-rotation. Tests cover re-encryption and error cases.
-  - backend/app/utils/secrets.py masking logic protects short secrets; tests confirm.
+**Correctness**
+- `writeValue` mirrors the control value into the native select and then updates the label: frontend/src/app/shared/ui/select/ui-select.ts:240. This resolves the “no options/empty label” perception on init.
+- Options are built from projected `<option>` nodes and kept up to date via `MutationObserver`, with label sync after updates: frontend/src/app/shared/ui/select/ui-select.ts:216, frontend/src/app/shared/ui/select/ui-select.ts:220.
+- Selection logic is normalized for both single and multiple; label derives from current options and selected values: frontend/src/app/shared/ui/select/ui-select.ts:323.
+- Click, keyboard, and change paths maintain internal/native sync and propagate changes to the form control: frontend/src/app/shared/ui/select/ui-select.ts:266, frontend/src/app/shared/ui/select/ui-select.ts:293, frontend/src/app/shared/ui/select/ui-select.ts:362.
 
-Tiny Nits / Edge Cases
-- The middleware’s OPTIONS branch delegates to downstream middleware; it’s fine given the earlier preflight middleware, but could return early for symmetry. No change needed.
-- Referrer-Policy: no-referrer is strict. If any flow relies on referrers, consider strict-origin-when-cross-origin in a later pass.
+**Readability**
+- The component maintains a clean separation of concerns: option reading, value/label sync, and UI event handling.
+- Public `onTouched` is clearly annotated for template usage; other callbacks are private and typed.
+- Template and styles are cohesive; comments succinctly document intent.
 
-Applied Fixes
-- docs/security-review.md
-  - Replaced outdated “Weak secret storage cipher” with “Secret storage (Hardened)” describing Fernet + legacy rotation path.
-  - Updated “Secret hint” section to reflect current, safe masking behavior.
-  - Scope-limited doc edits only; no runtime impact.
+**Edge Cases**
+- Multiple select: `writeValue` selects matching native options; label shows joined labels: frontend/src/app/shared/ui/select/ui-select.ts:247, frontend/src/app/shared/ui/select/ui-select.ts:331.
+- No options: active index defaults to 0; guarded usage prevents crashes, though -1 could be a cleaner sentinel (see suggestion).
+- Async option population: deferred initial read and observer-based updates handle late-projected options without console errors.
 
-Residual Risks
-- HSTS requires HTTPS in production to be effective.
-- COOP/CORP are safe for APIs; keep an eye on any cross-origin embedding needs.
-- SPA tokens remain in localStorage; migration to secure, httpOnly cookies is still recommended in a future coordinated cycle.
+**Usages Checked**
+- All current usages correctly project `<option>` children:
+  - frontend/src/app/features/admin/page.html:129
+  - frontend/src/app/features/admin/page.html:218
+  - frontend/src/app/features/admin/page.html:231
+  - frontend/src/app/features/admin/page.html:423
+  - frontend/src/app/features/reports/reports-page.component.html:255
+  - frontend/src/app/features/reports/reports-page.component.html:274
+- Placeholders are provided where needed; no refactor to a different API is required.
 
-Validation
-- Suggest running: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck
-- Full suite: pytest -q backend/tests (tests appear self-contained and should not require network).
+**Risks / Open Questions**
+- Inert support on the hidden native select is broadly available, but older browsers may behave inconsistently. If issues arise, consider removing `inert` and rely on `aria-hidden` + styling.
+- No support for optgroups or custom templating beyond simple `<option disabled>`; confirm that’s acceptable for all current use cases.
+- For values not present in options (e.g., persisted “unknown” model), the label renders empty until the option appears. Current settings often inject an explicit `<option>` for the saved value (admin model picker), which is good.
+
+**Suggestions (Non-blocking)**
+- Consider setting `activeIndex` to -1 when `options.length === 0` for semantic clarity: frontend/src/app/shared/ui/select/ui-select.ts:347.
+- Add `aria-labelledby` on the panel, pointing to the trigger, and optionally `aria-activedescendant` on the trigger when open for slightly improved a11y.
+- In `onDocClick`, rename `host` to `target` for clarity: frontend/src/app/shared/ui/select/ui-select.ts:355.
+
+Overall, the implementation is correct, minimal, and aligns with existing usage patterns. No further call-site changes are needed.
