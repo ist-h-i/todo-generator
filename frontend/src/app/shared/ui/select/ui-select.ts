@@ -6,6 +6,7 @@ import {
   Component,
   ElementRef,
   HostListener,
+  OnDestroy,
   ViewChild,
   forwardRef,
   Input,
@@ -180,7 +181,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UiSelectComponent
-  implements ControlValueAccessor, AfterContentInit, AfterContentChecked
+  implements ControlValueAccessor, AfterContentInit, AfterContentChecked, OnDestroy
 {
   @Input() id?: string;
   @Input() name?: string;
@@ -199,17 +200,24 @@ export class UiSelectComponent
 
   options: Array<{ value: string; label: string; disabled: boolean }> = [];
   private optionsSignature = '';
+  private scheduledReconcile = false;
+  private pendingForceReconcile = false;
+  private destroyed = false;
 
   private onChange: (val: string | string[] | null) => void = () => {};
   // Must be public to be callable from the template (blur) handler
   public onTouched: () => void = () => {};
 
   ngAfterContentInit(): void {
-    this.reconcileProjectedOptions(true);
+    this.scheduleProjectedOptionsReconciliation(true);
   }
 
   ngAfterContentChecked(): void {
-    this.reconcileProjectedOptions();
+    this.scheduleProjectedOptionsReconciliation();
+  }
+
+  ngOnDestroy(): void {
+    this.destroyed = true;
   }
 
   writeValue(obj: any): void {
@@ -326,6 +334,26 @@ export class UiSelectComponent
   private ensureActiveIndex(): void {
     const idx = this.options.findIndex((o) => this.isSelected(o.value));
     this.activeIndex = idx >= 0 ? idx : 0;
+  }
+
+  private scheduleProjectedOptionsReconciliation(force = false): void {
+    if (force) {
+      this.pendingForceReconcile = true;
+    }
+    if (this.scheduledReconcile) {
+      return;
+    }
+    this.scheduledReconcile = true;
+    Promise.resolve().then(() => {
+      this.scheduledReconcile = false;
+      if (this.destroyed) {
+        this.pendingForceReconcile = false;
+        return;
+      }
+      const runForce = this.pendingForceReconcile;
+      this.pendingForceReconcile = false;
+      this.reconcileProjectedOptions(runForce);
+    });
   }
 
   private reconcileProjectedOptions(force = false): void {
