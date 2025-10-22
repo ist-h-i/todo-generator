@@ -7,7 +7,7 @@
     "steps": [
       "coder"
     ],
-    "notes": "Make two safe, readability-only refactors: merge a split f-string in backend/sqlalchemy_py313_compat.py and simplify a signals update call in frontend/lib/forms/signal-forms.ts. No behavior change, minimal diff, no new dependencies.",
-    "tests": "If dependencies are available: run backend pytest and frontend unit tests. Otherwise defer to CI. Commands: (1) cd backend && pytest -q (2) cd frontend && npm test -- --watch=false (3) optional: cd frontend && npm run build"
+    "notes": "Implement minimal, behavior-preserving lint fixes: (1) merge split f-string in backend/app/sqlalchemy_py313_compat.py; (2) simplify signal update in frontend/src/app/lib/forms/signal-forms.ts by passing updater directly. Use repo lint scripts if present, avoid dependency/config changes, and keep diffs minimal.",
+    "tests": "Backend: `cd backend && pytest -q` | Lint (pick what's configured): `cd backend && ruff check .` or `flake8`.\nFrontend: `cd frontend && npm test -- --watch=false` | Lint: `cd frontend && npm run lint`.\nOptional build: `cd frontend && npm run build`."
   }
 }

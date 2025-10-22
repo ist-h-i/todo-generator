@@ -1,26 +1,32 @@
 **背景**
-- 定期的なリファクタリングを最小差分・短時間（≤30分）で実施。挙動不変を前提に、可読性・一貫性向上を優先。
-- リポジトリ方針（言語非依存ルールとAngular専用ガイドの分離）を尊重し、影響範囲を極小化。
+- Goal: resolve lint errors and keep all tests passing via minimal, behavior-preserving refactors.
+- Respect repository guidance split (language-agnostic vs. Angular-specific); keep scope tightly focused and low-risk.
 
 **変更概要**
-- Backend: 連結f-stringを単一f-stringへ整理し可読性を改善。`backend/app/sqlalchemy_py313_compat.py:36`
-  - 例: `f"... TypingOnly but has " f"additional attributes {remaining}."` → `f"... TypingOnly but has additional attributes {remaining}."`
-- Frontend: シグナル更新の簡素化（等価変換）。`frontend/src/app/lib/forms/signal-forms.ts:32`
-  - `store.update((current) => updater(current));` → `store.update(updater);`
+- Backend
+  - Merged adjacent f-strings into a single f-string for clarity (no behavior change): `backend/app/sqlalchemy_py313_compat.py`.
+  - Harmonized the patch marker assignment to use the shared sentinel consistently: `setattr(_patched_init_subclass, _PATCH_ATTRIBUTE, True)` in `backend/app/sqlalchemy_py313_compat.py`.
+- Frontend
+  - Simplified signal update by passing the updater directly (equivalent behavior): `frontend/src/app/lib/forms/signal-forms.ts` (`store.update(updater)`).
 
 **影響**
-- 機能・振る舞いの変更なし（no-op）。API・依存関係・型定義・ビルド設定に影響なし。
-- 目的は可読性と表現の一貫性の向上のみ。
+- No change in behavior, APIs, or data flows; no new dependencies or config updates.
+- Improves readability and consistency; intended to quiet style/lint warnings without altering runtime semantics.
+- Minimal, localized diffs reduce regression risk.
 
 **検証**
-- 静的確認: 該当ファイルと差分の妥当性を目視確認。
-- 実行確認（任意・環境ありの場合）:
-  - Backend: `cd backend && pytest -q`
-  - Frontend: `cd frontend && npm test -- --watch=false`
-  - ビルド: `cd frontend && npm run build`
-- 期待結果: すべて成功（変更は挙動非依存）。
+- Backend
+  - Lint: `ruff check backend` or the repo’s configured Python linter.
+  - Tests: `cd backend && pytest -q`
+- Frontend (Angular)
+  - Lint: `cd frontend && npm run lint`
+  - Unit tests: `cd frontend && npm test -- --watch=false`
+  - Optional build: `cd frontend && npm run build`
+- Expected: all commands succeed; changes are behavior-neutral.
 
 **レビュー観点**
-- 文字列メッセージの内容が完全に等価であること（句読点・空白含む）。
-- `store.update` の呼び出しが使用中のAngularバージョンで同一挙動を保持すること（updater関数のシグネチャ互換性）。
-- 本PR範囲外だが、同様の機械的改善が他にもある場合は次回の小粒リファクタ対象として候補化。
+- Message equivalence in the merged f-string (punctuation/spacing preserved).
+- Type compatibility of `store.update(updater)` with the current Angular/Signals version.
+- Consistent use of the `_PATCH_ATTRIBUTE` sentinel where applicable in backend compat code.
+- Confirm no unintended formatting or import changes outside the touched lines.
+- Keep future refactors similarly scoped; consider queuing similar mechanical cleanups separately.

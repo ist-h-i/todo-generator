@@ -1,43 +1,28 @@
-**English Restatement**
-
-- Issue Title: Periodic Refactoring
-- Issue Body: Perform a comprehensive refactor of the codebase.
+**Restated Request**
+- Fix lint errors and adjust code so all tests pass.
+- Keep changes minimal, behavior-preserving, and self-contained.
+- Prioritize readability/consistency; respect repo’s split between general and Angular-specific guidelines.
 
 **Assumptions**
-
-- “Comprehensive” should be interpreted pragmatically to fit a small, low‑risk diff and 30‑minute task windows.
-- Primary goals are readability, maintainability, and consistency without changing behavior.
-- Repository separates language‑agnostic standards from Angular‑specific rules; both apply where relevant.
-- No external network access; actions should not require new dependencies.
-- Workspace write is allowed; avoid large-scale restructuring.
+- Both backend and Angular frontend exist and have linters/tests configured.
+- No new dependencies or tooling changes are allowed.
+- Prior minimal refactors (string formatting and signal update) are acceptable and behavior-neutral.
+- Environment has workspace write access; network access is restricted.
 
 **Constraints**
-
-- Minimize scope and impact; smallest viable diff.
-- Finish with a self-contained, shippable outcome.
-- Each task must fit within 30 minutes.
-- Follow repository guidelines (Development Governance Handbook; Angular Coding & Design Guidelines where applicable).
-- Approval policy: never; proceed without interactive approvals.
+- Minimal-diff changes; avoid creating new tasks or scope creep.
+- Deliver a finished, shippable outcome within a short time window (~30 minutes).
+- Follow Development Governance Handbook and Angular Coding & Design Guidelines where applicable.
+- Approval policy is non-interactive; proceed without waiting for confirmations.
 
 **Unknowns**
-
-- Actual tech stack present (docs-only vs. codebase; presence of Angular SPA).
-- Current pain points or targets for refactor (e.g., duplication, lint issues).
-- Existing test coverage and CI gates.
-- Definition of “comprehensive” vs. incremental within this repo’s context.
-- Priority areas (performance, readability, architecture, dead code).
-
-**Risks**
-
-- Over‑refactoring causing unintended behavior changes if code exists.
-- Scope creep from “comprehensive” expectation conflicting with minimal-diff constraint.
-- Inconsistent application of mixed guidelines if the repo has multiple technologies.
+- Exact linting toolchains and configurations (e.g., flake8/ruff/black for backend; ESLint/TSLint/Prettier for frontend).
+- Current failing lint rules and failing test suites.
+- CI expectations (required scripts, coverage thresholds, formatting gates).
+- Whether the repo contains alluded backend/frontend paths or is partially docs-only.
 
 **Clarifying Questions**
-
-- Does this repository contain executable code or primarily documentation/guidelines?
-- If code exists, which areas/modules are highest priority for refactoring?
-- Are there existing linters/formatters or quality gates to align with?
-- Should refactoring be limited to non-functional changes (naming, structure, dead code removal) only?
-- Is there an Angular SPA in this repo, and if so, which directories are in scope?
-- Do we have any known issues (bugs, smells, duplications) to target first?
+- Which linters and test commands are authoritative for backend and frontend?
+- Are there known failing rules/tests to target first?
+- Should we confine changes strictly to formatting/typing and trivial refactors (no logic changes)?
+- Any directories to exclude from this pass (e.g., generated, legacy, or archived code)?
