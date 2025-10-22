@@ -2,92 +2,117 @@
 
 ## Purpose & Scope
 
-- Provide orientation for automated and human-assisted agent roles operating in the Verbalize Yourself repository.
-- Enforce consistency with architecture, governance, documentation, and workflow expectations before any plan, code, review, or integration task begins.
+- Orient automated and human-assisted roles operating in the Verbalize Yourself (todo-generator) repository.
+- Align agents with architecture, governance, documentation, and workflow requirements before translating, planning, coding, reviewing, documenting, or integrating any change.
 
 ## Must-Know References
 
-- `README.md` - Product overview, architecture summary, local setup, and quality automation commands.
-- `docs/README.md` - Documentation index; use it with `docs/INDEX.md` to locate architecture notes, feature specs, and governance guidance.
-- `docs/governance/development-governance-handbook.md` - Source of truth for repository structure, coding standards, CI requirements, and AI expectations.
-- `docs/guidelines/angular-coding-guidelines.md` - Angular SPA conventions, state management patterns, and UI requirements.
-- `docs/ui-design-system.md` / `docs/ui-layout-requirements.md` - Design tokens, accessibility rules, layout heuristics; mandatory for UI-facing work.
-- `.codex/policies/ai_dev_guidelines.md` - Execution scope limits, validation discipline, and output constraints for every agent role.
-- `docs/architecture.md`, `docs/data-flow-overview.md`, `docs/known-issues.md` - System boundaries, request lifecycles, and active risks to consider while planning or reviewing.
-- `docs/mcp-helper-servers.md` & `docs/auto-evolve/operations.md` - Automation and MCP helper instructions for Codex pipelines.
-- `prompts/*.prompt.md` - Role-specific expectations; consult the file that matches your assigned role for deliverable formats and guardrails.
+- `README.md` - product overview, architecture summary, local setup, and quality automation commands.
+- `docs/README.md` / `docs/INDEX.md` - documentation index for architecture notes, feature specs, and governance addenda.
+- `docs/governance/development-governance-handbook.md` - canonical development standards across backend, frontend, testing, and Git hygiene.
+- `docs/guidelines/angular-coding-guidelines.md`, `docs/ui-design-system.md`, `docs/ui-layout-requirements.md` - Angular, design system, accessibility, and layout conventions.
+- `docs/features/*` - feature playbooks; consult the directory that matches the task's domain.
+- `docs/recipes/README.md` - co-located recipe policy and generators (`scripts/generate_file_recipes.py`, `scripts/generate_class_recipes.py`).
+- `workflow/README.md` - log structure, directory layout, and checklist expectations.
+- `.codex/policies/ai_dev_guidelines.md` - execution scope limits, validation discipline, and output constraints.
+- `docs/mcp-helper-servers.md` / `docs/auto-evolve/operations.md` - MCP helper launch steps and automation guardrails.
+- `prompts/*.prompt.md` - role-specific deliverable requirements; read the prompt for the role you are executing.
 
 ## Repository Snapshot
 
-- **Frontend**: Angular 20 standalone components, signal-based stores, Tailwind-inspired design tokens; lint via `npm run lint`, build with `npm run build`, tests via `npm test -- --watch=false`.
-- **Backend**: FastAPI + SQLAlchemy services with layered routers and schemas; validate using `pytest backend/tests`, `ruff check backend`, and `black --check backend/app backend/tests`.
-- **Database**: SQLite by default; Neon Postgres via `DATABASE_URL` for shared environments.
-- **AI Integration**: Google Gemini (see `docs/spec-updates/gemini-migration.md`) with strict JSON schema enforcement.
-- **Documentation**: Markdown knowledge base under `docs/`; co-located `*.recipe.md` files accompany source modules; repository workflow logs live in `workflow/`.
-- **Automation**: `scripts/` contains Codex helpers; use `start-mcp-servers.*` when interacting with MCP helper servers.
+- **Frontend**: Angular 20 standalone components with signal-based stores and Tailwind-inspired tokens; lint via `npm run lint`, formatting via `npm run format:check`, tests via `npm test -- --watch=false`, builds with `npm run build`.
+- **Backend**: FastAPI + SQLAlchemy services, layered routers and schemas, migrations, and pytest suites under `backend/tests`; validate with `pytest backend/tests`, `ruff check backend`, `black --check backend/app backend/tests`.
+- **Database**: SQLite by default, Neon Postgres via `DATABASE_URL`; `scripts/bootstrap_database.py` manages local seeding and migrations.
+- **AI Integration**: Google Gemini (see `docs/spec-updates/gemini-migration.md`) with strict JSON schema enforcement for analyzer, status, and appeal flows.
+- **Automation**: `scripts/` hosts helpers such as `run_codex_pipeline.sh`, `collect_metrics.py`, `role_optimizer.py`, and recipe generators; `start-mcp-servers.*` spins up MCP helper servers.
+- **Documentation & Knowledge Base**: Markdown knowledge base under `docs/`; per-file `*.recipe.md` live next to their source; feature specs in `docs/features/`; metrics schema in `docs/metrics/schema.md`.
+- **Observability & Metrics**: `codex_output/metrics/` and `docs/metrics/` track KPIs; update when instrumentation or dashboards change.
 
-## Multi-Agent Workflow
+## Role Workflow & Responsibilities
 
-### Role Sequence
+### Intake & Requirements
 
-1. **Planner** - Decomposes requirements, issues the ordered checklist in `workflow/checklists/`, and produces the planning log.
-2. **Coder** - Executes checklist items in order, edits code/docs, updates recipes, and records an implementation log.
-3. **Reviewers** - Role-specific reviewers (code quality, security, AI safety, UI/UX, performance, etc.) audit the change in the prescribed order, each producing a workflow log.
-4. **DocWriter / DocEditor** - Refreshes documentation and recipes, ensuring navigation links and indexes stay accurate.
-5. **Integrator** - Rebases/merges, verifies required checks, confirms recipe updates, and documents results.
-6. **Release Manager / QA Automation Planner (as needed)** - Perform release notes, rollout, or regression automation planning.
-   - Limit the workflow to at most three implementation->review cycles unless governance docs explicitly allow more.
+- **Translator** (`workflow/translator/`) - convert non-English requests to English, flag terminology or context gaps.
+- **Requirements Analyst** (`workflow/requirements-analyst/`) - enumerate functional, non-functional, and out-of-scope items plus recipe expectations.
+- **Requirements Reviewer** (`workflow/requirements-reviewer/`) - approve the requirements dossier or return prioritized feedback.
 
-### Logs & Checklists
+### Planning & Design
 
-- Every role writes Markdown logs under `workflow/<role>/YYYYMMDD-HHMM-<task-slug>.md` with the required sections (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-links to related logs.
-- Planner-generated checklists are authoritative; downstream roles must mark blockers in their logs before deviating. Update checklists only through the Planner or by logging an explicit exception.
-- Link logs to co-located recipes and relevant documentation sections to preserve traceability.
+- **Planner** (`workflow/planner/`, `workflow/checklists/`) - restate scope, decompose work, and publish the authoritative checklist.
+- **Detail Designer** (`workflow/detail-designer/`) - specify data flows, module responsibilities, and interface contracts at implementation depth.
+- **Design Reviewer** (`workflow/design-reviewer/`) - validate UX, interaction, and accessibility alignment before coding.
 
-### Recipe Obligations
+### Implementation
 
-- Treat `*.recipe.md` files next to source files as canonical references; update them whenever behaviour, variables, integration points, or tests change.
-- For Angular classes, maintain `ClassName.recipe.md` alongside the TypeScript file. Use generators in `scripts/` if a recipe is missing.
-- Record recipe paths touched inside workflow logs so reviewers and future agents can audit coverage quickly.
+- **Coder** (`workflow/coder/`) - execute checklist items in order, implement code or docs, update/generate co-located recipes, and record evidence.
+- **Specialist Reviewers** (produce logs under `workflow/<role>/` as directed by the checklist):
+  - Code Quality Reviewer, Implementation Reviewer, Security Reviewer, Threat Modeler, AI Safety Reviewer, Performance Reviewer, DPO Reviewer, OSS SBOM Auditor, UI/UX Reviewer, Accessibility Reviewer, i18n Reviewer.
+  - Each reviewer links to evidence, test results, and recipe coverage status, approving only when exit criteria are satisfied.
+
+### Documentation & Integration
+
+- **DocWriter** (`workflow/docwriter/`) - refresh documentation, indexes, and recipes prompted by the change.
+- **Documentation Editor** (`workflow/doc-editor/`) - polish drafts for clarity, consistency, and terminology.
+- **Integrator** (`workflow/integrator/`) - rebase or merge, run required validations, confirm recipes/logs, and detail verification steps.
+- **Release Manager** (`workflow/release-manager/`) & **QA Automation Planner** (`workflow/qa-automation-planner/`) - coordinate rollout notes, canaries, and regression automation when requested.
+
+### Logging Expectations
+
+- Every role emits a Markdown log using the template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups).
+- Store logs as `workflow/<role>/YYYYMMDD-HHMM-<task-slug>.md`; create the directory if it does not exist.
+- Planner-maintained checklists govern execution order; document blockers in your log before deviating.
+- Cross-link related logs, recipes, specs, and automation artefacts to maintain traceability.
+
+## Recipe Obligations
+
+- Maintain co-located `*.recipe.md` files next to their source (e.g., `backend/app/services/<file>.py.recipe.md`, `frontend/src/app/.../ComponentName.recipe.md`); the central `docs/recipes/` folder is deprecated.
+- Generator utilities: `python scripts/generate_file_recipes.py` for file-level coverage, `python scripts/generate_class_recipes.py` for Angular classes.
+- Capture purpose, entry points, key variables, interactions, testing guidance, and change history. Update recipes whenever behaviour, integrations, or tests change.
+- Record every touched recipe in your workflow log under Recipe Updates with a short description of the knowledge captured.
 
 ## Execution Guardrails
 
-- Work only within the scoped files and directories needed for the task; do not refactor or run pipelines beyond what the checklist or governance docs require.
-- Capture assumptions, open questions, and policy conflicts in your workflow log before proceeding.
-- Follow the validation matrix below and document any skipped command in your log with the rationale provided by the governance guidelines.
+- Follow `.codex/policies/ai_dev_guidelines.md`: keep scope tight, run only required commands, and log skipped validations with rationale.
+- Modify only files required for the assigned task; defer refactors or extra pipelines without Planner approval.
+- Document assumptions, open questions, and policy conflicts in your log before proceeding.
+- Do not alter generated artefacts, secrets, `.venv`, `node_modules`, or local databases tracked by git.
+
+## Validation Matrix
 
 | Task type | Minimum validation | Default skips |
 | --- | --- | --- |
 | Backend code | `pytest backend/tests`, `ruff check backend`, `black --check backend/app backend/tests` | Frontend builds unless cross-cutting |
-| Frontend code / UI | `npm run lint`, `npm run format:check`, `npm test -- --watch=false` (or targeted specs), consider `npm run build` for risky changes | Backend tests unless APIs changed |
-| Shared config / CI | Lint or syntax checks relevant to the file (e.g., `act`, `yamllint`) | Full test suites unless configuration affects runtime |
-| Documentation / Markdown | Markdown lint if available; manual link review | All code builds/tests (unless doc change reflects code that must be validated) |
-| Translation / Annotation | Formatting diffs only | Tests, builds, dependency installs |
+| Frontend code / UI | `npm run lint`, `npm run format:check`, `npm test -- --watch=false`; add `npm run build` for risky changes | Backend tests unless API contracts change |
+| Shared config / CI | Relevant lint or syntax checks (e.g., `act`, `yamllint`) | Full suites unless runtime behaviour is affected |
+| Documentation / Markdown | Markdown lint or manual link review | All builds/tests (document skipped commands per AI Dev Guidelines) |
+| Translation / Annotation | Formatting or diff validation only | Tests, builds, dependency installs |
 
-- Honour `.codex/policies/ai_dev_guidelines.md`: document skipped work, minimize redundant commands, and never expand scope without Planner approval.
-- Avoid modifying generated artefacts or secrets; never commit `.venv`, `node_modules`, or local databases.
+- For migrations or data scripts, include targeted verification (dry runs, seed checks) and record the outcome.
+- When automation scripts or pipelines change, capture command output and artefact paths in the log.
 
 ## Tooling & Commands
 
-- Use `start-localhost.bat` for one-click Windows setup; for macOS/Linux follow the manual steps in `README.md`.
-- Backend dependency extras live in `backend/requirements*.txt`; the frontend relies on `frontend/package.json`.
-- Run `scripts/run_tests_with_coverage.sh` before invoking SonarQube (`sonar-scanner`) when coverage is required.
-- Prefer `rg` for code search, `pytest -k "<pattern>"` for targeted backend tests, and `npm test -- --watch=false --runTestsByPath <spec>` for focused Angular checks.
-
-## Automation & MCP Helpers
-
-- `docs/mcp-helper-servers.md` documents how to launch MCP Git and filesystem helpers that support Codex automation and recipe generation.
-- `docs/auto-evolve/operations.md` outlines how to trigger and monitor the auto-evolve pipeline; review it before running automation outside routine workflows.
-- Update `codex_output/` artefacts only through automated runs unless governance rules instruct otherwise.
+- `start-localhost.bat` bootstraps dependencies and launches backend + frontend on Windows; follow `README.md` for manual macOS/Linux setup.
+- Backend helpers: `scripts/bootstrap_database.py`, `scripts/collect_metrics.py`.
+- Automation: `scripts/run_codex_pipeline.sh`, `scripts/apply_auto_evolve_scaffold.sh`, `scripts/role_optimizer.py`.
+- Prefer `rg` for search, targeted pytest invocations (`pytest -k "<pattern>"`), and Angular focused tests (`npm test -- --watch=false --runTestsByPath <spec>`).
+- Launch MCP helpers with `start-mcp-servers.bat` (Windows) or the corresponding shell script when available; services include filesystem, memory, fetch, puppeteer, sequential thinking, time, Serena, and optional Brave/Magic/Playwright adapters.
 
 ## Documentation Hygiene & Cross-Linking
 
-- When adding or moving documentation, update `docs/README.md`, `docs/INDEX.md`, and any feature-specific tables of contents.
-- Reflect architecture or workflow changes in `docs/architecture.md`, `docs/data-flow-overview.md`, or the relevant spec under `docs/spec-updates/`.
-- Note intentional deviations and cross-link decisions in both the updated document and the associated workflow logs.
+- Update `docs/README.md`, `docs/INDEX.md`, and relevant feature specs under `docs/features/` whenever behaviour or navigation changes.
+- Keep architecture references synchronized in `docs/architecture.md`, `docs/data-flow-overview.md`, and persistence notes in `docs/persistence-detail-design.md`.
+- Reflect schema or migration changes in `docs/db-schema-commands.md` and governance handbooks.
+- When moving or renaming documentation, update all internal links, navigation tables, and workflow references.
+
+## Automation, Metrics & Auto-Evolve
+
+- Consult `docs/auto-evolve/operations.md` before triggering auto-evolve workflows; update `.codex/flags.json` only with documented approval and monitoring plans.
+- Treat `codex_output/` artefacts (plans, role outputs, metrics snapshots) as automation outputs-do not edit manually unless policy requires it and the change is logged.
+- When toggling `RUN_CODEX` or automation flags, record the rationale and related verification steps in the appropriate workflow log.
 
 ## Raising Questions & Exceptions
 
-- If requirements are unclear or blockers surface, document them in the current workflow log and notify the Planner or requesting party before continuing.
-- Treat known issues from `docs/known-issues.md` and security considerations from `docs/security-review.md` as mandatory checkpoints for reviewers and integrators.
-- Escalate risky changes or policy conflicts early to avoid rework and ensure audit trails stay accurate.
+- If requirements, acceptance criteria, or policy constraints are unclear, capture the uncertainty in your log, notify the Planner or requester, and pause execution until resolved.
+- Review `docs/known-issues.md` and `docs/security-review.md` as part of every review and integration pass.
+- Escalate risky changes early to avoid rework and ensure audit trails remain accurate.

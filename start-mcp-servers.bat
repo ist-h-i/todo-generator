@@ -63,13 +63,13 @@ exit /b
 :start_npx
 set "TITLE=%~1"
 set "ARGS=%~2"
-start "%TITLE%" /D "%PROJECT_DIR%" "%NPX_CMD%" %ARGS%
+start "%TITLE%" /D "%PROJECT_DIR%" cmd.exe /k ""%NPX_CMD%" %ARGS%"
 exit /b
 
 :start_uvx
 set "TITLE=%~1"
 set "ARGS=%~2"
-start "%TITLE%" /D "%PROJECT_DIR%" "%UVX_CMD%" %ARGS%
+start "%TITLE%" /D "%PROJECT_DIR%" cmd.exe /k ""%UVX_CMD%" %ARGS%"
 exit /b
 
 :start_brave
@@ -104,7 +104,7 @@ if not defined MAGIC_VALUE (
     exit /b
 )
 echo Starting @21st-dev/magic server ...
-start "MCP Magic Server" /D "%PROJECT_DIR%" "%NPX_CMD%" -y dotenv -e .env -- "%NPX_CMD%" -y @21st-dev/magic@latest
+call :start_npx "MCP Magic Server" "-y dotenv -e .env -- ""%NPX_CMD%"" -y @21st-dev/magic@latest"
 exit /b
 
 :read_env_value
