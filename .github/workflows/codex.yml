@@ -369,6 +369,7 @@ PY
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_CODEX: ${{ steps.detect.outputs.run_codex }}
           TASK_INPUT: ${{ steps.merge.outputs.task_input }}
+          ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
         run: |
           set -euo pipefail
           mkdir -p "${CODEX_OUTPUT_DIR}"

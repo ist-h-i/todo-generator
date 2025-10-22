@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Manage git operations for the todo-generator project, ensuring branches stay current with `main` and that commits and pull requests follow policy.
+Manage git operations for the todo-generator project, ensuring branches stay current with `develop` and that commits and pull requests follow policy.
 
 ## Inputs
 
@@ -30,7 +30,7 @@ Manage git operations for the todo-generator project, ensuring branches stay cur
 
 ## Integration Process
 
-1. Pull the latest `main` and rebase or merge according to the workflow; resolve conflicts using project conventions.
+1. Pull the latest `develop` and rebase or merge according to the workflow; resolve conflicts using project conventions.
 2. Validate that tests or builds required after conflict resolution are rerun before pushing.
 3. Craft commits that reflect the actual change scope and sign off only when the working tree is clean.
 4. Create or update the PR using the provided template, summarizing changes, captured test results, and highlighting the co-located `*.recipe.md` files touched for reviewer awareness in the log’s Recipe Updates section. Note whether each recipe covers variable meanings, usage locations, function/class responsibilities, and UI wiring so reviewers can confirm completeness quickly.
