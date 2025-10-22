@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import {
-  AfterContentChecked,
   AfterContentInit,
   ChangeDetectionStrategy,
   Component,
@@ -181,7 +180,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UiSelectComponent
-  implements ControlValueAccessor, AfterContentInit, AfterContentChecked, OnDestroy
+  implements ControlValueAccessor, AfterContentInit, OnDestroy
 {
   @Input() id?: string;
   @Input() name?: string;
@@ -203,6 +202,7 @@ export class UiSelectComponent
   private scheduledReconcile = false;
   private pendingForceReconcile = false;
   private destroyed = false;
+  private optionsObserver?: MutationObserver;
 
   private onChange: (val: string | string[] | null) => void = () => {};
   // Must be public to be callable from the template (blur) handler
@@ -210,14 +210,12 @@ export class UiSelectComponent
 
   ngAfterContentInit(): void {
     this.scheduleProjectedOptionsReconciliation(true);
-  }
-
-  ngAfterContentChecked(): void {
-    this.scheduleProjectedOptionsReconciliation();
+    this.observeProjectedOptions();
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.optionsObserver?.disconnect();
   }
 
   writeValue(obj: any): void {
@@ -353,6 +351,28 @@ export class UiSelectComponent
       const runForce = this.pendingForceReconcile;
       this.pendingForceReconcile = false;
       this.reconcileProjectedOptions(runForce);
+    });
+  }
+
+  private observeProjectedOptions(): void {
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (!sel || typeof MutationObserver === 'undefined') {
+      return;
+    }
+
+    if (this.optionsObserver) {
+      this.optionsObserver.disconnect();
+    }
+
+    this.optionsObserver = new MutationObserver(() => {
+      this.scheduleProjectedOptionsReconciliation();
+    });
+
+    this.optionsObserver.observe(sel, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true,
     });
   }
 
