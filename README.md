@@ -89,6 +89,8 @@ Create a `.env` file in the repository root or export variables before launching
 
 Store the Neon credentials outside the repository (for example, in a `.env` file that is excluded from version control) and inject them through `DATABASE_URL` before starting the backend service.
 
+If you plan to use the `@21st-dev/magic` MCP server, define `MAGIC_API_KEY` in your environment (or `.env`) before running `start-mcp-servers.*`; both `.modelcontext.json` and `.codex/config.toml` now load the API key from that variable at runtime.
+
 ### One-click startup on Windows
 
 Run the bundled script from the repository root. It creates a virtual environment, installs Python and npm dependencies, and launches both servers in separate terminals.

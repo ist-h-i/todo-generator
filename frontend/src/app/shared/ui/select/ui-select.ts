@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
+  AfterContentChecked,
+  AfterContentInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
@@ -7,8 +9,6 @@ import {
   ViewChild,
   forwardRef,
   Input,
-  AfterViewInit,
-  OnDestroy,
 } from '@angular/core';
 import {
   ControlValueAccessor,
@@ -179,7 +179,9 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, OnDestroy {
+export class UiSelectComponent
+  implements ControlValueAccessor, AfterContentInit, AfterContentChecked
+{
   @Input() id?: string;
   @Input() name?: string;
   @Input() multiple: boolean | null = null;
@@ -196,45 +198,18 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, O
   @ViewChild('nativeSelect', { static: true }) nativeSelectRef!: ElementRef<HTMLSelectElement>;
 
   options: Array<{ value: string; label: string; disabled: boolean }> = [];
+  private optionsSignature = '';
 
   private onChange: (val: string | string[] | null) => void = () => {};
   // Must be public to be callable from the template (blur) handler
   public onTouched: () => void = () => {};
-  private mo?: MutationObserver;
 
-  ngAfterViewInit(): void {
-    // Defer initial read to ensure projected <option> nodes render
-    const defer: (fn: () => void) => void =
-      typeof queueMicrotask === 'function'
-        ? queueMicrotask
-        : (fn) => setTimeout(fn, 0);
-    defer(() => {
-      this.readOptions();
-      this.syncLabelFromValue();
-    });
-
-    // Observe changes to projected <option> elements (added/removed/updated)
-    const sel = this.nativeSelectRef?.nativeElement;
-    if (sel && typeof MutationObserver !== 'undefined') {
-      this.mo = new MutationObserver(() => {
-        this.readOptions();
-        this.syncLabelFromValue();
-        this.ensureActiveIndex();
-      });
-      this.mo.observe(sel, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-        attributes: true,
-      });
-    }
+  ngAfterContentInit(): void {
+    this.reconcileProjectedOptions(true);
   }
 
-  ngOnDestroy(): void {
-    if (this.mo) {
-      this.mo.disconnect();
-      this.mo = undefined;
-    }
+  ngAfterContentChecked(): void {
+    this.reconcileProjectedOptions();
   }
 
   writeValue(obj: any): void {
@@ -317,7 +292,11 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, O
     const sel = this.nativeSelectRef?.nativeElement;
     if (!sel) return;
     const opts = Array.from(sel.options || []);
-    this.options = opts.map((o) => ({ value: o.value, label: o.label, disabled: o.disabled }));
+    this.options = opts.map((o) => ({
+      value: o.value,
+      label: this.resolveOptionLabel(o),
+      disabled: o.disabled,
+    }));
   }
 
   private syncLabelFromValue(): void {
@@ -347,6 +326,42 @@ export class UiSelectComponent implements ControlValueAccessor, AfterViewInit, O
   private ensureActiveIndex(): void {
     const idx = this.options.findIndex((o) => this.isSelected(o.value));
     this.activeIndex = idx >= 0 ? idx : 0;
+  }
+
+  private reconcileProjectedOptions(force = false): void {
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (!sel) {
+      return;
+    }
+
+    const nativeOptions = Array.from(sel.options || []);
+    const nextSignature = nativeOptions
+      .map((option) => {
+        const label = this.resolveOptionLabel(option);
+        return `${option.value}::${label}::${option.disabled ? '1' : '0'}`;
+      })
+      .join('|');
+
+    if (!force && nextSignature === this.optionsSignature) {
+      return;
+    }
+
+    this.optionsSignature = nextSignature;
+    this.readOptions();
+    this.syncLabelFromValue();
+    if (this.panelOpen) {
+      this.ensureActiveIndex();
+    }
+  }
+
+  private resolveOptionLabel(option: HTMLOptionElement): string {
+    const label = option.label?.trim();
+    if (label) {
+      return label;
+    }
+
+    const text = option.textContent ?? '';
+    return text.trim();
   }
 
   @HostListener('document:click', ['$event'])
