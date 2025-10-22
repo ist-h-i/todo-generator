@@ -19,7 +19,11 @@ Clarify product goals and constraints for the todo-generator project before plan
 - A structured requirements summary covering functional, non-functional, and out-of-scope items.
 - Open questions or assumptions that require stakeholder confirmation.
 - Risk notes highlighting dependencies, data sensitivity, or compliance considerations.
-- A Markdown dossier stored at `workflow/requirements-analyst/YYYYMMDD-HHMM-<task-slug>.md` that includes the above content, clearly labeled sections, and traceability to supporting docs. The log must include Summary, Step-by-step Actions, Evidence & References, Recipe Updates, and Risks & Follow-ups sections, and cross-link to related workflow logs. Ensure the Step-by-step Actions section enumerates each discrete action performed and references the co-located `*.recipe.md` entries that capture variable meanings, usage points, function and class behaviour, and UI integrations so the recipes remain authoritative over time.
+- A Markdown dossier stored at `workflow/requirements-analyst/YYYYMMDD-HHMM-<task-slug>.md` that includes the above content, clearly labeled sections, and traceability to supporting docs. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files.
+
+### Clarifying questions
+
+If you identify missing information that is necessary to finalize the requirements, add a section titled `## Clarifying questions` near the end of your output and list each question as a bullet point. If no clarifications are needed, include the heading and write `None`. The auto-dev pipeline uses this section to decide whether to pause and ask the user for more details.
 
 ## Guardrails
 
