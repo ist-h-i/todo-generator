@@ -1,6 +1,25 @@
 export type IsoDateString = string;
 
-export type CompetencyLevel = 'junior' | 'intermediate';
+export type CompetencyLevel = string;
+
+export interface CompetencyLevelDefinition {
+  id: string;
+  value: string;
+  label: string;
+  scale: number;
+  description?: string | null;
+  sort_order: number;
+  created_at: IsoDateString;
+  updated_at: IsoDateString;
+}
+
+export interface CompetencyLevelInput {
+  value: string;
+  label: string;
+  scale: number;
+  description?: string | null;
+  sort_order?: number | null;
+}
 
 export interface CompetencyCriterion {
   id: string;
@@ -36,6 +55,7 @@ export interface Competency {
   criteria: CompetencyCriterion[];
   created_at: IsoDateString;
   updated_at: IsoDateString;
+  level_definition?: CompetencyLevelDefinition | null;
 }
 
 export interface CompetencyInput {

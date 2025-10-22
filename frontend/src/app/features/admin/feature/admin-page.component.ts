@@ -21,6 +21,8 @@ import {
   ApiCredentialUpdate,
   Competency,
   CompetencyCriterionInput,
+  CompetencyLevelDefinition,
+  CompetencyLevelInput,
   CompetencyEvaluation,
   CompetencyInput,
   QuotaDefaults,
@@ -44,6 +46,13 @@ type CompetencyFormControls = {
   is_active: FormControl<boolean>;
   criteria: FormArray<CriterionFormGroup>;
 };
+type CompetencyLevelFormControls = {
+  value: FormControl<string>;
+  label: FormControl<string>;
+  scale: FormControl<number>;
+  description: FormControl<string>;
+  sort_order: FormControl<number | null>;
+};
 
 @Component({
   selector: 'app-admin-page',
@@ -60,6 +69,7 @@ export class AdminPageComponent {
 
   public readonly activeTab = signal<AdminTab>('competencies');
   public readonly competencies = signal<Competency[]>([]);
+  public readonly competencyLevels = signal<CompetencyLevelDefinition[]>([]);
   public readonly users = signal<AdminUser[]>([]);
   public readonly evaluations = signal<CompetencyEvaluation[]>([]);
   public readonly quotaDefaults = signal<QuotaDefaults | null>(null);
@@ -68,6 +78,28 @@ export class AdminPageComponent {
   public readonly feedback = signal<string | null>(null);
   public readonly error = signal<string | null>(null);
 
+  private readonly defaultCompetencyLevels: CompetencyLevelDefinition[] = [
+    {
+      id: 'default-junior',
+      value: 'junior',
+      label: '初級',
+      scale: 3,
+      description: null,
+      sort_order: 0,
+      created_at: '1970-01-01T00:00:00.000Z',
+      updated_at: '1970-01-01T00:00:00.000Z',
+    },
+    {
+      id: 'default-intermediate',
+      value: 'intermediate',
+      label: '中級',
+      scale: 5,
+      description: null,
+      sort_order: 1,
+      created_at: '1970-01-01T00:00:00.000Z',
+      updated_at: '1970-01-01T00:00:00.000Z',
+    },
+  ];
   private readonly defaultGeminiModel = 'models/gemini-2.0-flash';
   private readonly competencyCriteria = new FormArray<CriterionFormGroup>([
     this.createCriterionGroup(),
@@ -85,6 +117,20 @@ export class AdminPageComponent {
     }),
     is_active: new FormControl(true, { nonNullable: true }),
     criteria: this.competencyCriteria,
+  });
+
+  public readonly competencyLevelForm: FormGroup<CompetencyLevelFormControls> = new FormGroup({
+    value: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.pattern(/^[a-z0-9_-]+$/i)],
+    }),
+    label: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    scale: new FormControl(5, { nonNullable: true, validators: [Validators.required] }),
+    description: new FormControl('', { nonNullable: true }),
+    sort_order: new FormControl<number | null>(null),
   });
 
   public readonly evaluationForm: FormGroup<{
@@ -147,6 +193,7 @@ export class AdminPageComponent {
   );
 
   public constructor() {
+    this.competencyLevels.set(this.sortLevels(this.defaultCompetencyLevels));
     this.bootstrap();
   }
 
@@ -187,9 +234,15 @@ export class AdminPageComponent {
       return;
     }
 
+    const level = (value.level ?? '').trim();
+    if (!level) {
+      this.error.set('レベルを選択してください。');
+      return;
+    }
+
     const payload: CompetencyInput = {
       name,
-      level: value.level,
+      level,
       description: value.description.trim(),
       is_active: value.is_active,
       rubric: {},
@@ -224,18 +277,71 @@ export class AdminPageComponent {
       });
   }
 
+  public createCompetencyLevel(): void {
+    this.clearError();
+
+    if (this.competencyLevelForm.invalid) {
+      this.competencyLevelForm.markAllAsTouched();
+      return;
+    }
+
+    const formValue = this.competencyLevelForm.getRawValue();
+    const payload: CompetencyLevelInput = {
+      value: formValue.value.trim(),
+      label: formValue.label.trim(),
+      scale: Number(formValue.scale),
+      description: formValue.description.trim() || undefined,
+      sort_order: formValue.sort_order ?? undefined,
+    };
+
+    if (!payload.value || !payload.label) {
+      this.error.set('レベル識別子と名称を入力してください。');
+      return;
+    }
+
+    this.loading.set(true);
+    this.api
+      .createCompetencyLevel(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (level) => {
+          this.loading.set(false);
+          this.competencyLevels.set(
+            this.sortLevels([
+              ...this.competencyLevels().filter((item) => item.value !== level.value),
+              level,
+            ]),
+          );
+          this.ensureCompetencyLevelSelection();
+          this.competencyLevelForm.reset({
+            value: '',
+            label: '',
+            scale: 5,
+            description: '',
+            sort_order: null,
+          });
+          this.notify('コンピテンシーレベルを追加しました。');
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.handleError(err, 'コンピテンシーレベルの追加に失敗しました。');
+        },
+      });
+  }
+
   public resetCompetencyForm(): void {
     while (this.competencyCriteria.length > 1) {
       this.competencyCriteria.removeAt(this.competencyCriteria.length - 1);
     }
     this.competencyForm.reset({
       name: '',
-      level: 'junior',
+      level: this.defaultCompetencyLevelValue(),
       description: '',
       is_active: true,
     });
     const first = this.competencyCriteria.at(0);
     first?.reset({ title: '', description: '' });
+    this.ensureCompetencyLevelSelection();
   }
 
   public toggleCompetencyActive(competency: Competency, active: boolean): void {
@@ -428,11 +534,35 @@ export class AdminPageComponent {
   }
 
   private bootstrap(): void {
+    this.loadCompetencyLevels();
     this.loadCompetencies();
     this.loadUsers();
     this.loadEvaluations();
     this.loadDefaults();
     this.loadCredential();
+  }
+
+  private loadCompetencyLevels(): void {
+    this.api
+      .listCompetencyLevels()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (levels) => {
+          const resolved = levels.length > 0 ? levels : this.defaultCompetencyLevels;
+          this.competencyLevels.set(this.sortLevels(resolved));
+          this.ensureCompetencyLevelSelection();
+        },
+        error: (err: unknown) => {
+          if (err instanceof HttpErrorResponse && err.status === 404) {
+            this.competencyLevels.set(this.sortLevels(this.defaultCompetencyLevels));
+            this.ensureCompetencyLevelSelection();
+            return;
+          }
+          this.handleError(err, 'コンピテンシーレベルの取得に失敗しました。');
+          this.competencyLevels.set(this.sortLevels(this.defaultCompetencyLevels));
+          this.ensureCompetencyLevelSelection();
+        },
+      });
   }
 
   private loadCompetencies(): void {
@@ -582,6 +712,49 @@ export class AdminPageComponent {
       next.set(user.id, existing);
     }
     this.userQuotaForms.set(next);
+  }
+
+  public competencyLevelBadge(competency: Competency): string {
+    const definition = competency.level_definition ?? this.findCompetencyLevel(competency.level);
+    if (definition) {
+      return `${definition.label} (${definition.scale}段階)`;
+    }
+    return competency.level;
+  }
+
+  public formatLevelLabel(level: CompetencyLevelDefinition): string {
+    return `${level.label} (${level.scale}段階)`;
+  }
+
+  private defaultCompetencyLevelValue(): string {
+    const levels = this.competencyLevels();
+    return levels[0]?.value ?? 'junior';
+  }
+
+  private findCompetencyLevel(value: string): CompetencyLevelDefinition | undefined {
+    return this.competencyLevels().find((level) => level.value === value);
+  }
+
+  private sortLevels(levels: ReadonlyArray<CompetencyLevelDefinition>): CompetencyLevelDefinition[] {
+    return [...levels].sort((a, b) => {
+      const orderA = a.sort_order ?? 0;
+      const orderB = b.sort_order ?? 0;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      return a.label.localeCompare(b.label, 'ja');
+    });
+  }
+
+  private ensureCompetencyLevelSelection(): void {
+    const available = this.competencyLevels();
+    if (available.length === 0) {
+      return;
+    }
+    const current = this.competencyForm.controls.level.value;
+    if (!available.some((level) => level.value === current)) {
+      this.competencyForm.controls.level.setValue(available[0].value);
+    }
   }
 
   private notify(message: string): void {

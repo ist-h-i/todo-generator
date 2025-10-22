@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from .. import models, schemas
 from ..database import get_db
@@ -27,7 +27,7 @@ def list_competencies(
     db: Session = Depends(get_db),
     _: models.User = Depends(require_admin),
 ) -> list[models.Competency]:
-    query = db.query(models.Competency)
+    query = db.query(models.Competency).options(joinedload(models.Competency.level_definition))
     if level:
         query = query.filter(models.Competency.level == level)
     if is_active is not None:

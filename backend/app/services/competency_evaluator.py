@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Iterable
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .. import models
@@ -31,7 +32,7 @@ class CompetencyEvaluator:
     ) -> models.CompetencyEvaluation:
         start_dt, end_dt = self._to_datetime_range(period_start, period_end)
         metrics = self._collect_metrics(user=user, start=start_dt, end=end_dt)
-        scale = 3 if competency.level.lower() == "junior" else 5
+        scale = self._resolve_scale(competency)
         score_value, score_label = self._determine_score(scale=scale, metrics=metrics)
 
         evaluation = models.CompetencyEvaluation(
@@ -72,6 +73,21 @@ class CompetencyEvaluator:
 
         self._db.flush()
         return evaluation
+
+    def _resolve_scale(self, competency: models.Competency) -> int:
+        level_value = (competency.level or "").strip()
+        if not level_value:
+            return 5
+
+        level = (
+            self._db.query(models.CompetencyLevel)
+            .filter(func.lower(models.CompetencyLevel.value) == level_value.lower())
+            .one_or_none()
+        )
+        if level:
+            return level.scale
+
+        return 3 if level_value.lower() == "junior" else 5
 
     def _collect_metrics(
         self,
