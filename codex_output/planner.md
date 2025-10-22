@@ -1,62 +1,17 @@
-Summary
-- Scope: Backend API (FastAPI) and Angular SPA.
-- Priority: Apply smallest, low‑risk hardening; avoid architectural changes.
-- Timebox: ≤30 minutes for execution; minimal diff.
+**Findings**
+- Backend already includes a security-headers middleware in `backend/app/main.py:156` and a focused test in `backend/tests/test_security_headers.py:1`.
+- Documentation updated at `docs/security-review.md` describing changes and residual risks.
+- Scope and constraints satisfied with minimal, low-risk changes; no further coding needed.
 
-Plan
-- Add standard security headers in backend to harden all responses with minimal risk.
-- Add a small test to assert these headers exist (keeps builds green and verifies behavior).
-- Update the security review doc to document findings, the change, and residual risks.
-- Defer larger refactors (token storage/cookies, CSP) as explicitly logged backlog items.
+**Minimal Route**
+- Skip coder/integrator; proceed directly to release_manager to publish the summary and close out the cycle.
 
-Proposed Minimal Changes
-- Backend security headers middleware
-  - File: backend/app/main.py
-  - Add middleware after existing CORS handling to set:
-    - Strict-Transport-Security: max-age=15552000; includeSubDomains
-    - X-Content-Type-Options: nosniff
-    - Referrer-Policy: no-referrer
-    - X-Frame-Options: DENY
-    - Permissions-Policy: camera=(), microphone=(), geolocation=()
-    - Cross-Origin-Opener-Policy: same-origin
-    - Cross-Origin-Resource-Policy: same-origin
-  - Rationale: No functional coupling; safe for API responses; improves baseline security.
-
-- Test coverage
-  - File: backend/tests/test_security.py
-  - Add a simple assertion on GET /health:
-    - Verifies presence and values of the above headers.
-  - Rationale: Ensures permanence of security hardening with minimal test code.
-
-- Documentation
-  - File: docs/security-review.md
-  - Update to:
-    - Mark cryptography status as “hardened” (Fernet AE) and legacy auto-rotate note.
-    - Note new security headers and why they’re safe.
-    - Call out residual risk: SPA stores tokens in localStorage; recommend migration to httpOnly cookies in a future cycle.
-    - Note CSP as a future enhancement on the frontend host, with caution about Angular inline/hydration constraints.
-
-Why Not Now (Defer)
-- Token storage migration to httpOnly cookies: cross-cutting change (backend + SPA) and requires CORS/auth flows; exceeds timebox.
-- Frontend CSP: likely build-time and inline-script considerations; risk of regressions; requires careful testing.
-- Dependency bumps: versions already recent; without network audit, blind updates could introduce churn; low ROI in this pass.
-
-Residual Risks
-- SPA token in localStorage remains susceptible to XSS exfiltration; mitigations deferred.
-- CSP not applied on SPA host yet.
-- HSTS is informative on API responses; ensure production uses HTTPS for header effect.
-
-Acceptance Criteria
-- All API responses include the new security headers.
-- backend/tests remain green; added header test passes.
-- docs/security-review.md updated with changes and residual risks.
-
-Implementation Hints
-- Middleware snippet example (for coder):
-  - In backend/app/main.py, add an HTTP middleware that sets headers on every non-OPTIONS response (OPTIONS already handled).
-- Test snippet example:
-  - client.get('/health') and assert headers with exact names/values.
+**Residual Risks**
+- HSTS effective only over HTTPS; confirm production TLS.
+- Referrer-Policy is strict; analytics depending on referrer may be impacted.
+- SPA tokens still in `localStorage`; migration to httpOnly cookies deferred.
+- CSP for SPA host deferred to a future, coordinated pass.
 
 ```json
-{"steps":["coder","code_quality_reviewer"],"notes":"Apply a small security-headers middleware in backend/app/main.py, add a single test in backend/tests/test_security.py to assert headers on /health, and update docs/security-review.md with findings and residual risks. Token storage migration and CSP are intentionally deferred to keep changes minimal and within the 30-minute window.","tests":"Run backend tests. New assertions: response.headers['Strict-Transport-Security'] == 'max-age=15552000; includeSubDomains', 'X-Content-Type-Options' == 'nosniff', 'Referrer-Policy' == 'no-referrer', 'X-Frame-Options' == 'DENY', 'Permissions-Policy' includes 'camera=()', 'microphone=()', 'geolocation=()', and COOP/CORP set to 'same-origin'."}
+{"steps":["release_manager"],"notes":"Code and tests already in place: security-headers middleware in backend/app/main.py and verification in backend/tests/test_security_headers.py; docs updated at docs/security-review.md. Proceed with release summary and closure to keep changes minimal.","tests":"Run: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck && pytest -q backend/tests"}
 ```

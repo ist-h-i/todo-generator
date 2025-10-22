@@ -1,46 +1,36 @@
 **Request Summary**
-- Perform a periodic security review: identify vulnerabilities, apply minimal-impact fixes, and harden the project, delivering a self-contained outcome.
+- Perform a periodic security review to identify vulnerabilities and apply minimal, low‑risk hardening changes. Deliver a finished, self‑contained outcome without broad architectural impact.
 
 **Objectives / Definition of Done**
-- Identify issues across code, configs, and dependencies.
-- Apply smallest viable fixes with minimal diff.
-- Document findings, changes, and residual risks.
-- Keep builds/tests green; update docs where affected.
-- Avoid unnecessary tasks or scope creep.
+- Identify clear, actionable security issues within scope.
+- Implement the smallest viable fixes with minimal diffs.
+- Keep builds/tests green; add/adjust targeted tests as needed.
+- Document changes made and residual risks.
 
 **Constraints**
-- Minimize changes; fewest steps to completion.
-- Each task must fit within ~30 minutes.
-- Network access is restricted; avoid tools requiring external calls unless approved.
-- Filesystem: workspace-write; no approval prompts available.
-- Follow repo’s governance/design guidelines when applicable.
+- Minimize scope and code churn; avoid unnecessary tasks.
+- Complete within ~30 minutes of focused changes.
+- Prefer backend (FastAPI) scope; avoid SPA/architectural changes this cycle.
+- Network access is restricted; avoid networked audits.
+- Maintain compatibility and avoid breaking existing behavior.
 
 **Assumptions**
-- Dependency updates (patch/minor) are acceptable when fixing known CVEs.
-- No secrets should be present; secret scanning is allowed.
-- Tests/builds exist or can be run locally.
-- “Regular” implies repeatability but this cycle needs a one-off, complete outcome.
+- Backend uses FastAPI and has a simple health endpoint for checks.
+- Adding small middleware or config hardening is acceptable.
+- Tests exist or can be added in a targeted way.
+- Dependency upgrades (if any) should be minimal (patch/minor) and only when clearly necessary.
 
 **Unknowns**
-- Tech stack(s) and package manager(s) in use.
-- Existing CI/CD and security gates.
-- Severity thresholds (e.g., fix High/Critical only?).
-- Compliance requirements (e.g., SOC2, ISO27001).
-- Allowed tooling additions (linters, pre-commit hooks).
-- Target environments and threat model.
+- Exact severity thresholds (e.g., fix Critical/High only?).
+- Allowed level of dependency changes (patch/minor/major).
+- Whether any flows depend on referrer data or cross-origin embedding.
+- CI/CD expectations and existing security gates.
+- Environment targets (dev/staging/prod) and HTTPS guarantees.
 
-**Clarifying Questions**
-- What parts of the repo are in scope (all code, infra, CI/CD)?
-- What tech stack and package managers are used?
-- Are dependency upgrades allowed, and to what level (patch/minor/major)?
-- Are we permitted to run networked audits (e.g., npm audit, pip-audit)?
-- Any existing security policies or baselines to follow?
-- Which environments are targeted (dev/staging/prod) and key threats to prioritize?
-- Do you want this to set up recurring automation or is it a one-off pass?
-- Any deadlines or severity priorities (e.g., fix Critical/High only this cycle)?
-
-**Residual Risks (if proceeding without answers)**
-- Missing environment- or compliance-specific issues.
-- Potential regressions from dependency updates.
-- Under- or over-scoping the review.
-- Incomplete coverage of critical assets.
+**Clarifying questions**
+- Which areas are explicitly in scope this cycle: backend only, or also CI/config?
+- Are dependency updates allowed, and to what level (patch/minor/major)?
+- Do any features rely on referrer headers or cross-origin embedding that would constrain header tightening?
+- Can we add small, focused tests to lock in security behavior (e.g., headers on health endpoint)?
+- Are there specific high-priority risks to address first (e.g., auth/session, data exposure, SSRF)?
+- Is production guaranteed to run over HTTPS (relevant for HSTS effectiveness)?
