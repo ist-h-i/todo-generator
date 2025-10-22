@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormArray,
@@ -119,6 +119,13 @@ export class AdminPageComponent {
     criteria: this.competencyCriteria,
   });
 
+  public readonly competencyLevelSelectOptions = computed(() =>
+    this.competencyLevels().map((level) => ({
+      value: level.value,
+      label: this.formatLevelLabel(level),
+    })),
+  );
+
   public readonly competencyLevelForm: FormGroup<CompetencyLevelFormControls> = new FormGroup({
     value: new FormControl('', {
       nonNullable: true,
@@ -151,6 +158,19 @@ export class AdminPageComponent {
     periodEnd: new FormControl('', { nonNullable: true }),
   });
 
+  public readonly evaluationUserSelectOptions = computed(() => {
+    const users = this.users().map((user) => ({ value: user.id, label: user.email }));
+    return [{ value: '', label: '選択してください' }, ...users];
+  });
+
+  public readonly evaluationCompetencySelectOptions = computed(() => {
+    const competencies = this.competencies().map((competency) => ({
+      value: competency.id,
+      label: competency.name,
+    }));
+    return [{ value: '', label: '選択してください' }, ...competencies];
+  });
+
   public readonly apiForm: FormGroup<{
     model: FormControl<string>;
     secret: FormControl<string>;
@@ -170,6 +190,11 @@ export class AdminPageComponent {
       validators: [Validators.required],
     }),
   });
+
+  public readonly competencyLevelScaleOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: '3', label: '3 段階 (基本評価)' },
+    { value: '5', label: '5 段階 (詳細評価)' },
+  ];
 
   private readonly userQuotaForms = signal(new Map<string, UserQuotaForm>());
   public readonly geminiModelOptions: ReadonlyArray<{ value: string; label: string }> = [
@@ -191,6 +216,16 @@ export class AdminPageComponent {
   private readonly knownGeminiModelValues = new Set(
     this.geminiModelOptions.map((option) => option.value),
   );
+
+  public apiModelSelectOptions(): Array<{ value: string; label: string }> {
+    const rawValue = this.apiForm.controls.model.value ?? '';
+    const current = rawValue.trim();
+    const base = this.geminiModelOptions.map((option) => ({ ...option }));
+    if (current && !this.knownGeminiModelValues.has(current)) {
+      return [{ value: current, label: `${current} (保存済み)` }, ...base];
+    }
+    return base;
+  }
 
   public constructor() {
     this.competencyLevels.set(this.sortLevels(this.defaultCompetencyLevels));
@@ -635,10 +670,6 @@ export class AdminPageComponent {
           this.handleError(err, 'API トークンの取得に失敗しました。');
         },
       });
-  }
-
-  public isKnownModel(value: string): boolean {
-    return this.knownGeminiModelValues.has(value);
   }
 
   private resolveChatModel(model: string | null | undefined): string {
