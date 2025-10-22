@@ -8,9 +8,11 @@ This guide records the Angular-specific coding, architecture, and testing expect
 
 - Ship new features with `standalone` components, directives, and pipes. Keep `NgModule` usage only where legacy integration cannot be refactored yet.
 - Configure zone-less change detection with `provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true, polyfill: false })` and ensure new code does not depend on `NgZone`.
-- Model UI reactivity with Signals (`signal`, `computed`, `effect`) and prefer the control-flow syntax (`@if`, `@for`, `@switch`, `@let`) over the legacy structural directives.
+- Model UI reactivity with Signals (`signal`, `computed`, `effect`) and enforce the new control-flow syntax (`@if`, `@for`, `@switch`, `@let`). Do not introduce new usages of `*ngIf`, `*ngFor`, `*ngSwitch`, or `ng-template`-based aliases; refactor legacy templates opportunistically.
+- Build forms with the Angular 19+ SignalForms API (`signalFormGroup`, `signalFormControl`, `signalModel`, `model()`) and favour `FormSignal` patterns over the legacy reactive or template-driven directives.
+- Fetch remote data through the Resource API (`resource`, `signalResource`, `rxResource`/`RxResource`) and shared data-fetching utilities; do not inject or call `HttpClient` directly in new code.
 - Use the modern `input()` and `output()` helpers and mark inputs as `required` when the contract demands it.
-- Default to strongly typed Reactive Forms, use `@defer` to stage non-critical rendering, and apply `ngOptimizedImage` for media delivery.
+- Default to SignalForms or, when unavoidable, strongly typed reactive forms; use `@defer` to stage non-critical rendering, and apply `ngOptimizedImage` for media delivery.
 - Adopt the application builder (`@angular-devkit/build-angular:application`) with ESBuild optimisations and CLI budgets enabled by default.
 
 ## Project Structure
@@ -31,11 +33,12 @@ This guide records the Angular-specific coding, architecture, and testing expect
 ## Architecture & State Management
 
 - Follow Clean Architecture boundaries: UI -> facade/state -> data-access -> external API.
-- Keep presentation components dumb: accept inputs, emit outputs, and delegate business rules to facades. Do not invoke HTTP clients directly from UI components or templates.
+- Keep presentation components dumb: accept inputs, emit outputs, and delegate business rules to facades. Do not invoke HTTP clients (including `HttpClient`) directly from UI components or templates; surface resources via facades instead.
 - Prefer Angular Signal Store (`@angular/core/rxjs-interop`) for feature-level state. Use NgRx ComponentStore only for complex orchestration or when integrating with existing NgRx code.
 - Expose readonly signals/selectors from facades and keep mutations encapsulated behind intention-revealing methods.
 - Validate API payloads in `data/` using schema libraries such as `zod` or `typia` before persisting data in the store.
-- Represent remote lifecycles with `signalResource`, `rxResource`, or discriminated unions like `'idle' | 'loading' | 'success' | 'error'`. Centralise optimistic update and rollback logic.
+- Represent remote lifecycles with `signalResource`, `rxResource`, or discriminated unions like `'idle' | 'loading' | 'success' | 'error'`. Centralise optimistic update and rollback logic and ensure resources are declared in the `data/` layer.
+- Wrap third-party or REST integrations inside Resource-based data clients. New services must expose typed `resource` factories instead of raw `HttpClient` calls; refactor legacy clients when touched.
 - Use `effect()` for side effects, and pair with `onCleanup` when registering external listeners to avoid leaks.
 
 ## TypeScript & Coding Standards
@@ -49,10 +52,19 @@ This guide records the Angular-specific coding, architecture, and testing expect
 - Configure ESLint with `@angular-eslint` v20 presets, enforce import ordering (Angular -> third-party -> internal), and block unused imports or variables.
 - Create barrel files only when they improve clarity without increasing coupling or cycle risk.
 
+## Legacy Debt Guardrails
+
+- Do not create new `NgModule` declarations or reintroduce `moduleId`; refactor touched legacy modules into standalone components during feature work.
+- Replace `[(ngModel)]` and template-driven forms with signal forms or typed signal form helpers when modifying affected code.
+- Avoid manual change detection (`ChangeDetectorRef.detectChanges`, `markForCheck`, direct `NgZone` usage) unless wrapping third-party widgets. Document and revisit any unavoidable exceptions.
+- Stop adding raw `Subject`-based state containers or service-level `EventEmitter`. Use Angular Signal Store, `model()`, or typed RxJS streams bridged to signals.
+- Prohibit direct DOM manipulation via `ElementRef.nativeElement`, global query selectors, or `Renderer2` shortcuts; prefer Angular CDK utilities or custom directives.
+- Migrate any residual `HttpClient` consumers toward shared Resource-based clients when touching the surrounding code.
+
 ## Templates & Components
 
 - Use selectors prefixed with `app-` for feature components and `shared-` for cross-application primitives.
-- Prefer the modern control-flow syntax (`@if`, `@for`, `@switch`, `@let`) and wrap conditional fragments in `ng-container` to avoid unnecessary DOM nodes.
+- Prefer the modern control-flow syntax (`@if`, `@for`, `@switch`, `@let`) and wrap conditional fragments in `ng-container` to avoid unnecessary DOM nodes. Ban new uses of `*ngIf`, `*ngFor`, `*ngSwitch`, and `ng-template` microsyntax.
 - Express view state with signals instead of mutable class fields or `markForCheck`.
 - Bake accessibility in: wire `aria-*` attributes, label controls, manage focus traps in dialogs, and keep keyboard support intact.
 - Localise user-facing text through the shared translation utilities or `i18n` attributes. Do not hard-code strings outside placeholders.
