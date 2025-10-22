@@ -2,7 +2,6 @@ from unittest import TestCase
 
 from fastapi.testclient import TestClient
 
-
 assertions = TestCase()
 
 

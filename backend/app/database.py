@@ -4,14 +4,14 @@ from typing import Iterator, Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.pool import NullPool
 
 from .config import settings
 
 Base = declarative_base()
 
-# Lazy singletons（サーバレス向けに import 時のDBドライバ読み込みを回避）
+# Lazy singletons (サーバレス向けに import 時のDBドライバ読み込みを回避)
 _engine: Optional[Engine] = None
 _SessionLocal: Optional[sessionmaker] = None
 
@@ -61,4 +61,4 @@ def get_db() -> Iterator[Session]:
         db.close()
 
 
-__all__ = ["Base", "get_engine", "get_session_factory", "get_db"]
+__all__ = ["Base", "get_db", "get_engine", "get_session_factory"]
