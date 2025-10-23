@@ -15,6 +15,8 @@ import {
   NG_VALUE_ACCESSOR,
 } from '@angular/forms';
 
+type UiSelectOption = { value: string; label: string; disabled: boolean };
+
 @Component({
   selector: 'app-ui-select',
   standalone: true,
@@ -63,8 +65,20 @@ import {
           [value]="!multiple ? (value ?? '') : null"
           (change)="onSelectChange($event)"
         >
-          <ng-content></ng-content>
+          <ng-container *ngIf="providedOptions?.length; else projectedSingleOptions">
+            <option
+              *ngFor="let opt of providedOptions"
+              [value]="opt.value"
+              [disabled]="opt.disabled ? true : null"
+            >
+              {{ opt.label }}
+            </option>
+          </ng-container>
         </select>
+
+        <ng-template #projectedSingleOptions>
+          <ng-content></ng-content>
+        </ng-template>
 
         <div
           *ngIf="panelOpen"
@@ -73,7 +87,7 @@ import {
           [id]="panelId"
         >
           <div
-            *ngFor="let opt of options; let i = index"
+            *ngFor="let opt of displayOptions; let i = index"
             class="ui-select__option"
             [class.is-selected]="isSelected(opt.value)"
             [class.is-disabled]="opt.disabled"
@@ -107,8 +121,20 @@ import {
           (change)="onSelectChange($event)"
           (blur)="onTouched()"
         >
-          <ng-content></ng-content>
+          <ng-container *ngIf="providedOptions?.length; else projectedNativeOptions">
+            <option
+              *ngFor="let opt of providedOptions"
+              [value]="opt.value"
+              [disabled]="opt.disabled ? true : null"
+            >
+              {{ opt.label }}
+            </option>
+          </ng-container>
         </select>
+
+        <ng-template #projectedNativeOptions>
+          <ng-content></ng-content>
+        </ng-template>
       </ng-template>
     </div>
   `,
@@ -197,19 +223,62 @@ export class UiSelectComponent
 
   @ViewChild('nativeSelect', { static: true }) nativeSelectRef!: ElementRef<HTMLSelectElement>;
 
-  options: Array<{ value: string; label: string; disabled: boolean }> = [];
+  displayOptions: UiSelectOption[] = [];
+  public providedOptions: UiSelectOption[] | null = null;
   private optionsSignature = '';
   private scheduledReconcile = false;
   private pendingForceReconcile = false;
   private destroyed = false;
   private optionsObserver?: MutationObserver;
+  private pendingNativeSync = false;
 
   private onChange: (val: string | string[] | null) => void = () => {};
   // Must be public to be callable from the template (blur) handler
   public onTouched: () => void = () => {};
 
+  private applyProvidedOptions(): void {
+    if (!this.providedOptions) {
+      return;
+    }
+    this.displayOptions = [...this.providedOptions];
+    this.optionsSignature = this.displayOptions
+      .map((option) => `${option.value}::${option.label}::${option.disabled ? '1' : '0'}`)
+      .join('|');
+    this.syncNativeSelectFromValue();
+    this.scheduleNativeSelectSync();
+    this.syncLabelFromValue();
+    if (this.panelOpen) {
+      this.ensureActiveIndex();
+    }
+  }
+
+  @Input()
+  set options(
+    options:
+      | ReadonlyArray<{ value: string | number; label: string; disabled?: boolean }>
+      | null
+      | undefined,
+  ) {
+    if (!options || options.length === 0) {
+      this.providedOptions = null;
+      this.scheduleProjectedOptionsReconciliation(true);
+      return;
+    }
+
+    this.providedOptions = options.map((option) => ({
+      value: String(option.value),
+      label: option.label,
+      disabled: !!option.disabled,
+    }));
+    this.applyProvidedOptions();
+  }
+
   ngAfterContentInit(): void {
-    this.scheduleProjectedOptionsReconciliation(true);
+    if (!this.providedOptions) {
+      this.scheduleProjectedOptionsReconciliation(true);
+    } else {
+      this.applyProvidedOptions();
+    }
     this.observeProjectedOptions();
   }
 
@@ -220,18 +289,8 @@ export class UiSelectComponent
 
   writeValue(obj: any): void {
     this.value = obj as string | string[] | null;
-    // Reflect programmatic value into the native <select> so that
-    // initial state stays in sync and labels resolve correctly even
-    // before the first user interaction.
-    const sel = this.nativeSelectRef?.nativeElement;
-    if (sel) {
-      if (this.multiple) {
-        const selected = Array.isArray(this.value) ? this.value.map(String) : [];
-        Array.from(sel.options).forEach((o) => (o.selected = selected.includes(o.value)));
-      } else {
-        sel.value = this.value != null ? String(this.value) : '';
-      }
-    }
+    this.syncNativeSelectFromValue();
+    this.scheduleNativeSelectSync();
     this.syncLabelFromValue();
   }
   registerOnChange(fn: (val: string | string[] | null) => void): void {
@@ -276,11 +335,8 @@ export class UiSelectComponent
     this.value = opt.value;
     this.onChange(opt.value);
     this.selectedLabel = opt.label;
-    // Reflect to native select for consistency
-    const sel = this.nativeSelectRef?.nativeElement;
-    if (sel) {
-      sel.value = String(opt.value);
-    }
+    this.syncNativeSelectFromValue();
+    this.scheduleNativeSelectSync();
     this.closePanel();
   }
 
@@ -294,11 +350,35 @@ export class UiSelectComponent
     return selected.includes(val);
   }
 
+  private syncNativeSelectFromValue(): void {
+    const sel = this.nativeSelectRef?.nativeElement;
+    if (!sel) {
+      return;
+    }
+    if (this.multiple) {
+      const selected = Array.isArray(this.value) ? this.value.map(String) : [];
+      Array.from(sel.options).forEach((o) => (o.selected = selected.includes(o.value)));
+      return;
+    }
+    sel.value = this.value != null ? String(this.value) : '';
+  }
+
+  private scheduleNativeSelectSync(): void {
+    if (this.pendingNativeSync) {
+      return;
+    }
+    this.pendingNativeSync = true;
+    Promise.resolve().then(() => {
+      this.pendingNativeSync = false;
+      this.syncNativeSelectFromValue();
+    });
+  }
+
   private readOptions(): void {
     const sel = this.nativeSelectRef?.nativeElement;
     if (!sel) return;
     const opts = Array.from(sel.options || []);
-    this.options = opts.map((o) => ({
+    this.displayOptions = opts.map((o) => ({
       value: o.value,
       label: this.resolveOptionLabel(o),
       disabled: o.disabled,
@@ -316,7 +396,7 @@ export class UiSelectComponent
     if (this.multiple) {
       // For multiple, show joined labels or empty
       if (selected.length) {
-        const labels = this.options
+        const labels = this.displayOptions
           .filter((o) => selected.includes(o.value))
           .map((o) => o.label);
         this.selectedLabel = labels.join(', ');
@@ -325,12 +405,12 @@ export class UiSelectComponent
       }
       return;
     }
-    const found = this.options.find((o) => String(o.value) === String(this.value ?? ''));
+    const found = this.displayOptions.find((o) => String(o.value) === String(this.value ?? ''));
     this.selectedLabel = found?.label ?? '';
   }
 
   private ensureActiveIndex(): void {
-    const idx = this.options.findIndex((o) => this.isSelected(o.value));
+    const idx = this.displayOptions.findIndex((o) => this.isSelected(o.value));
     this.activeIndex = idx >= 0 ? idx : 0;
   }
 
@@ -377,6 +457,18 @@ export class UiSelectComponent
   }
 
   private reconcileProjectedOptions(force = false): void {
+    if (this.providedOptions) {
+      this.displayOptions = [...this.providedOptions];
+      this.optionsSignature = this.displayOptions
+        .map((option) => `${option.value}::${option.label}::${option.disabled ? '1' : '0'}`)
+        .join('|');
+      this.syncLabelFromValue();
+      if (this.panelOpen) {
+        this.ensureActiveIndex();
+      }
+      return;
+    }
+
     const sel = this.nativeSelectRef?.nativeElement;
     if (!sel) {
       return;
@@ -425,7 +517,7 @@ export class UiSelectComponent
   @HostListener('keydown', ['$event'])
   onKeydown(ev: KeyboardEvent): void {
     if (this.disabled || this.multiple || (this.size && this.size !== 1)) return;
-    const max = this.options.length - 1;
+    const max = this.displayOptions.length - 1;
     switch (ev.key) {
       case 'ArrowDown':
         ev.preventDefault();
@@ -440,7 +532,7 @@ export class UiSelectComponent
       case 'Enter':
         if (this.panelOpen && this.activeIndex >= 0) {
           ev.preventDefault();
-          const opt = this.options[this.activeIndex];
+          const opt = this.displayOptions[this.activeIndex];
           if (opt && !opt.disabled) this.onOptionClick(opt);
         }
         break;

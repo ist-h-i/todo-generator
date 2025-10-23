@@ -124,11 +124,11 @@
           </label>
           <label class="form-field">
             <span class="form-field__label">レベル</span>
-            <app-ui-select name="competency-level" formControlName="level">
-              @for (level of competencyLevels(); track level.value) {
-                <option [value]="level.value">{{ formatLevelLabel(level) }}</option>
-              }
-            </app-ui-select>
+            <app-ui-select
+              name="competency-level"
+              formControlName="level"
+              [options]="competencyLevelSelectOptions()"
+            ></app-ui-select>
           </label>
           <label class="form-field form-field--full">
             <span class="form-field__label">説明</span>
@@ -218,12 +218,8 @@
               formControlName="userId"
               name="evaluation-user"
               required
-            >
-              <option value="">選択してください</option>
-              @for (user of users(); track user.id) {
-                <option [value]="user.id">{{ user.email }}</option>
-              }
-            </app-ui-select>
+              [options]="evaluationUserSelectOptions()"
+            ></app-ui-select>
           </label>
           <label class="form-field">
             <span class="form-field__label">コンピテンシー</span>
@@ -231,12 +227,8 @@
               formControlName="competencyId"
               name="evaluation-competency"
               required
-            >
-              <option value="">選択してください</option>
-              @for (competency of competencies(); track competency.id) {
-                <option [value]="competency.id">{{ competency.name }}</option>
-              }
-            </app-ui-select>
+              [options]="evaluationCompetencySelectOptions()"
+            ></app-ui-select>
           </label>
           <label class="form-field">
             <span class="form-field__label">評価開始日</span>
@@ -449,10 +441,11 @@
           </label>
           <label class="form-field">
             <span class="form-field__label">段階数</span>
-            <app-ui-select name="competency-level-scale" formControlName="scale">
-              <option [value]="3">3 段階 (基本評価)</option>
-              <option [value]="5">5 段階 (詳細評価)</option>
-            </app-ui-select>
+            <app-ui-select
+              name="competency-level-scale"
+              formControlName="scale"
+              [options]="competencyLevelScaleOptions"
+            ></app-ui-select>
           </label>
           <label class="form-field form-field--full">
             <span class="form-field__label">説明 (任意)</span>
@@ -500,16 +493,11 @@
       <form class="page-form" [formGroup]="apiForm" (submit)="updateApiCredential($event)">
         <label class="form-field">
           <span class="form-field__label">利用モデル</span>
-          <app-ui-select name="api-model" formControlName="model">
-            @if (!isKnownModel(apiForm.controls.model.value)) {
-              <option [value]="apiForm.controls.model.value">
-                {{ apiForm.controls.model.value }} (保存済み)
-              </option>
-            }
-            @for (option of geminiModelOptions; track option.value) {
-              <option [value]="option.value">{{ option.label }}</option>
-            }
-          </app-ui-select>
+          <app-ui-select
+            name="api-model"
+            formControlName="model"
+            [options]="apiModelSelectOptions()"
+          ></app-ui-select>
         </label>
 
         <label class="form-field form-field--full">

@@ -52,10 +52,20 @@ export class ReportAssistantPageComponent {
   private readonly publishErrorState = signal<string | null>(null);
   private readonly publishSuccessState = signal<string | null>(null);
   public readonly proposals = new FormArray<FormGroup>([]);
-  public readonly statusOptions = computed(() => {
-    const statuses = this.workspace.settings().statuses;
-    return [...statuses].sort((left, right) => (left.order ?? 0) - (right.order ?? 0));
+  public readonly statusSelectOptions = computed(() => {
+    const statuses = [...this.workspace.settings().statuses].sort(
+      (left, right) => (left.order ?? 0) - (right.order ?? 0),
+    );
+    const options = statuses.map((status) => ({ value: status.id, label: status.name }));
+    return [{ value: '', label: 'ステータスを選択' }, ...options];
   });
+
+  public readonly priorityOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: 'urgent', label: 'urgent' },
+    { value: 'high', label: 'high' },
+    { value: 'medium', label: 'medium' },
+    { value: 'low', label: 'low' },
+  ];
   private readonly statusNameIndex = computed(() => {
     const index = new Map<string, string>();
     for (const status of this.workspace.settings().statuses) {
