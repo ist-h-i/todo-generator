@@ -38,14 +38,16 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare Codex output directory
+        id: prepare_codex_dir
         run: |
           set -euo pipefail
           CODEX_DIR="${RUNNER_TEMP}/codex/${{ github.run_id }}"
           mkdir -p "${CODEX_DIR}"
           export CODEX_OUTPUT_DIR="${CODEX_DIR}"
           echo "CODEX_OUTPUT_DIR=${CODEX_OUTPUT_DIR}" >> "$GITHUB_ENV"
+          echo "codex_output_dir=${CODEX_OUTPUT_DIR}" >> "$GITHUB_OUTPUT"
+          mkdir -p "${CODEX_OUTPUT_DIR}"
 
-      # --- Auto-Evolve: flags 読込 & canary ルート決定 ここから ---
       - name: Install jq (for flags parsing)
         run: |
           sudo apt-get update -y
@@ -568,7 +570,7 @@ jobs:
         continue-on-error: true
         with:
           name: codex-agent-outputs
-          path: ${{ env.CODEX_OUTPUT_DIR }}
+          path: ${{ steps.prepare_codex_dir.outputs.codex_output_dir }}
           retention-days: 7
 
       - name: Check repository diff
