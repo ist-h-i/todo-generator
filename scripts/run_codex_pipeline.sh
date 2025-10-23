@@ -262,7 +262,7 @@ for raw in text:
 
 print("\n".join(section_lines).rstrip())
 PY
-    )
+)
 
     local NEEDS_CLARIFICATION
     NEEDS_CLARIFICATION=$(printf '%s\n' "${CLARIFYING_SECTION}" | python3 - <<'PY'
