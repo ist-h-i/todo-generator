@@ -34,7 +34,6 @@ jobs:
           git fetch origin ${{ github.base_ref }}
           git merge --no-commit --no-ff origin/${{ github.base_ref }} || true
 
-      # --- Node/Python/Chrome 等は現状どおり（省略可：下に続く） ---
       - name: Set up Node.js (with cache)
         if: ${{ hashFiles('frontend/package-lock.json','frontend/npm-shrinkwrap.json','frontend/yarn.lock') != '' }}
         uses: actions/setup-node@v4
@@ -76,7 +75,6 @@ jobs:
         id: setup-chrome
         uses: browser-actions/setup-chrome@v1
 
-      # --- ここから Codex（ChatGPT認証）で自動解消 ---
       - name: Install Codex CLI
         run: |
           npm i -g @openai/codex@0.39.0
@@ -119,7 +117,6 @@ jobs:
                       echo "::error::Unresolved conflicts remain."
                       exit 1
                     fi
-      # Tests are handled in .github/workflows/tests.yml
 
       - name: Commit & Push if tests pass
         if: success()
