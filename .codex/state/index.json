@@ -2377,5 +2377,97 @@
         "preview": "**UX Review Summary**\n- Requirement met: clicking an enabled option commits selection then closes the panel.\n- Event order correct: selection and `onChange` fire before close.\n- Outside click and Escape close remain intact; touch uses same click path.\n- Multi/size variants use native `<select>` and are unaffected.\n\n**Key Evidence**\n- Click-to-close and focus restore: frontend/src/app/shared/ui/select/ui-select.ts:348, frontend/src/app/shared/ui/select/ui-select.ts:355, frontend/src/app/shared/ui/select/ui-select.ts:330\n- Outside click close without focus steal: frontend/src/app/shared/ui/select/ui-select.ts:522\n- Keyboard Enter selects and closes; Escape closes: frontend/src/app/shared/ui/select/ui-select.ts:547, frontend/src/app/shared/ui/select/ui-select.ts:554\n- ARIA on trigger and options set: frontend/src/app/shared/ui/select/ui-select.ts:40, frontend/src/app/shared/ui/select/ui-select.ts:41, frontend/src/app/shared/ui/select/ui-select.ts:42, frontend/src/app/shared/ui/select/ui-select.ts:96\n\n**Accessibility**\n- Good: `aria-haspopup=listbox`, `aria-expanded`, `aria-controls`; `role=option` with `aria-selected`; focus returns to trigger on intentional closes.\n- Potential improvement: set `aria-activedescendant` on the trigger to reflect `activeIndex` while open for better SR feedback.\n- Disabled options are non-interactive and do not close.\n\n**Interaction Notes**\n- Arrow keys open panel and move active option; Enter confirms.\n- Space does not confirm selection; optional parity with Enter would align with common listbox patterns.\n- Pressing Tab while open does not close the panel; consider closing on Tab to avoid leaving an orphaned panel.\n\n**Design System Fit**\n- Visuals follow existing form control class (`form-control app-select`) and use design tokens; close animation preserved.\n- No visual regressions expected; focus restore is deferred via microtask to avoid flicker.\n\n**Risks / Open Questions**\n- Tab behavior: Should Tab close the panel? Current behavior leaves it open.\n- Keyboard parity: Should Space also activate the highlighted option?\n- ARIA pattern: Is button + popup listbox acceptable for your DS, or should it adopt combobox semantics (`role=combobox` with `aria-activedescendant`)?\n- Documentation nit: Recipe points to `ui-select.component.ts` but file is `ui-select.ts` (frontend/src/app/shared/ui/select/UiSelectComponent.recipe.md:3).\n\n**Recommendations (Scoped)**\n- Add Space key to mirror Enter for selection if desired.\n- Close on Tab without focus steal to where Tab moves, preventing stray panels.\n- Optionally expose an input to control focus restoration on close if some contexts require different focus behavior.\n\n**Residual Risks**\n- Minor SR variance without `aria-activedescendant` while navigating options.\n- If consumers expect focus to remain in-panel post-selection, the new focus restore could surprise; currently it only restores for option click/Escape (not outside clicks)."
       }
     ]
+  },
+  "653": {
+    "issue": "653",
+    "run_id": "18827619659",
+    "timestamp": "2025-10-27T02:23:49Z",
+    "files": [
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/work_report.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/release_manager.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/work_report.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/docwriter.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/code_quality_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/execution_plan.json",
+        "size": 284,
+        "preview": "{\n  \"steps\": [\n    \"requirements_analyst\",\n    \"detail_designer\",\n    \"coder\",\n    \"code_quality_reviewer\",\n    \"security_reviewer\",\n    \"ai_safety_reviewer\",\n    \"uiux_reviewer\",\n    \"docwriter\",\n    \"doc_editor\",\n    \"integrator\",\n    \"release_manager\"\n  ],\n  \"source\": \"fallback\"\n}"
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/requirements_analyst.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/ai_safety_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/translator.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/detail_designer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/doc_editor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/integrator.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/execution_plan_steps.txt",
+        "size": 164,
+        "preview": "requirements_analyst\ndetail_designer\ncoder\ncode_quality_reviewer\nsecurity_reviewer\nai_safety_reviewer\nuiux_reviewer\ndocwriter\ndoc_editor\nintegrator\nrelease_manager\n"
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/coder.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/security_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/planner.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/uiux_reviewer.md",
+        "size": 0,
+        "preview": ""
+      }
+    ]
   }
 }
