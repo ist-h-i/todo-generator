@@ -1,0 +1,11 @@
+requirements_analyst
+detail_designer
+coder
+code_quality_reviewer
+security_reviewer
+ai_safety_reviewer
+uiux_reviewer
+docwriter
+doc_editor
+integrator
+release_manager
