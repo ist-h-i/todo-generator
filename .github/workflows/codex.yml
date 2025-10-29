@@ -29,6 +29,11 @@ jobs:
        contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    outputs:
+      codex_output_dir: ${{ steps.prepare_codex_dir.outputs.codex_output_dir }}
+      codex_run_output_dir: ${{ steps.prepare_codex_dir.outputs.codex_run_output_dir }}
+      auto_evolve_metrics_path: ${{ steps.auto_evolve_metrics.outputs.metrics_path }}
+      auto_evolve_metrics_summary: ${{ steps.auto_evolve_metrics.outputs.metrics_summary }}
     env:
       CODEX_NPM_PKG: "@openai/codex"
 
@@ -41,12 +46,19 @@ jobs:
         id: prepare_codex_dir
         run: |
           set -euo pipefail
-          CODEX_DIR="${RUNNER_TEMP}/codex/${{ github.run_id }}"
-          mkdir -p "${CODEX_DIR}"
-          export CODEX_OUTPUT_DIR="${CODEX_DIR}"
+          CODEX_ROOT="${GITHUB_WORKSPACE}/codex_output"
+          RUN_DIR="${CODEX_ROOT}/run-${{ github.run_id }}"
+          mkdir -p "${CODEX_ROOT}"
+          rm -rf "${RUN_DIR}"
+          mkdir -p "${RUN_DIR}"
+          mkdir -p "${CODEX_ROOT}/metrics"
+          mkdir -p "${CODEX_ROOT}/auto_evolve"
+          export CODEX_OUTPUT_DIR="${CODEX_ROOT}"
+          export CODEX_RUN_OUTPUT_DIR="${RUN_DIR}"
           echo "CODEX_OUTPUT_DIR=${CODEX_OUTPUT_DIR}" >> "$GITHUB_ENV"
+          echo "CODEX_RUN_OUTPUT_DIR=${CODEX_RUN_OUTPUT_DIR}" >> "$GITHUB_ENV"
           echo "codex_output_dir=${CODEX_OUTPUT_DIR}" >> "$GITHUB_OUTPUT"
-          mkdir -p "${CODEX_OUTPUT_DIR}"
+          echo "codex_run_output_dir=${CODEX_RUN_OUTPUT_DIR}" >> "$GITHUB_OUTPUT"
 
       - name: Install jq (for flags parsing)
         run: |
@@ -569,7 +581,7 @@ jobs:
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: codex-agent-outputs
+          name: codex_output
           path: ${{ steps.prepare_codex_dir.outputs.codex_output_dir }}
           retention-days: 7
 
@@ -638,6 +650,165 @@ jobs:
           rm -f .codex/tmp_json_block
           echo "synthesized=true" >> "$GITHUB_OUTPUT"
           echo "report_path=${REPORT}" >> "$GITHUB_OUTPUT"
+
+      - name: Capture auto-evolve metrics
+        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' }}
+        id: auto_evolve_metrics
+        env:
+          ISSUE_NUMBER: ${{ steps.detect.outputs.issue_number }}
+          ROUTE_VARIANT: ${{ env.VARIANT }}
+          DIFF_CHANGED: ${{ steps.diff.outputs.changed }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime, json, os, pathlib, subprocess
+
+          root = pathlib.Path(os.environ.get("CODEX_OUTPUT_DIR", "codex_output")).resolve()
+          run_dir_env = (os.environ.get("CODEX_RUN_OUTPUT_DIR") or "").strip()
+          issue = (os.environ.get("ISSUE_NUMBER") or "").strip()
+          run_id = os.environ.get("GITHUB_RUN_ID", "")
+          variant = (os.environ.get("ROUTE_VARIANT") or os.environ.get("VARIANT") or "main").strip() or "main"
+          changed = (os.environ.get("DIFF_CHANGED") or "").strip().lower() == "true"
+
+          if run_dir_env:
+              run_dir = pathlib.Path(run_dir_env)
+          elif issue:
+              run_dir = root / f"issue-{issue}"
+          elif run_id:
+              run_dir = root / f"run-{run_id}"
+          else:
+              run_dir = root
+
+          plan_file = run_dir / "execution_plan_steps.txt"
+          if not plan_file.exists():
+              candidates = list(root.glob("**/execution_plan_steps.txt"))
+              candidates.sort(key=lambda p: p.stat().st_mtime if p.exists() else 0.0, reverse=True)
+              for candidate in candidates:
+                  plan_file = candidate
+                  break
+
+          plan_steps = []
+          if plan_file.exists():
+              plan_steps = [line.strip() for line in plan_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+          def stage_label(step: str) -> str:
+              return step.replace("_", " ").title()
+
+          def git_diff_counts():
+              try:
+                  proc = subprocess.run(
+                      ["git", "diff", "--numstat"],
+                      check=True,
+                      stdout=subprocess.PIPE,
+                      stderr=subprocess.PIPE,
+                      text=True,
+                  )
+              except subprocess.CalledProcessError:
+                  return 0, 0
+              adds = dels = 0
+              for line in proc.stdout.splitlines():
+                  parts = line.split("\t")
+                  if len(parts) < 3:
+                      continue
+                  add_field, del_field = parts[0].strip(), parts[1].strip()
+                  if add_field.isdigit():
+                      adds += int(add_field)
+                  if del_field.isdigit():
+                      dels += int(del_field)
+              return adds, dels
+
+          adds, dels = git_diff_counts()
+          lines_changed = adds + dels
+
+          base_contrib = 0.2 + min(0.6, lines_changed / 400.0)
+          if not changed:
+              base_contrib = max(0.15, base_contrib * 0.5)
+          tokens_base = max(120.0, (lines_changed * 6.0) + 80.0)
+
+          def weight_for(step: str) -> float:
+              s = step.lower()
+              if s == "coder":
+                  return 1.0
+              if "reviewer" in s:
+                  return 0.45
+              if "planner" in s or "designer" in s:
+                  return 0.5
+              if "manager" in s or "integrator" in s or "release" in s:
+                  return 0.4
+              if "doc" in s or "writer" in s:
+                  return 0.35
+              if "qa" in s or "test" in s:
+                  return 0.4
+              return 0.3
+
+          records = []
+          effective_steps = plan_steps or ["coder"]
+          for step in effective_steps:
+              label = stage_label(step)
+              weight = weight_for(step)
+              contrib = round(min(1.0, max(0.1, base_contrib * weight)), 3)
+              tokens = round(max(60.0, tokens_base * weight), 1)
+              records.append({
+                  "run_id": run_id,
+                  "issue": issue or None,
+                  "variant": variant,
+                  "role": label,
+                  "stage_id": step,
+                  "activity": 1.0,
+                  "return_rate": 0.0,
+                  "fail_rate": 0.0,
+                  "tokens": tokens,
+                  "contrib": contrib,
+                  "lines_changed": lines_changed,
+              })
+
+          metrics_dir = root / "metrics"
+          metrics_dir.mkdir(parents=True, exist_ok=True)
+          metrics_path = metrics_dir / "metrics.jsonl"
+
+          filtered_lines = []
+          if metrics_path.exists():
+              for raw in metrics_path.read_text(encoding="utf-8").splitlines():
+                  if not raw.strip():
+                      continue
+                  try:
+                      existing = json.loads(raw)
+                  except Exception:
+                      filtered_lines.append(raw)
+                      continue
+                  if existing.get("run_id") == run_id:
+                      continue
+                  filtered_lines.append(json.dumps(existing, ensure_ascii=False))
+              metrics_path.write_text("\n".join(filtered_lines) + ("\n" if filtered_lines else ""), encoding="utf-8")
+          else:
+              metrics_path.write_text("", encoding="utf-8")
+
+          with metrics_path.open("a", encoding="utf-8") as fh:
+              for record in records:
+                  fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+          plan_display = [stage_label(step) for step in plan_steps]
+          summary = {
+              "run_id": run_id,
+              "issue": issue or None,
+              "variant": variant,
+              "changed": changed,
+              "timestamp": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+              "plan_steps": plan_display,
+              "lines_added": adds,
+              "lines_deleted": dels,
+              "records": len(records),
+              "metrics_file": str(metrics_path.relative_to(root)),
+          }
+          summary_path = metrics_dir / "latest_run.json"
+          summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+
+          run_dir.mkdir(parents=True, exist_ok=True)
+          (run_dir / "run_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
+          echo "metrics_path=codex_output/metrics/metrics.jsonl" >> "$GITHUB_OUTPUT"
+          echo "metrics_summary=codex_output/metrics/latest_run.json" >> "$GITHUB_OUTPUT"
 
       - name: Group and commit Codex changes
         if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification != 'true' && (steps.diff.outputs.changed == 'true' || steps.synth.outputs.synthesized == 'true') }}
@@ -876,7 +1047,7 @@ jobs:
             const relatedIssue = Number.isFinite(issueNumber) && issueNumber > 0 ? `#${issueNumber}` : "N/A";
             const prInfoSuffix = Number.isFinite(prNumber) && prNumber > 0 ? `（PR: #${prNumber}）` : "";
             const purpose = issueTitle ? `${issueTitle}${prInfoSuffix}` : `自動対応タスク${prInfoSuffix}`;
-            const artifactNote = "成果物: ワークフローアーティファクト `codex-agent-outputs`";
+            const artifactNote = "成果物: ワークフローアーティファクト `codex_output`";
             const summaryLines = [Number.isFinite(prNumber) && prNumber > 0 ? `PR: #${prNumber} (${prUrl})` : null, artifactNote, summaryBlock].filter(Boolean).join("\n");
             const apiDbImpact = /(\/api\/|\.sql\b|db|database|schema|migration|prisma|datasource)/i.test(summaryLines) ? "変更あり（自動推定・要確認）" : "変更なし（自動推定）";
             const fallbackReport = ["## 背景",`- 目的: ${purpose}`,`- 関連: ${relatedIssue}`,"","## 変更概要","- 要約:","```text",summaryLines,"```","","## 影響","",`- API/DB: ${apiDbImpact}`,"- セキュリティ・パフォーマンスへの影響: 未評価（自動コメント）","","## 検証","- テスト: 追加0件、カバレッジN/A（自動コメント）","","## レビュー観点","- 重点: 差分とPR内容の妥当性を確認してください。","- 非対象: 特になし"].join("\n");
@@ -894,6 +1065,12 @@ jobs:
         if: ${{ always() }}
         run: |
           set -euo pipefail
-          if [ -d "${CODEX_OUTPUT_DIR}" ]; then
-            rm -rf "${CODEX_OUTPUT_DIR}"
+          TARGET="${CODEX_OUTPUT_DIR:-}"
+          if [ -n "${TARGET}" ] && [ -d "${TARGET}" ]; then
+            CASED_TARGET="$(cd "${TARGET}"; pwd)"
+            if [ -n "${GITHUB_WORKSPACE:-}" ] && [[ ${CASED_TARGET} == ${GITHUB_WORKSPACE}* ]]; then
+              echo "Preserving ${TARGET} within workspace for auto-evolve inputs."
+            else
+              rm -rf "${TARGET}"
+            fi
           fi

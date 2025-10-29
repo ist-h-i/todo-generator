@@ -45,7 +45,7 @@ Refer to `docs/architecture.md` for an end-to-end component breakdown and `docs/
 
 ## Repository layout
 
-```
+```md
 .
 |-- backend/                # FastAPI application, routers, services, migrations, tests
 |   |-- app/
@@ -95,7 +95,7 @@ If you plan to use the `@21st-dev/magic` MCP server, define `MAGIC_API_KEY` in y
 
 Run the bundled script from the repository root. It creates a virtual environment, installs Python and npm dependencies, and launches both servers in separate terminals.
 
-```
+```bash
 start-localhost.bat
 ```
 

@@ -1,46 +1,72 @@
+# ===================================================================
+#  Codex / MCP configuration (cross-platform)
+#  - Node 20+ が必須（npx 使用）
+#  - uv (Astral) を導入済み（Python 系 MCP サーバで使用）
+#  - Secrets: BRAVE_API_KEY, MAGIC_API_KEY を GitHub Actions に登録
+# ===================================================================
+
+# -------------------------------------------------------------------
+# Node 系サーバ
+# -------------------------------------------------------------------
+
 [mcp_servers.filesystem]
-command = "npx.cmd"
-args = ["--yes", "@modelcontextprotocol/server-filesystem", "${workspaceFolder}/.."]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "${workspaceFolder}"]
 
 [mcp_servers.memory]
-command = "npx.cmd"
-args = ["--yes", "@modelcontextprotocol/server-memory"]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-memory"]
+
+[mcp_servers.puppeteer]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-puppeteer"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@latest"]
+
+[mcp_servers.sequential-thinking]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
 
 [mcp_servers.brave-search]
 command = "npx"
-args = ["--yes", "@modelcontextprotocol/server-brave-search"]
-env = { BRAVE_API_KEY = "YOUR_BRAVE_API_KEY_HERE" }
+args = ["-y", "@modelcontextprotocol/server-brave-search"]
+# BRAVE_API_KEY は環境変数または Secrets から注入
+env = { BRAVE_API_KEY = "$BRAVE_API_KEY" }
+
+# サーバ名は正規表現 ^[a-zA-Z0-9_-]+$ に適合させる
+[mcp_servers.magic_21st]
+command = "npx"
+# .env 経由で実行したい場合
+args = ["-y", "dotenv", "-e", ".env", "--", "npx", "-y", "@21st-dev/magic@latest"]
+# 直接キーを注入する場合はこちらを使用（コメントアウトを外す）
+# env = { API_KEY = "$MAGIC_API_KEY" }
+
+# -------------------------------------------------------------------
+# Python / uv 系サーバ（事前に uv tool install で導入しておく）
+# -------------------------------------------------------------------
 
 [mcp_servers.fetch]
-command = "uvx"
-args = ["mcp-server-fetch"]
-
-[mcp_servers.puppeteer]
-command = "npx.cmd"
-args = ["--yes", "@modelcontextprotocol/server-puppeteer"]
-
-[mcp_servers.sequential-thinking]
-command = "npx.cmd"
-args = ["--yes", "@modelcontextprotocol/server-sequential-thinking"]
+command = "mcp-server-fetch"
+args = []
 
 [mcp_servers.time]
-command = "uvx"
-args = ["mcp-server-time"]
+command = "mcp-server-time"
+args = []
 
 [mcp_servers.serena]
-command = "uvx"
-args = ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "codex", "--project", "${workspaceFolder}"]
+command = "serena"
+args = ["start-mcp-server", "--context", "codex", "--project", "${workspaceFolder}"]
 
-["mcp_servers"."@21st-dev/magic"]
-command = "cmd"
-args = ["/c", "npx", "-y", "dotenv", "-e", ".env", "--", "npx", "-y", "@21st-dev/magic@latest"]
-env = { API_KEY = "${env:MAGIC_API_KEY}" }
-
-[mcp_servers.mcp-playwright]
-command = "npx"
-args = ["-y", "@playwright/mcp@latest"]
-env = {}
+# -------------------------------------------------------------------
+# パイプライン設定（Codex Auto Dev）
+# -------------------------------------------------------------------
 
 [pipelines.auto-dev]
 description = "Translator -> Requirements Analyst -> Detail Designer -> Planner pipeline"
 steps = ["translator", "requirements_analyst", "detail_designer", "planner"]
+
+# ===================================================================
+# End of file
+# ===================================================================

@@ -33,6 +33,7 @@ type UiSelectOption = { value: string; label: string; disabled: boolean };
       <!-- Single-select: custom trigger + panel -->
       <ng-container *ngIf="!multiple && (!size || size === 1); else nativeOnly">
         <button
+          #trigger
           type="button"
           class="form-control app-select ui-select__trigger"
           [id]="id || null"
@@ -222,6 +223,7 @@ export class UiSelectComponent
   panelId = `ui-select-panel-${Math.random().toString(36).slice(2, 9)}`;
 
   @ViewChild('nativeSelect', { static: true }) nativeSelectRef!: ElementRef<HTMLSelectElement>;
+  @ViewChild('trigger', { static: false }) triggerRef?: ElementRef<HTMLButtonElement>;
 
   displayOptions: UiSelectOption[] = [];
   public providedOptions: UiSelectOption[] | null = null;
@@ -325,9 +327,22 @@ export class UiSelectComponent
     }
   }
 
-  closePanel(): void {
+  closePanel(restoreFocus = false): void {
     if (!this.panelOpen) return;
     this.panelOpen = false;
+    // Optionally restore focus to the trigger for a11y.
+    // Avoid forcing focus on outside clicks by passing restoreFocus = false in those cases.
+    if (
+      restoreFocus &&
+      !this.multiple &&
+      (!this.size || this.size === 1)
+    ) {
+      Promise.resolve().then(() => {
+        // Guard against teardown during async microtask
+        const el = this.triggerRef?.nativeElement;
+        el?.focus?.();
+      });
+    }
   }
 
   onOptionClick(opt: { value: string; label: string; disabled: boolean }): void {
@@ -337,7 +352,7 @@ export class UiSelectComponent
     this.selectedLabel = opt.label;
     this.syncNativeSelectFromValue();
     this.scheduleNativeSelectSync();
-    this.closePanel();
+    this.closePanel(true);
   }
 
   isSelected(val: string): boolean {
@@ -510,7 +525,7 @@ export class UiSelectComponent
     const host = (ev.target as HTMLElement) as HTMLElement;
     const root = (this.nativeSelectRef?.nativeElement?.parentElement) as HTMLElement | null;
     if (root && host && !root.contains(host)) {
-      this.closePanel();
+      this.closePanel(false);
     }
   }
 
@@ -537,7 +552,7 @@ export class UiSelectComponent
         }
         break;
       case 'Escape':
-        if (this.panelOpen) { ev.preventDefault(); this.closePanel(); }
+        if (this.panelOpen) { ev.preventDefault(); this.closePanel(true); }
         break;
       default:
         break;
