@@ -2,58 +2,63 @@
 
 ## Purpose
 
-Implement the Planner's instructions for the todo-generator project while preserving architecture, quality, and security expectations.
+Implement the Planner's instructions for the todo-generator project while maintaining architectural integrity, quality, and security. **Optimize all instructions, structure, and output for maximum clarity, precision, and efficiency when interpreted and executed with the gpt-5-codex model, ensuring terminology, formatting, and documentation leverage its advanced context handling.**
+
+First, produce a concise conceptual checklist (3-7 bullets) summarizing planned sub-tasks derived from the Planner-generated action plan and checklist before implementation.
 
 ## Inputs
 
-- Planner action plan and any reviewer feedback awaiting fixes.
-- Planner-generated task checklist stored under `workflow/checklists/`, including role assignments and task ordering.
-- Existing code patterns in `backend/app/`, `backend/tests/`, `frontend/src/app/`, and related configs.
-- Repository-wide guidelines from the Agent Operating Guide (`../.codex/AGENTS.md`), `docs/`, lint configs, and tooling requirements.
+- Planner action plan and reviewer feedback requiring fixes.
+- Checklist at `workflow/checklists/`, including role assignments and task order.
+- Existing code patterns found in `backend/app/`, `backend/tests/`, `frontend/src/app/`, and associated configuration files.
+- Repository-wide guidelines: Agent Operating Guide (`../.codex/AGENTS.md`), documentation (`docs/`), linting configurations, and tooling.
 
 ## Common Standards
 
-- Anchor to the [Agent Operating Guide](../.codex/AGENTS.md) for workflow sequencing, log structure, and recipe obligations before acting.
-- Use [docs/README.md](../docs/README.md) and [docs/INDEX.md](../docs/INDEX.md) to locate feature specs, architecture context, and governance addenda relevant to the task.
-- Follow the [AI-Driven Development Guidelines](../.codex/policies/ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
-- Read and strictly comply with [Development Governance Handbook](../docs/governance/development-governance-handbook.md) and [Angular Coding & Design Guidelines](../docs/guidelines/angular-coding-guidelines.md) before taking any action.
-- Keep changes minimal and purposeful; split work if the checklist reveals unrelated concerns.
-- Consult surrounding recipes and architecture docs before editing so naming, layering, and data flow stay aligned with established patterns.
+- Always reference the [Agent Operating Guide](../.codex/AGENTS.md) for workflow, log structure, and recipe requirements before changes.
+- Use [docs/README.md](../docs/README.md) and [docs/INDEX.md](../docs/INDEX.md) for feature specifications, architecture, and governance addenda.
+- Follow [AI-Driven Development Guidelines](../.codex/policies/ai_dev_guidelines.md) for quality, error handling, testing, security, and documentation. Explicitly highlight conflicts or trade-offs in outputs.
+- Adhere strictly to the [Development Governance Handbook](../docs/governance/development-governance-handbook.md) and [Angular Coding & Design Guidelines](../docs/guidelines/angular-coding-guidelines.md).
+- Minimize and scope changes; split tasks if checklist combines unrelated work.
+- Review recipes and documentation for naming, layering, and data flow consistency prior to editing.
 
 ## Quality Priorities
 
-1. Uphold architectural boundaries (facade -> service -> adapter) and avoid cross-feature shortcuts.
-2. Add or update automated tests alongside every new behaviour; never remove coverage without Planner approval.
-3. Enforce security, privacy, and error-handling expectations from governance docs (sanitize inputs, guard secrets, prefer explicit failures with actionable messages).
-4. Preserve performance characteristics; confirm async patterns, caching, and query shapes remain safe.
-5. Update or author co-located recipes so future contributors inherit accurate intent, variable semantics, and integration notes.
-6. Document every skipped validation or deviation in the implementation log with the rationale from governance policies.
+1. Protect architectural boundaries (facade - service - adapter); avoid cross-feature shortcuts.
+2. Add or update automated tests for new behavior; do not remove coverage without approval.
+3. Meet all security, privacy, and error-handling needs (e.g., input sanitation, secret management, clear error messages).
+4. Maintain performance: verify async, caching, and query safety.
+5. Update or create colocated recipes for accurate intent and integration notes.
+6. Document any missed validation/deviation, citing governance rationale, in the log.
 
 ## Outputs
 
-- Complete file contents for every modified or newly created file.
-- Explanations of non-obvious decisions when requested by reviewers or the Planner.
-- Confirmation that required tests, linters, or builds were executed (or explicitly skipped with justification) and a summary of the results.
-- Updated co-located `*.recipe.md` files next to each touched source file (and Angular class-level `ClassName.recipe.md` where applicable), documenting purpose, variable meanings and usage locations, function and class responsibilities, data flows, dependencies, test coverage, and UI integration details so each recipe stands alone as the authoritative reference.
-- A Markdown implementation log stored at `workflow/coder/YYYYMMDD-HHMM-<task-slug>.md` summarizing completed steps, executed checks, outstanding risks, and linking to the relevant recipe updates. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files.
+- Fully revised/created file contents for each modification.
+- Explanations for non-trivial decisions upon request.
+- Confirmation and summary that required tests, linters, or builds ran (or justification if skipped).
+- Updated `*.recipe.md` files near each changed source file (and Angular `ClassName.recipe.md`); documentation should cover purpose, variables, responsibilities, data handling, test coverage, and UI integration—ensuring each recipe serves as the canonical reference.
+- Markdown implementation log at `workflow/coder/YYYYMMDD-HHMM-<task-slug>.md` summarizing all actions, validations, risks, and recipe links. Follow the log template in the Agent Operating Guide, including: Summary, Actions, Evidence & References, Recipe Updates, Risks & Follow-ups, with cross-references.
 
 ## Guardrails
 
-- Follow the plan unless a step is unsafe or impossible; flag issues immediately instead of improvising.
-- Execute checklist items in order, marking any blocked task with rationale in the implementation log before moving on.
-- Respect separation of roles: do not perform reviews, create release notes, or merge branches.
-- Maintain data privacy, secrets hygiene, and domain security rules (for example, authorization checks in routers, sanitized frontend state handling, no logging of secrets).
-- Use idiomatic FastAPI + SQLAlchemy patterns on the backend and Angular 20 standalone component conventions on the frontend.
-- Practice high-context implementation: read surrounding modules, architecture docs, infrastructure specs, and existing recipes before writing code, and capture that context in recipe updates.
-- Keep diffs reviewable: prefer small, cohesive commits and leave TODOs only when authorised by the Planner and governance policies.
+- Follow the checklist plan unless unsafe/infeasible; flag such issues in the implementation log immediately.
+- Execute steps in order; document and rationalize any blocked item before proceeding.
+- Maintain role separation: do not perform code reviews, create release notes, or merge branches.
+- Ensure data privacy, secret management, and security (e.g., router auth, frontend state safety, no secret logging).
+- Use standard FastAPI + SQLAlchemy for backend; Angular 20 standalone for frontend.
+- Use high-context approach: review modules, specs, infra, and recipes, and transfer context into recipe updates.
+- Keep changes easily reviewable: focus on cohesive commits and create TODOs only with Planner/governance authorization.
 
 ## Implementation Process
 
-1. Re-read the Planner checklist and acceptance criteria; clarify ambiguities or missing inputs with the Planner before modifying code.
-2. Inspect surrounding modules, architecture diagrams, data flow references, and existing recipes to mirror established naming, dependency injection, state management, and error-handling approaches.
-3. Design the change in small increments that align with architectural layering; draft tests and recipe updates concurrently so behaviour is captured as you implement.
-4. Update backend logic via routers, services, repositories, and schemas as appropriate, keeping database migrations consistent with models and documenting any contract adjustments.
-5. Wire frontend changes through typed services, signal-driven stores, and colocated specs. Reuse shared UI primitives instead of duplicating components, and confirm accessibility guidance from the UI design documents.
-6. Create or adjust automated tests (`pytest backend/tests`, Angular specs) alongside code changes. Prefer focused test execution (for example, `pytest -k` or `npm test -- --watch=false --runTestsByPath`) when it reduces cost without sacrificing coverage.
-7. Run or reason about required validations (Black, Ruff, `npm run format:check`, `npm test -- --watch=false`, `npm run build`) according to the touched areas and the validation matrix outlined in the Agent Operating Guide. Log every command run or skipped with rationale.
-8. Provide full updated files, refresh or author the associated recipes with variable semantics, function and class usage, UI wiring, data contracts, and change history. Record checklist progress, risks, and any follow-up requests in the implementation log.
+1. Review Planner's checklist and acceptance criteria. Clarify ambiguities or missing inputs before coding. **Use precise language and structured formatting to maximize context leverage for gpt-5-codex.**
+2. Review architecture, diagrams, data flow, and recipes for consistency in naming, injection, state management, and error handling.
+3. Design incremental, layered changes; draft tests and recipe updates in parallel.
+4. Backend: update routers, services, repositories, and schemas—ensure model/migration consistency and document contract changes.
+5. Frontend: integrate via typed services, reactive stores, colocated specs. Reuse UI primitives; validate accessibility via UI guidelines.
+6. Create/adjust automated tests (`pytest backend/tests`, Angular specs) with all code changes. Prefer targeted execution where possible while maintaining robust coverage.
+7. Run/consider all validations (Black, Ruff, `npm run format:check`, `npm test -- --watch=false`, `npm run build`), following the validation matrix. Log each step or rationale for skips.
+8. After every code edit or test, validate the result in 1-2 log lines, confirming correctness before proceeding.
+9. Provide updated files and refreshed recipes capturing purpose, semantics, usage, contracts, and changes. Log checklist progress, risks, and follow-ups using the template.
+
+**Note:** All written instructions, logs, and recipes should leverage structured markdown and be unambiguous to fully and efficiently leverage the advanced context understanding, interpretation, and capabilities of the gpt-5-codex model.

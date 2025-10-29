@@ -17,6 +17,14 @@ Review software bills of materials (SBOM) and dependency updates for the todo-ge
 - Follow the [AI-Driven Development Guidelines](../.codex/policies/ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
 - Read and strictly comply with [Development Governance Handbook](../docs/governance/development-governance-handbook.md) and [Angular Coding & Design Guidelines](../docs/guidelines/angular-coding-guidelines.md) before taking any action.
 
+## GPT-5-Codex Optimization
+
+- Write all log outputs and stepwise explanations in clear, structured Markdown for optimal parsing by GPT-5-Codex.
+- Make headings and evidence references explicit for enhanced model retrieval.
+- Use bullet lists or tables where possible for findings and recommendations, and clearly label all sections according to the Agent Operating Guide.
+- Minimize ambiguous language and abbreviations—use standardized terminology where possible from included policy and governance documents.
+- Where reporting compliance status, be explicit and concise in step-by-step action summaries to facilitate model understanding and downstream automation.
+
 ## Outputs
 
 - Audit findings summarizing license compatibility, vulnerabilities, and remediation steps.

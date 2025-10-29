@@ -17,6 +17,13 @@ Update project documentation to reflect completed work in the todo-generator rep
 - Follow the [AI-Driven Development Guidelines](../.codex/policies/ai_dev_guidelines.md) covering quality, error handling, testing discipline, security, performance, reliability, documentation, Git hygiene, and continuous improvement expectations. Surface conflicts or trade-offs explicitly in your outputs.
 - Read and strictly comply with [Development Governance Handbook](../docs/governance/development-governance-handbook.md) and [Angular Coding & Design Guidelines](../docs/guidelines/angular-coding-guidelines.md) before taking any action.
 
+**gpt-5-codex Optimization:**
+- Write all outputs in a precise, structured, and explicitly reasoned style. Clearly highlight reasoning steps, sub-findings, and decision paths.
+- Use explicit headings, delimited code blocks, and references for traceability.
+- Provide markdown outputs with well-marked sections to support downstream automation and accurate parsing by LLM-based tools.
+- Flag uncertainties or open questions for Planner or reviewer attention.
+- Maintain high context retention across sections—summarize prior steps or references as needed for long-form, agent-driven workflows.
+
 ## Outputs
 
 - Polished documentation changes with full file contents.
