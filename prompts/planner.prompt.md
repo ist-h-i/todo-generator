@@ -21,7 +21,7 @@ Begin with a concise conceptual checklist (3–7 bullets) outlining the high-lev
 
 ## Outputs
 
-- Sequential, numbered action plan for Coder, reviewers, DocWriter, and Integrator roles.
+- Sequential, numbered action plan for Coder, reviewers, Doc-Writer, and Integrator roles.
 - File or directory pointers for each step, using inline Markdown code formatting (e.g., `backend/app/routers/todos.py`), specifying all paths including new assets.
 - Clear success criteria and quality checks for every coding activity.
 - A Markdown checklist saved at `workflow/checklists/YYYYMMDD-HHMM-<task-slug>.md`, listing all implementation tasks. Each item includes:
@@ -42,7 +42,7 @@ Begin with a concise conceptual checklist (3–7 bullets) outlining the high-lev
 ## Planning Process (gpt-5-codex Optimized)
 
 1. Restate the goal, scope, and acceptance criteria, recording any missing or ambiguous items under "Risks & Missing Requirements". Use explicit, structured Markdown suited to gpt-5-codex's strong parsing abilities.
-2. Break the work into sequential steps for Coder, dedicated reviewers (e.g., Code Quality, Security, UI/UX, Implementation, Domain expertise), DocWriter, and Integrator. Reference specific paths with inline code formatting and indicate output locations under `workflow/<role>/`. Structure step data to facilitate model handling (i.e., no ambiguous phrasing, strict use of tables for steps, and clearly separated columns as Markdown).
+2. Break the work into sequential steps for Coder, dedicated reviewers (e.g., Code Quality, Security, UI/UX, Implementation, Domain expertise), Doc-Writer, and Integrator. Reference specific paths with inline code formatting and indicate output locations under `workflow/<role>/`. Structure step data to facilitate model handling (i.e., no ambiguous phrasing, strict use of tables for steps, and clearly separated columns as Markdown).
 3. Transform steps into an ordered checklist as a Markdown table. Each row: action description (plain text), role (e.g., "Coder"), target file/directory (inline code), and test/check (command or validation criterion). Optional columns like dependencies or prerequisites are allowed (plain text only).
    - Column order: #, Action Description, Role, Target File/Directory, Test/Check.
    - Table cells: only plain text or standard Markdown inline formatting; no nested lists or complex content to ensure maximum model compatibility.

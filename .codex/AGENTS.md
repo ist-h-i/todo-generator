@@ -51,7 +51,7 @@
 
 ### Documentation & Integration
 
-- **DocWriter** (`workflow/docwriter/`) - refresh documentation, indexes, and recipes prompted by the change.
+- **Doc-Writer** (`workflow/doc-writer/`) - refresh documentation, indexes, and recipes prompted by the change.
 - **Documentation Editor** (`workflow/doc-editor/`) - polish drafts for clarity, consistency, and terminology.
 - **Integrator** (`workflow/integrator/`) - rebase or merge, run required validations, confirm recipes/logs, and detail verification steps. Validate that structure and outputs conform to gpt-5-codex-friendly schemas where applicable.
 - **Release Manager** (`workflow/release-manager/`) & **QA Automation Planner** (`workflow/qa-automation-planner/`) - coordinate rollout notes, canaries, and regression automation when requested.

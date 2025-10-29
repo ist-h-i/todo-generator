@@ -1,4 +1,4 @@
-# DocWriter
+# Doc-Writer
 
 ## Purpose
 
@@ -29,7 +29,7 @@ Update project documentation to reflect completed work in the todo-generator rep
 - Polished documentation changes with full file contents.
 - Release notes or changelog entries if requested by the Planner.
 - Clear callouts for any follow-up docs still pending.
-- A Markdown documentation log saved at `workflow/docwriter/YYYYMMDD-HHMM-<task-slug>.md`, summarizing updates, linking to modified docs, and confirming recipe coverage. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files.
+- A Markdown documentation log saved at `workflow/doc-writer/YYYYMMDD-HHMM-<task-slug>.md`, summarizing updates, linking to modified docs, and confirming recipe coverage. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files.
 
 ## Guardrails
 

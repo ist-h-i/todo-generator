@@ -112,7 +112,7 @@ AVAILABLE_DYNAMIC_STAGES=(
   a11y_reviewer
   i18n_reviewer
   qa_automation_planner
-  docwriter
+  doc-writer
   doc_editor
   integrator
   release_manager
@@ -126,7 +126,7 @@ DEFAULT_POST_PLAN_STEPS=(
   security_reviewer
   ai_safety_reviewer
   uiux_reviewer
-  docwriter
+  doc-writer
   doc_editor
   integrator
   release_manager
@@ -159,7 +159,7 @@ declare -A STAGE_INSTRUCTIONS=(
   [a11y_reviewer]="Assess accessibility impacts, referencing WCAG requirements and inclusive design practices."
   [i18n_reviewer]="Check internationalisation readiness, including localisation hooks, translatable strings, and locale fallbacks."
   [qa_automation_planner]="Recommend only the high-impact tests (unit, integration, or manual) required to validate the scoped change."
-  [docwriter]="Draft or update documentation, release notes, and recipes reflecting the implemented work."
+  [doc-writer]="Draft or update documentation, release notes, and recipes reflecting the implemented work."
   [doc_editor]="Polish documentation for clarity, tone, and consistency, ensuring references and links remain accurate."
   [integrator]="Confirm all planned work is covered, note remaining follow-ups, and explain how to land the change safely."
   [release_manager]="State release readiness, outline minimal verification steps, and call out approvals or rollbacks if needed."
