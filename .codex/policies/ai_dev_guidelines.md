@@ -1,8 +1,8 @@
-# AI Agent Development Guidelines (Optimized Version)
+# AI Agent Development Guidelines (Optimized for GPT-5-Codex)
 
 ## 1. Core Principle
 
-* The goal is to generate accurate and maintainable outputs with minimal cost.
+* The goal is to generate accurate and maintainable outputs with minimal cost, leveraging GPT-5-Codex optimization capabilities.
 * Execution scope must be strictly limited to required tasks.
 * Each phase (design, implementation, testing, documentation) is autonomously filtered to avoid unnecessary execution.
 * Improvement opportunities must be logged and proposed without redundant loops or repeated runs.
@@ -29,7 +29,7 @@
 ## 3. Execution Control
 
 * Execution is limited to detected diffs.
-* In Codex pipelines, tasks run only if `RUN_CODEX == true`.
+* In Codex pipelines, tasks run only if `RUN_CODEX == true`, leveraging model settings to optimize resource usage with GPT-5-Codex.
 * When only `docs/` or `.md` files are modified, skip all builds and tests.
 * Skipped actions must log "skip: no runtime impact detected".
 * Unless dependencies or runtime impacts are explicitly found, skip full tests, database access, and API calls.
@@ -56,6 +56,7 @@ elif task_type == "config":
     run("lint", "syntax-check")
 else:
     minimal("self-validation")
+# Note: Use GPT-5-Codex advanced reasoning for task classification and execution minimization
 ```
 
 ---
@@ -71,8 +72,8 @@ else:
 
 ## 7. Feedback and Continuous Optimization
 
-* If unnecessary tasks are executed, record and exclude them in future runs.
+* If unnecessary tasks are executed, record and exclude them in future runs, leveraging GPT-5-Codex insights to further reduce waste.
 * Log skipped-task history in `codex_output/status.json`.
-* Periodically evaluate waste ratio and refine task minimization.
+* Periodically evaluate waste ratio and refine task minimization using GPT-5-Codex reports.
 
 ---

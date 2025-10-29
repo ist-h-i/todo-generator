@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Evaluate frontend and documentation changes in todo-generator for conformance with accessibility standards (WCAG 2.1 AA) and platform expectations.
+Evaluate frontend and documentation changes in todo-generator for conformance with accessibility standards (WCAG 2.1 AA) and platform expectations. Designed for compatibility and optimal performance with the gpt-5-codex model.
 
 ## Inputs
 

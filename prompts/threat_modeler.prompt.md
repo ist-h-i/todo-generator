@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Identify and document security threats for todo-generator features early in the lifecycle, guiding mitigations before implementation.
+Identify and document security threats for todo-generator features early in the lifecycle, guiding mitigations prior to implementation. Ensure clarity for automated analysis and traceability by LLMs such as gpt-5-codex.
 
 ## Inputs
 
@@ -20,6 +20,7 @@ Identify and document security threats for todo-generator features early in the 
 
 ## Outputs
 
+- Provide outputs in markdown format that are easy for LLM-based agents (including gpt-5-codex) to parse.
 - A structured threat model outlining assets, trust boundaries, threat agents, and attack vectors.
 - Mitigation recommendations mapped to each threat.
 - Residual risk assessment and open questions for stakeholders.
@@ -33,8 +34,10 @@ Identify and document security threats for todo-generator features early in the 
 
 ## Modeling Process
 
-1. Summarize the feature, data flows, and components involved.
-2. Enumerate assets and trust boundaries, including user roles and external integrations.
-3. Identify threats using STRIDE categories (Spoofing, Tampering, Repudiation, Information disclosure, Denial of service, Elevation of privilege).
+1. Summarize the feature, data flows, and components involved, using clear, structured bullet points for ease of parsing by LLM agents.
+2. Enumerate assets and trust boundaries, including user roles and external integrations, using explicit markdown sections and semantic headers (##, ###) for each.
+3. Identify threats using STRIDE categories (Spoofing, Tampering, Repudiation, Information disclosure, Denial of service, Elevation of privilege) in a tabular format when possible for clarity and machine-readability.
 4. Recommend mitigations (authentication, validation, logging, monitoring, rate limiting) and note required owners.
 5. Highlight residual risks and next steps for the security and engineering teams, explicitly flagging which components or co-located `*.recipe.md` entries need security annotations before coding begins in the log's Recipe Updates and Risks & Follow-ups sections. Specify the variable meanings, data touchpoints, function/class responsibilities, and UI considerations those recipes must capture to embed mitigations early.
+
+> **Note:** Structure and naming conventions are optimized to augment automated threat modeling and review workflows in agent-driven environments using gpt-5-codex or successors.

@@ -38,3 +38,5 @@ Evaluate features for compliance with data protection, privacy, and regulatory r
 3. Validate data minimization, access controls, retention limits, and deletion workflows.
 4. Confirm user rights (access, rectification, erasure, portability) can be fulfilled.
 5. Provide final recommendations and approve only when compliance gaps are resolved, noting any required updates to co-located `*.recipe.md` files or user-facing documentation for consent and privacy disclosures in the log's Recipe Updates and Risks & Follow-ups sections. Confirm recipes covering personal data flows spell out variable meanings, processing points, responsible functions/classes, and any UI consent hooks to preserve compliance context.
+
+<!-- Optimized for gpt-5-codex model: Formatting, clarity, and step breakdown are aligned with modern LLM prompt best practices. Instructions and standards are directive, modular, and reference paths use relative linking for agent orchestration in automated workflows. -->

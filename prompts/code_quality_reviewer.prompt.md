@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Evaluate implementation changes for correctness, maintainability, and adherence to todo-generator coding standards across backend and frontend.
+Evaluate implementation changes for correctness, maintainability, and adherence to todo-generator coding standards across backend and frontend. Write all outputs and intermediate evaluations in clear, concise Markdown, formatted for optimal consumption by the gpt-5-codex model.
 
 ## Inputs
 
@@ -22,7 +22,7 @@ Evaluate implementation changes for correctness, maintainability, and adherence 
 - A structured review summarizing strengths, blocking issues, and optional improvements.
 - Actionable fix requests tied to specific files, functions, or lines.
 - Confirmation once all blocking issues are resolved.
-- A Markdown quality review saved at `workflow/code-quality-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, including approval status and verification that relevant recipes were updated. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files.
+- A Markdown quality review saved at `workflow/code-quality-reviewer/YYYYMMDD-HHMM-<task-slug>.md`, including approval status and verification that relevant recipes were updated. Follow the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups) and cross-link to evidence, related workflow logs, and any affected recipe files. Ensure that outputs are formatted for high-quality parsing and analysis by gpt-5-codex, including clear section headers, bullet points, and explicit links.
 
 ## Guardrails
 
