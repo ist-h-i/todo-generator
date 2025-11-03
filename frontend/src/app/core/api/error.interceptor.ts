@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { TimeoutError, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { throwError } from 'rxjs';
 
 import { isApiRequestUrl } from './api.config';
 import { HttpErrorNotifierService } from './http-error-notifier.service';
@@ -10,6 +10,7 @@ const NETWORK_ERROR_MESSAGE = 'サーバーに接続できませんでした。�
 const SERVER_ERROR_MESSAGE = 'サーバーでエラーが発生しました。時間をおいて再度お試しください。';
 const CLIENT_ERROR_MESSAGE =
   'リクエストに失敗しました。入力内容を確認し、時間をおいて再度お試しください。';
+const UNKNOWN_ERROR_MESSAGE = SERVER_ERROR_MESSAGE;
 
 const extractDetail = (payload: unknown): string | null => {
   if (!payload || typeof payload !== 'object') {
@@ -98,7 +99,7 @@ const buildErrorMessage = (error: HttpErrorResponse): string => {
     return CLIENT_ERROR_MESSAGE;
   }
 
-  return SERVER_ERROR_MESSAGE;
+  return UNKNOWN_ERROR_MESSAGE;
 };
 
 /**
@@ -118,8 +119,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           return throwError(() => error);
         }
         notifier.notify(buildErrorMessage(error));
+      } else if (error instanceof TimeoutError) {
+        notifier.notify(NETWORK_ERROR_MESSAGE);
       } else {
-        notifier.notify(SERVER_ERROR_MESSAGE);
+        notifier.notify(UNKNOWN_ERROR_MESSAGE);
       }
 
       return throwError(() => error);
