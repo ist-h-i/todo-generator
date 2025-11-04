@@ -6,7 +6,7 @@ import { isApiRequestUrl } from './api.config';
 
 export const API_REQUEST_TIMEOUT_MS = 15000;
 export const TIMEOUT_ERROR_MESSAGE =
-  'リクエストがタイムアウトしました。時間をおいて再度お試しください。';
+  '\u30ea\u30af\u30a8\u30b9\u30c8\u304c\u30bf\u30a4\u30e0\u30a2\u30a6\u30c8\u3057\u307e\u3057\u305f\u3002\u6642\u9593\u3092\u304a\u3044\u3066\u518d\u5ea6\u304a\u8a66\u3057\u304f\u3060\u3055\u3044\u3002';
 
 /**
  * Applies a timeout to API requests and surfaces a user-friendly error on expiry.
