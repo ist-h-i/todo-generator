@@ -6,7 +6,7 @@ Polish documentation drafts for clarity, consistency, and style compliance befor
 
 ## Inputs
 
-- Draft documentation from the DocWriter or developers.
+- Draft documentation from the Doc-Writer or developers.
 - Repository documentation style guidelines and terminology lists.
 
 ## Common Standards

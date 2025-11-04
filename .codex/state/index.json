@@ -75,7 +75,7 @@
         "preview": "**Summary**\n- Meets the ask: hover no longer turns white; selectors match input styling; the down-arrow is always visible and inherits text color in light/dark.\n- Scope is minimal and centralized; no React/shadcn introduced into this Angular repo.\n\n**What I Reviewed**\n- Base select styling applied globally to native selects:\n  - `frontend/src/styles/pages/_base.scss:85` base rule for `.app-select, select.form-control`\n  - `frontend/src/styles/pages/_base.scss:113` caret centered via background-position\n  - `frontend/src/styles/pages/_base.scss:129` hover keeps background consistent with inputs\n  - `frontend/src/styles/pages/_base.scss:138` focus-visible ring retained\n  - `frontend/src/styles/pages/_base.scss:174` multi/size variants hide caret\n  - `frontend/src/styles/pages/_base.scss:184` dark-theme parity for text/caret colors\n- Shared Angular Select improvements:\n  - Icon inherits text color (`currentColor`) and is visible at rest: `frontend/src/app/shared/ui/select/ui-select.ts:171`\n  - Template-accessible `onTouched()` and null-safe value checks to keep builds green: `frontend/src/app/shared/ui/select/ui-select.ts:34`, `frontend/src/app/shared/ui/select/ui-select.ts:278`\n\n**Correctness & Consistency**\n- Visual parity with inputs across idle/hover/focus/disabled states: yes.\n- Icon visibility: always visible, not gated by hover; matches text color in dark mode via `currentColor`.\n- Option panel updated to a modern look without behavior changes.\n\n**Risks / Nits (Low)**\n- Forced-colors (Windows High Contrast): background-image chevron may be hard to see. Suggest hiding it in forced-colors and relying on native affordances.\n- RTL: rules use physical `right`; acceptable for now, but logical properties could be a follow-up if RTL is required.\n- If `color-mix()` is used anywhere for subtle tints, ensure acceptable browser support or add a conservative fallback.\n\n**Lightweight Suggestions (Optional)**\n- Add a11y safeguard:\n  - `@media (forced-colors: active) { .app-select, select.form-control { background-image: none; } }` in `frontend/src/styles/pages/_base.scss:225` (or nearby global select rules).\n\n**Notes on React/shadcn Instructions**\n- This repo is Angular; introducing React/shadcn and Radix would violate minimal-change constraints. The centralized Angular/SCSS solution already satisfies the requirements.\n\n**Verdict**\n- Approve. The implementation is correct, minimal, and resolves the reported issues. Optional a11y tweak can be a small follow-up if desired."
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -157,7 +157,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -294,7 +294,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -431,7 +431,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -568,7 +568,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -705,7 +705,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -837,7 +837,7 @@
       {
         "path": "codex_output/auto_evolve/graph_before_after.md",
         "size": 334,
-        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> DocWriter\n  DocWriter --> Doc_Editor\n```\n"
+        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> doc_writer\n  doc_writer --> Doc_Editor\n```\n"
       }
     ]
   },
@@ -867,7 +867,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -1004,7 +1004,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -1141,7 +1141,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -1273,7 +1273,7 @@
       {
         "path": "codex_output/auto_evolve/graph_before_after.md",
         "size": 334,
-        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> DocWriter\n  DocWriter --> Doc_Editor\n```\n"
+        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> doc_writer\n  doc_writer --> Doc_Editor\n```\n"
       }
     ]
   },
@@ -1303,7 +1303,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -1490,7 +1490,7 @@
         "preview": "Summary\n- Backend middleware sets safe security headers on all non-OPTIONS responses. Implementation is correct, minimal, and preserves existing headers via setdefault.\n- Tests validate headers on GET /health using existing fixture patterns; consistent with repo style.\n- Documentation updated to reflect actual crypto state (hardened with Fernet + legacy auto-rotate) and correct secret masking behavior.\n\nWhat I Reviewed\n- backend/app/main.py: Security headers middleware\n  - Correctly after CORS preflight middleware; non-OPTIONS responses get:\n    - Strict-Transport-Security: max-age=15552000; includeSubDomains\n    - X-Content-Type-Options: nosniff\n    - Referrer-Policy: no-referrer\n    - X-Frame-Options: DENY\n    - Permissions-Policy: camera=(), microphone=(), geolocation=()\n    - Cross-Origin-Opener-Policy: same-origin\n    - Cross-Origin-Resource-Policy: same-origin\n  - Uses response.headers.setdefault to avoid clobbering upstream values.\n  - OPTIONS handling is harmless even if preflight short-circuits earlier.\n- backend/tests/test_security_headers.py: Focused header assertions\n  - Aligns with existing TestCase/assertTrue style used elsewhere.\n  - Leverages standard TestClient fixture from backend/tests/conftest.py.\n- Crypto and secrets utilities (sanity check):\n  - backend/app/utils/crypto.py implements Fernet with legacy auto-rotation. Tests cover re-encryption and error cases.\n  - backend/app/utils/secrets.py masking logic protects short secrets; tests confirm.\n\nTiny Nits / Edge Cases\n- The middleware’s OPTIONS branch delegates to downstream middleware; it’s fine given the earlier preflight middleware, but could return early for symmetry. No change needed.\n- Referrer-Policy: no-referrer is strict. If any flow relies on referrers, consider strict-origin-when-cross-origin in a later pass.\n\nApplied Fixes\n- docs/security-review.md\n  - Replaced outdated “Weak secret storage cipher” with “Secret storage (Hardened)” describing Fernet + legacy rotation path.\n  - Updated “Secret hint” section to reflect current, safe masking behavior.\n  - Scope-limited doc edits only; no runtime impact.\n\nResidual Risks\n- HSTS requires HTTPS in production to be effective.\n- COOP/CORP are safe for APIs; keep an eye on any cross-origin embedding needs.\n- SPA tokens remain in localStorage; migration to secure, httpOnly cookies is still recommended in a future coordinated cycle.\n\nValidation\n- Suggest running: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck\n- Full suite: pytest -q backend/tests (tests appear self-contained and should not require network)."
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -1619,7 +1619,7 @@
       {
         "path": "codex_output/coder.md",
         "size": 4405,
-        "preview": "Summary of work\n- Co-located all recipe docs next to their target source code.\n- Updated docs index and workflow/prompt templates to remove centralized recipes references.\n- Updated generator scripts to create recipes in the new co-located locations.\n- Deprecated the old docs/recipes/ folder with a clear migration notice.\n- Removed the centralized recipe files to avoid duplication.\n\nWhat changed\n\n- Recipes moved next to code\n  - Added per-file recipes:\n    - backend/app/main.py.recipe.md\n    - backend/app/routers/status_reports.py.recipe.md\n    - backend/app/services/status_reports.py.recipe.md\n    - frontend/src/app/app.ts.recipe.md\n    - frontend/src/app/core/api/status-reports-gateway.ts.recipe.md\n  - Added Angular class recipes co-located with their TS sources, for example:\n    - frontend/src/app/App.recipe.md\n    - frontend/src/app/features/analyze/AnalyzePage.recipe.md\n    - frontend/src/app/features/reports/ReportAssistantPageComponent.recipe.md\n    - frontend/src/app/core/api/StatusReportsGateway.recipe.md\n    - frontend/src/app/core/state/WorkspaceStore.recipe.md\n    - frontend/src/app/shared/ui/page-layout/PageLayoutComponent.recipe.md\n    - …and the rest under frontend/src/app/** (mirroring prior docs/recipes/classes/frontend/src/app/**)\n\n- Centralized recipes removed\n  - Deleted centralized files under:\n    - docs/recipes/*.recipe.md (5 files)\n    - docs/recipes/classes/frontend/src/app/** (all class recipe files)\n\n- Docs updated\n  - docs/README.md: Removed “Recipes index” link; added note that recipes are co-located as *.recipe.md next to code.\n  - docs/INDEX.md: Updated scripts description to reflect co-located recipe output.\n  - docs/recipes/README.md: Rewritten as deprecation notice with new co-location policy and updated generator instructions.\n\n- Scripts updated\n  - scripts/generate_file_recipes.py\n    - Now writes to <source>.<ext>.recipe.md next to the source file.\n    - Updated docstring and removed use of the centralized folder.\n  - scripts/generate_class_recipes.py\n    - Now writes ClassName.recipe.md next to the TS file directory.\n    - Updated docstring and path function.\n\n- Workflow and prompts updated (remove centralized references)\n  - workflow/README.md\n  - prompts/coder.prompt.md\n  - prompts/planner.prompt.md\n  - prompts/detail_designer.prompt.md (main reference updated)\n  - prompts/integrator.prompt.md\n  - prompts/release_manager.prompt.md\n  - prompts/uiux_reviewer.prompt.md\n  - prompts/doc_editor.prompt.md\n  - prompts/requirements_analyst.prompt.md\n  - prompts/i18n_reviewer.prompt.md\n  - prompts/docwriter.prompt.md\n  - prompts/oss_sbom_auditor.prompt.md\n  - prompts/requirements_reviewer.prompt.md\n  - prompts/threat_modeler.prompt.md\n  - prompts/code_quality_reviewer.prompt.md\n  - prompts/implementation_reviewer.prompt.md\n  - prompts/performance_reviewer.prompt.md\n  - prompts/ai_safety_reviewer.prompt.md\n\nValidation commands\n- Confirm no centralized references remain (except deprecation note and past automation logs):\n  - rg -n \"docs/recipes/\" -S\n- Spot-check a few recipes in their new locations:\n  - open frontend/src/app/core/api/status-reports-gateway.ts.recipe.md\n  - open backend/app/routers/status_reports.py.recipe.md\n- Optionally generate new recipes and ensure they land co-located:\n  - python scripts/generate_file_recipes.py frontend/src/app/core/api\n  - python scripts/generate_class_recipes.py frontend/src/app/features\n\nResidual risks / open questions\n- Any external docs or integrations outside this repo that point to docs/recipes/* will break; they need manual updates.\n- If any internal tooling or CI parsers assumed a centralized path, they may require minor adjustments (we updated in-repo prompts and workflow references).\n- Directories with multiple recipes (file-level + class-level) are now possible; if a naming convention limit is desired (e.g., one recipe per dir), define and enforce it.\n- Embedded assets within recipes were not present here; if future recipes add assets, co-locate th"
+        "preview": "Summary of work\n- Co-located all recipe docs next to their target source code.\n- Updated docs index and workflow/prompt templates to remove centralized recipes references.\n- Updated generator scripts to create recipes in the new co-located locations.\n- Deprecated the old docs/recipes/ folder with a clear migration notice.\n- Removed the centralized recipe files to avoid duplication.\n\nWhat changed\n\n- Recipes moved next to code\n  - Added per-file recipes:\n    - backend/app/main.py.recipe.md\n    - backend/app/routers/status_reports.py.recipe.md\n    - backend/app/services/status_reports.py.recipe.md\n    - frontend/src/app/app.ts.recipe.md\n    - frontend/src/app/core/api/status-reports-gateway.ts.recipe.md\n  - Added Angular class recipes co-located with their TS sources, for example:\n    - frontend/src/app/App.recipe.md\n    - frontend/src/app/features/analyze/AnalyzePage.recipe.md\n    - frontend/src/app/features/reports/ReportAssistantPageComponent.recipe.md\n    - frontend/src/app/core/api/StatusReportsGateway.recipe.md\n    - frontend/src/app/core/state/WorkspaceStore.recipe.md\n    - frontend/src/app/shared/ui/page-layout/PageLayoutComponent.recipe.md\n    - …and the rest under frontend/src/app/** (mirroring prior docs/recipes/classes/frontend/src/app/**)\n\n- Centralized recipes removed\n  - Deleted centralized files under:\n    - docs/recipes/*.recipe.md (5 files)\n    - docs/recipes/classes/frontend/src/app/** (all class recipe files)\n\n- Docs updated\n  - docs/README.md: Removed “Recipes index” link; added note that recipes are co-located as *.recipe.md next to code.\n  - docs/INDEX.md: Updated scripts description to reflect co-located recipe output.\n  - docs/recipes/README.md: Rewritten as deprecation notice with new co-location policy and updated generator instructions.\n\n- Scripts updated\n  - scripts/generate_file_recipes.py\n    - Now writes to <source>.<ext>.recipe.md next to the source file.\n    - Updated docstring and removed use of the centralized folder.\n  - scripts/generate_class_recipes.py\n    - Now writes ClassName.recipe.md next to the TS file directory.\n    - Updated docstring and path function.\n\n- Workflow and prompts updated (remove centralized references)\n  - workflow/README.md\n  - prompts/coder.prompt.md\n  - prompts/planner.prompt.md\n  - prompts/detail_designer.prompt.md (main reference updated)\n  - prompts/integrator.prompt.md\n  - prompts/release_manager.prompt.md\n  - prompts/uiux_reviewer.prompt.md\n  - prompts/doc_editor.prompt.md\n  - prompts/requirements_analyst.prompt.md\n  - prompts/i18n_reviewer.prompt.md\n  - prompts/doc_writer.prompt.md\n  - prompts/oss_sbom_auditor.prompt.md\n  - prompts/requirements_reviewer.prompt.md\n  - prompts/threat_modeler.prompt.md\n  - prompts/code_quality_reviewer.prompt.md\n  - prompts/implementation_reviewer.prompt.md\n  - prompts/performance_reviewer.prompt.md\n  - prompts/ai_safety_reviewer.prompt.md\n\nValidation commands\n- Confirm no centralized references remain (except deprecation note and past automation logs):\n  - rg -n \"docs/recipes/\" -S\n- Spot-check a few recipes in their new locations:\n  - open frontend/src/app/core/api/status-reports-gateway.ts.recipe.md\n  - open backend/app/routers/status_reports.py.recipe.md\n- Optionally generate new recipes and ensure they land co-located:\n  - python scripts/generate_file_recipes.py frontend/src/app/core/api\n  - python scripts/generate_class_recipes.py frontend/src/app/features\n\nResidual risks / open questions\n- Any external docs or integrations outside this repo that point to docs/recipes/* will break; they need manual updates.\n- If any internal tooling or CI parsers assumed a centralized path, they may require minor adjustments (we updated in-repo prompts and workflow references).\n- Directories with multiple recipes (file-level + class-level) are now possible; if a naming convention limit is desired (e.g., one recipe per dir), define and enforce it.\n- Embedded assets within recipes were not present here; if future recipes add assets, co-locate th"
       },
       {
         "path": "codex_output/code_quality_reviewer.md",
@@ -1627,7 +1627,7 @@
         "preview": "Summary\n- Backend middleware sets safe security headers on all non-OPTIONS responses. Implementation is correct, minimal, and preserves existing headers via setdefault.\n- Tests validate headers on GET /health using existing fixture patterns; consistent with repo style.\n- Documentation updated to reflect actual crypto state (hardened with Fernet + legacy auto-rotate) and correct secret masking behavior.\n\nWhat I Reviewed\n- backend/app/main.py: Security headers middleware\n  - Correctly after CORS preflight middleware; non-OPTIONS responses get:\n    - Strict-Transport-Security: max-age=15552000; includeSubDomains\n    - X-Content-Type-Options: nosniff\n    - Referrer-Policy: no-referrer\n    - X-Frame-Options: DENY\n    - Permissions-Policy: camera=(), microphone=(), geolocation=()\n    - Cross-Origin-Opener-Policy: same-origin\n    - Cross-Origin-Resource-Policy: same-origin\n  - Uses response.headers.setdefault to avoid clobbering upstream values.\n  - OPTIONS handling is harmless even if preflight short-circuits earlier.\n- backend/tests/test_security_headers.py: Focused header assertions\n  - Aligns with existing TestCase/assertTrue style used elsewhere.\n  - Leverages standard TestClient fixture from backend/tests/conftest.py.\n- Crypto and secrets utilities (sanity check):\n  - backend/app/utils/crypto.py implements Fernet with legacy auto-rotation. Tests cover re-encryption and error cases.\n  - backend/app/utils/secrets.py masking logic protects short secrets; tests confirm.\n\nTiny Nits / Edge Cases\n- The middleware’s OPTIONS branch delegates to downstream middleware; it’s fine given the earlier preflight middleware, but could return early for symmetry. No change needed.\n- Referrer-Policy: no-referrer is strict. If any flow relies on referrers, consider strict-origin-when-cross-origin in a later pass.\n\nApplied Fixes\n- docs/security-review.md\n  - Replaced outdated “Weak secret storage cipher” with “Secret storage (Hardened)” describing Fernet + legacy rotation path.\n  - Updated “Secret hint” section to reflect current, safe masking behavior.\n  - Scope-limited doc edits only; no runtime impact.\n\nResidual Risks\n- HSTS requires HTTPS in production to be effective.\n- COOP/CORP are safe for APIs; keep an eye on any cross-origin embedding needs.\n- SPA tokens remain in localStorage; migration to secure, httpOnly cookies is still recommended in a future coordinated cycle.\n\nValidation\n- Suggest running: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck\n- Full suite: pytest -q backend/tests (tests appear self-contained and should not require network)."
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -1764,7 +1764,7 @@
         "preview": "Summary\n- Backend middleware sets safe security headers on all non-OPTIONS responses. Implementation is correct, minimal, and preserves existing headers via setdefault.\n- Tests validate headers on GET /health using existing fixture patterns; consistent with repo style.\n- Documentation updated to reflect actual crypto state (hardened with Fernet + legacy auto-rotate) and correct secret masking behavior.\n\nWhat I Reviewed\n- backend/app/main.py: Security headers middleware\n  - Correctly after CORS preflight middleware; non-OPTIONS responses get:\n    - Strict-Transport-Security: max-age=15552000; includeSubDomains\n    - X-Content-Type-Options: nosniff\n    - Referrer-Policy: no-referrer\n    - X-Frame-Options: DENY\n    - Permissions-Policy: camera=(), microphone=(), geolocation=()\n    - Cross-Origin-Opener-Policy: same-origin\n    - Cross-Origin-Resource-Policy: same-origin\n  - Uses response.headers.setdefault to avoid clobbering upstream values.\n  - OPTIONS handling is harmless even if preflight short-circuits earlier.\n- backend/tests/test_security_headers.py: Focused header assertions\n  - Aligns with existing TestCase/assertTrue style used elsewhere.\n  - Leverages standard TestClient fixture from backend/tests/conftest.py.\n- Crypto and secrets utilities (sanity check):\n  - backend/app/utils/crypto.py implements Fernet with legacy auto-rotation. Tests cover re-encryption and error cases.\n  - backend/app/utils/secrets.py masking logic protects short secrets; tests confirm.\n\nTiny Nits / Edge Cases\n- The middleware’s OPTIONS branch delegates to downstream middleware; it’s fine given the earlier preflight middleware, but could return early for symmetry. No change needed.\n- Referrer-Policy: no-referrer is strict. If any flow relies on referrers, consider strict-origin-when-cross-origin in a later pass.\n\nApplied Fixes\n- docs/security-review.md\n  - Replaced outdated “Weak secret storage cipher” with “Secret storage (Hardened)” describing Fernet + legacy rotation path.\n  - Updated “Secret hint” section to reflect current, safe masking behavior.\n  - Scope-limited doc edits only; no runtime impact.\n\nResidual Risks\n- HSTS requires HTTPS in production to be effective.\n- COOP/CORP are safe for APIs; keep an eye on any cross-origin embedding needs.\n- SPA tokens remain in localStorage; migration to secure, httpOnly cookies is still recommended in a future coordinated cycle.\n\nValidation\n- Suggest running: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck\n- Full suite: pytest -q backend/tests (tests appear self-contained and should not require network)."
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -1901,7 +1901,7 @@
         "preview": "**Summary**\nOverall implementation is close and follows existing patterns. I found and fixed three concrete issues that would have caused runtime errors or test failures:\n- Length mismatch between DB column and UI/server validation for nickname.\n- Two backend tests still registering without nickname.\n- Frontend test double for `AuthService.register` not matching the updated method signature.\n\nWhat I verified:\n- Backend accepts and persists `nickname` on register and returns it in the profile.\n- Startup migration backfills existing users’ nicknames and runs at app boot.\n- Frontend registration form includes a “ニックネーム” field, validates client-side, and sends the value.\n- Profile update flow also uses the same nickname validation style.\n\n**Fixes Applied**\n- Align nickname max length to DB column (64 chars) to avoid DB errors.\n  - backend/app/services/profile.py:1 – set max to 64\n  - frontend/src/app/features/auth/login/page.ts:220 – client nickname validation max 64\n  - frontend/src/app/core/profile/profile-dialog.ts:360 – profile dialog max 64\n\n- Update missed tests to include nickname on registration:\n  - backend/tests/test_admin_users.py:128, 171 – add `nickname: \"Second\"`\n\n- Fix frontend test double to match new register signature:\n  - frontend/src/app/features/auth/login/page.spec.ts:39 – add `nickname` to `RegisterCall`\n  - frontend/src/app/features/auth/login/page.spec.ts:57 – mock `register(email, password, nickname)`\n\n**Correctness & Edge Cases**\n- Registration\n  - API: `POST /auth/register` expects `{ email, password, nickname }`; missing/empty nickname returns 422 via `normalize_nickname`.\n  - Duplicate email yields 400; other validations unchanged.\n- Persistence\n  - DB column is `VARCHAR(64)` nullable; migration backfills NULL/empty with `user-{id}` ensuring non-empty values post-migration while keeping schema lenient.\n- Client/Server Validation\n  - Both sides enforce non-empty + max length 64; trimming is consistent.\n- Profile Update\n  - Uses the same max length (64) and error messaging; consistent with DB.\n\n**Readability & Consistency**\n- Reused existing error message patterns (Japanese messages) and validators. The nickname validation logic is concise and co-located with other profile validations.\n\n**Residual Risks / Open Questions**\n- Uniqueness: Not enforced; duplicates remain possible.\n- DB NOT NULL: Column remains nullable by schema (mitigated by backfill and required registration). If a hard guarantee is desired, consider a follow-up migration to set NOT NULL once backfill is broadly deployed.\n- Validation scope: No profanity/character-set rules; acceptable per current scope but may need refinement later.\n- SSO/social login: Not evaluated; ensure those flows also supply or prompt for nickname if they hit the same endpoint.\n- i18n/accessibility: Registration label does not visually mark “必須”; errors do communicate requirement.\n\n**File References (key changes)**\n- backend/app/services/profile.py:1\n- backend/app/routers/auth.py:1\n- backend/app/migrations.py:121, 164, 960\n- frontend/src/app/core/auth/auth.service.ts:69\n- frontend/src/app/features/auth/login/page.ts:1\n- frontend/src/app/features/auth/login/page.html:127\n- frontend/src/app/features/auth/login/page.spec.ts:39\n- frontend/src/app/core/profile/profile-dialog.ts:360\n- backend/tests/test_admin_users.py:128, 171\n\nIf you want, I can also:\n- Add a small server-side min length (e.g., 2) to reduce accidental single-character nicknames.\n- Propose a phased plan to enforce DB NOT NULL on `users.nickname` once backfill is safely rolled out."
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -2038,7 +2038,7 @@
         "preview": "**Summary**\n- The backend now persists user linkage via userId and resolves assignee display names to nicknames on reads. The frontend removed the nickname/email overwrite logic and prefers nickname for defaults. A best‑effort migration normalizes legacy assignee strings to userIds at startup.\n\n**What Looks Good**\n- Write‑time canonicalization: email/nickname/id → userId\n  - backend/app/routers/cards.py:105–156, 173–178 (_canonicalize_assignees/_canonicalize_single_assignee)\n- Read‑time display: userId → nickname (fallback email)\n  - backend/app/routers/cards.py:180–203 (_resolve_display_names)\n  - Applied consistently in list/get/create/update cards and in subtask list/create/update:\n    - list_cards: backend/app/routers/cards.py:492–520\n    - create_card: backend/app/routers/cards.py:604–680\n    - get_card: backend/app/routers/cards.py:689–699\n    - update_card: backend/app/routers/cards.py:720–758\n    - list_subtasks: backend/app/routers/cards.py:787–805\n    - create_subtask: backend/app/routers/cards.py:829–842\n    - update_subtask: backend/app/routers/cards.py:858–896\n- Data model remains minimally invasive (strings remain, values now userIds):\n  - backend/app/models.py:50–104 (Card.assignees JSON of strings)\n  - backend/app/models.py:214–242 (Subtask.assignee string)\n- Startup migration backfills legacy strings to userIds, preserving unmatched values:\n  - backend/app/migrations.py:1000–1080 (_normalize_assignees_to_user_ids)\n  - Invoked in run_startup_migrations: backend/app/migrations.py:1119–1140\n- SPA stops label flipping and prefers nickname for default assignee:\n  - frontend/src/app/core/state/workspace-store.ts:742–758, 780–816\n- API shapes unchanged; Cards API and board rendering remain compatible:\n  - frontend/src/app/core/api/cards-api.service.ts:139–171 (assignees typed as strings for display)\n\n**Correctness & Edge Cases**\n- Unique nickname handling during canonicalization and migration avoids ambiguity by skipping duplicates. Good.\n- Read‑time resolution batches ids per response; avoids N+1. Good.\n- Update and create paths canonicalize both card assignees and subtask assignee. Good.\n- Filters: server‑side `assignees` query filters by stored values (now userIds). UI appears to filter client‑side; no current breakage spotted.\n\n**Gaps / Risks**\n- Status reports still emit raw stored assignee values (now userIds):\n  - backend/app/services/status_report_presenter.py:63–92, 112–128\n  - Impact: Status report cards may display userIds instead of nicknames.\n- Display fallback might be empty when both nickname and email are empty:\n  - backend/app/routers/cards.py:198–203 returns “” if email missing; consider falling back to userId for non‑empty display.\n- Filtering by assignees via `GET /cards?assignees=` expects userIds now. If any external caller sends emails/nicknames, results will differ. The SPA doesn’t use this param currently, but integrations might.\n- Migration ambiguity: duplicate nicknames are skipped by design; those records remain as legacy strings until updated. Acceptable, but consider logging count for observability.\n\n**Lightweight Fixes (recommended)**\n- Resolve assignee display names in status report serialization (mirrors cards router):\n  - In backend/app/services/status_report_presenter.py, batch map card.assignees and subtask.assignee via `object_session` to nickname/email.\n  - Sketch:\n    - Import: `from sqlalchemy.orm import object_session`\n    - Collect `user_ids` from linked cards/subtasks; query users; build map like `_resolve_display_names`.\n    - Replace assignees/subtasks in `serialize_card_link` similar to `_card_read_with_display`.\n- Improve fallback in display resolution:\n  - backend/app/routers/cards.py:198–203: if neither nickname nor email is present, fall back to `user.id`.\n\n**Performance**\n- Per‑request batching for id→name is used; good. If usage grows, consider request‑scoped caching to avoid repeat mapping across multiple endpoints in the same request (optional).\n\n**Tests/Verificat"
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -2105,7 +2105,7 @@
       {
         "path": "codex_output/auto_evolve/graph_before_after.md",
         "size": 334,
-        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> DocWriter\n  DocWriter --> Doc_Editor\n```\n"
+        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> doc_writer\n  doc_writer --> Doc_Editor\n```\n"
       },
       {
         "path": "codex_output/auto_evolve/proposals.json",
@@ -2150,7 +2150,7 @@
         "preview": ""
       },
       {
-        "path": "codex_output/docwriter.md",
+        "path": "codex_output/doc_writer.md",
         "size": 0,
         "preview": ""
       },
@@ -2282,7 +2282,7 @@
       {
         "path": "codex_output/auto_evolve/graph_before_after.md",
         "size": 334,
-        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> DocWriter\n  DocWriter --> Doc_Editor\n```\n"
+        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> doc_writer\n  doc_writer --> Doc_Editor\n```\n"
       }
     ]
   },
@@ -2307,7 +2307,7 @@
         "preview": "**背景**\n- セレクターの選択肢（オプションパネル）を、オプションをクリックしたタイミングで閉じる挙動に統一する。\n- 既存の外側クリックや Escape によるクローズは維持。アクセシビリティ（フォーカス管理・ARIA）を保つ。\n- 影響は最小にし、シングルセレクトのカスタムパネルを対象とする。\n\n**変更概要**\n- 有効なオプションをクリック/タップした際、選択確定（onChange 発火）後に即座にオプションパネルを閉じる。\n- キーボード操作は Enter にて同様に選択→クローズ。Escape はクローズのみ。\n- クローズ後はトリガー要素（開閉ボタン）へフォーカスを戻す（外側クリックでのクローズ時はフォーカスを奪わない）。\n- マルチセレクトやネイティブ `<select>`（size 指定）は対象外（挙動変更なし）。\n- 依存追加なし、ローカルな最小変更で対応。\n\n**影響**\n- UX: クリックで即クローズされるため操作が1アクション短縮。フォーカスがトリガーに戻りキーボード連携が改善。\n- 現行の外側クリック/Escape クローズは維持。非活性（disabled）オプションではクローズしない。\n- API/スタイル/アニメーションは変更なし（既存のクローズアニメーションがあればそのまま）。\n\n**検証**\n- クリックで選択値が更新され、onChange が発火し、パネルが閉じること。\n- キーボード: Enter で選択→クローズ、Escape でクローズ。フォーカスがトリガーへ戻ること。\n- 非活性オプションのクリックでは選択/クローズともに起きないこと。\n- 外側クリックでクローズし、フォーカスはクリック先に残ること（フォーカスを奪わない）。\n- マルチ/ネイティブ系は挙動に変化がないこと。\n\n**レビュー観点**\n- イベント順序: 選択確定（onChange）→ クローズ の順になっているか。\n- フォーカス管理: 意図的クローズ（選択/ESC）ではトリガーへ戻し、外側クリックでは戻さないこと。\n- キーボード整合性: Enter の挙動は担保。Space を選択トリガーに加えるかは方針確認。\n- 非活性オプション: クリックで選択/クローズされないこと。\n- ARIA/ロール/aria-expanded の整合性維持。\n- 残リスク/未決事項:\n  - Space キーでも選択確定すべきか（Enter と同等にするか）。\n  - Tab 移動時にパネルを自動クローズすべきか。\n  - 将来の検索入力付きドロップダウンでの干渉有無。\n  - 一部コンシューマが「選択後もパネル内にフォーカスが残る」前提に依存していないか。\n  - クローズ時のアニメーションとフォーカス復帰のタイミング衝突（チラつき）有無。"
       },
       {
-        "path": "/home/runner/work/_temp/codex/18744706411/issue-650/docwriter.md",
+        "path": "/home/runner/work/_temp/codex/18744706411/issue-650/doc_writer.md",
         "size": 3294,
         "preview": "**Release Notes**\n\n- Change: The selector’s options panel now closes immediately after clicking/tapping an enabled option in the single-select custom selector. Selection is committed first; then the panel closes and focus returns to the trigger control for improved accessibility.\n- Unchanged: Outside‑click and Escape still close the panel. Disabled options do not select or close. Multi/size (native) select variants remain unaffected.\n- Impact: Minimal. If any consumer or test expected focus to remain inside the panel after selection, update those expectations to account for focus returning to the trigger.\n\n**Behavior Details**\n\n- Click/tap on enabled option: Applies selection, fires change handlers, closes panel, restores focus to the trigger.\n- Keyboard: Enter selects the highlighted option with the same close-and-focus behavior. Escape closes and restores focus. Space behavior remains unchanged.\n- Outside‑click: Closes the panel without forcing focus back to the trigger (so focus stays where the user clicked).\n- Multi‑select/native size: No change in behavior and no custom panel to close.\n\n**Accessibility**\n\n- Focus returns to the trigger after intentional closes (option click, Escape), improving keyboard flow and screen reader context.\n- Existing ARIA usage remains intact (expanded state, roles, selected state).\n\n**Migration Notes**\n\n- No breaking API changes.\n- Possible test updates: If tests asserted focus remained on options after selection, update them to expect focus on the trigger control instead.\n- If a specific flow depended on in-panel focus after selection, consider whether a configurable opt-out is needed in your context.\n\n**Verification Steps**\n\n- Open the selector, click an enabled option: value updates, panel closes, focus returns to the trigger.\n- Press Escape while open: panel closes, focus returns to the trigger.\n- Click outside while open: panel closes, focus remains where you clicked.\n- Click a disabled option: no selection, no close.\n\n**Test Coverage (Updated/Added)**\n\n- Click-to-close on enabled option commits selection and restores focus to trigger.\n- Enter-to-select mirrors click behavior; Escape closes and restores focus.\n- Disabled option click does not close or change selection.\n- Outside-click closes without forcing focus back to the trigger.\n\n**Recipe: Using the Selector Effectively**\n\n- Single-select dropdowns now close on item click, returning focus to the trigger. This aligns with common select patterns and reduces extra clicks.\n- For keyboard users, Enter activates the highlighted option, closing and restoring focus to the trigger. Use Escape to cancel/close.\n- For flows that require keeping the panel open after each choice (e.g., multi-select), use the multi/size/native select variants, which are unchanged.\n\n**Residual Risks / Open Questions**\n\n- Space key activation: Do you want Space to also activate selection for parity with some listbox patterns?\n- Tab behavior: Should Tab close the panel when moving focus away?\n- Searchable panels: If future searchable inputs live inside the panel, confirm that close-on-selection does not interfere with search flows.\n- Consumer expectations: Any consumer relying on focus remaining inside the panel after selection may need adjustments or an opt-out flag."
       },
@@ -2319,7 +2319,7 @@
       {
         "path": "/home/runner/work/_temp/codex/18744706411/issue-650/execution_plan.json",
         "size": 284,
-        "preview": "{\n  \"steps\": [\n    \"requirements_analyst\",\n    \"detail_designer\",\n    \"coder\",\n    \"code_quality_reviewer\",\n    \"security_reviewer\",\n    \"ai_safety_reviewer\",\n    \"uiux_reviewer\",\n    \"docwriter\",\n    \"doc_editor\",\n    \"integrator\",\n    \"release_manager\"\n  ],\n  \"source\": \"fallback\"\n}"
+        "preview": "{\n  \"steps\": [\n    \"requirements_analyst\",\n    \"detail_designer\",\n    \"coder\",\n    \"code_quality_reviewer\",\n    \"security_reviewer\",\n    \"ai_safety_reviewer\",\n    \"uiux_reviewer\",\n    \"doc_writer\",\n    \"doc_editor\",\n    \"integrator\",\n    \"release_manager\"\n  ],\n  \"source\": \"fallback\"\n}"
       },
       {
         "path": "/home/runner/work/_temp/codex/18744706411/issue-650/requirements_analyst.md",
@@ -2354,7 +2354,7 @@
       {
         "path": "/home/runner/work/_temp/codex/18744706411/issue-650/execution_plan_steps.txt",
         "size": 164,
-        "preview": "requirements_analyst\ndetail_designer\ncoder\ncode_quality_reviewer\nsecurity_reviewer\nai_safety_reviewer\nuiux_reviewer\ndocwriter\ndoc_editor\nintegrator\nrelease_manager\n"
+        "preview": "requirements_analyst\ndetail_designer\ncoder\ncode_quality_reviewer\nsecurity_reviewer\nai_safety_reviewer\nuiux_reviewer\ndoc_writer\ndoc_editor\nintegrator\nrelease_manager\n"
       },
       {
         "path": "/home/runner/work/_temp/codex/18744706411/issue-650/coder.md",
@@ -2380,93 +2380,550 @@
   },
   "653": {
     "issue": "653",
-    "run_id": "18827619659",
-    "timestamp": "2025-10-27T02:23:49Z",
+    "run_id": "18893027325",
+    "timestamp": "2025-10-29T00:33:01Z",
     "files": [
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/work_report.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/requirements_reviewer.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/release_manager.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/release_manager.md",
+        "size": 2085,
+        "preview": "**Release Summary**\n- Hardened API responses with minimal, safe security headers middleware in FastAPI.\n- Added a focused test to lock behavior; updated security review docs.\n- No dependency changes; API surface and payloads unchanged.\n\n**What Changed**\n- Backend middleware adds default headers on non-OPTIONS responses:\n  - `Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`\n  - File: `backend/app/main.py:163`\n- Test asserts headers on `GET /health`:\n  - File: `backend/tests/test_security_headers.py:1`\n- Docs updated with change rationale and residual risks:\n  - File: `docs/security-review.md:1`\n\n**Scope & Compatibility**\n- Runtime-only hardening; preserves any pre-set header values via `setdefault`.\n- Safe for APIs. Note: `Referrer-Policy: no-referrer` may reduce referrer data available to analytics.\n- HSTS effective only over HTTPS (no functional change on HTTP).\n\n**Verification Steps**\n- Targeted test: `pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck`\n- Full backend tests: `pytest -q backend/tests`\n- Manual spot-check:\n  - `uvicorn app.main:app --reload --app-dir backend`\n  - `curl -s -D - http://localhost:8000/health | grep -E 'Strict-Transport|Content-Type-Options|Referrer-Policy|X-Frame-Options|Permissions-Policy|Cross-Origin'`\n\n**Risks & Residuals**\n- Referrer policy strictness could impact analytics relying on referrers.\n- HSTS requires HTTPS in production to take effect.\n- Deferred (future cycle): move SPA tokens from `localStorage` to secure, httpOnly cookies; add CSP on SPA host.\n\n**Rollback Plan**\n- Remove the security headers middleware block if needed:\n  - `backend/app/main.py:163` (entire `security_headers_middleware`)\n- Delete the focused test if reverting behavior:\n  - `backend/tests/test_security_headers.py:1`\n- Revert doc note:\n  - `docs/security-review.md:1`\n\n**Release Verdict**\n- Ready to ship. Minimal, self-contained change with clear tests and documentation."
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/work_report.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/work_report.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/implementation_reviewer.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/docwriter.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/docwriter.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/code_quality_reviewer.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/qa_automation_planner.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/execution_plan.json",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/code_quality_reviewer.md",
+        "size": 3520,
+        "preview": "**Summary**\n- The fix correctly synchronizes programmatic values into the native select so projected <option> elements are reliably read and the label reflects the selected value.\n\n**Correctness**\n- `writeValue` mirrors the control value into the native select and then updates the label: frontend/src/app/shared/ui/select/ui-select.ts:240. This resolves the “no options/empty label” perception on init.\n- Options are built from projected `<option>` nodes and kept up to date via `MutationObserver`, with label sync after updates: frontend/src/app/shared/ui/select/ui-select.ts:216, frontend/src/app/shared/ui/select/ui-select.ts:220.\n- Selection logic is normalized for both single and multiple; label derives from current options and selected values: frontend/src/app/shared/ui/select/ui-select.ts:323.\n- Click, keyboard, and change paths maintain internal/native sync and propagate changes to the form control: frontend/src/app/shared/ui/select/ui-select.ts:266, frontend/src/app/shared/ui/select/ui-select.ts:293, frontend/src/app/shared/ui/select/ui-select.ts:362.\n\n**Readability**\n- The component maintains a clean separation of concerns: option reading, value/label sync, and UI event handling.\n- Public `onTouched` is clearly annotated for template usage; other callbacks are private and typed.\n- Template and styles are cohesive; comments succinctly document intent.\n\n**Edge Cases**\n- Multiple select: `writeValue` selects matching native options; label shows joined labels: frontend/src/app/shared/ui/select/ui-select.ts:247, frontend/src/app/shared/ui/select/ui-select.ts:331.\n- No options: active index defaults to 0; guarded usage prevents crashes, though -1 could be a cleaner sentinel (see suggestion).\n- Async option population: deferred initial read and observer-based updates handle late-projected options without console errors.\n\n**Usages Checked**\n- All current usages correctly project `<option>` children:\n  - frontend/src/app/features/admin/page.html:129\n  - frontend/src/app/features/admin/page.html:218\n  - frontend/src/app/features/admin/page.html:231\n  - frontend/src/app/features/admin/page.html:423\n  - frontend/src/app/features/reports/reports-page.component.html:255\n  - frontend/src/app/features/reports/reports-page.component.html:274\n- Placeholders are provided where needed; no refactor to a different API is required.\n\n**Risks / Open Questions**\n- Inert support on the hidden native select is broadly available, but older browsers may behave inconsistently. If issues arise, consider removing `inert` and rely on `aria-hidden` + styling.\n- No support for optgroups or custom templating beyond simple `<option disabled>`; confirm that’s acceptable for all current use cases.\n- For values not present in options (e.g., persisted “unknown” model), the label renders empty until the option appears. Current settings often inject an explicit `<option>` for the saved value (admin model picker), which is good.\n\n**Suggestions (Non-blocking)**\n- Consider setting `activeIndex` to -1 when `options.length === 0` for semantic clarity: frontend/src/app/shared/ui/select/ui-select.ts:347.\n- Add `aria-labelledby` on the panel, pointing to the trigger, and optionally `aria-activedescendant` on the trigger when open for slightly improved a11y.\n- In `onDocClick`, rename `host` to `target` for clarity: frontend/src/app/shared/ui/select/ui-select.ts:355.\n\nOverall, the implementation is correct, minimal, and aligns with existing usage patterns. No further call-site changes are needed."
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/execution_plan.json",
+        "size": 549,
+        "preview": "{\n  \"steps\": [\n    \"release_manager\"\n  ],\n  \"source\": \"planner\",\n  \"planner_payload\": {\n    \"steps\": [\n      \"release_manager\"\n    ],\n    \"notes\": \"Code and tests already in place: security-headers middleware in backend/app/main.py and verification in backend/tests/test_security_headers.py; docs updated at docs/security-review.md. Proceed with release summary and closure to keep changes minimal.\",\n    \"tests\": \"Run: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck && pytest -q backend/tests\"\n  }\n}"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/design_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/threat_modeler.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/requirements_analyst.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/ai_safety_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/dpo_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/translator.md",
+        "size": 1979,
+        "preview": "**Request Summary**\n- Perform a periodic security review to identify vulnerabilities and apply minimal, low‑risk hardening changes. Deliver a finished, self‑contained outcome without broad architectural impact.\n\n**Objectives / Definition of Done**\n- Identify clear, actionable security issues within scope.\n- Implement the smallest viable fixes with minimal diffs.\n- Keep builds/tests green; add/adjust targeted tests as needed.\n- Document changes made and residual risks.\n\n**Constraints**\n- Minimize scope and code churn; avoid unnecessary tasks.\n- Complete within ~30 minutes of focused changes.\n- Prefer backend (FastAPI) scope; avoid SPA/architectural changes this cycle.\n- Network access is restricted; avoid networked audits.\n- Maintain compatibility and avoid breaking existing behavior.\n\n**Assumptions**\n- Backend uses FastAPI and has a simple health endpoint for checks.\n- Adding small middleware or config hardening is acceptable.\n- Tests exist or can be added in a targeted way.\n- Dependency upgrades (if any) should be minimal (patch/minor) and only when clearly necessary.\n\n**Unknowns**\n- Exact severity thresholds (e.g., fix Critical/High only?).\n- Allowed level of dependency changes (patch/minor/major).\n- Whether any flows depend on referrer data or cross-origin embedding.\n- CI/CD expectations and existing security gates.\n- Environment targets (dev/staging/prod) and HTTPS guarantees.\n\n**Clarifying questions**\n- Which areas are explicitly in scope this cycle: backend only, or also CI/config?\n- Are dependency updates allowed, and to what level (patch/minor/major)?\n- Do any features rely on referrer headers or cross-origin embedding that would constrain header tightening?\n- Can we add small, focused tests to lock in security behavior (e.g., headers on health endpoint)?\n- Are there specific high-priority risks to address first (e.g., auth/session, data exposure, SSRF)?\n- Is production guaranteed to run over HTTPS (relevant for HSTS effectiveness)?\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/detail_designer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/performance_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/a11y_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/doc_editor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/oss_sbom_auditor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/integrator.md",
+        "size": 3280,
+        "preview": "**Integration Summary**\n\n- Channels model, membership, and card scoping are fully wired across models, migrations, routers, and schemas.\n- Startup migrations create channel tables, backfill private channels/memberships, and set `cards.channel_id`; backend enforces channel membership on reads/writes.\n- New users auto‑receive a private channel; card creation defaults to it if no channel is specified.\n\n**What I Verified**\n\n- Models\n  - `Card.channel_id` FK to channels: backend/app/models.py:123\n  - `Channel` and `ChannelMember` with relationships: backend/app/models.py:257, backend/app/models.py:272\n- Migrations\n  - Create `channels`/`channel_members`: backend/app/migrations.py:302\n  - Add `cards.channel_id`: backend/app/migrations.py:371\n  - Backfill private channels + memberships + card channel: backend/app/migrations.py:392\n  - Wired in startup sequence: backend/app/migrations.py:947\n- Routers\n  - Channels API: mine/invite/leave/kick: backend/app/routers/channels.py:11, backend/app/routers/channels.py:35, backend/app/routers/channels.py:73, backend/app/routers/channels.py:105\n  - Cards scoped to member channels: backend/app/routers/cards.py:52, backend/app/routers/cards.py:71\n  - Create card requires membership or defaults to private channel: backend/app/routers/cards.py:491, backend/app/routers/cards.py:498\n  - Updating `channel_id` is blocked (MVP safety): backend/app/routers/cards.py:570\n  - Subtasks authorized via channel membership: backend/app/routers/cards.py:685, backend/app/routers/cards.py:734\n  - Router inclusion: backend/app/main.py:185\n- Auth\n  - Registration auto-creates private channel + owner membership: backend/app/routers/auth.py:60, backend/app/routers/auth.py:63\n- Schemas/Docs\n  - Card DTOs include `channel_id`; channel DTOs present: backend/app/schemas.py:283, backend/app/schemas.py:310, backend/app/schemas.py:695\n  - Docs note channels + default behavior: docs/governance/development-governance-handbook.md:21, docs/guidelines/angular-coding-guidelines.md:33\n\n**Behavioral Outcomes**\n\n- Reads and writes are limited to channels where the caller is a member.\n- Card creation without `channel_id` succeeds and stores the private channel.\n- Attempting to move a card across channels via update returns 409.\n- Members can invite; owners can kick; sole owner cannot leave.\n\n**Residual Risks / Follow‑ups**\n\n- `cards.channel_id` is nullable (by design for safe migration). Optionally enforce NOT NULL later.\n- No DB index on `cards.channel_id`; add if list queries grow.\n- Invitation uses email and auto‑joins; no approval/notifications yet.\n- No cross‑channel move policy (explicitly blocked).\n\n**Verification Steps**\n\n- Start backend: `uvicorn app.main:app --reload --app-dir backend`\n- Channels\n  - `GET /channels/mine` returns private channel after register.\n  - `POST /channels/{id}/invite { email }` adds member; `leave` removes; `kick` owner‑only.\n- Cards\n  - `POST /cards` without `channel_id` → created with private channel; response has `channel_id`.\n  - `POST /cards` with non‑member `channel_id` → 403.\n  - `GET /cards` only returns member‑channel cards.\n  - `PUT /cards/{id}` with `channel_id` → 409.\n- Subtasks\n  - As non‑owner member, `PUT`/`DELETE` subtask on a member‑channel card succeeds.\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/execution_plan_steps.txt",
+        "size": 16,
+        "preview": "release_manager\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/coder.md",
+        "size": 1903,
+        "preview": "I’ve checked targeted areas; now confirming minimal, lint-safe fixes are in place.\n\n**Summary**\n- Aligned backend compat patch marker and simplified a frontend signal update as no-op refactors to satisfy lint without behavior change.\n- Couldn’t run linters/tests locally due to missing tools/deps; changes are surgical and match configured rules.\n\n**What I Touched**\n- Backend\n  - Use the shared patch attribute sentinel via `setattr(...)` for consistency.\n    - backend/app/sqlalchemy_py313_compat.py:41\n  - Confirmed adjacent f-strings are merged.\n    - backend/app/sqlalchemy_py313_compat.py:36\n- Frontend\n  - Confirmed direct updater form for signals is used.\n    - frontend/src/app/lib/forms/signal-forms.ts:32\n\n**Current State (quick sanity)**\n- Python compiles cleanly across backend sources.\n  - backend/app (all .py) compiled\n- ESLint config allows `any` only in the select component; implementation adheres.\n  - frontend/.eslintrc.cjs:1\n  - frontend/src/app/shared/ui/select/ui-select.ts:223\n\n**How To Verify**\n- Backend\n  - Lint: `ruff check backend` (CI environment)  \n  - Tests: `cd backend && pytest -q`\n- Frontend\n  - Lint: `cd frontend && npm run lint`\n  - Tests: `cd frontend && npm test -- --watch=false`\n  - Build: `cd frontend && npm run build`\n\n**File References**\n- backend/app/sqlalchemy_py313_compat.py:36\n- backend/app/sqlalchemy_py313_compat.py:41\n- frontend/src/app/lib/forms/signal-forms.ts:32\n- frontend/.eslintrc.cjs:1\n- frontend/src/app/shared/ui/select/ui-select.ts:223\n\n**Residual Risks / Open Questions**\n- Tools not available here (ruff/pytest/npm), so I couldn’t execute linters/tests locally; CI should validate.\n- If CI flags additional, unrelated lint violations, I can apply minimal, localized fixes without expanding scope.\n- Angular Signals API versions can differ; `store.update(updater)` is idiomatic on v16+ and should be compatible with v20 used here."
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/security_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/i18n_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/planner.md",
+        "size": 1211,
+        "preview": "**Findings**\n- Backend already includes a security-headers middleware in `backend/app/main.py:156` and a focused test in `backend/tests/test_security_headers.py:1`.\n- Documentation updated at `docs/security-review.md` describing changes and residual risks.\n- Scope and constraints satisfied with minimal, low-risk changes; no further coding needed.\n\n**Minimal Route**\n- Skip coder/integrator; proceed directly to release_manager to publish the summary and close out the cycle.\n\n**Residual Risks**\n- HSTS effective only over HTTPS; confirm production TLS.\n- Referrer-Policy is strict; analytics depending on referrer may be impacted.\n- SPA tokens still in `localStorage`; migration to httpOnly cookies deferred.\n- CSP for SPA host deferred to a future, coordinated pass.\n\n```json\n{\"steps\":[\"release_manager\"],\"notes\":\"Code and tests already in place: security-headers middleware in backend/app/main.py and verification in backend/tests/test_security_headers.py; docs updated at docs/security-review.md. Proceed with release summary and closure to keep changes minimal.\",\"tests\":\"Run: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck && pytest -q backend/tests\"}\n```"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/uiux_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/metrics/roles.json",
+        "size": 167,
+        "preview": "{\n  \"roles\": [],\n  \"global_fail_patterns\": [\n    {\n      \"topic\": \"i18n_missing\",\n      \"count\": 0\n    },\n    {\n      \"topic\": \"sbom_gap\",\n      \"count\": 0\n    }\n  ]\n}"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/release_manager.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/work_report.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/docwriter.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/code_quality_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/execution_plan.json",
+        "size": 284,
+        "preview": "{\n  \"steps\": [\n    \"requirements_analyst\",\n    \"detail_designer\",\n    \"coder\",\n    \"code_quality_reviewer\",\n    \"security_reviewer\",\n    \"ai_safety_reviewer\",\n    \"uiux_reviewer\",\n    \"doc_writer\",\n    \"doc_editor\",\n    \"integrator\",\n    \"release_manager\"\n  ],\n  \"source\": \"fallback\"\n}"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/requirements_analyst.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/ai_safety_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/translator.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/detail_designer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/doc_editor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/integrator.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/execution_plan_steps.txt",
+        "size": 164,
+        "preview": "requirements_analyst\ndetail_designer\ncoder\ncode_quality_reviewer\nsecurity_reviewer\nai_safety_reviewer\nuiux_reviewer\ndoc_writer\ndoc_editor\nintegrator\nrelease_manager\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/coder.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/security_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/planner.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/uiux_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/auto_evolve/experiment_plan.md",
+        "size": 226,
+        "preview": "# Experiment Plan\n- Canary: 10% of tasks (flags.json: canary_ratio)\n- Success: CI time -5% OR return_rate -10%, and defect density +0% ~ +10% max\n- Metrics window: 7 days\n- Review gates: keep human approval for disable/delete\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/auto_evolve/rollback.md",
+        "size": 148,
+        "preview": "# Rollback\n- Restore `.codex/flags.json` previous commit\n- Re-run guardrails job or dispatch manual rollback\n- Announce in PR with metrics snapshot\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/auto_evolve/proposals.json",
+        "size": 733,
+        "preview": "{\n  \"idle\": [],\n  \"redundant_pairs\": [],\n  \"gaps\": [],\n  \"routing\": {\n    \"suggest\": \"increase_weight:AI_Safety\"\n  },\n  \"roles\": [],\n  \"policy\": {\n    \"min_data_points\": 50,\n    \"health_thresholds\": {\n      \"warn\": 0.35,\n      \"merge_candidate\": 0.15\n    },\n    \"allowed_changes\": [\n      \"consolidate_roles\",\n      \"disable_role\",\n      \"create_role_from_gap\",\n      \"reroute_edges\"\n    ],\n    \"require_human_approval\": [\n      \"disable_role\",\n      \"delete_role\"\n    ],\n    \"guardrails\": {\n      \"ab_test_min_duration_runs\": 20,\n      \"max_parallel_experiments\": 2,\n      \"rollback_on\": [\n        {\n          \"ci_regression_over_pct\": 5\n        },\n        {\n          \"defect_density_increase_pct\": 10\n        }\n      ]\n    }\n  }\n}"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/auto_evolve/graph_before_after.md",
+        "size": 334,
+        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> DocWriter\n  DocWriter --> Doc_Editor\n```\n"
+      }
+    ]
+  },
+  "649": {
+    "issue": "649",
+    "run_id": "18895014014",
+    "timestamp": "2025-10-29T02:53:52Z",
+    "files": [
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/requirements_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/release_manager.md",
+        "size": 2085,
+        "preview": "**Release Summary**\n- Hardened API responses with minimal, safe security headers middleware in FastAPI.\n- Added a focused test to lock behavior; updated security review docs.\n- No dependency changes; API surface and payloads unchanged.\n\n**What Changed**\n- Backend middleware adds default headers on non-OPTIONS responses:\n  - `Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`\n  - File: `backend/app/main.py:163`\n- Test asserts headers on `GET /health`:\n  - File: `backend/tests/test_security_headers.py:1`\n- Docs updated with change rationale and residual risks:\n  - File: `docs/security-review.md:1`\n\n**Scope & Compatibility**\n- Runtime-only hardening; preserves any pre-set header values via `setdefault`.\n- Safe for APIs. Note: `Referrer-Policy: no-referrer` may reduce referrer data available to analytics.\n- HSTS effective only over HTTPS (no functional change on HTTP).\n\n**Verification Steps**\n- Targeted test: `pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck`\n- Full backend tests: `pytest -q backend/tests`\n- Manual spot-check:\n  - `uvicorn app.main:app --reload --app-dir backend`\n  - `curl -s -D - http://localhost:8000/health | grep -E 'Strict-Transport|Content-Type-Options|Referrer-Policy|X-Frame-Options|Permissions-Policy|Cross-Origin'`\n\n**Risks & Residuals**\n- Referrer policy strictness could impact analytics relying on referrers.\n- HSTS requires HTTPS in production to take effect.\n- Deferred (future cycle): move SPA tokens from `localStorage` to secure, httpOnly cookies; add CSP on SPA host.\n\n**Rollback Plan**\n- Remove the security headers middleware block if needed:\n  - `backend/app/main.py:163` (entire `security_headers_middleware`)\n- Delete the focused test if reverting behavior:\n  - `backend/tests/test_security_headers.py:1`\n- Revert doc note:\n  - `docs/security-review.md:1`\n\n**Release Verdict**\n- Ready to ship. Minimal, self-contained change with clear tests and documentation."
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/work_report.md",
+        "size": 2601,
+        "preview": "**背景**\n- Request: Move Competency Level registration from “API・日次上限” to below the “コンピテンシー” registration section.\n- Goal: Reduce context switching; manage levels alongside competencies.\n- Scope: Frontend-only relocation; no service/API/schema changes.\n\n**変更概要**\n- Moved the Competency Levels UI (list + create) under the コンピテンシー tab/section.\n- Removed the same section from the “API・日次上限” tab to avoid duplication.\n- Kept all bindings, forms, i18n keys, and methods unchanged; no TS or backend edits.\n- No routing/breadcrumb changes; purely a template relocation within the Admin page.\n- Modified file: `frontend/src/app/features/admin/feature/admin-page.component.html`\n\n**影響**\n- Functionality preserved: same CRUD, validations, and permissions for levels.\n- Information architecture improved: “API・日次上限” now focuses on API key and default limits.\n- Residual risks and open questions (explicit):\n  - Deep links/bookmarks to the old tab section may break.\n  - Minor layout/focus-order shifts due to new container context.\n  - E2E/analytics selectors targeting the old DOM location may need updates.\n  - If edit/delete controls previously existed in that section, confirm parity in the new location.\n\n**検証**\n- Admin → コンピテンシー:\n  - Levels list and “レベルを追加” form appear directly under the competency registration form.\n  - Create/Edit/Delete a level; confirm list updates and persists after refresh.\n  - Competency creation form’s level options reflect new levels as before.\n- Admin → API・日次上限:\n  - Levels section is absent; API key and default daily limit remain functional.\n- General:\n  - i18n strings render correctly; no console errors.\n  - Basic keyboard navigation: tab order remains logical in the コンピテンシー section.\n\n**レビュー観点**\n- No logic regressions: bindings like `competencyLevels()`, `competencyLevelForm`, `createCompetencyLevel()`, and option providers still resolve.\n- No duplication: verify the levels section is fully removed from “API・日次上限”.\n- Layout/accessibility: headings hierarchy, spacing, and focus order under コンピテンシー remain clear.\n- Tests/analytics: update selectors if they referenced the old location.\n- Open questions for sign-off:\n  - Should we leave a small notice/link in “API・日次上限” pointing to コンピテンシー, or is full removal preferred?\n  - Exact placement under コンピテンシー acceptable (immediately after the registration form), or adjust order?"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/implementation_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/docwriter.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/qa_automation_planner.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/code_quality_reviewer.md",
+        "size": 3520,
+        "preview": "**Summary**\n- The fix correctly synchronizes programmatic values into the native select so projected <option> elements are reliably read and the label reflects the selected value.\n\n**Correctness**\n- `writeValue` mirrors the control value into the native select and then updates the label: frontend/src/app/shared/ui/select/ui-select.ts:240. This resolves the “no options/empty label” perception on init.\n- Options are built from projected `<option>` nodes and kept up to date via `MutationObserver`, with label sync after updates: frontend/src/app/shared/ui/select/ui-select.ts:216, frontend/src/app/shared/ui/select/ui-select.ts:220.\n- Selection logic is normalized for both single and multiple; label derives from current options and selected values: frontend/src/app/shared/ui/select/ui-select.ts:323.\n- Click, keyboard, and change paths maintain internal/native sync and propagate changes to the form control: frontend/src/app/shared/ui/select/ui-select.ts:266, frontend/src/app/shared/ui/select/ui-select.ts:293, frontend/src/app/shared/ui/select/ui-select.ts:362.\n\n**Readability**\n- The component maintains a clean separation of concerns: option reading, value/label sync, and UI event handling.\n- Public `onTouched` is clearly annotated for template usage; other callbacks are private and typed.\n- Template and styles are cohesive; comments succinctly document intent.\n\n**Edge Cases**\n- Multiple select: `writeValue` selects matching native options; label shows joined labels: frontend/src/app/shared/ui/select/ui-select.ts:247, frontend/src/app/shared/ui/select/ui-select.ts:331.\n- No options: active index defaults to 0; guarded usage prevents crashes, though -1 could be a cleaner sentinel (see suggestion).\n- Async option population: deferred initial read and observer-based updates handle late-projected options without console errors.\n\n**Usages Checked**\n- All current usages correctly project `<option>` children:\n  - frontend/src/app/features/admin/page.html:129\n  - frontend/src/app/features/admin/page.html:218\n  - frontend/src/app/features/admin/page.html:231\n  - frontend/src/app/features/admin/page.html:423\n  - frontend/src/app/features/reports/reports-page.component.html:255\n  - frontend/src/app/features/reports/reports-page.component.html:274\n- Placeholders are provided where needed; no refactor to a different API is required.\n\n**Risks / Open Questions**\n- Inert support on the hidden native select is broadly available, but older browsers may behave inconsistently. If issues arise, consider removing `inert` and rely on `aria-hidden` + styling.\n- No support for optgroups or custom templating beyond simple `<option disabled>`; confirm that’s acceptable for all current use cases.\n- For values not present in options (e.g., persisted “unknown” model), the label renders empty until the option appears. Current settings often inject an explicit `<option>` for the saved value (admin model picker), which is good.\n\n**Suggestions (Non-blocking)**\n- Consider setting `activeIndex` to -1 when `options.length === 0` for semantic clarity: frontend/src/app/shared/ui/select/ui-select.ts:347.\n- Add `aria-labelledby` on the panel, pointing to the trigger, and optionally `aria-activedescendant` on the trigger when open for slightly improved a11y.\n- In `onDocClick`, rename `host` to `target` for clarity: frontend/src/app/shared/ui/select/ui-select.ts:355.\n\nOverall, the implementation is correct, minimal, and aligns with existing usage patterns. No further call-site changes are needed."
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/execution_plan.json",
+        "size": 549,
+        "preview": "{\n  \"steps\": [\n    \"release_manager\"\n  ],\n  \"source\": \"planner\",\n  \"planner_payload\": {\n    \"steps\": [\n      \"release_manager\"\n    ],\n    \"notes\": \"Code and tests already in place: security-headers middleware in backend/app/main.py and verification in backend/tests/test_security_headers.py; docs updated at docs/security-review.md. Proceed with release summary and closure to keep changes minimal.\",\n    \"tests\": \"Run: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck && pytest -q backend/tests\"\n  }\n}"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/design_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/threat_modeler.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/requirements_analyst.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/ai_safety_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/dpo_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/translator.md",
+        "size": 1979,
+        "preview": "**Request Summary**\n- Perform a periodic security review to identify vulnerabilities and apply minimal, low‑risk hardening changes. Deliver a finished, self‑contained outcome without broad architectural impact.\n\n**Objectives / Definition of Done**\n- Identify clear, actionable security issues within scope.\n- Implement the smallest viable fixes with minimal diffs.\n- Keep builds/tests green; add/adjust targeted tests as needed.\n- Document changes made and residual risks.\n\n**Constraints**\n- Minimize scope and code churn; avoid unnecessary tasks.\n- Complete within ~30 minutes of focused changes.\n- Prefer backend (FastAPI) scope; avoid SPA/architectural changes this cycle.\n- Network access is restricted; avoid networked audits.\n- Maintain compatibility and avoid breaking existing behavior.\n\n**Assumptions**\n- Backend uses FastAPI and has a simple health endpoint for checks.\n- Adding small middleware or config hardening is acceptable.\n- Tests exist or can be added in a targeted way.\n- Dependency upgrades (if any) should be minimal (patch/minor) and only when clearly necessary.\n\n**Unknowns**\n- Exact severity thresholds (e.g., fix Critical/High only?).\n- Allowed level of dependency changes (patch/minor/major).\n- Whether any flows depend on referrer data or cross-origin embedding.\n- CI/CD expectations and existing security gates.\n- Environment targets (dev/staging/prod) and HTTPS guarantees.\n\n**Clarifying questions**\n- Which areas are explicitly in scope this cycle: backend only, or also CI/config?\n- Are dependency updates allowed, and to what level (patch/minor/major)?\n- Do any features rely on referrer headers or cross-origin embedding that would constrain header tightening?\n- Can we add small, focused tests to lock in security behavior (e.g., headers on health endpoint)?\n- Are there specific high-priority risks to address first (e.g., auth/session, data exposure, SSRF)?\n- Is production guaranteed to run over HTTPS (relevant for HSTS effectiveness)?\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/detail_designer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/performance_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/a11y_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/doc_editor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/oss_sbom_auditor.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/integrator.md",
+        "size": 3280,
+        "preview": "**Integration Summary**\n\n- Channels model, membership, and card scoping are fully wired across models, migrations, routers, and schemas.\n- Startup migrations create channel tables, backfill private channels/memberships, and set `cards.channel_id`; backend enforces channel membership on reads/writes.\n- New users auto‑receive a private channel; card creation defaults to it if no channel is specified.\n\n**What I Verified**\n\n- Models\n  - `Card.channel_id` FK to channels: backend/app/models.py:123\n  - `Channel` and `ChannelMember` with relationships: backend/app/models.py:257, backend/app/models.py:272\n- Migrations\n  - Create `channels`/`channel_members`: backend/app/migrations.py:302\n  - Add `cards.channel_id`: backend/app/migrations.py:371\n  - Backfill private channels + memberships + card channel: backend/app/migrations.py:392\n  - Wired in startup sequence: backend/app/migrations.py:947\n- Routers\n  - Channels API: mine/invite/leave/kick: backend/app/routers/channels.py:11, backend/app/routers/channels.py:35, backend/app/routers/channels.py:73, backend/app/routers/channels.py:105\n  - Cards scoped to member channels: backend/app/routers/cards.py:52, backend/app/routers/cards.py:71\n  - Create card requires membership or defaults to private channel: backend/app/routers/cards.py:491, backend/app/routers/cards.py:498\n  - Updating `channel_id` is blocked (MVP safety): backend/app/routers/cards.py:570\n  - Subtasks authorized via channel membership: backend/app/routers/cards.py:685, backend/app/routers/cards.py:734\n  - Router inclusion: backend/app/main.py:185\n- Auth\n  - Registration auto-creates private channel + owner membership: backend/app/routers/auth.py:60, backend/app/routers/auth.py:63\n- Schemas/Docs\n  - Card DTOs include `channel_id`; channel DTOs present: backend/app/schemas.py:283, backend/app/schemas.py:310, backend/app/schemas.py:695\n  - Docs note channels + default behavior: docs/governance/development-governance-handbook.md:21, docs/guidelines/angular-coding-guidelines.md:33\n\n**Behavioral Outcomes**\n\n- Reads and writes are limited to channels where the caller is a member.\n- Card creation without `channel_id` succeeds and stores the private channel.\n- Attempting to move a card across channels via update returns 409.\n- Members can invite; owners can kick; sole owner cannot leave.\n\n**Residual Risks / Follow‑ups**\n\n- `cards.channel_id` is nullable (by design for safe migration). Optionally enforce NOT NULL later.\n- No DB index on `cards.channel_id`; add if list queries grow.\n- Invitation uses email and auto‑joins; no approval/notifications yet.\n- No cross‑channel move policy (explicitly blocked).\n\n**Verification Steps**\n\n- Start backend: `uvicorn app.main:app --reload --app-dir backend`\n- Channels\n  - `GET /channels/mine` returns private channel after register.\n  - `POST /channels/{id}/invite { email }` adds member; `leave` removes; `kick` owner‑only.\n- Cards\n  - `POST /cards` without `channel_id` → created with private channel; response has `channel_id`.\n  - `POST /cards` with non‑member `channel_id` → 403.\n  - `GET /cards` only returns member‑channel cards.\n  - `PUT /cards/{id}` with `channel_id` → 409.\n- Subtasks\n  - As non‑owner member, `PUT`/`DELETE` subtask on a member‑channel card succeeds.\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/execution_plan_steps.txt",
+        "size": 16,
+        "preview": "release_manager\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/coder.md",
+        "size": 1903,
+        "preview": "I’ve checked targeted areas; now confirming minimal, lint-safe fixes are in place.\n\n**Summary**\n- Aligned backend compat patch marker and simplified a frontend signal update as no-op refactors to satisfy lint without behavior change.\n- Couldn’t run linters/tests locally due to missing tools/deps; changes are surgical and match configured rules.\n\n**What I Touched**\n- Backend\n  - Use the shared patch attribute sentinel via `setattr(...)` for consistency.\n    - backend/app/sqlalchemy_py313_compat.py:41\n  - Confirmed adjacent f-strings are merged.\n    - backend/app/sqlalchemy_py313_compat.py:36\n- Frontend\n  - Confirmed direct updater form for signals is used.\n    - frontend/src/app/lib/forms/signal-forms.ts:32\n\n**Current State (quick sanity)**\n- Python compiles cleanly across backend sources.\n  - backend/app (all .py) compiled\n- ESLint config allows `any` only in the select component; implementation adheres.\n  - frontend/.eslintrc.cjs:1\n  - frontend/src/app/shared/ui/select/ui-select.ts:223\n\n**How To Verify**\n- Backend\n  - Lint: `ruff check backend` (CI environment)  \n  - Tests: `cd backend && pytest -q`\n- Frontend\n  - Lint: `cd frontend && npm run lint`\n  - Tests: `cd frontend && npm test -- --watch=false`\n  - Build: `cd frontend && npm run build`\n\n**File References**\n- backend/app/sqlalchemy_py313_compat.py:36\n- backend/app/sqlalchemy_py313_compat.py:41\n- frontend/src/app/lib/forms/signal-forms.ts:32\n- frontend/.eslintrc.cjs:1\n- frontend/src/app/shared/ui/select/ui-select.ts:223\n\n**Residual Risks / Open Questions**\n- Tools not available here (ruff/pytest/npm), so I couldn’t execute linters/tests locally; CI should validate.\n- If CI flags additional, unrelated lint violations, I can apply minimal, localized fixes without expanding scope.\n- Angular Signals API versions can differ; `store.update(updater)` is idiomatic on v16+ and should be compatible with v20 used here."
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/security_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/i18n_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/planner.md",
+        "size": 1211,
+        "preview": "**Findings**\n- Backend already includes a security-headers middleware in `backend/app/main.py:156` and a focused test in `backend/tests/test_security_headers.py:1`.\n- Documentation updated at `docs/security-review.md` describing changes and residual risks.\n- Scope and constraints satisfied with minimal, low-risk changes; no further coding needed.\n\n**Minimal Route**\n- Skip coder/integrator; proceed directly to release_manager to publish the summary and close out the cycle.\n\n**Residual Risks**\n- HSTS effective only over HTTPS; confirm production TLS.\n- Referrer-Policy is strict; analytics depending on referrer may be impacted.\n- SPA tokens still in `localStorage`; migration to httpOnly cookies deferred.\n- CSP for SPA host deferred to a future, coordinated pass.\n\n```json\n{\"steps\":[\"release_manager\"],\"notes\":\"Code and tests already in place: security-headers middleware in backend/app/main.py and verification in backend/tests/test_security_headers.py; docs updated at docs/security-review.md. Proceed with release summary and closure to keep changes minimal.\",\"tests\":\"Run: pytest -q backend/tests/test_security_headers.py::test_api_sets_security_headers_on_healthcheck && pytest -q backend/tests\"}\n```"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/uiux_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/metrics/roles.json",
+        "size": 167,
+        "preview": "{\n  \"roles\": [],\n  \"global_fail_patterns\": [\n    {\n      \"topic\": \"i18n_missing\",\n      \"count\": 0\n    },\n    {\n      \"topic\": \"sbom_gap\",\n      \"count\": 0\n    }\n  ]\n}"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/metrics/metrics.jsonl",
+        "size": 2517,
+        "preview": "{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Requirements Analyst\", \"stage_id\": \"requirements_analyst\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 432.6, \"contrib\": 0.23, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Detail Designer\", \"stage_id\": \"detail_designer\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 721.0, \"contrib\": 0.384, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Coder\", \"stage_id\": \"coder\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 1442.0, \"contrib\": 0.768, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Code Quality Reviewer\", \"stage_id\": \"code_quality_reviewer\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 648.9, \"contrib\": 0.345, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Security Reviewer\", \"stage_id\": \"security_reviewer\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 648.9, \"contrib\": 0.345, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Ai Safety Reviewer\", \"stage_id\": \"ai_safety_reviewer\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 648.9, \"contrib\": 0.345, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Uiux Reviewer\", \"stage_id\": \"uiux_reviewer\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 648.9, \"contrib\": 0.345, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Docwriter\", \"stage_id\": \"docwriter\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 504.7, \"contrib\": 0.269, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Doc Editor\", \"stage_id\": \"doc_editor\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 504.7, \"contrib\": 0.269, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Integrator\", \"stage_id\": \"integrator\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 576.8, \"contrib\": 0.307, \"lines_changed\": 227}\n{\"run_id\": \"18893027325\", \"issue\": \"653\", \"variant\": \"main\", \"role\": \"Release Manager\", \"stage_id\": \"release_manager\", \"activity\": 1.0, \"return_rate\": 0.0, \"fail_rate\": 0.0, \"tokens\": 576.8, \"contrib\": 0.307, \"lines_changed\": 227}\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/metrics/latest_run.json",
+        "size": 494,
+        "preview": "{\n  \"run_id\": \"18893027325\",\n  \"issue\": \"653\",\n  \"variant\": \"main\",\n  \"changed\": true,\n  \"timestamp\": \"2025-10-29T00:33:01Z\",\n  \"plan_steps\": [\n    \"Requirements Analyst\",\n    \"Detail Designer\",\n    \"Coder\",\n    \"Code Quality Reviewer\",\n    \"Security Reviewer\",\n    \"Ai Safety Reviewer\",\n    \"Uiux Reviewer\",\n    \"Docwriter\",\n    \"Doc Editor\",\n    \"Integrator\",\n    \"Release Manager\"\n  ],\n  \"lines_added\": 169,\n  \"lines_deleted\": 58,\n  \"records\": 11,\n  \"metrics_file\": \"metrics/metrics.jsonl\"\n}"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/release_manager.md",
+        "size": 2088,
+        "preview": "**Release Readiness**\n\n- Status: Ready to release. Frontend-only relocation of the Competency Level management UI; no backend or API changes.\n- Scope minimized: Single template moved; no business logic changes; existing forms/services reused.\n\n**What Changed**\n\n- Added コンピテンシーレベル section under コンピテンシー:\n  - frontend/src/app/features/admin/feature/admin-page.component.html:205\n- Removed コンピテンシーレベル from API・日次上限; that tab now contains only API key and default limits:\n  - frontend/src/app/features/admin/feature/admin-page.component.html:551\n\n**Verification Steps**\n\n- Navigate Admin → コンピテンシー:\n  - Confirm コンピテンシーレベル list and “レベルを追加” form appear below “コンピテンシーを登録”.\n  - Add a level; it appears in the list and persists after refresh.\n- Navigate Admin → API・日次上限:\n  - Confirm levels section is absent; API key and default limits work.\n- Sanity check: コンピテンシー作成フォームの「レベル」選択肢が新しいレベルで更新される。\n- Console: No errors. i18n strings render as before.\n\n**Compatibility/Impact**\n\n- Deep links or docs pointing to the old section under API・日次上限 will no longer land on levels.\n- E2E/analytics selectors targeting the old DOM location may need updates (if present).\n\n**Approvals Needed**\n\n- Product/UX sign-off for the UI relocation within Admin.\n- QA confirmation on the above verification steps across desktop and a small viewport.\n\n**Rollback Plan**\n\n- Revert the template move in `frontend/src/app/features/admin/feature/admin-page.component.html` to restore the levels section under API・日次上限.\n\n**Open Questions**\n\n- Do you want a notice or link in API・日次上限 pointing users to the new コンピテンシーレベル section, or is full removal acceptable? (Current: fully removed.)\n\n**Residual Risks**\n\n- Minor layout/focus order shifts due to new container context.\n- Bookmarked anchors to the old tab (if any) won’t land on the new section."
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/work_report.md",
+        "size": 2601,
+        "preview": "**背景**\n- Request: Move Competency Level registration from “API・日次上限” to below the “コンピテンシー” registration section.\n- Goal: Reduce context switching; manage levels alongside competencies.\n- Scope: Frontend-only relocation; no service/API/schema changes.\n\n**変更概要**\n- Moved the Competency Levels UI (list + create) under the コンピテンシー tab/section.\n- Removed the same section from the “API・日次上限” tab to avoid duplication.\n- Kept all bindings, forms, i18n keys, and methods unchanged; no TS or backend edits.\n- No routing/breadcrumb changes; purely a template relocation within the Admin page.\n- Modified file: `frontend/src/app/features/admin/feature/admin-page.component.html`\n\n**影響**\n- Functionality preserved: same CRUD, validations, and permissions for levels.\n- Information architecture improved: “API・日次上限” now focuses on API key and default limits.\n- Residual risks and open questions (explicit):\n  - Deep links/bookmarks to the old tab section may break.\n  - Minor layout/focus-order shifts due to new container context.\n  - E2E/analytics selectors targeting the old DOM location may need updates.\n  - If edit/delete controls previously existed in that section, confirm parity in the new location.\n\n**検証**\n- Admin → コンピテンシー:\n  - Levels list and “レベルを追加” form appear directly under the competency registration form.\n  - Create/Edit/Delete a level; confirm list updates and persists after refresh.\n  - Competency creation form’s level options reflect new levels as before.\n- Admin → API・日次上限:\n  - Levels section is absent; API key and default daily limit remain functional.\n- General:\n  - i18n strings render correctly; no console errors.\n  - Basic keyboard navigation: tab order remains logical in the コンピテンシー section.\n\n**レビュー観点**\n- No logic regressions: bindings like `competencyLevels()`, `competencyLevelForm`, `createCompetencyLevel()`, and option providers still resolve.\n- No duplication: verify the levels section is fully removed from “API・日次上限”.\n- Layout/accessibility: headings hierarchy, spacing, and focus order under コンピテンシー remain clear.\n- Tests/analytics: update selectors if they referenced the old location.\n- Open questions for sign-off:\n  - Should we leave a small notice/link in “API・日次上限” pointing to コンピテンシー, or is full removal preferred?\n  - Exact placement under コンピテンシー acceptable (immediately after the registration form), or adjust order?"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/implementation_reviewer.md",
+        "size": 2374,
+        "preview": "**Summary**\n- The Competency Level management UI has been moved under the コンピテンシー tab and removed from API・日次上限. No business logic changes detected.\n\n**What I Reviewed**\n- Template relocation and absence of duplication.\n- Form/control bindings and method references.\n- Component logic for levels and dependencies.\n\n**Findings**\n- Levels section appears under コンピテンシー with list + create form intact: frontend/src/app/features/admin/feature/admin-page.component.html:205.\n- Old Levels section is removed from API・日次上限; only API key and default limits remain: frontend/src/app/features/admin/feature/admin-page.component.html:468.\n- All bindings resolve to existing component members:\n  - `competencyLevels()`, `competencyLevelForm`, `createCompetencyLevel()`, `competencyLevelScaleOptions`, `loading()` exist and match usage: frontend/src/app/features/admin/feature/admin-page.component.ts:72,129,315,194,54.\n- Competency form still uses level select fed by `competencyLevelSelectOptions()`: frontend/src/app/features/admin/feature/admin-page.component.html:124.\n- Unit tests do not hardcode section placement; unaffected: frontend/src/app/features/admin/feature/admin-page.component.spec.ts:1.\n\n**Standards & Scope Check**\n- Frontend-only change; minimal template edits; no TS service or model changes.\n- i18n/labels are consistent; semantic structure (<section>/<header>/<h2>) preserved.\n- Angular control flow (`@if`, `@for`) usage is consistent with the file.\n\n**Residual Risks**\n- Deep links or docs pointing to the old API・日次上限 location will no longer land on the Levels section.\n- Minor layout or focus-order shifts under コンピテンシー due to new context.\n- E2E/analytics selectors (if any) targeting the old DOM location will need updating.\n\n**Open Questions**\n- Do you want a short notice or link left in API・日次上限 pointing users to コンピテンシー, or is full removal correct?\n- Any preference on the exact placement order within コンピテンシー (it’s currently after “コンピテンシーを登録”)?\n\n**Suggestions**\n- If there are E2E tests or analytics tied to the old section, update selectors to target the new コンピテンシーレベル section.\n- Consider adding an anchor id to the new section for future deep links if needed (e.g., `id=\"competency-levels\"`)."
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/execution_plan.json",
+        "size": 1130,
+        "preview": "{\n  \"steps\": [\n    \"requirements_analyst\",\n    \"coder\",\n    \"implementation_reviewer\",\n    \"uiux_reviewer\",\n    \"release_manager\"\n  ],\n  \"source\": \"planner\",\n  \"planner_payload\": {\n    \"steps\": [\n      \"requirements_analyst\",\n      \"coder\",\n      \"implementation_reviewer\",\n      \"uiux_reviewer\",\n      \"release_manager\"\n    ],\n    \"notes\": \"Lean route focused on a simple frontend UI relocation. Reuse existing templates/services; no backend changes. Review targets logic parity and UI/keyboard basics. Main risk: broken deep links and subtle layout shifts.\",\n    \"tests\": \"- Navigate to Admin > コンピテンシー; verify Levels UI appears directly under competency registration.\\n- Create a new level; see it listed; refresh and confirm persistence.\\n- Edit and delete a level; confirm validation and error handling match previous behavior.\\n- Confirm the Levels UI is absent from API・日次上限.\\n- Verify i18n labels render; no console errors.\\n- Keyboard test: Tab through controls in コンピテンシー; focus order remains logical.\\n- If E2E exists: update selectors to new section and run affected specs.\"\n  }\n}"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/requirements_analyst.md",
+        "size": 2276,
+        "preview": "**Functional Requirements**\n- Move Competency Level management (list + create/edit/delete) from “API・日次上限” to directly under the “コンピテンシー” registration section.\n- Remove the Levels UI from “API・日次上限” to avoid duplication.\n- Preserve existing behavior: data flows, validations, permissions, and error handling.\n- Reuse existing i18n labels/keys; no copy changes unless specified.\n- Keep services/APIs unchanged; frontend layout relocation only.\n\n**Non-Functional Requirements**\n- Minimal code changes; reuse existing components/templates/logic.\n- Frontend-only change; no DB or backend modifications.\n- Maintain accessibility, responsive layout, and performance characteristics.\n- Preserve current authorization/visibility rules.\n- Keep navigation/breadcrumbs unchanged unless explicitly requested.\n\n**Out Of Scope**\n- New backend endpoints or API contract changes.\n- Changes to competency level business rules or validation logic.\n- Broad navigation/route redesign or unrelated admin refactors.\n- Copywriting updates beyond relocation.\n- Analytics overhaul beyond updating selectors if necessary.\n\n**Assumptions**\n- Competency and Level UIs live in `admin-page.component.html` and can be moved without refactors.\n- No new routes required; a section move within the Admin page is sufficient.\n- Existing tests (if any) can be minimally updated for selector/location changes.\n- No schema or permission changes are needed.\n\n**Risks**\n- Broken bookmarks/deep links to the old “API・日次上限” section.\n- Styling/layout regressions due to new parent container.\n- Accessibility focus order or tab sequence changes after relocation.\n- Tests/analytics selectors tied to the old DOM location need updates.\n- Potential template context differences (e.g., `*ngIf`/form scope) after the move.\n\n**Clarifying Questions**\n- Should both the list and full create/edit/delete forms move under コンピテンシー?\n- Remove the old section entirely, or leave a short notice/link in “API・日次上限”?\n- Should route/breadcrumbs change to reflect the new location, or remain as-is?\n- Any desired copy/label tweaks after relocation (Japanese text changes)?\n- Are there tests or analytics tied to the old location that we should update?"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/translator.md",
+        "size": 2415,
+        "preview": "**English Restatement**\nMove the Competency Level registration UI from the “API・日次上限” tab to be directly under the “コンピテンシー” (Competency) registration section so admins manage levels alongside competencies. The feature set remains unchanged; only the display location and navigation placement move.\n\n**Assumptions**\n- Frontend change only; no backend or DB schema updates.\n- Existing services, APIs, and validation for levels remain unchanged.\n- Authorization/visibility rules for managing levels stay the same.\n- i18n labels/keys already exist and can be reused in the new location.\n- The UI moved should include list + create/edit + delete actions for levels.\n\n**Constraints**\n- Minimal code changes; avoid new components unless reuse is impossible.\n- Deliver a finished, self-contained change without altering business logic.\n- Remove the levels UI from “API・日次上限” to avoid duplication.\n- Preserve current behavior, form validations, and data flows.\n\n**Unknowns**\n- Exact component names/paths for Competency and Level management.\n- Whether a dedicated route/URL is required under コンピテンシー or purely a tab/section move.\n- Desired placement order within the コンピテンシー page/section.\n- Existing deep links/bookmarks that point to the old tab.\n\n**Clarifying Questions**\n- Should we move both the list and the registration form (create/edit/delete) under コンピテンシー?  \n- Do you want the old “API・日次上限” tab to show a redirect/link notice, or remove the section entirely?  \n- Should the URL route/breadcrumb for level management change to live under コンピテンシー?  \n- Any copy or label updates desired after relocation (Japanese text changes)?  \n- Are there tests or analytics events tied to the old location that we should update?\n\n**Acceptance Criteria**\n- Competency Levels management (list + create/edit/delete) appears under コンピテンシー.\n- The same functionality, validations, and data persist correctly.\n- Levels UI is removed from “API・日次上限” (no duplication).\n- Navigation/breadcrumbs (if any) reflect the new location; i18n intact.\n\n**Residual Risks**\n- Broken bookmarks/deep links to the old tab.\n- Styling/layout regressions due to new container context.\n- Accessibility or focus order changes after relocation.\n- Missed updates to tests or analytics referencing the old location."
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/execution_plan_steps.txt",
+        "size": 81,
+        "preview": "requirements_analyst\ncoder\nimplementation_reviewer\nuiux_reviewer\nrelease_manager\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/coder.md",
+        "size": 5169,
+        "preview": "**What I Changed**\n- Moved the entire Competency Level management UI (list + create form) under the コンピテンシー tab.\n- Removed the Competency Level section from the API・日次上限 tab to avoid duplication.\n- Kept all bindings, services, forms, and i18n intact. No TS changes required.\n\n**Files Modified**\n- frontend/src/app/features/admin/feature/admin-page.component.html\n\n**Focused Diffs**\n- Added コンピテンシーレベル section under コンピテンシー\n  - frontend/src/app/features/admin/feature/admin-page.component.html:205\n  - Inserted this section after the コンピテンシーを登録 form, within `@if (activeTab() === 'competencies') { ... }`:\n```html\n<section class=\"page-section\">\n  <header class=\"page-section__header\">\n    <h2 class=\"page-section__title\">コンピテンシーレベル</h2>\n    <p class=\"page-section__subtitle\">\n      評価時に選択できるレベルと段階数を管理します。識別子は英数字とハイフン/アンダースコアが利用できます。\n    </p>\n  </header>\n\n  @if (competencyLevels().length === 0) {\n    <p class=\"page-empty\">まだレベルが登録されていません。下のフォームから追加してください。</p>\n  } @else {\n    <ul class=\"page-list\">\n      @for (level of competencyLevels(); track level.id) {\n        <li class=\"page-list__item\">\n          <div class=\"page-list__heading\">\n            <div>\n              <strong class=\"page-list__title\">{{ level.label }}</strong>\n              <span class=\"page-badge page-badge--accent\">{{ level.scale }}段階</span>\n            </div>\n          </div>\n          <div class=\"page-list__meta\">\n            <span>識別子: {{ level.value }}</span>\n            @if (level.description) { <span>{{ level.description }}</span> }\n          </div>\n        </li>\n      }\n    </ul>\n  }\n\n  <form class=\"page-form\" [formGroup]=\"competencyLevelForm\" (ngSubmit)=\"createCompetencyLevel()\">\n    <div class=\"form-grid form-grid--two\">\n      <label class=\"form-field\">\n        <span class=\"form-field__label\">表示名</span>\n        <input type=\"text\" class=\"form-control\" name=\"competency-level-label\" formControlName=\"label\" required />\n      </label>\n      <label class=\"form-field\">\n        <span class=\"form-field__label\">識別子</span>\n        <input type=\"text\" class=\"form-control\" name=\"competency-level-value\" formControlName=\"value\" placeholder=\"例: senior\" required />\n      </label>\n      <label class=\"form-field\">\n        <span class=\"form-field__label\">段階数</span>\n        <app-ui-select name=\"competency-level-scale\" formControlName=\"scale\" [options]=\"competencyLevelScaleOptions\"></app-ui-select>\n      </label>\n      <label class=\"form-field form-field--full\">\n        <span class=\"form-field__label\">説明 (任意)</span>\n        <textarea rows=\"2\" class=\"form-control form-control--textarea\" name=\"competency-level-description\" formControlName=\"description\" placeholder=\"用途や評価対象をメモできます\"></textarea>\n      </label>\n      <label class=\"form-field\">\n        <span class=\"form-field__label\">表示順 (任意)</span>\n        <input type=\"number\" class=\"form-control\" name=\"competency-level-sort\" formControlName=\"sort_order\" placeholder=\"0\" />\n      </label>\n    </div>\n    <p class=\"form-note\">識別子は英数字・ハイフン・アンダースコアのみ利用できます。</p>\n    <button type=\"submit\" class=\"button button--secondary\" [disabled]=\"loading()\">レベルを追加</button>\n  </form>\n</section>\n```\n\n- Removed コンピテンシーレベル section from API・日次上限\n  - frontend/src/app/features/admin/feature/admin-page.component.html: previously inside `@if (activeTab() === 'settings') { ... }`, the entire コンピテンシーレベル `<section>` was deleted. The remaining sections in this tab are “Gemini API キー” and “デフォルト日次上限”.\n\n**Why This Is Minimal**\n- Only the template location changed; no business logic, services, or forms were altered.\n- All existing component properties/methods (e.g., `competencyLevels()`, `competencyLevelForm`, `createCompetencyLevel()`, `competencyLevelScaleOptions`, `loading()`) remain valid and in scope.\n\n**How to Verify**\n- Navigate to Admin > コンピテンシー:\n  - Confirm コンピテンシーレベル list and add form appear below コンピテンシーを登録.\n  - Create a level, see it listed, refresh and confirm persistence.\n- Navigate to Admin > API・日次上限:\n  - Confirm コンピテンシーレベル section is no longer present.\n  - Gemin"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/planner.md",
+        "size": 3735,
+        "preview": "**Plan Summary**\nMove the Competency Level management UI (list + create/edit/delete) from the “API・日次上限” tab to directly under the “コンピテンシー” registration section within the existing Admin page. Preserve all services, validations, and i18n. Remove the duplicated UI from the original tab. Keep the change frontend-only and minimize code churn by reusing existing templates/blocks.\n\n**Minimal Stage Route**\n- requirements_analyst: Confirm scope, finalize placement and any redirect/notice behavior.\n- coder: Relocate the template block, adjust bindings if needed, remove old section.\n- implementation_reviewer: Verify no logic regressions, duplication removed, bindings intact.\n- uiux_reviewer: Check layout, spacing, visual hierarchy, and basic keyboard flow.\n- release_manager: Update changelog/PR notes, version bump if needed, merge.\n\n**Execution Details**\n- Identify and move the competency level UI block currently under “API・日次上限” in `frontend/src/app/features/admin/feature/admin-page.component.html` into the コンピテンシー section (immediately below the competency registration form).\n- Remove the original block from the “API・日次上限” tab to avoid duplication.\n- Ensure any `*ngIf`, `formGroup`, and `[(ngModel)]`/Reactive Form bindings remain valid in the new context.\n- Keep i18n keys unchanged; ensure labels still render.\n- Confirm no route changes are needed; if anchors are used, update anchor IDs and any internal links.\n- Update or adjust any related unit/E2E tests or snapshots that referenced the old location.\n\n**Handoffs and Checks**\n- After coding, reviewer verifies no new logic added, only relocation.\n- UI/UX reviewer validates the new placement visually and with basic keyboard navigation.\n- Release manager documents the relocation and any potential impact to deep links.\n\n**Residual Risks**\n- Existing bookmarks or deep links to the old tab section may break.\n- Minor layout/spacing differences in the new section container.\n- Keyboard tab order and focus management may subtly change.\n- Any analytics/test selectors targeting the old DOM location need updates.\n\n**Open Questions**\n- Remove the old section entirely or show a short notice with a link to コンピテンシー? (Default: remove entirely.)\n- Any preference for exact placement order within コンピテンシー (e.g., after create form, before list)?\n- Are there analytics or tests relying on the old location selectors/anchors?\n\n**Acceptance Criteria**\n- Competency Levels management (list + create/edit/delete) appears under コンピテンシー.\n- The same functionality, validation, and data persistence work unchanged.\n- The Levels UI is removed from “API・日次上限”.\n- i18n strings render correctly; no console errors.\n\n```json\n{\n  \"steps\": [\n    \"requirements_analyst\",\n    \"coder\",\n    \"implementation_reviewer\",\n    \"uiux_reviewer\",\n    \"release_manager\"\n  ],\n  \"notes\": \"Lean route focused on a simple frontend UI relocation. Reuse existing templates/services; no backend changes. Review targets logic parity and UI/keyboard basics. Main risk: broken deep links and subtle layout shifts.\",\n  \"tests\": \"- Navigate to Admin > コンピテンシー; verify Levels UI appears directly under competency registration.\\n- Create a new level; see it listed; refresh and confirm persistence.\\n- Edit and delete a level; confirm validation and error handling match previous behavior.\\n- Confirm the Levels UI is absent from API・日次上限.\\n- Verify i18n labels render; no console errors.\\n- Keyboard test: Tab through controls in コンピテンシー; focus order remains logical.\\n- If E2E exists: update selectors to new section and run affected specs.\"\n}\n```"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-649/uiux_reviewer.md",
+        "size": 3431,
+        "preview": "**Summary**\n- The Competency Levels UI is now under コンピテンシー and removed from API・日次上限. Placement and flow look coherent and consistent with the existing design system.\n- Key locations: コンピテンシーレベル section header at `frontend/src/app/features/admin/feature/admin-page.component.html:205`; Settings tab now only includes Gemini API and Default Limits at `frontend/src/app/features/admin/feature/admin-page.component.html:480` and `frontend/src/app/features/admin/feature/admin-page.component.html:527`.\n\n**Placement & IA**\n- Levels appear below “コンピテンシーを登録,” reducing context switching when creating competencies.\n- The remaining “API・日次上限” tab focuses solely on API credentials and default limits, which clarifies tab scope.\n\n**Accessibility & Keyboard**\n- Tabs use buttons with `[aria-pressed]` and work via click; not ARIA-tab semantics but acceptable given scope. Consider future upgrade to `role=\"tablist\"`/`role=\"tab\"` for screen readers.\n- Headings are logical: page `h1`, section `h2`, inner `h3` in criteria. Levels section uses `h2` appropriately.\n- Labels are present and descriptive; global error/feedback banners use `role=\"alert\"`/`role=\"status\"` appropriately.\n\n**Visual & Content**\n- Visual hierarchy is clear: section headers + subtitles, list before form. The “レベルを追加” button uses a secondary style, which fits its subordinate action.\n- Empty state for levels is present and helpful. Badge and meta text present essential attributes (段階数, 識別子).\n- i18n appears consistent with existing Japanese copy.\n\n**Behavior Checks**\n- Creating a level updates the levels list and computed select options for the competency form (via signals). The competency “レベル” select does not auto-select the newly created level; current value remains valid, which is acceptable and predictable.\n- A single `loading()` flag disables actions appropriately during async operations.\n\n**Minor UX Opportunities (Non‑Blocking)**\n- Discoverability: Add an anchor `id=\"competency-levels\"` to the levels section (`frontend/src/app/features/admin/feature/admin-page.component.html:205`) and a small link near the competency “レベル” label like “レベルを管理” that jumps to it, aiding users who need a new level mid‑creation.\n- Post‑submit focus: After adding a level, keep focus on the first input in the levels form or announce via live region to improve keyboard flow.\n- Inline validation: If consistent with the design system, consider showing per‑field messages (in addition to required attributes) for faster correction.\n\n**Risks**\n- Deep links or internal docs pointing to the old section under “API・日次上限” will no longer land on Levels.\n- Layout/spacing may shift slightly due to new container context; verify on small screens to ensure two‑column grids stack gracefully.\n- Any E2E/analytics selectors that targeted the old location may need updates.\n\n**Open Questions**\n- Did the previous UI include edit/delete for levels? The current section lists and creates levels but has no edit/delete controls. If they existed before, we should re‑add them here; if not, current scope is correct.\n- Do you want an anchor link from the competency “レベル” field label to the new section for quicker navigation?\n- Should we add an `id=\"competency-levels\"` to support future deep links?"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/release_manager.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/work_report.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/docwriter.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/code_quality_reviewer.md",
+        "size": 0,
+        "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/execution_plan.json",
         "size": 284,
         "preview": "{\n  \"steps\": [\n    \"requirements_analyst\",\n    \"detail_designer\",\n    \"coder\",\n    \"code_quality_reviewer\",\n    \"security_reviewer\",\n    \"ai_safety_reviewer\",\n    \"uiux_reviewer\",\n    \"docwriter\",\n    \"doc_editor\",\n    \"integrator\",\n    \"release_manager\"\n  ],\n  \"source\": \"fallback\"\n}"
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/requirements_analyst.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/requirements_analyst.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/ai_safety_reviewer.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/ai_safety_reviewer.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/translator.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/translator.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/detail_designer.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/detail_designer.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/doc_editor.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/doc_editor.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/integrator.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/integrator.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/execution_plan_steps.txt",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/execution_plan_steps.txt",
         "size": 164,
         "preview": "requirements_analyst\ndetail_designer\ncoder\ncode_quality_reviewer\nsecurity_reviewer\nai_safety_reviewer\nuiux_reviewer\ndocwriter\ndoc_editor\nintegrator\nrelease_manager\n"
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/coder.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/coder.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/security_reviewer.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/security_reviewer.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/planner.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/planner.md",
         "size": 0,
         "preview": ""
       },
       {
-        "path": "/home/runner/work/_temp/codex/18827619659/issue-653/uiux_reviewer.md",
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/issue-653/uiux_reviewer.md",
         "size": 0,
         "preview": ""
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/auto_evolve/experiment_plan.md",
+        "size": 226,
+        "preview": "# Experiment Plan\n- Canary: 10% of tasks (flags.json: canary_ratio)\n- Success: CI time -5% OR return_rate -10%, and defect density +0% ~ +10% max\n- Metrics window: 7 days\n- Review gates: keep human approval for disable/delete\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/auto_evolve/rollback.md",
+        "size": 148,
+        "preview": "# Rollback\n- Restore `.codex/flags.json` previous commit\n- Re-run guardrails job or dispatch manual rollback\n- Announce in PR with metrics snapshot\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/auto_evolve/proposals.json",
+        "size": 733,
+        "preview": "{\n  \"idle\": [],\n  \"redundant_pairs\": [],\n  \"gaps\": [],\n  \"routing\": {\n    \"suggest\": \"increase_weight:AI_Safety\"\n  },\n  \"roles\": [],\n  \"policy\": {\n    \"min_data_points\": 50,\n    \"health_thresholds\": {\n      \"warn\": 0.35,\n      \"merge_candidate\": 0.15\n    },\n    \"allowed_changes\": [\n      \"consolidate_roles\",\n      \"disable_role\",\n      \"create_role_from_gap\",\n      \"reroute_edges\"\n    ],\n    \"require_human_approval\": [\n      \"disable_role\",\n      \"delete_role\"\n    ],\n    \"guardrails\": {\n      \"ab_test_min_duration_runs\": 20,\n      \"max_parallel_experiments\": 2,\n      \"rollback_on\": [\n        {\n          \"ci_regression_over_pct\": 5\n        },\n        {\n          \"defect_density_increase_pct\": 10\n        }\n      ]\n    }\n  }\n}"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/auto_evolve/graph_before_after.md",
+        "size": 336,
+        "preview": "# Workflow Graph (candidate)\n\n```mermaid\nflowchart LR\n\n  Translator --> Planner\n  Planner --> Coder\n  Coder --> Code_Quality_Reviewer\n  Coder --> Security_Reviewer\n  Security_Reviewer --> Integrator\n  Code_Quality_Reviewer --> Integrator\n  Integrator --> Release_Manager\n  Release_Manager --> Doc-Writer\n  Doc-Writer --> Doc_Editor\n```\n"
+      },
+      {
+        "path": "/home/runner/work/todo-generator/todo-generator/codex_output/run-18893027325/run_summary.json",
+        "size": 494,
+        "preview": "{\n  \"run_id\": \"18893027325\",\n  \"issue\": \"653\",\n  \"variant\": \"main\",\n  \"changed\": true,\n  \"timestamp\": \"2025-10-29T00:33:01Z\",\n  \"plan_steps\": [\n    \"Requirements Analyst\",\n    \"Detail Designer\",\n    \"Coder\",\n    \"Code Quality Reviewer\",\n    \"Security Reviewer\",\n    \"Ai Safety Reviewer\",\n    \"Uiux Reviewer\",\n    \"Docwriter\",\n    \"Doc Editor\",\n    \"Integrator\",\n    \"Release Manager\"\n  ],\n  \"lines_added\": 169,\n  \"lines_deleted\": 58,\n  \"records\": 11,\n  \"metrics_file\": \"metrics/metrics.jsonl\"\n}"
       }
     ]
   }

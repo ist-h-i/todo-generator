@@ -1,15 +1,18 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
+import { TimeoutError, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { throwError } from 'rxjs';
 
 import { isApiRequestUrl } from './api.config';
 import { HttpErrorNotifierService } from './http-error-notifier.service';
 
-const NETWORK_ERROR_MESSAGE = 'サーバーに接続できませんでした。時間をおいて再度お試しください。';
-const SERVER_ERROR_MESSAGE = 'サーバーでエラーが発生しました。時間をおいて再度お試しください。';
+const NETWORK_ERROR_MESSAGE =
+  '\u30b5\u30fc\u30d0\u30fc\u306b\u63a5\u7d9a\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u6642\u9593\u3092\u304a\u3044\u3066\u518d\u5ea6\u304a\u8a66\u3057\u304f\u3060\u3055\u3044\u3002';
+const SERVER_ERROR_MESSAGE =
+  '\u30b5\u30fc\u30d0\u30fc\u3067\u30a8\u30e9\u30fc\u304c\u767a\u751f\u3057\u307e\u3057\u305f\u3002\u6642\u9593\u3092\u304a\u3044\u3066\u518d\u5ea6\u304a\u8a66\u3057\u304f\u3060\u3055\u3044\u3002';
 const CLIENT_ERROR_MESSAGE =
-  'リクエストに失敗しました。入力内容を確認し、時間をおいて再度お試しください。';
+  '\u30ea\u30af\u30a8\u30b9\u30c8\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\u5165\u529b\u5185\u5bb9\u3092\u78ba\u8a8d\u3057\u3001\u6642\u9593\u3092\u304a\u3044\u3066\u518d\u5ea6\u304a\u8a66\u3057\u304f\u3060\u3055\u3044\u3002';
+const UNKNOWN_ERROR_MESSAGE = SERVER_ERROR_MESSAGE;
 
 const extractDetail = (payload: unknown): string | null => {
   if (!payload || typeof payload !== 'object') {
@@ -98,7 +101,7 @@ const buildErrorMessage = (error: HttpErrorResponse): string => {
     return CLIENT_ERROR_MESSAGE;
   }
 
-  return SERVER_ERROR_MESSAGE;
+  return UNKNOWN_ERROR_MESSAGE;
 };
 
 /**
@@ -118,8 +121,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           return throwError(() => error);
         }
         notifier.notify(buildErrorMessage(error));
+      } else if (error instanceof TimeoutError) {
+        notifier.notify(NETWORK_ERROR_MESSAGE);
       } else {
-        notifier.notify(SERVER_ERROR_MESSAGE);
+        notifier.notify(UNKNOWN_ERROR_MESSAGE);
       }
 
       return throwError(() => error);

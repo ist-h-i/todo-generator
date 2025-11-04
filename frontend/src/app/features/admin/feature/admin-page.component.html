@@ -199,6 +199,88 @@
         </button>
       </form>
     </section>
+
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">コンピテンシーレベル</h2>
+        <p class="page-section__subtitle">
+          評価時に選択できるレベルと段階数を管理します。識別子は英数字とハイフン/アンダースコアが利用できます。
+        </p>
+      </header>
+
+      @if (competencyLevels().length === 0) {
+        <p class="page-empty">まだレベルが登録されていません。下のフォームから追加してください。</p>
+      } @else {
+        <ul class="page-list">
+          @for (level of competencyLevels(); track level.id) {
+            <li class="page-list__item">
+              <div class="page-list__heading">
+                <div>
+                  <strong class="page-list__title">{{ level.label }}</strong>
+                  <span class="page-badge page-badge--accent">{{ level.scale }}段階</span>
+                </div>
+              </div>
+              <div class="page-list__meta">
+                <span>識別子: {{ level.value }}</span>
+                @if (level.description) {
+                  <span>{{ level.description }}</span>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+
+      <form class="page-form" [formGroup]="competencyLevelForm" (ngSubmit)="createCompetencyLevel()">
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label">表示名</span>
+            <input type="text" class="form-control" name="competency-level-label" formControlName="label" required />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">識別子</span>
+            <input
+              type="text"
+              class="form-control"
+              name="competency-level-value"
+              formControlName="value"
+              placeholder="例: senior"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">段階数</span>
+            <app-ui-select
+              name="competency-level-scale"
+              formControlName="scale"
+              [options]="competencyLevelScaleOptions"
+            ></app-ui-select>
+          </label>
+          <label class="form-field form-field--full">
+            <span class="form-field__label">説明 (任意)</span>
+            <textarea
+              rows="2"
+              class="form-control form-control--textarea"
+              name="competency-level-description"
+              formControlName="description"
+              placeholder="用途や評価対象をメモできます"
+            ></textarea>
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">表示順 (任意)</span>
+            <input
+              type="number"
+              class="form-control"
+              name="competency-level-sort"
+              formControlName="sort_order"
+              placeholder="0"
+            />
+          </label>
+        </div>
+        <p class="form-note">識別子は英数字・ハイフン・アンダースコアのみ利用できます。</p>
+        <button type="submit" class="button button--secondary" [disabled]="loading()">レベルを追加</button>
+      </form>
+    </section>
   }
 
   @if (activeTab() === 'evaluations') {
@@ -391,87 +473,7 @@
   }
 
   @if (activeTab() === 'settings') {
-    <section class="page-section">
-      <header class="page-section__header">
-        <h2 class="page-section__title">コンピテンシーレベル</h2>
-        <p class="page-section__subtitle">
-          評価時に選択できるレベルと段階数を管理します。識別子は英数字とハイフン/アンダースコアが利用できます。
-        </p>
-      </header>
-
-      @if (competencyLevels().length === 0) {
-        <p class="page-empty">まだレベルが登録されていません。下のフォームから追加してください。</p>
-      } @else {
-        <ul class="page-list">
-          @for (level of competencyLevels(); track level.id) {
-            <li class="page-list__item">
-              <div class="page-list__heading">
-                <div>
-                  <strong class="page-list__title">{{ level.label }}</strong>
-                  <span class="page-badge page-badge--accent">{{ level.scale }}段階</span>
-                </div>
-              </div>
-              <div class="page-list__meta">
-                <span>識別子: {{ level.value }}</span>
-                @if (level.description) {
-                  <span>{{ level.description }}</span>
-                }
-              </div>
-            </li>
-          }
-        </ul>
-      }
-
-      <form class="page-form" [formGroup]="competencyLevelForm" (ngSubmit)="createCompetencyLevel()">
-        <div class="form-grid form-grid--two">
-          <label class="form-field">
-            <span class="form-field__label">表示名</span>
-            <input type="text" class="form-control" name="competency-level-label" formControlName="label" required />
-          </label>
-          <label class="form-field">
-            <span class="form-field__label">識別子</span>
-            <input
-              type="text"
-              class="form-control"
-              name="competency-level-value"
-              formControlName="value"
-              placeholder="例: senior"
-              required
-            />
-          </label>
-          <label class="form-field">
-            <span class="form-field__label">段階数</span>
-            <app-ui-select
-              name="competency-level-scale"
-              formControlName="scale"
-              [options]="competencyLevelScaleOptions"
-            ></app-ui-select>
-          </label>
-          <label class="form-field form-field--full">
-            <span class="form-field__label">説明 (任意)</span>
-            <textarea
-              rows="2"
-              class="form-control form-control--textarea"
-              name="competency-level-description"
-              formControlName="description"
-              placeholder="用途や評価対象をメモできます"
-            ></textarea>
-          </label>
-          <label class="form-field">
-            <span class="form-field__label">表示順 (任意)</span>
-            <input
-              type="number"
-              class="form-control"
-              name="competency-level-sort"
-              formControlName="sort_order"
-              placeholder="0"
-            />
-          </label>
-        </div>
-        <p class="form-note">識別子は英数字・ハイフン・アンダースコアのみ利用できます。</p>
-        <button type="submit" class="button button--secondary" [disabled]="loading()">レベルを追加</button>
-      </form>
-    </section>
+    
 
     <section class="page-section">
       <header class="page-section__header">

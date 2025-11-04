@@ -10,6 +10,6 @@ flowchart LR
   Security_Reviewer --> Integrator
   Code_Quality_Reviewer --> Integrator
   Integrator --> Release_Manager
-  Release_Manager --> DocWriter
-  DocWriter --> Doc_Editor
+  Release_Manager --> Doc-Writer
+  Doc-Writer --> Doc_Editor
 ```

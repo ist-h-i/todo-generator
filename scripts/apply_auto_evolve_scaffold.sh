@@ -255,7 +255,7 @@ OUT_DIR = Path("codex_output/auto_evolve")
 def mermaid_from_roles(roles):
     nodes = "\n".join([f"  {r['role'].replace(' ', '_')}[\"{r['role']}\\nhealth: {r.get('health', 0):.2f}\"]" for r in roles])
     # エッジは最小ダミー（実装で更新）
-    edges = "\n".join(["  Translator --> Planner", "  Planner --> Coder", "  Coder --> Code_Quality_Reviewer", "  Coder --> Security_Reviewer", "  Security_Reviewer --> Integrator", "  Code_Quality_Reviewer --> Integrator", "  Integrator --> Release_Manager", "  Release_Manager --> DocWriter", "  DocWriter --> Doc_Editor"])
+    edges = "\n".join(["  Translator --> Planner", "  Planner --> Coder", "  Coder --> Code_Quality_Reviewer", "  Coder --> Security_Reviewer", "  Security_Reviewer --> Integrator", "  Code_Quality_Reviewer --> Integrator", "  Integrator --> Release_Manager", "  Release_Manager --> Doc_Writer", "  Doc_Writer --> Doc_Editor"])
     return f"""flowchart LR\n{nodes}\n{edges}\n"""
 
 

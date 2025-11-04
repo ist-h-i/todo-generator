@@ -6,6 +6,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { appRoutes } from './app.routes';
 import { authInterceptor } from '@core/auth/auth.interceptor';
 import { loadingInterceptor } from '@core/api/loading.interceptor';
+import { timeoutInterceptor } from '@core/api/timeout.interceptor';
 import { errorInterceptor } from '@core/api/error.interceptor';
 
 /**
@@ -25,7 +26,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideHttpClient(
       withFetch(),
-      withInterceptors([authInterceptor, loadingInterceptor, errorInterceptor]),
+      withInterceptors([authInterceptor, loadingInterceptor, timeoutInterceptor, errorInterceptor]),
     ),
   ],
 };
