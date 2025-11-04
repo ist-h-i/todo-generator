@@ -94,6 +94,83 @@ mkdir -p "${OUTPUT_SUBDIR}"
 CODEX_STAGE_OUTPUT_DIR="${OUTPUT_SUBDIR}"
 export CODEX_STAGE_OUTPUT_DIR
 
+STATUS_FILE="${CODEX_OUTPUT_ROOT}/status.json"
+META_FILE="${CODEX_STAGE_OUTPUT_DIR}/meta.jsonl"
+: > "${META_FILE}"
+
+write_status_json() {
+  local status="${1:-}"
+  shift || true
+  python3 - "$STATUS_FILE" "$status" "$@" <<'PY'
+import json
+import pathlib
+import sys
+
+status_file = pathlib.Path(sys.argv[1])
+status = sys.argv[2]
+data = {"status": status}
+for pair in sys.argv[3:]:
+    if "=" not in pair:
+        continue
+    key, value = pair.split("=", 1)
+    data[key] = value
+status_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+PY
+}
+
+append_meta_entry() {
+  local stage="${1:-}"
+  local start="${2:-}"
+  local end="${3:-}"
+  local status="${4:-}"
+  shift 4 || true
+  python3 - "$META_FILE" "$stage" "$start" "$end" "$status" "$@" <<'PY'
+import json
+import pathlib
+import sys
+
+meta_path = pathlib.Path(sys.argv[1])
+stage, start, end, status = sys.argv[2:6]
+data = {"stage": stage, "status": status}
+if start:
+    data["start"] = start
+if end:
+    data["end"] = end
+for pair in sys.argv[6:]:
+    if "=" not in pair:
+        continue
+    key, value = pair.split("=", 1)
+    try:
+        data[key] = json.loads(value)
+    except Exception:
+        data[key] = value
+with meta_path.open("a", encoding="utf-8") as fh:
+    fh.write(json.dumps(data, ensure_ascii=False) + "\n")
+PY
+}
+
+write_status_json "running" "stage=initializing"
+
+CURRENT_STAGE=""
+CURRENT_STAGE_START=""
+
+handle_error() {
+  local exit_code="$1"
+  local line_number="$2"
+  local stage="${CURRENT_STAGE:-unknown}"
+  local end_iso
+  end_iso=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  write_status_json "failed" "stage=${stage}" "exit_code=${exit_code}" "line=${line_number}" "finished_at=${end_iso}"
+  if [ -n "${stage}" ] && [ -n "${CURRENT_STAGE_START}" ]; then
+    append_meta_entry "${stage}" "${CURRENT_STAGE_START}" "${end_iso}" "failed" "exit_code=${exit_code}" "line=${line_number}"
+  fi
+  CURRENT_STAGE=""
+  CURRENT_STAGE_START=""
+  exit "${exit_code}"
+}
+
+trap 'handle_error $? ${LINENO}' ERR
+
 AVAILABLE_DYNAMIC_STAGES=(
   requirements_analyst
   requirements_reviewer
@@ -112,21 +189,20 @@ AVAILABLE_DYNAMIC_STAGES=(
   a11y_reviewer
   i18n_reviewer
   qa_automation_planner
-  doc-writer
+  doc_writer
   doc_editor
   integrator
   release_manager
 )
 
 DEFAULT_POST_PLAN_STEPS=(
-  requirements_analyst
   detail_designer
   coder
   code_quality_reviewer
   security_reviewer
   ai_safety_reviewer
   uiux_reviewer
-  doc-writer
+  doc_writer
   doc_editor
   integrator
   release_manager
@@ -159,14 +235,46 @@ declare -A STAGE_INSTRUCTIONS=(
   [a11y_reviewer]="Assess accessibility impacts, referencing WCAG requirements and inclusive design practices."
   [i18n_reviewer]="Check internationalisation readiness, including localisation hooks, translatable strings, and locale fallbacks."
   [qa_automation_planner]="Recommend only the high-impact tests (unit, integration, or manual) required to validate the scoped change."
-  [doc-writer]="Draft or update documentation, release notes, and recipes reflecting the implemented work."
+  [doc_writer]="Draft or update documentation, release notes, and recipes reflecting the implemented work."
   [doc_editor]="Polish documentation for clarity, tone, and consistency, ensuring references and links remain accurate."
   [integrator]="Confirm all planned work is covered, note remaining follow-ups, and explain how to land the change safely."
   [release_manager]="State release readiness, outline minimal verification steps, and call out approvals or rollbacks if needed."
   [work_report]="Draft the issue comment work report using sections for 背景, 変更概要, 影響, 検証, and レビュー観点. Synthesize prior stage outputs to fill each section with concise, actionable context."
 )
 
+normalize_stage_id() {
+  local name="${1:-}"
+  name="${name// /_}"
+  name="${name//-/_}"
+  printf '%s\n' "${name,,}"
+}
+
+declare -A STAGE_NAME_MAP=()
+
+add_stage_to_map() {
+  local stage="${1:-}"
+  if [ -z "${stage}" ]; then
+    return
+  fi
+  local normalized
+  normalized="$(normalize_stage_id "${stage}")"
+  if [ -z "${normalized}" ]; then
+    return
+  fi
+  if [ -z "${STAGE_NAME_MAP[$normalized]+set}" ]; then
+    STAGE_NAME_MAP["${normalized}"]="${stage}"
+  fi
+}
+
 PREVIOUS_CONTEXT=""
+PREVIOUS_CONTEXT_LIMIT="${PREVIOUS_CONTEXT_LIMIT:-20000}"
+
+for stage in "${PRE_PLANNER_STEPS[@]}" "${AVAILABLE_DYNAMIC_STAGES[@]}" planner work_report; do
+  add_stage_to_map "${stage}"
+done
+for stage in "${DEFAULT_POST_PLAN_STEPS[@]}"; do
+  add_stage_to_map "${stage}"
+done
 
 run_stage() {
   local STEP="$1"
@@ -200,12 +308,20 @@ run_stage() {
   PROMPT_FILE=$(mktemp)
   printf '%s' "${PROMPT}" > "${PROMPT_FILE}"
 
+  CURRENT_STAGE="${STEP}"
+  CURRENT_STAGE_START=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  write_status_json "running" "stage=${STEP}" "started_at=${CURRENT_STAGE_START}"
+
+  local APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-never}"
+  local SANDBOX_MODE="${CODEX_SANDBOX_MODE:-workspace-write}"
+  local SANDBOX_CONFIG="sandbox='\"${SANDBOX_MODE}\"'"
+
   "${CODEX_CLI[@]}" exec \
     --full-auto \
     --cd "${GITHUB_WORKSPACE:-$(pwd)}" \
     --output-last-message "${OUTPUT_FILE}" \
-    --config approval_policy=never \
-    --config sandbox='"workspace-write"' \
+    --config "approval_policy=${APPROVAL_POLICY}" \
+    --config "${SANDBOX_CONFIG}" \
     -- \
     - < "${PROMPT_FILE}"
   local STATUS=$?
@@ -221,6 +337,17 @@ run_stage() {
   else
     PREVIOUS_CONTEXT="${STEP_OUTPUT}"
   fi
+  PREVIOUS_CONTEXT=$(printf '%s' "${PREVIOUS_CONTEXT}" | python3 - "$PREVIOUS_CONTEXT_LIMIT" <<'PY'
+import sys
+
+limit = int(sys.argv[1])
+data = sys.stdin.read()
+if len(data) <= limit:
+    print(data, end="")
+else:
+    print(data[-limit:], end="")
+PY
+)
 
   # After the translator or requirements_analyst stage, scan for clarifying
   # questions and pause the pipeline if more details are required from the
@@ -286,6 +413,11 @@ for raw in text.splitlines():
     if '?' in lowered:
         print("true")
         break
+    upper = clean.upper()
+    markers = ("TBD", "TBC", "???", "FIXME", "PENDING", "TO DO", "TODO")
+    if any(marker in upper for marker in markers):
+        print("true")
+        break
     prefixes = (
         "none",
         "n/a",
@@ -311,14 +443,24 @@ PY
         printf '## Clarifying questions\n'
         printf '%s\n' "${CLARIFYING_SECTION}" | sed 's/[[:space:]]*$//'
       } > "${CODEX_OUTPUT_ROOT}/clarifying_questions.md"
-      cat <<'JSON' > "${CODEX_OUTPUT_ROOT}/status.json"
-{"status":"needs_clarification"}
-JSON
+      local CLARIFY_END
+      CLARIFY_END=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      write_status_json "needs_clarification" "stage=${STEP}" "finished_at=${CLARIFY_END}"
+      append_meta_entry "${STEP}" "${CURRENT_STAGE_START}" "${CLARIFY_END}" "needs_clarification"
+      CURRENT_STAGE=""
+      CURRENT_STAGE_START=""
       local HUMAN_STAGE_LABEL="${HUMAN_STEP_NAME^}"
       oneline "::notice::${HUMAN_STAGE_LABEL} stage requested clarifications. Stopping pipeline early."
       exit 0
     fi
   fi
+
+  local STAGE_END_ISO
+  STAGE_END_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  append_meta_entry "${STEP}" "${CURRENT_STAGE_START}" "${STAGE_END_ISO}" "completed"
+  write_status_json "running" "last_completed=${STEP}" "completed_at=${STAGE_END_ISO}"
+  CURRENT_STAGE=""
+  CURRENT_STAGE_START=""
 }
 
 for STEP in "${PRE_PLANNER_STEPS[@]}"; do
@@ -413,7 +555,13 @@ EXECUTION_PLAN=()
 if [ -n "${PLAN_LINES}" ]; then
   while IFS= read -r line; do
     if [ -n "${line}" ]; then
-      EXECUTION_PLAN+=("${line}")
+      normalized="$(normalize_stage_id "${line}")"
+      if [ -n "${STAGE_NAME_MAP[$normalized]+x}" ]; then
+        canonical="${STAGE_NAME_MAP[$normalized]}"
+      else
+        canonical="${line}"
+      fi
+      EXECUTION_PLAN+=("${canonical}")
     fi
   done <<< "${PLAN_LINES}"
 fi
@@ -434,3 +582,7 @@ run_stage "work_report"
 if [ -f "${CODEX_STAGE_OUTPUT_DIR}/work_report.md" ]; then
   cp "${CODEX_STAGE_OUTPUT_DIR}/work_report.md" "${CODEX_OUTPUT_ROOT}/work_report.md"
 fi
+
+PIPELINE_END_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+write_status_json "completed" "finished_at=${PIPELINE_END_TIME}"
+append_meta_entry "pipeline" "" "${PIPELINE_END_TIME}" "completed"
