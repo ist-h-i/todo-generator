@@ -10,17 +10,14 @@ from app.main import app
 from app.services.gemini import GeminiError, get_gemini_client
 
 from .conftest import TestingSessionLocal
+from .utils.auth import register_user
 
 assertions = TestCase()
 
 
 def _register_and_login(client: TestClient, email: str) -> dict[str, str]:
     password = "Analysis123!"  # noqa: S105 - test credential
-    register = client.post(
-        "/auth/register",
-        json={"email": email, "password": password, "nickname": "Analyst"},
-    )
-    assertions.assertEqual(register.status_code, 201, register.text)
+    register_user(client, email=email, password=password, nickname="Analyst")
 
     login = client.post(
         "/auth/login",
