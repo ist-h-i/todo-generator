@@ -441,7 +441,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "${CODEX_OUTPUT_DIR}"
-          printf '%s' "$TASK_INPUT" | ./scripts/run_codex_pipeline.sh
+          ./scripts/run_codex_pipeline.sh
 
       - name: Check for clarification request
         if: ${{ steps.detect.outputs.run_codex == 'true' }}

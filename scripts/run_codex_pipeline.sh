@@ -3,7 +3,7 @@ set -euo pipefail
 
 # --- single-line logger: replace newlines with \n (no pipes) ---
 oneline() {
-  # $1 の改行を \n に変換して1行で出力
+  # Replace embedded newlines with \n so GitHub log annotations stay on one line.
   local s="${1//$'\n'/\\n}"
   printf '%s\n' "$s"
 }
