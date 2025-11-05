@@ -2,8 +2,7 @@
 
 Source: `frontend/src/app/shared/ui/select/ui-select.ts`
 
-## Purpose & Responsibilities
-- Provide a custom single-select experience with an accessible trigger + panel while
+## Purpose & Responsibilities- Provide a custom single-select experience with an accessible trigger + panel while
   maintaining a hidden native `<select>` for forms integration.
 - Fall back to rendering the native `<select>` directly for multi-select or `size > 1`
   scenarios.
