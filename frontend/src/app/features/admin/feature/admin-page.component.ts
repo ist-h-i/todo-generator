@@ -306,12 +306,11 @@ export class AdminPageComponent {
       .subscribe({
         next: (level) => {
           this.loading.set(false);
-          this.competencyLevels.set(
-            this.sortLevels([
-              ...this.competencyLevels().filter((item) => item.value !== level.value),
-              level,
-            ]),
-          );
+          const merged = this.mergeWithDefaultCompetencyLevels([
+            ...this.competencyLevels().filter((item) => item.value !== level.value),
+            level,
+          ]);
+          this.competencyLevels.set(this.sortLevels(merged));
           this.ensureCompetencyLevelSelection();
           this.competencyLevelForm.reset({
             value: '',
