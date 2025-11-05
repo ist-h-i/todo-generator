@@ -70,9 +70,12 @@ def get_api_credential(
     if not credential:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Credential not found")
     if credential.model:
+        default_model = GeminiClient.normalize_model_name(settings.gemini_model)
         normalized_model = GeminiClient.normalize_model_name(credential.model)
-        if normalized_model != credential.model:
-            credential.model = normalized_model
+        sanitized_model = GeminiClient.sanitize_model_name(normalized_model, fallback=default_model)
+        target_model = sanitized_model
+        if credential.model != target_model:
+            credential.model = target_model
             db.add(credential)
             db.commit()
             db.refresh(credential)
@@ -88,6 +91,7 @@ def upsert_api_credential(
 ) -> models.ApiCredential:
     credential = _get_existing_credential(db, provider)
     normalized_provider = _normalize_provider(provider)
+    default_model = GeminiClient.normalize_model_name(settings.gemini_model)
 
     try:
         cipher = get_secret_cipher()
@@ -105,7 +109,8 @@ def upsert_api_credential(
 
         encrypted_secret = cipher.encrypt(secret)
         secret_hint = build_secret_hint(secret)
-        resolved_model = GeminiClient.normalize_model_name(model_name or settings.gemini_model)
+        resolved_model = GeminiClient.normalize_model_name(model_name or default_model)
+        resolved_model = GeminiClient.sanitize_model_name(resolved_model, fallback=default_model)
         credential = models.ApiCredential(
             provider=normalized_provider,
             encrypted_secret=encrypted_secret,
@@ -119,7 +124,8 @@ def upsert_api_credential(
             credential.encrypted_secret = cipher.encrypt(secret)
             credential.secret_hint = build_secret_hint(secret)
         if model_name is not None:
-            credential.model = GeminiClient.normalize_model_name(model_name or settings.gemini_model)
+            resolved_model = GeminiClient.normalize_model_name(model_name or default_model)
+            credential.model = GeminiClient.sanitize_model_name(resolved_model, fallback=default_model)
         if payload.is_active is not None:
             credential.is_active = payload.is_active
         credential.created_by_user = credential.created_by_user or admin_user

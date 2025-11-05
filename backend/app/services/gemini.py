@@ -183,6 +183,19 @@ class GeminiClient:
         "gemini-1.5-flash": "models/gemini-1.5-flash",
         "gemini-2.0-flash": "models/gemini-2.0-flash",
     }
+    _DEFAULT_SUPPORTED_MODEL: ClassVar[str] = (
+        settings.__class__.model_fields["gemini_model"].default or "models/gemini-2.0-flash"
+    )
+    _DEPRECATED_MODEL_NAMES: ClassVar[frozenset[str]] = frozenset(
+        {
+            "models/gemini-2.0-flash-exp",
+            "models/gemini-2.0-flash-exp-image-generation",
+            "gemini-1.0-pro",
+            "models/gemini-1.0-pro",
+            "gemini-1.0-pro-vision",
+            "models/gemini-1.0-pro-vision",
+        }
+    )
 
     def __init__(
         self,
@@ -323,6 +336,41 @@ class GeminiClient:
         if normalized.startswith("gemini-2.0-flash"):
             return f"models/{normalized}"
         return normalized
+
+    @classmethod
+    def sanitize_model_name(cls, model: str, *, fallback: str | None = None) -> str:
+        """Replace deprecated Gemini model identifiers with a safe fallback."""
+
+        normalized = model.strip()
+        if not normalized:
+            return normalized
+        if normalized not in cls._DEPRECATED_MODEL_NAMES:
+            return normalized
+
+        fallback_candidate = fallback or settings.gemini_model
+        fallback_normalized = (
+            cls.normalize_model_name(fallback_candidate)
+            if fallback_candidate
+            else ""
+        )
+        candidate_defaults = [fallback_normalized]
+
+        configured_default = (
+            cls.normalize_model_name(settings.gemini_model)
+            if settings.gemini_model
+            else ""
+        )
+        if configured_default:
+            candidate_defaults.append(configured_default)
+
+        normalized_safe_default = cls.normalize_model_name(cls._DEFAULT_SUPPORTED_MODEL)
+        candidate_defaults.append(normalized_safe_default)
+
+        for candidate in candidate_defaults:
+            if candidate and candidate not in cls._DEPRECATED_MODEL_NAMES:
+                return candidate
+
+        return normalized_safe_default or normalized
 
     def analyze(
         self,
@@ -816,6 +864,7 @@ def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[s
         )
         .first()
     )
+    default_model = GeminiClient.normalize_model_name(settings.gemini_model)
     if not credential:
         disabled_credential_exists = (
             db.query(models.ApiCredential)
@@ -830,7 +879,8 @@ def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[s
             raise GeminiConfigurationError("Gemini API key is disabled. Update it from the admin settings.")
 
         if settings.gemini_api_key:
-            return settings.gemini_api_key, GeminiClient.normalize_model_name(settings.gemini_model)
+            sanitized_default = GeminiClient.sanitize_model_name(default_model, fallback=default_model)
+            return settings.gemini_api_key, sanitized_default
 
         raise GeminiConfigurationError("Gemini API key is not configured. Update it from the admin settings.")
 
@@ -859,14 +909,15 @@ def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[s
     if not secret:
         raise GeminiConfigurationError("Gemini API key is not configured. Update it from the admin settings.")
 
-    model = credential.model or settings.gemini_model
+    model = credential.model or default_model
     normalized_model = GeminiClient.normalize_model_name(model)
-    if credential.model and credential.model != normalized_model:
-        credential.model = normalized_model
+    sanitized_model = GeminiClient.sanitize_model_name(normalized_model, fallback=default_model)
+    if credential.model != sanitized_model:
+        credential.model = sanitized_model
         db.add(credential)
         db.commit()
         db.refresh(credential)
-    return secret, normalized_model
+    return secret, sanitized_model
 
 
 def _load_gemini_api_key(db: Session, provider: str = "gemini") -> str:
