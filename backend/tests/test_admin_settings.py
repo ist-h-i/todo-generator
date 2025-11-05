@@ -5,6 +5,8 @@ from unittest import TestCase
 from fastapi.testclient import TestClient
 
 from app import models
+from app.config import settings
+from app.services.gemini import GeminiClient
 from app.utils.secrets import build_secret_hint, get_secret_cipher
 
 from .conftest import TestingSessionLocal
@@ -55,6 +57,26 @@ def test_admin_can_update_gemini_model_without_rotating_secret(client: TestClien
     assertions.assertTrue(fetch.status_code == 200, fetch.text)
     fetched_payload = fetch.json()
     assertions.assertTrue(fetched_payload["model"] == "models/gemini-1.5-flash")
+
+
+def test_admin_replace_deprecated_model_on_create(client: TestClient) -> None:
+    headers = _admin_headers(client)
+
+    create = client.put(
+        "/admin/api-credentials/gemini",
+        headers=headers,
+        json={"secret": "sk-deprecated", "model": "models/gemini-2.0-flash-exp"},
+    )
+    assertions.assertTrue(create.status_code == 200, create.text)
+    payload = create.json()
+
+    expected = GeminiClient.normalize_model_name(settings.gemini_model)
+    assertions.assertTrue(payload["model"] == expected)
+
+    fetch = client.get("/admin/api-credentials/gemini", headers=headers)
+    assertions.assertTrue(fetch.status_code == 200, fetch.text)
+    fetched = fetch.json()
+    assertions.assertTrue(fetched["model"] == expected)
 
 
 def test_admin_credentials_use_default_secret_key(client: TestClient) -> None:

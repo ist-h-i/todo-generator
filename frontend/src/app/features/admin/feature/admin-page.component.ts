@@ -200,18 +200,11 @@ export class AdminPageComponent {
   public readonly geminiModelOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: 'models/gemini-2.0-flash', label: 'Gemini 2.0 Flash (推奨)' },
     { value: 'models/gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' },
-    { value: 'models/gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash Experimental' },
-    {
-      value: 'models/gemini-2.0-flash-exp-image-generation',
-      label: 'Gemini 2.0 Flash Experimental (画像生成)',
-    },
     { value: 'models/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash 001' },
     { value: 'models/gemini-1.5-flash', label: 'Gemini 1.5 Flash (互換)' },
     { value: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash (-latest エイリアス)' },
     { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (互換モード)' },
     { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-    { value: 'gemini-1.0-pro', label: 'Gemini 1.0 Pro' },
-    { value: 'gemini-1.0-pro-vision', label: 'Gemini 1.0 Pro Vision' },
   ];
   private readonly knownGeminiModelValues = new Set(
     this.geminiModelOptions.map((option) => option.value),
