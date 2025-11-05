@@ -183,6 +183,9 @@ class GeminiClient:
         "gemini-1.5-flash": "models/gemini-1.5-flash",
         "gemini-2.0-flash": "models/gemini-2.0-flash",
     }
+    _DEFAULT_SUPPORTED_MODEL: ClassVar[str] = (
+        settings.__class__.model_fields["gemini_model"].default or "models/gemini-2.0-flash"
+    )
     _DEPRECATED_MODEL_NAMES: ClassVar[frozenset[str]] = frozenset(
         {
             "models/gemini-2.0-flash-exp",
@@ -350,9 +353,24 @@ class GeminiClient:
             if fallback_candidate
             else ""
         )
-        if fallback_normalized and fallback_normalized not in cls._DEPRECATED_MODEL_NAMES:
-            return fallback_normalized
-        return fallback_normalized or normalized
+        candidate_defaults = [fallback_normalized]
+
+        configured_default = (
+            cls.normalize_model_name(settings.gemini_model)
+            if settings.gemini_model
+            else ""
+        )
+        if configured_default:
+            candidate_defaults.append(configured_default)
+
+        normalized_safe_default = cls.normalize_model_name(cls._DEFAULT_SUPPORTED_MODEL)
+        candidate_defaults.append(normalized_safe_default)
+
+        for candidate in candidate_defaults:
+            if candidate and candidate not in cls._DEPRECATED_MODEL_NAMES:
+                return candidate
+
+        return normalized_safe_default or normalized
 
     def analyze(
         self,

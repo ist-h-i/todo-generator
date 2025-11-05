@@ -522,6 +522,17 @@ def test_sanitize_model_name_replaces_deprecated_models() -> None:
     )
 
 
+def test_sanitize_model_name_uses_supported_default_when_all_fallbacks_deprecated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "gemini_model", "models/gemini-1.0-pro", raising=False)
+    default_model = GeminiClient.normalize_model_name(settings.gemini_model)
+
+    sanitized = GeminiClient.sanitize_model_name("models/gemini-1.0-pro", fallback=default_model)
+
+    assertions.assertTrue(sanitized == "models/gemini-2.0-flash")
+
+
 def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeModel:
         def __init__(self, name: str, methods: tuple[str, ...]) -> None:
