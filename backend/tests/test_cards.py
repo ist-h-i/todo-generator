@@ -8,18 +8,15 @@ from app.routers import cards as cards_router
 from app.services.recommendation_scoring import RecommendationScore
 from app.utils.quotas import DEFAULT_CARD_DAILY_LIMIT
 
+from .utils.auth import register_user
+
 assertions = TestCase()
 
 DEFAULT_PASSWORD = "Register123!"
 
 
 def register_and_login(client: TestClient, email: str, password: str = DEFAULT_PASSWORD) -> dict[str, str]:
-    response = client.post(
-        "/auth/register",
-        json={"email": email, "password": password, "nickname": "Tester"},
-    )
-    assertions.assertTrue(response.status_code == 201, response.text)
-    token_payload = response.json()
+    token_payload = register_user(client, email=email, password=password)
     assertions.assertTrue("access_token" in token_payload)
     assertions.assertTrue(token_payload["user"]["email"] == email)
     login_response = client.post(
