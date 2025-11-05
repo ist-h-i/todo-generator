@@ -13,17 +13,15 @@ from app.main import app
 from app.services.gemini import GeminiError, get_gemini_client
 from app.services.status_reports import StatusReportService
 
+from .utils.auth import register_user
+
 assertions = TestCase()
 
 DEFAULT_PASSWORD = "Register123!"  # noqa: S105 - test helper credential
 
 
 def register_and_login(client: TestClient, email: str, password: str = DEFAULT_PASSWORD) -> dict[str, str]:
-    response = client.post(
-        "/auth/register",
-        json={"email": email, "password": password, "nickname": "Reporter"},
-    )
-    assertions.assertTrue(response.status_code == 201, response.text)
+    register_user(client, email=email, password=password, nickname="Reporter")
     login_response = client.post(
         "/auth/login",
         json={"email": email, "password": password},

@@ -7,6 +7,8 @@ from unittest import TestCase
 from fastapi import HTTPException, status
 from fastapi.testclient import TestClient
 
+from .utils.auth import register_user
+
 assertions = TestCase()
 
 _DEFAULT_TEST_PASSWORD = "Password123!"  # noqa: S105 - fixed credential for test accounts
@@ -15,12 +17,7 @@ _DEFAULT_TEST_PASSWORD = "Password123!"  # noqa: S105 - fixed credential for tes
 def _register_and_login(
     client: TestClient, email: str, password: str = _DEFAULT_TEST_PASSWORD
 ) -> tuple[str, dict[str, str]]:
-    response = client.post(
-        "/auth/register",
-        json={"email": email, "password": password, "nickname": "ProfileUser"},
-    )
-    assertions.assertTrue(response.status_code == 201)
-    payload = response.json()
+    payload = register_user(client, email=email, password=password, nickname="ProfileUser")
     token = payload["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     return token, headers
