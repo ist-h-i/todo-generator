@@ -189,6 +189,24 @@ def test_verification_code_expires_after_timeout(client: TestClient) -> None:
     assertions.assertTrue(success.status_code == 201, success.text)
 
 
+def test_request_code_returns_response_when_email_delivery_unavailable(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, email: str
+) -> None:
+    monkeypatch.setattr("app.config.settings.debug", False)
+    monkeypatch.setattr("app.config.settings.email_verification_delivery", "smtp")
+    monkeypatch.setattr("app.config.settings.smtp_host", None)
+    monkeypatch.setattr("app.config.settings.email_verification_sender", None)
+
+    response = client.post("/auth/register/request-code", json={"email": email})
+    assertions.assertTrue(response.status_code == 202, response.text)
+    payload = response.json()
+    assertions.assertTrue(payload.get("verification_code"))
+    assertions.assertTrue(
+        "returning code" in payload.get("message", "").lower(),
+        payload,
+    )
+
+
 def test_login_allows_legacy_normalized_emails(client: TestClient) -> None:
     login_input = "Straße@Example.com"
     stored_email = login_input.strip().lower()

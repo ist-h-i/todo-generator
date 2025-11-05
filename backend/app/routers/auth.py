@@ -14,10 +14,14 @@ from ..auth import (
 )
 from ..config import settings
 from ..database import get_db
+from ..services.email_verification import (
+    consume_verification_code,
+    deliver_verification_code,
+    issue_verification_code,
+)
 from ..services.profile import build_user_profile, normalize_nickname
 from ..services.status_defaults import ensure_default_statuses
 from ..services.workspace_template_defaults import ensure_default_workspace_template
-from ..services.email_verification import consume_verification_code, issue_verification_code
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -31,9 +35,16 @@ def request_registration_code(
     payload: schemas.VerificationCodeRequest, db: Session = Depends(get_db)
 ) -> schemas.VerificationCodeResponse:
     _, code_value = issue_verification_code(db, payload.email)
-    response_data: dict[str, str | None] = {"message": "Verification code sent.", "verification_code": None}
-    if settings.debug:
-        response_data["verification_code"] = code_value
+    delivery = deliver_verification_code(payload.email, code_value)
+    share_code = settings.debug or delivery.share_via_response
+    response_message = delivery.message
+    if settings.debug and not delivery.share_via_response:
+        response_message = "Verification code sent. Debug mode returning code in response."
+
+    response_data: dict[str, str | None] = {
+        "message": response_message,
+        "verification_code": code_value if share_code else None,
+    }
     return schemas.VerificationCodeResponse(**response_data)
 
 
