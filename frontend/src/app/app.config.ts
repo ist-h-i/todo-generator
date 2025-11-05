@@ -26,7 +26,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideHttpClient(
       withFetch(),
-      withInterceptors([authInterceptor, loadingInterceptor, timeoutInterceptor, errorInterceptor]),
+      withInterceptors([authInterceptor, loadingInterceptor, errorInterceptor, timeoutInterceptor]),
     ),
   ],
 };
