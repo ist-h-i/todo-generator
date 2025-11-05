@@ -3,7 +3,7 @@ set -euo pipefail
 
 # --- single-line logger: replace newlines with \n (no pipes) ---
 oneline() {
-  # $1 の改行を \n に変換して1行で出力
+  # Replace embedded newlines with \n so GitHub log annotations stay on one line.
   local s="${1//$'\n'/\\n}"
   printf '%s\n' "$s"
 }
@@ -16,8 +16,12 @@ fi
 
 # ---------- Task input ----------
 TASK_INPUT="${TASK_INPUT:-${1:-}}"
-if [ -z "${TASK_INPUT}" ] && [ ! -t 0 ]; then
-  TASK_INPUT="$(cat)"
+if [ ! -t 0 ]; then
+  if [ -z "${TASK_INPUT}" ]; then
+    TASK_INPUT="$(cat)"
+  else
+    cat >/dev/null || true
+  fi
 fi
 # trim
 TASK_INPUT="${TASK_INPUT#${TASK_INPUT%%[![:space:]]*}}"
