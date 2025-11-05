@@ -1,34 +1,41 @@
 **Summary**
-- Change the selector so the options panel closes immediately when the user clicks an option (single-select scope).
+- Update the custom single-select so the options panel closes immediately when an option is clicked. Preserve existing behavior for keyboard and dismissal interactions. Multi-select and native `<select>` are out of scope.
 
 **Assumptions**
-- Target is a custom single-select component (not native `<select>`).
-- Multi-select/native variants, if present, should keep existing behavior (do not auto-close on each selection).
+- Target is a custom single-select component (not native).
 - Focus should return to the trigger after an intentional close.
+- Existing ESC and outside-click-to-close behaviors remain.
+- Multi-select/native variants retain their current behavior.
 
 **Constraints**
-- Minimal change, no broad UI/UX refactors.
-- Preserve accessibility: ESC/outside-click close, ARIA roles/states, and focus management.
-- Keep keyboard behavior consistent; Enter should mirror click.
-
-**Unknowns**
-- Exact component/file path of the selector in this repo snapshot.
-- Whether Space key should also select/close for parity with native controls.
-- Whether a search/typeahead exists inside the panel that could be affected by close timing.
+- Minimal, localized change; avoid broad refactors.
+- No API/dependency changes.
+- Maintain accessibility (roles/states, focus management).
+- Deliver a finished, self-contained outcome.
 
 **Acceptance Criteria**
-- Clicking an option selects it and closes the panel.
-- Focus returns to the trigger after selection close.
-- Keyboard Enter selects and closes; ESC and outside-click close remain unchanged.
-- Multi-select/native paths remain unchanged.
+- Click on option → select value and close panel immediately.
+- Focus returns to the trigger after this close.
+- Enter on active option selects and closes; ESC and outside-click close remain unchanged.
+- Multi-select/native `<select>` behavior unchanged.
+
+**Unknowns**
+- Exact component/file path in this repo snapshot (referenced path may not exist here).
+- Whether Space should also select/close for parity with native controls.
+- Presence of embedded search/typeahead in the panel that might affect close timing.
+- Handling for disabled options (should not select/close).
 
 **Residual Risks / Open Questions**
-- Blur vs click ordering in some browsers can interfere; may require careful event ordering if observed.
-- If options contain rich HTML now or in the future, ensure labels remain sanitized/escaped.
-- If selection triggers server-side changes, confirm server validation/allowlisting and CSRF protection.
+- Blur vs click event ordering could cause rare race conditions; may require careful sequencing (only if observed).
+- Space key parity with Enter is unspecified; expectations may vary.
+- Outside-click containment may change if the panel is portaled/overlaid later.
+- If option labels ever include rich HTML, ensure sanitization/escaping to avoid XSS.
+- If selection triggers server-side effects, confirm server validation/allowlisting and CSRF protections.
+- Global listener cleanup to avoid leaks (document click handlers).
 
-**Clarifying questions**
-- Which component/file implements the selector to target with this change?
-- Should Space also select/close in single-select for keyboard parity?
-- Do we need to handle any embedded search/typeahead within the panel?
-- Confirm scope: single-select only, with multi-select/native unaffected?
+**Clarifying Questions**
+- Which component/file implements the target selector in this repository snapshot?
+- Should Space also select/close in single-select mode?
+- Is there a search/typeahead inside the panel to consider for close timing?
+- Are there disabled options and should clicks on them be ignored without closing?
+- Confirm scope: custom single-select only; multi-select/native remain unchanged.
