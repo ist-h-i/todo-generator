@@ -109,7 +109,9 @@ def deliver_verification_code(email: str, code: str) -> VerificationDeliveryResu
     context = create_default_context()
     try:
         if settings.smtp_use_ssl:
-            port = settings.smtp_port or 465
+            port = settings.smtp_port
+            if not port or port == 587:
+                port = 465
             with smtplib.SMTP_SSL(settings.smtp_host, port, context=context) as client:
                 if settings.smtp_username:
                     client.login(settings.smtp_username, settings.smtp_password or "")
