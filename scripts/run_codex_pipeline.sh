@@ -417,11 +417,6 @@ for raw in text.splitlines():
     if '?' in lowered:
         print("true")
         break
-    upper = clean.upper()
-    markers = ("TBD", "TBC", "???", "FIXME", "PENDING", "TO DO", "TODO")
-    if any(marker in upper for marker in markers):
-        print("true")
-        break
     prefixes = (
         "none",
         "n/a",
@@ -435,6 +430,11 @@ for raw in text.splitlines():
         continue
     if any(lowered.startswith(prefix) for prefix in prefixes):
         continue
+    upper = clean.upper()
+    markers = ("TBD", "TBC", "???", "FIXME", "PENDING", "TO DO", "TODO")
+    if any(marker in upper for marker in markers):
+        print("true")
+        break
     print("true")
     break
 else:
