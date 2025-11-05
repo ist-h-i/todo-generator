@@ -1,41 +1,50 @@
-**Summary**
-- Update the custom single-select so the options panel closes immediately when an option is clicked. Preserve existing behavior for keyboard and dismissal interactions. Multi-select and native `<select>` are out of scope.
+**English Restatement**
+Change the custom single-select so that when a user clicks an option, the options panel closes immediately. Preserve existing keyboard and dismissal behavior. Multi‑select and native `<select>` are out of scope.
 
-**Assumptions**
-- Target is a custom single-select component (not native).
-- Focus should return to the trigger after an intentional close.
-- Existing ESC and outside-click-to-close behaviors remain.
-- Multi-select/native variants retain their current behavior.
+**Objectives / Definition of Done**
+- Option click applies selection and closes the panel immediately.
+- Focus returns to the trigger after an intentional close (click/Enter/Escape).
+- Keyboard: Arrow navigation unchanged; Enter selects and closes; Escape closes without selection.
+- Outside click closes without forcibly moving focus.
+- Multi‑select/native `<select>` behavior remains unchanged.
+
+**In Scope**
+- Custom single‑select option click → select + close + focus restore.
+
+**Out of Scope**
+- Multi‑select auto‑close changes.
+- Native `<select>` behavior changes.
+- Overlays/portals, search/typeahead, or broader redesigns.
+- Backend/API changes.
 
 **Constraints**
-- Minimal, localized change; avoid broad refactors.
-- No API/dependency changes.
-- Maintain accessibility (roles/states, focus management).
-- Deliver a finished, self-contained outcome.
+- Minimize changes and avoid creating unnecessary tasks.
+- Deliver a finished, self‑contained outcome with minimal project impact.
+- No dependency or API surface changes.
 
-**Acceptance Criteria**
-- Click on option → select value and close panel immediately.
-- Focus returns to the trigger after this close.
-- Enter on active option selects and closes; ESC and outside-click close remain unchanged.
-- Multi-select/native `<select>` behavior unchanged.
+**Assumptions**
+- There is a custom single‑select component controlling its own panel and focus.
+- Existing ESC and outside‑click closing behaviors already work and should be preserved.
+- Disabled options (if any) should neither select nor close the panel.
+- Prior stage artifacts suggest the behavior may already be compliant; verification will confirm.
 
 **Unknowns**
-- Exact component/file path in this repo snapshot (referenced path may not exist here).
-- Whether Space should also select/close for parity with native controls.
-- Presence of embedded search/typeahead in the panel that might affect close timing.
-- Handling for disabled options (should not select/close).
+- Exact file/component path for the target selector in this repo snapshot.
+- Whether Space should also select/close for keyboard parity with native controls.
+- Presence of disabled options and desired behavior on click.
+- Whether the panel is rendered inline vs via portal/overlay (affects outside‑click logic).
+- Any tests or analytics relying on current behavior.
 
 **Residual Risks / Open Questions**
-- Blur vs click event ordering could cause rare race conditions; may require careful sequencing (only if observed).
-- Space key parity with Enter is unspecified; expectations may vary.
-- Outside-click containment may change if the panel is portaled/overlaid later.
-- If option labels ever include rich HTML, ensure sanitization/escaping to avoid XSS.
-- If selection triggers server-side effects, confirm server validation/allowlisting and CSRF protections.
-- Global listener cleanup to avoid leaks (document click handlers).
+- Blur vs click event ordering could cause rare race conditions; may need careful sequencing only if observed.
+- Space key parity with Enter may be expected by some users.
+- If panel rendering moves to a portal/overlay, outside‑click containment might need adjustment.
+- If option labels ever include rich HTML, ensure escaping/sanitization to prevent XSS.
+- If selection triggers server actions, ensure server‑side validation/allowlisting and CSRF protections.
 
-**Clarifying Questions**
+## Clarifying questions
 - Which component/file implements the target selector in this repository snapshot?
-- Should Space also select/close in single-select mode?
-- Is there a search/typeahead inside the panel to consider for close timing?
-- Are there disabled options and should clicks on them be ignored without closing?
-- Confirm scope: custom single-select only; multi-select/native remain unchanged.
+- Should the Space key also select and close in single‑select mode?
+- Do disabled options exist, and should clicks on them be ignored without closing?
+- Is the panel rendered inline or via an overlay/portal?
+- Are there tests/analytics tied to current timing that we should keep stable?

@@ -1,23 +1,26 @@
-**Findings**
-- Goal: Single-select closes its option panel immediately on option click; keyboard and dismissal behaviors unchanged; multi-select/native `<select>` out of scope.
-- Prior stage artifacts indicate behavior already exists; actual component path in this repo may differ. To minimize churn, verify first and close if compliant.
+Findings
+- Goal is minimal: custom single‑select should close on option click; multi‑select/native remain unchanged.
+- Prior artifacts indicate the component already does select → close → focus restore; likely no code change required.
+- To minimize churn, verify acceptance quickly, then close with a concise release note.
 
-**Lean Plan**
-- Verify acceptance criteria without touching code, then publish a concise release note. If verification fails, we’ll expand with coder and implementation_reviewer in a follow-up.
+Plan
+- Run a lightweight requirements review to confirm behavior and scope (no code).
+- If compliant, proceed directly to release management and close. If not, expand later with coder + implementation_reviewer only.
 
-**Acceptance Criteria**
-- Click option → selection applied and panel closes; focus returns to trigger.
-- Enter on active option behaves the same; ESC and outside-click close remain unchanged.
-- Multi-select/native `<select>` behavior unchanged.
+Residual Risks / Open Questions
+- Space key parity: should Space also select/close like Enter?
+- Disabled options: ensure clicks don’t select or close.
+- Outside‑click containment if panel moves to a portal/overlay in the future.
+- File path mismatch risk in this snapshot; confirm the actual selector component before asserting compliance.
+- Rare blur vs click sequencing issues in specific browsers (monitor, don’t preemptively change).
 
-**Residual Risks / Open Questions**
-- Component/file path mismatch in this snapshot; confirm the actual selector component.
-- Space key parity with Enter (currently unspecified).
-- Disabled option handling (ignore click and don’t close).
-- Future overlay/portal rendering could affect outside-click containment.
-- If option labels ever allow rich HTML, ensure sanitization.
-- If selection triggers server actions, confirm server validation/allowlisting and CSRF protections.
+Validation (manual)
+- Open single‑select → click an option → value updates, panel closes, focus returns to trigger.
+- Arrow keys to option + Enter → selection and close.
+- ESC closes; outside click closes without forcing focus.
+- Multi‑select/native `<select>` unchanged.
+- Click a disabled option → no selection change; panel stays open.
 
 ```json
-{"steps":["requirements_reviewer","release_manager"],"notes":"Keep scope minimal: confirm the custom single-select already closes on option click with correct focus and keyboard/ESC/outside-click behaviors. If confirmed, close with a brief release summary. If not, add coder+implementation_reviewer in a follow-up to implement a localized option-click handler that selects then closePanel(restoreFocus). Watch for path mismatch and disabled-option behavior.","tests":"Manual: (1) Open single-select → click an option → panel closes, value updates, focus returns to trigger. (2) Arrow keys to an option + Enter → selection and close. (3) Press ESC while open → closes. (4) Click outside → closes without forced focus. (5) Multi-select/native <select> paths remain unchanged. (6) Try clicking a disabled option → selection should not change and panel should not close."}
+{"steps":["requirements_reviewer","release_manager"],"notes":"Keep the route lean: confirm the custom single-select already closes on option click with proper focus/keyboard/outside-click behavior. If confirmed, publish a brief release summary and close. If a mismatch is found, we will add coder and implementation_reviewer in a follow-up to implement a localized option-click handler (select → closePanel(true) → focus restore).","tests":"Manual: (1) Open single-select → click an option → panel closes, focus returns to trigger. (2) Arrow keys to option + Enter → selection and close. (3) ESC → closes; outside click → closes without forced focus. (4) Multi-select/native <select> unchanged. (5) Click a disabled option → no selection change; panel stays open."}
 ```

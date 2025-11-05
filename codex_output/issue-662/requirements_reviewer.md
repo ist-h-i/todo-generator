@@ -1,50 +1,41 @@
 **Summary**
-- Goal is clear and minimal: in the custom single-select, close the options panel immediately upon option click, without changing multi-select or native `<select>` behaviors.
+- Requirement is clear and minimal: in the custom single-select, clicking an option should immediately close the options panel while restoring focus to the trigger. Multi‑select and native `<select>` are out of scope.
 
 **Scope**
-- In scope: custom single‑select only.
-- Out of scope: multi‑select behavior, native `<select>`, overlays/portals, search/typeahead additions, backend/API changes.
+- In scope: custom single‑select option click behavior, focus management on intentional close.
+- Out of scope: multi‑select auto‑close, native `<select>`, overlay/portal refactors, search/typeahead, backend/API changes.
 
 **Acceptance Criteria**
-- Option click selects the value and closes the panel immediately.
+- Option click applies selection and closes the panel immediately.
 - After intentional close (click/Enter/Escape), focus returns to the trigger.
-- Keyboard: Arrow navigation preserved; Enter selects and closes; Escape closes (no selection change).
-- Outside click closes the panel and does not forcibly move focus to the trigger.
-- Disabled options: clicking a disabled option must not change selection or close the panel.
+- Keyboard: Arrow navigation unchanged; Enter selects and closes; Escape closes without selection change.
+- Outside click closes without forcibly moving focus.
+- Disabled options do not select and do not close the panel.
 - Multi‑select/native `<select>` behavior remains unchanged.
 
-**Non‑Functional / A11y**
-- Maintain ARIA roles/states (e.g., listbox/option, `aria-selected`).
-- Preserve current outside‑click and ESC handling; no regressions in keyboard navigation.
+**Non‑Functional**
 - No dependency or API surface changes.
+- Preserve accessibility roles/states and current keyboard interactions.
+- Keep changes minimal and localized (or confirm no change if already compliant).
 
-**Edge Cases to Capture**
-- Blur vs click ordering: avoid races that prevent selection from applying before close.
-- Async/late-loaded options: ensure label/value remain consistent when panel closes.
-- Very small viewports and scrollable panels: closing should not trap focus or scroll unexpectedly.
+**Gaps / Potential Conflicts**
+- Space key behavior is unspecified; decide whether Space should also select/close in single‑select for parity with native controls.
+- Component/file path for the target selector in this repo snapshot is not explicitly confirmed; verify the actual component to ground acceptance.
+- Disabled option behavior is called out here; confirm expectation if not already defined.
+- If the panel is rendered via a portal/overlay, outside‑click containment logic may differ.
 
-**Conflicts/Gaps**
-- Space key behavior unspecified; decide whether Space should select/close like Enter.
-- Disabled-option behavior not explicitly stated before; added AC above for clarity.
-- Component/file path uncertainty in this snapshot; confirm the actual selector component to verify behavior with confidence.
-
-**Definition of Done**
-- Behavior matches all AC in single‑select mode.
-- No changes to multi‑select/native paths.
-- A11y/focus behavior validated manually.
-- Short release note describing the interaction timing and scope.
-
-**Verification Checklist**
-- Open → click option → selection applied, panel closes, focus returns to trigger.
-- Arrow keys to item + Enter → selection applied, panel closes, focus returns to trigger.
-- Press ESC while open → closes; focus returns to trigger; selection unchanged.
+**Test Scenarios (DoD Validation)**
+- Open → click option → selection applies, panel closes, focus returns to trigger.
+- Arrow keys to option + Enter → selection applies and closes.
+- Press Escape while open → closes; selection unchanged; focus returns to trigger.
 - Click outside → closes; focus not forcibly moved.
 - Click a disabled option → no selection change; panel stays open.
-- Multi‑select/native `<select>` → unchanged behavior.
+- Multi‑select/native paths → unchanged behavior.
 
 **Residual Risks / Open Questions**
-- Space key parity with Enter: do we also close on Space?
-- If the panel is later rendered via a portal/overlay, re‑validate outside‑click containment.
-- If option labels ever include rich HTML, ensure sanitization/escaping to avoid XSS.
-- If selection triggers server actions, confirm server‑side validation/allowlisting and CSRF protections.
-- Confirm the exact component/file path in this repository snapshot to ground verification.
+- Space key parity: should Space also select/close in single‑select?
+- Confirm target component/file path in this snapshot to validate behavior.
+- Rare blur vs click ordering races (only address if observed; avoid preemptive changes).
+- Future overlay/portal rendering could require revisiting outside‑click containment.
+- If option labels can include rich HTML, ensure continued escaping/sanitization.
+- If selection triggers server actions, ensure server‑side validation/allowlisting and CSRF protections.
