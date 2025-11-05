@@ -1,46 +1,34 @@
 **Summary**
-
-- Change the selector’s behavior so that when a user clicks an option, the selector’s option panel closes immediately.
+- Change the selector so the options panel closes immediately when the user clicks an option (single-select scope).
 
 **Assumptions**
-
-- “Selector” refers to a custom dropdown/select component in this project (not the native HTML `select`).
-- The current issue is that the options panel does not close on option click (e.g., only closes on blur or external click).
-- Single-select behavior is desired (closing on selection). If multi-select exists, its behavior may differ.
+- Target is a custom single-select component (not native `<select>`).
+- Multi-select/native variants, if present, should keep existing behavior (do not auto-close on each selection).
+- Focus should return to the trigger after an intentional close.
 
 **Constraints**
-
-- Minimal code changes; avoid refactors or broad UI/UX changes.
-- Deliver a self-contained fix without introducing regressions.
-- Preserve existing accessibility and keyboard interactions where possible.
+- Minimal change, no broad UI/UX refactors.
+- Preserve accessibility: ESC/outside-click close, ARIA roles/states, and focus management.
+- Keep keyboard behavior consistent; Enter should mirror click.
 
 **Unknowns**
+- Exact component/file path of the selector in this repo snapshot.
+- Whether Space key should also select/close for parity with native controls.
+- Whether a search/typeahead exists inside the panel that could be affected by close timing.
 
-- Which component(s) is “selector” (file/path/component name)?
-- Is multi-select supported, and should it close after each selection?
-- Are there keyboard and screen reader requirements (e.g., Enter/Space selection should also close)?
-- Are there debounce/search-input interactions inside the panel that could be affected?
-- Current event handling specifics (e.g., click vs mousedown leading to blur ordering issues).
-- Framework/library in use (React/Vue/Svelte/etc.) and any shared dropdown utility.
+**Acceptance Criteria**
+- Clicking an option selects it and closes the panel.
+- Focus returns to the trigger after selection close.
+- Keyboard Enter selects and closes; ESC and outside-click close remain unchanged.
+- Multi-select/native paths remain unchanged.
 
-**Risks**
+**Residual Risks / Open Questions**
+- Blur vs click ordering in some browsers can interfere; may require careful event ordering if observed.
+- If options contain rich HTML now or in the future, ensure labels remain sanitized/escaped.
+- If selection triggers server-side changes, confirm server validation/allowlisting and CSRF protection.
 
-- Using `onClick` may conflict with blur events (panel might close before selection registers or vice versa); `onMouseDown` may be needed.
-- Potential regressions in multi-select or typeahead/searchable dropdowns.
-- Accessibility regressions (focus management, ARIA roles, ESC handling).
-- If options render in a portal, event propagation/closing logic may need careful handling.
-
-**Acceptance Criteria (Proposed)**
-
-- Clicking an option selects it and closes the options panel.
-- Focus returns to the selector trigger (or follows current accessibility pattern).
-- Keyboard selection (Enter/Space) mirrors the click behavior.
-- No change to multi-select behavior unless specified.
-
-## Clarifying questions
-
-- Which component(s) implements the selector options panel (file/component names)?
-- Is the selector single-select only, or do we also support multi-select? If multi-select, should the panel close after each selection?
-- Are there existing accessibility requirements we must preserve (focus return, ARIA attributes, ESC to close)?
-- Should keyboard selection (Enter/Space) also close the panel?
-- Any known interactions with search/typeahead inside the panel we must consider?
+**Clarifying questions**
+- Which component/file implements the selector to target with this change?
+- Should Space also select/close in single-select for keyboard parity?
+- Do we need to handle any embedded search/typeahead within the panel?
+- Confirm scope: single-select only, with multi-select/native unaffected?

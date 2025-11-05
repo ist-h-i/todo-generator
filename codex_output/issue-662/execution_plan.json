@@ -1,16 +1,15 @@
 {
   "steps": [
-    "requirements_analyst",
-    "detail_designer",
-    "coder",
-    "code_quality_reviewer",
-    "security_reviewer",
-    "ai_safety_reviewer",
-    "uiux_reviewer",
-    "doc_writer",
-    "doc_editor",
-    "integrator",
+    "requirements_reviewer",
     "release_manager"
   ],
-  "source": "fallback"
+  "source": "planner",
+  "planner_payload": {
+    "steps": [
+      "requirements_reviewer",
+      "release_manager"
+    ],
+    "notes": "Verify the custom single-select already closes on option click, restores focus, and preserves keyboard/ESC/outside-click behaviors. If confirmed, close as already compliant with a concise release note; if not, we will add coder + implementation_reviewer in a follow-up. Watch for path mismatch; confirm the actual component location in this repo snapshot.",
+    "tests": "Manual: (1) Open selector, click an option -> panel closes, value updates, focus returns to trigger. (2) ArrowDown + Enter -> selection and close. (3) ESC closes; outside click closes without forced focus. (4) Confirm multi-select/native select paths unchanged. Document findings in the review step."
+  }
 }

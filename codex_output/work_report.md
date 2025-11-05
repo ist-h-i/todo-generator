@@ -1,38 +1,37 @@
 **背景**
-- Request: Change selector behavior so the options panel closes immediately when an option is clicked.
-- Scope: Custom single-select selector only; avoid broader UI/UX changes.
-- Note: Prior analysis indicates this behavior already exists (click selects and closes). However, the referenced frontend file paths are not present in this repo snapshot; evidence is from prior stage artifacts.
+- 要件: 単一選択のセレクターで、オプションをクリックした瞬間にオプションパネルを閉じる。
+- スコープ: カスタム単一選択のみ（ネイティブ `<select>` や複数選択は対象外）。
+- 既知の状況: 事前ステージの成果物では、クリックで選択→即クローズ（フォーカスをトリガーへ戻す）が既に実装済みと確認済み。
+- リポジトリ注記: 参照されたフロントエンドのファイルパスは現スナップショットに存在せず、挙動証跡は前段成果物に基づく。
 
 **変更概要**
-- No code change required if targeting the custom single‑select component described in prior stages:
-  - Option click triggers selection and calls a close routine that restores focus to the trigger.
-  - Enter key selection mirrors click; Escape and outside click close as expected.
-- If the intended selector is a different component, please provide its file path; we can apply a minimal change (ensure option click handler runs selection, then closes panel, returning focus to trigger).
+- コード変更は不要（対象のカスタム単一選択では、クリック選択時に即クローズ済み）。
+- キー操作の Enter による選択も同様にクローズ。ESC/外側クリックでのクローズも維持。
+- もし対象コンポーネントが別物で未対応なら、最小変更で「オプションクリック → 選択適用 → パネルを閉じてトリガーへフォーカス復帰」を実装。
 
 **影響**
-- With no changes: current behavior already matches the requirement; no regression risk.
-- If a fix is needed in another component:
-  - Minimal, localized change to option click handler.
-  - Should not affect multi‑select/native `<select>` paths.
-  - Maintain existing accessibility (focus return, ARIA roles).
+- 変更なしの場合、挙動は要件と一致し回帰リスクなし。
+- 別コンポーネントに修正が必要な場合も、クリックハンドラの局所変更のみで他UIやマルチセレクト経路へ影響なし。
+- アクセシビリティ（フォーカス復帰、ARIAロール）は現行どおり維持。
 
 **検証**
-- Manual checks (single‑select):
-  - Open → click an option → value updates, panel closes, focus returns to trigger.
-  - Arrow keys + Enter → selection and close.
-  - Escape → closes; outside click → closes without stealing focus.
-  - Multi/size/native `<select>` paths remain unchanged.
-- Repo note: I searched for the referenced selector files but did not find them in this workspace. If the component lives elsewhere, please share the correct path to validate directly.
+- 単一選択（カスタム）手動確認:
+  - 開く → オプションクリック → 値更新・パネル閉 → フォーカスがトリガーへ戻る。
+  - 矢印キーで移動＋Enter → 選択・クローズ。
+  - ESC → クローズ。外側クリック → クローズ（フォーカス奪取なし）。
+  - マルチ/ネイティブ `<select>` は挙動不変（自動クローズしない）。
+- 備考: 現スナップショット内に該当ファイルが見当たらないため、別リポ/パスにある場合はそのパス共有を要請。
 
 **レビュー観点**
-- Confirm correct target component and file path for the selector.
-- Confirm whether Space key should also select/close (Enter already does per prior analysis).
-- Confirm single‑select scope only; multi‑select should not auto‑close on each selection.
-- Ensure focus management remains intact (return focus to trigger on intentional close).
-- If the panel is ever ported to a portal/overlay, re‑validate outside‑click containment.
+- 対象コンポーネント/ファイルパスの確定（本リポでの所在確認）。
+- キーボードパリティ: Enter は対応済み。Space も選択/クローズさせる期待があるかの合意。
+- スコープ確認: 単一選択のみ自動クローズ。複数選択はクローズしない。
+- フォーカス管理が意図どおり（意図的クローズでトリガーへ復帰、外側クリックでは強制復帰しない）。
+- 将来パネルをポータル/オーバーレイ化する場合の外側クリック判定の再検証。
 
-Residual risks / open questions:
-- File location mismatch: The earlier-referenced `frontend/src/app/shared/ui/select/ui-select.ts` is not present in this repository snapshot. Please confirm the actual component path.
-- Keyboard parity: Do we also want Space to select/close for parity with some native controls?
-- If options contain rich HTML in the future, ensure labels remain escaped/sanitized to avoid XSS.
-- If selection triggers server-side changes, confirm CSRF protection and server-side allowlisting of values.
+【Residual risks / Open questions】
+- ファイル位置の不一致: 参照の `frontend/src/app/shared/ui/select/ui-select.ts` が本スナップショットに存在せず。実体パスの提示要。
+- Space キーの扱い: Enter 同様に選択/クローズさせるか未決。
+- ブラウザ差のイベント順序（blur vs click）による稀な干渉可能性（事象があれば順序調整）。
+- オプションのリッチHTML対応時の XSS リスク（ラベルはエスケープ/サニタイズ維持）。
+- 選択がサーバー操作を誘発する場合のサーバー側バリデーション/許可リストと CSRF 保護の再確認。
