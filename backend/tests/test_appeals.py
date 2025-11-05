@@ -11,6 +11,7 @@ from app.main import app
 from app.services.gemini import GeminiClient, GeminiError, get_optional_gemini_client
 
 from .test_cards import DEFAULT_PASSWORD as CARD_DEFAULT_PASSWORD
+from .utils.auth import register_user
 
 assertions = TestCase()
 
@@ -40,11 +41,9 @@ def _extract_response_schema(config: Any) -> dict[str, Any]:
 
 
 def register_and_login(client: TestClient, email: str, password: str = CARD_DEFAULT_PASSWORD) -> dict[str, str]:
-    response = client.post(
-        "/auth/register",
-        json={"email": email, "password": password, "nickname": "AppealsUser"},
+    register_user(
+        client, email=email, password=password, nickname="AppealsUser"
     )
-    assertions.assertTrue(response.status_code == 201, response.text)
     login_response = client.post(
         "/auth/login",
         json={"email": email, "password": password},

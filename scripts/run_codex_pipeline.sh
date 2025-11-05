@@ -3,7 +3,7 @@ set -euo pipefail
 
 # --- single-line logger: replace newlines with \n (no pipes) ---
 oneline() {
-  # $1 の改行を \n に変換して1行で出力
+  # Replace embedded newlines with \n so GitHub log annotations stay on one line.
   local s="${1//$'\n'/\\n}"
   printf '%s\n' "$s"
 }
@@ -16,8 +16,12 @@ fi
 
 # ---------- Task input ----------
 TASK_INPUT="${TASK_INPUT:-${1:-}}"
-if [ -z "${TASK_INPUT}" ] && [ ! -t 0 ]; then
-  TASK_INPUT="$(cat)"
+if [ ! -t 0 ]; then
+  if [ -z "${TASK_INPUT}" ]; then
+    TASK_INPUT="$(cat)"
+  else
+    cat >/dev/null || true
+  fi
 fi
 # trim
 TASK_INPUT="${TASK_INPUT#${TASK_INPUT%%[![:space:]]*}}"
@@ -222,7 +226,7 @@ declare -A STAGE_INSTRUCTIONS=(
   [requirements_reviewer]="Audit the proposed requirements for completeness, spot conflicts, and note any missing acceptance criteria."
   [detail_designer]="Translate requirements into module- and component-level design notes, covering data flow, contracts, and integration points."
   [design_reviewer]="Review the design for consistency with architecture standards, spotting scalability or maintainability risks."
-  [coder]="Describe the exact files to edit with focused diffs or replacement blocks and list any commands to run. Avoid touching unrelated areas."
+  [coder]="Modify the repository files directly to implement the plan. Keep edits minimal and scoped to the requested change, and run any required build or test commands—report their results. If something blocks you, document the reason and the remaining work."
   [implementation_reviewer]="Check that the proposed implementation aligns with the design details and coding standards, pointing out risky shortcuts."
   [code_quality_reviewer]="Validate correctness, readability, and edge cases. Supply lightweight fixes when needed to keep the implementation tight."
   [security_reviewer]="Evaluate security posture, call out vulnerabilities, and request mitigations for authentication, authorization, and data handling."
@@ -314,7 +318,7 @@ run_stage() {
 
   local APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-never}"
   local SANDBOX_MODE="${CODEX_SANDBOX_MODE:-workspace-write}"
-  local SANDBOX_CONFIG="sandbox='\"${SANDBOX_MODE}\"'"
+  local SANDBOX_CONFIG="sandbox=${SANDBOX_MODE}"
 
   "${CODEX_CLI[@]}" exec \
     --full-auto \
@@ -413,11 +417,6 @@ for raw in text.splitlines():
     if '?' in lowered:
         print("true")
         break
-    upper = clean.upper()
-    markers = ("TBD", "TBC", "???", "FIXME", "PENDING", "TO DO", "TODO")
-    if any(marker in upper for marker in markers):
-        print("true")
-        break
     prefixes = (
         "none",
         "n/a",
@@ -431,6 +430,11 @@ for raw in text.splitlines():
         continue
     if any(lowered.startswith(prefix) for prefix in prefixes):
         continue
+    upper = clean.upper()
+    markers = ("TBD", "TBC", "???", "FIXME", "PENDING", "TO DO", "TODO")
+    if any(marker in upper for marker in markers):
+        print("true")
+        break
     print("true")
     break
 else:

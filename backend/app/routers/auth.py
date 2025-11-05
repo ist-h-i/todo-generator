@@ -12,12 +12,40 @@ from ..auth import (
     normalize_email,
     verify_password,
 )
+from ..config import settings
 from ..database import get_db
+from ..services.email_verification import (
+    consume_verification_code,
+    deliver_verification_code,
+    issue_verification_code,
+)
 from ..services.profile import build_user_profile, normalize_nickname
 from ..services.status_defaults import ensure_default_statuses
 from ..services.workspace_template_defaults import ensure_default_workspace_template
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post(
+    "/register/request-code",
+    response_model=schemas.VerificationCodeResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+def request_registration_code(
+    payload: schemas.VerificationCodeRequest, db: Session = Depends(get_db)
+) -> schemas.VerificationCodeResponse:
+    _, code_value = issue_verification_code(db, payload.email)
+    delivery = deliver_verification_code(payload.email, code_value)
+    share_code = settings.debug or delivery.share_via_response
+    response_message = delivery.message
+    if settings.debug and not delivery.share_via_response:
+        response_message = "Verification code sent. Debug mode returning code in response."
+
+    response_data: dict[str, str | None] = {
+        "message": response_message,
+        "verification_code": code_value if share_code else None,
+    }
+    return schemas.VerificationCodeResponse(**response_data)
 
 
 @router.post(
@@ -44,10 +72,21 @@ def register(
     is_first_user = db.query(models.User).count() == 0
     password = payload_data.get("password", payload.password)
     normalized_email = normalize_email(raw_email)
-    remaining_fields = {key: value for key, value in payload_data.items() if key not in {"email", "password"}}
+    remaining_fields = {
+        key: value
+        for key, value in payload_data.items()
+        if key not in {"email", "password", "verification_code"}
+    }
     # Validate and sanitize nickname (required)
     sanitized_nickname = normalize_nickname(remaining_fields.get("nickname"))
     remaining_fields["nickname"] = sanitized_nickname
+    verification_code = payload_data.get("verification_code", payload.verification_code)
+    verification_result = consume_verification_code(db, raw_email, verification_code)
+    if not verification_result.success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=verification_result.message or "Invalid verification code.",
+        )
     user_values = {
         **remaining_fields,
         "email": normalized_email,
