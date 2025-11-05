@@ -2,27 +2,45 @@
 
 Source: `frontend/src/app/shared/ui/select/ui-select.ts`
 
-## Purpose & Responsibilities
-- Renders the design-system single- and multi-select input, exposing both a custom single-select experience and a native `<select>` fallback for multi/size variants.
-- Bridges Angular forms by implementing `ControlValueAccessor`, keeping the hidden native element in sync with the projected options.
+## Purpose & Responsibilities- Provide a custom single-select experience with an accessible trigger + panel while
+  maintaining a hidden native `<select>` for forms integration.
+- Fall back to rendering the native `<select>` directly for multi-select or `size > 1`
+  scenarios.
 
 ## Public API
-- Inputs: `id`, `name`, `placeholder`, `multiple`, `size`, `options`, `disabled`.
-- Methods: `writeValue`, `registerOnChange`, `registerOnTouched`, `setDisabledState`, `togglePanel`, `openPanel`, `closePanel`.
-- Template references: `trigger`, `nativeSelect`.
+- Inputs:
+  - `id`, `name`: pass-through attributes for the backing control.
+  - `multiple`, `size`: toggle native select behaviour; when in multi/size mode the
+    custom panel is disabled.
+  - `placeholder`: text shown when no value is selected.
+  - `options`: optional array of `{ value, label, disabled }` objects rendered in place
+    of projected `<option>` elements.
+- ControlValueAccessor hooks: `writeValue`, `registerOnChange`, `registerOnTouched`,
+  `setDisabledState`.
+- User interactions:
+  - `togglePanel()` opens/closes the custom panel for single-select mode.
+  - `onOptionClick()` selects an option, syncs the native control, closes the panel, and
+    restores focus to the trigger.
+  - Keyboard handler supports Arrow navigation, Enter to select/close, and Escape to
+    close while returning focus.
 
 ## Notable Dependencies
-- Angular `ControlValueAccessor` contract via `NG_VALUE_ACCESSOR` for forms integration.
-- Relies on projected `<option>` elements or `[options]` input for option definitions.
+- Angular `CommonModule` for structural directives.
+- `ControlValueAccessor` from `@angular/forms` to integrate with Angular forms.
+- `MutationObserver` is used (when available) to keep projected `<option>` content in
+  sync with the custom panel.
 
 ## Usage Notes
 - Accepts projected `<option>` elements or an `[options]` input with value/label pairs for rendering.
-- Acts as a `ControlValueAccessor` and keeps the hidden native `<select>` element aligned with the reactive form control value.
-- Single-select mode exposes a custom trigger and option panel; clicking an option (or pressing Enter) updates the value, closes the panel immediately, and returns focus to the trigger for accessibility parity.
-- Escape key or outside clicks close the panel without changing the selection; multi-select/native variants remain open until the user blurs the control.
+- Acts as a `ControlValueAccessor` and keeps the native `<select>` element in sync for forms integration.
+- In single-select mode, clicking or pressing Enter on an option immediately closes the
+  panel and returns focus to the trigger button for accessibility.
+- Outside clicks and Escape also close the panel without forcing focus, matching native
+  select behaviour.
 
 ## Change History
 - Seeded by generator. Append context on future changes.
 - 2025-10-22: Added support for binding options via the `[options]` input and ensured native select synchronisation.
-- 2025-10-23: Confirmed single-select option activation closes the panel immediately and recorded focus-management behaviour.
+- 2025-10-23: Documented confirmed single-select close-on-selection behaviour and public
+  API surface; corrected source path reference.
 

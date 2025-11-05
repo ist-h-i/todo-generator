@@ -422,6 +422,32 @@ def test_load_gemini_configuration_defaults_to_settings_model(client: TestClient
     assertions.assertTrue(model == settings.gemini_model)
 
 
+def test_load_gemini_configuration_replaces_deprecated_model(client: TestClient) -> None:
+    override = client.app.dependency_overrides[get_db]
+    db_gen = override()
+    db = next(db_gen)
+    try:
+        cipher = get_secret_cipher()
+        credential = models.ApiCredential(
+            provider="gemini",
+            encrypted_secret=cipher.encrypt("sk-deprecated"),
+            is_active=True,
+            model="models/gemini-2.0-flash-exp",
+        )
+        db.add(credential)
+        db.commit()
+
+        secret, model = _load_gemini_configuration(db)
+        db.refresh(credential)
+    finally:
+        db_gen.close()
+
+    expected = GeminiClient.normalize_model_name(settings.gemini_model)
+    assertions.assertTrue(secret == "sk-deprecated")  # noqa: S105
+    assertions.assertTrue(model == expected)
+    assertions.assertTrue(credential.model == expected)
+
+
 def test_load_gemini_configuration_falls_back_to_settings_api_key(client: TestClient) -> None:
     override = client.app.dependency_overrides[get_db]
     db_gen = override()
@@ -478,6 +504,33 @@ def test_normalize_model_name_maps_flash_families() -> None:
     assertions.assertTrue(GeminiClient.normalize_model_name("gemini-2.0-flash") == "models/gemini-2.0-flash")
     assertions.assertTrue(GeminiClient.normalize_model_name("gemini-2.0-flash-lite") == "models/gemini-2.0-flash-lite")
     assertions.assertTrue(GeminiClient.normalize_model_name("models/gemini-2.0-flash") == "models/gemini-2.0-flash")
+
+
+def test_sanitize_model_name_replaces_deprecated_models() -> None:
+    default_model = GeminiClient.normalize_model_name(settings.gemini_model)
+    assertions.assertTrue(
+        GeminiClient.sanitize_model_name("models/gemini-2.0-flash-exp", fallback=default_model)
+        == default_model
+    )
+    assertions.assertTrue(
+        GeminiClient.sanitize_model_name("gemini-1.0-pro", fallback=default_model)
+        == default_model
+    )
+    assertions.assertTrue(
+        GeminiClient.sanitize_model_name("models/gemini-1.5-flash", fallback=default_model)
+        == "models/gemini-1.5-flash"
+    )
+
+
+def test_sanitize_model_name_uses_supported_default_when_all_fallbacks_deprecated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "gemini_model", "models/gemini-1.0-pro", raising=False)
+    default_model = GeminiClient.normalize_model_name(settings.gemini_model)
+
+    sanitized = GeminiClient.sanitize_model_name("models/gemini-1.0-pro", fallback=default_model)
+
+    assertions.assertTrue(sanitized == "models/gemini-2.0-flash")
 
 
 def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -169,9 +169,11 @@ def secret_encryption_key(monkeypatch: pytest.MonkeyPatch) -> str:
 
 
 @pytest.fixture()
-def client(secret_encryption_key: str) -> Generator[TestClient, None, None]:
+def client(secret_encryption_key: str, monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    monkeypatch.setattr("app.config.settings.debug", True)
 
     def override_get_db():
         db = TestingSessionLocal()

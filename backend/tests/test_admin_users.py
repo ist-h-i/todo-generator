@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app import models
 
 from .conftest import TestingSessionLocal
+from .utils.auth import register_user
 
 assertions = TestCase()
 
@@ -15,12 +16,8 @@ def _create_admin(client: TestClient) -> tuple[dict[str, str], str]:
     email = "owner@example.com"
     password = "AdminPass123!"  # noqa: S105 - test credential
 
-    register = client.post(
-        "/auth/register",
-        json={"email": email, "password": password, "nickname": "Owner"},
-    )
-    assertions.assertTrue(register.status_code == 201, register.text)
-    admin_id = register.json()["user"]["id"]
+    register_payload = register_user(client, email=email, password=password, nickname="Owner")
+    admin_id = register_payload["user"]["id"]
 
     login = client.post("/auth/login", json={"email": email, "password": password})
     assertions.assertTrue(login.status_code == 200, login.text)
@@ -31,12 +28,10 @@ def _create_admin(client: TestClient) -> tuple[dict[str, str], str]:
 def test_admin_can_delete_user(client: TestClient) -> None:
     headers, _ = _create_admin(client)
 
-    user_register = client.post(
-        "/auth/register",
-        json={"email": "member@example.com", "password": "Password123!", "nickname": "Member"},
+    user_payload = register_user(
+        client, email="member@example.com", password="Password123!", nickname="Member"
     )
-    assertions.assertTrue(user_register.status_code == 201, user_register.text)
-    user_id = user_register.json()["user"]["id"]
+    user_id = user_payload["user"]["id"]
 
     before = client.get("/admin/users", headers=headers)
     assertions.assertTrue(before.status_code == 200, before.text)
@@ -63,12 +58,10 @@ def test_admin_cannot_delete_self(client: TestClient) -> None:
 def test_admin_can_delete_other_admin(client: TestClient) -> None:
     headers, admin_id = _create_admin(client)
 
-    other_register = client.post(
-        "/auth/register",
-        json={"email": "second@example.com", "password": "Password123!", "nickname": "Second"},
+    other_payload = register_user(
+        client, email="second@example.com", password="Password123!", nickname="Second"
     )
-    assertions.assertTrue(other_register.status_code == 201, other_register.text)
-    other_id = other_register.json()["user"]["id"]
+    other_id = other_payload["user"]["id"]
 
     promote = client.patch(
         f"/admin/users/{other_id}",
@@ -91,12 +84,10 @@ def test_admin_can_delete_other_admin(client: TestClient) -> None:
 def test_deleting_admin_nulls_related_jobs(client: TestClient) -> None:
     headers, _ = _create_admin(client)
 
-    member_register = client.post(
-        "/auth/register",
-        json={"email": "member@example.com", "password": "Password123!", "nickname": "Member"},
+    member_payload = register_user(
+        client, email="member@example.com", password="Password123!", nickname="Member"
     )
-    assertions.assertTrue(member_register.status_code == 201, member_register.text)
-    member_id = member_register.json()["user"]["id"]
+    member_id = member_payload["user"]["id"]
 
     competency_response = client.post(
         "/admin/competencies",
@@ -124,12 +115,10 @@ def test_deleting_admin_nulls_related_jobs(client: TestClient) -> None:
     assertions.assertTrue(competency_response.status_code == 201, competency_response.text)
     competency_id = competency_response.json()["id"]
 
-    other_register = client.post(
-        "/auth/register",
-        json={"email": "second@example.com", "password": "Password123!", "nickname": "Second"},
+    other_payload = register_user(
+        client, email="second@example.com", password="Password123!", nickname="Second"
     )
-    assertions.assertTrue(other_register.status_code == 201, other_register.text)
-    other_id = other_register.json()["user"]["id"]
+    other_id = other_payload["user"]["id"]
 
     promote = client.patch(
         f"/admin/users/{other_id}",
@@ -167,12 +156,10 @@ def test_deleting_admin_nulls_related_jobs(client: TestClient) -> None:
 def test_admin_can_delete_admin_who_created_api_credentials(client: TestClient) -> None:
     headers, admin_id = _create_admin(client)
 
-    other_register = client.post(
-        "/auth/register",
-        json={"email": "second@example.com", "password": "Password123!", "nickname": "Second"},
+    other_payload = register_user(
+        client, email="second@example.com", password="Password123!", nickname="Second"
     )
-    assertions.assertTrue(other_register.status_code == 201, other_register.text)
-    other_id = other_register.json()["user"]["id"]
+    other_id = other_payload["user"]["id"]
 
     promote = client.patch(
         f"/admin/users/{other_id}",

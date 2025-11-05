@@ -4,16 +4,13 @@ from fastapi.testclient import TestClient
 
 assertions = TestCase()
 
+from .utils.auth import register_user
+
 
 def _register_user(
     client: TestClient, email: str, password: str = "SecurePass123!",  # noqa: S107
 ) -> dict:
-    response = client.post(
-        "/auth/register",
-        json={"email": email, "password": password, "nickname": "Admin"},
-    )
-    assertions.assertTrue(response.status_code == 201, response.text)
-    return response.json()
+    return register_user(client, email=email, password=password, nickname="Admin")
 
 
 def test_report_templates_are_scoped_per_admin(client: TestClient) -> None:
