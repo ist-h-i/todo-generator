@@ -318,7 +318,7 @@ run_stage() {
 
   local APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-never}"
   local SANDBOX_MODE="${CODEX_SANDBOX_MODE:-workspace-write}"
-  local SANDBOX_CONFIG="sandbox='\"${SANDBOX_MODE}\"'"
+  local SANDBOX_CONFIG="sandbox=${SANDBOX_MODE}"
 
   "${CODEX_CLI[@]}" exec \
     --full-auto \
