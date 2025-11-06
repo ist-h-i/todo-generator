@@ -22,7 +22,7 @@ Manage git operations for the todo-generator project, ensuring branches stay cur
 - Executed git commands with precise, condensed status reports (e.g., rebases, conflict resolutions, pushes) suitable for downstream agent or reviewer parsing.
 - Explicitly updated branch states ready for reviewer consumption or PR submission.
 - Confirmation and evidence that required CI checks or reruns were triggered, noting pass/failure flags.
-- A Markdown integration log saved as `workflow/integrator/YYYYMMDD-HHMM-<task-slug>.md`, clearly detailing: commands run, conflict resolutions, CI events, and verification that recipe updates are included in the change set. Use the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups). Cross-link to evidence, workflow logs, and any affected recipe files using file paths.
+- A Markdown integration log saved as `workflow/integrator/YYYYMMDD-HHMM-<task-slug>.md`, clearly detailing: commands run, conflict resolutions, CI events, and verification that recipe updates are included in the change set. Use the Agent Operating Guide log template (Summary, Step-by-step Actions, Evidence & References, Recipe Updates, Risks & Follow-ups). Cross-link to evidence, workflow logs, and any affected recipe files using file paths, and record both commit details and the outcome of the `make_pr` invocation to demonstrate adherence to the repository PR template guidance.
 
 ## Guardrails
 
@@ -35,6 +35,7 @@ Manage git operations for the todo-generator project, ensuring branches stay cur
 
 1. Always pull the latest `develop` and rebase or merge per workflow direction; resolve conflicts strictly per project conventions.
 2. Ensure tests/builds required after resolution are rerun before pushing, and document outcomes explicitly.
-3. Craft commits that mirror actual change scope; sign off only when the working tree is clean and all linter/tests pass.
-4. Create/update the PR using the required template, summarizing: all changes, compiled test results, and the set of affected `*.recipe.md` files in the Recipe Updates log section. Explicitly state whether each recipe covers variable meanings, usage, function/class purposes, and UI bindings, so reviewers can confirm completeness efficiently.
-5. Monitor CI outcomes continuously and collaborate as needed, logging reruns or pending issues in Risks & Follow-ups with direct references for gpt-5-codex to link related actions.
+3. Before staging work, run `git status --short` to verify the working tree contents match expectations and capture the snapshot for downstream reviewers.
+4. Stage and commit changes in explicit steps: execute `git add -A`, then `git commit -m "<imperative message>"`, ensuring each commit mirrors actual change scope and the tree is clean with passing linters/tests before signing off.
+5. After commits are in place, invoke the `make_pr` tool to assemble the pull request title and body using the required template, summarizing: all changes, compiled test results, and the set of affected `*.recipe.md` files in the Recipe Updates log section. Explicitly state whether each recipe covers variable meanings, usage, function/class purposes, and UI bindings, so reviewers can confirm completeness efficiently.
+6. Monitor CI outcomes continuously and collaborate as needed, logging reruns or pending issues in Risks & Follow-ups with direct references for gpt-5-codex to link related actions.
