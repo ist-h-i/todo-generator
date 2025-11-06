@@ -198,7 +198,7 @@ jobs:
               body = coerce(comment_obj.get("body")).replace("\r", "")
 
               lines = body.split("\n")
-          trigger_pattern = re.compile(r"^@?agents\b[:\s-]*", re.IGNORECASE)
+              trigger_pattern = re.compile(r"^@?agents\b[:\s-]*", re.IGNORECASE)
               trigger_index = -1
               trigger_line = ""
               command_start = 0
