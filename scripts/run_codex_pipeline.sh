@@ -342,17 +342,19 @@ run_stage() {
   else
     PREVIOUS_CONTEXT="${STEP_OUTPUT}"
   fi
-  PREVIOUS_CONTEXT=$(printf '%s' "${PREVIOUS_CONTEXT}" | python3 - "$PREVIOUS_CONTEXT_LIMIT" <<'PY'
+  PREVIOUS_CONTEXT=$(PREVIOUS_CONTEXT_LIMIT="${PREVIOUS_CONTEXT_LIMIT}" \
+    PREVIOUS_CONTEXT_DATA="${PREVIOUS_CONTEXT}" python3 <<'PY'
+import os
 import sys
 
-limit = int(sys.argv[1])
-data = sys.stdin.read()
+limit = int(os.environ["PREVIOUS_CONTEXT_LIMIT"])
+data = os.environ.get("PREVIOUS_CONTEXT_DATA", "")
 if len(data) <= limit:
-    print(data, end="")
+    sys.stdout.write(data)
 else:
-    print(data[-limit:], end="")
+    sys.stdout.write(data[-limit:])
 PY
-)
+  )
 
   # After the translator or requirements_analyst stage, scan for clarifying
   # questions and pause the pipeline if more details are required from the
