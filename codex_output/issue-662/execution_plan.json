@@ -9,7 +9,7 @@
       "requirements_reviewer",
       "release_manager"
     ],
-    "notes": "Keep the route lean: confirm the custom single-select already closes on option click with proper focus/keyboard/outside-click behavior. If confirmed, publish a brief release summary and close. If a mismatch is found, we will add coder and implementation_reviewer in a follow-up to implement a localized option-click handler (select → closePanel(true) → focus restore).",
-    "tests": "Manual: (1) Open single-select → click an option → panel closes, focus returns to trigger. (2) Arrow keys to option + Enter → selection and close. (3) ESC → closes; outside click → closes without forced focus. (4) Multi-select/native <select> unchanged. (5) Click a disabled option → no selection change; panel stays open."
+    "notes": "Confirm in-repo that the custom single-select already closes on option click and restores trigger focus; Enter/ESC/outside-click behaviors unchanged. If confirmed, ship a release note with residual risks. If a mismatch is found, spin a follow-up with a minimal coder+implementation_reviewer pass focused on the option click handler.",
+    "tests": "Manual checks: (1) Open single-select → click option → value updates, panel closes, focus returns to trigger. (2) Arrow keys to option + Enter → selection and close. (3) ESC → closes; selection unchanged. (4) Click outside → closes without forcing focus. (5) Click disabled option → no selection change; panel stays open. Multi-select/native select remain unchanged."
   }
 }

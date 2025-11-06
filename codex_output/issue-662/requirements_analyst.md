@@ -1,40 +1,37 @@
-**Summary**
-- Change timing so the custom single‑select closes its options panel immediately upon clicking an option. Keep keyboard and dismissal behavior unchanged. Multi‑select and native `<select>` are out of scope. If the current implementation already behaves this way, no code change is needed.
-
 **Functional Requirements**
-- Clicking an option selects it and closes the panel immediately.
+- Clicking an option selects it and immediately closes the panel.
 - After intentional close (click/Enter/Escape), focus returns to the trigger.
-- Arrow-key navigation is unchanged; Enter selects and closes; Escape closes without selection.
-- Outside click closes the panel without forcibly moving focus.
-- Disabled options (if present) must not select or close.
+- Arrow-key navigation unchanged; Enter selects and closes; Escape closes without selection change.
+- Outside click closes without forcing focus back to the trigger.
+- Disabled options do not select and do not close the panel.
+- Multi-select and native `<select>` behavior remains unchanged.
 
-**Non‑Functional Requirements**
-- Minimal, localized change (or confirm as already compliant).
-- No API or dependency changes.
-- Preserve accessibility roles/states and focus management.
-- No regressions to keyboard/outside‑click behavior.
+**Non-Functional Requirements**
+- Minimal, localized UI-only change (or confirm existing compliance); no API/dependency changes.
+- Preserve accessibility roles/states and existing focus management.
+- Maintain current keyboard behavior and performance characteristics.
 
 **Out of Scope**
-- Multi‑select auto‑close changes.
-- Native `<select>` behavior changes.
-- Overlays/portals, search/typeahead, or broader redesigns.
+- Changes to multi-select auto-close or native `<select>`.
+- Overlay/portal refactors, search/typeahead, or broader redesigns.
 - Backend/API modifications.
 
 **Assumptions**
-- A custom single‑select component controls its panel and focus.
-- Existing Escape and outside‑click close behaviors already work.
-- Multi‑select and native paths are separate and remain unchanged.
+- A custom single-select component controls its panel and focus.
+- Escape and outside-click closing behaviors already work.
+- UX expects focus to return to the trigger after intentional close.
+- Disabled options (if any) should neither select nor close.
 
 **Residual Risks / Open Questions**
-- Blur vs click ordering could cause rare race conditions in some browsers.
-- Space key parity with Enter is unspecified; users may expect Space to select/close.
-- If the panel is rendered via a portal/overlay, outside‑click containment may need adjustment.
-- If option labels can include rich HTML, ensure proper escaping/sanitization.
-- If selection triggers server actions, enforce server‑side validation/allowlisting and CSRF protections.
+- Blur vs click event sequencing races in some browsers.
+- Space key parity with Enter is unspecified.
+- If panel rendering moves to a portal/overlay, outside-click containment may need adjustment.
+- If option labels include rich HTML, require proper escaping/sanitization to avoid XSS.
+- If selection triggers server actions, server-side validation/allowlisting and CSRF protections must be enforced.
 
 ## Clarifying questions
 - Which component/file implements the target selector in this repository snapshot?
-- Should the Space key also select and close in single‑select mode?
+- Should Space also select and close in single-select mode?
 - Do disabled options exist, and should clicks on them be ignored without closing?
-- Is the panel rendered inline or via an overlay/portal?
-- Are there tests or analytics coupled to the current timing that must remain stable?
+- Is the options panel rendered inline or via an overlay/portal?
+- Are there tests or analytics tied to the current behavior/timing that must remain stable?

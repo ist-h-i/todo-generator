@@ -1,33 +1,38 @@
 **背景**
-- Goal: Close the custom single-select’s options panel immediately on option click.
-- Scope: Custom single-select only; exclude multi-select and native `select`.
-- Current state: Prior stage artifacts confirm click-to-select already closes immediately and returns focus to the trigger; Enter mirrors this; ESC and outside-click close remain intact.
-- Repo note: Referenced frontend path may differ in this snapshot; behavior evidence is from earlier stage outputs.
+- 要件: カスタム単一選択で、オプションをクリックした瞬間にオプションパネルを閉じ、フォーカスをトリガーへ戻す。
+- スコープ: カスタム単一選択のみ（複数選択・ネイティブ `<select>` は除外）。
+- 現状把握: 先行ステージの成果物で「クリックで選択→即クローズ、フォーカス復帰」「Enter でも同様」「ESC/外側クリックでクローズ」が確認済み。現スナップショットでのコンポーネントパスは差異の可能性あり。
 
 **変更概要**
-- No code change required if the targeted custom single-select is the same as validated earlier (already closes on click).
-- Keyboard Enter selection closes as well; ESC and outside-click behaviors unchanged.
-- If a different selector is actually in scope and not compliant: apply a minimal, localized change in the option click handler to select → close panel → restore focus to the trigger.
+- コード変更は不要（先行実装が要件を満たしている前提）。
+- 仮に別コンポーネントが対象で未対応なら、オプションクリックの最小修正のみ（選択適用 → パネルを閉じる → トリガーへフォーカス復帰）。
 
 **影響**
-- With no code change: zero functional/compat impact; a11y and keyboard behavior preserved.
-- If a localized fix is needed elsewhere: contained to that component’s click handler; no impact on multi-select/native flows; no dependency/API changes.
+- 変更なしの場合は互換性・挙動ともに不変で回帰リスクなし。アクセシビリティおよびキーボード操作（Enter/ESC/外側クリック）も維持。
+- 局所修正が必要な場合でも、クリックハンドラ内で完結し、複数選択/ネイティブ経路への影響なし。依存関係・API 変更なし。
 
 **検証**
-- Manual checks (single-select):
-  - Open → click option → value updates, panel closes, focus returns to trigger.
-  - Arrow keys to option + Enter → selection applies and closes.
-  - ESC → closes; outside click → closes without forcing focus.
-  - Optional: Click a disabled option → no selection change; panel stays open.
-  - Multi-select/native `select` → unchanged (no auto-close).
-- If this repo snapshot uses a different selector, please share its file path to validate directly.
+- 手動確認（単一選択）:
+  - 開く → オプションクリック → 値更新・パネル閉 → フォーカスがトリガーへ戻る。
+  - 矢印キーで移動 + Enter → 選択・クローズ。
+  - ESC → クローズ。外側クリック → クローズ（フォーカスを強制しない）。
+  - 無効（disabled）オプションをクリック → 選択不可・パネルは開いたまま。
+  - 複数選択/ネイティブ `<select>` → 挙動不変（自動クローズしない）。
+- 現スナップショットで対象コンポーネントの正確なパスが異なる場合は、該当ファイルの共有をお願いしたいです。
 
 **レビュー観点**
-- Confirm the exact component/file path for the selector in this snapshot.
-- Keyboard parity: Should Space also select/close (Enter already does)?
-- Disabled options: Ensure clicks do not select or close.
-- Event ordering: Watch for rare blur vs click races; only adjust sequencing if an issue is observed.
-- Outside-click containment: Re-validate if the panel is later rendered via a portal/overlay.
-- Listener hygiene: Ensure document-level listeners are removed on destroy.
-- Content safety: Keep option labels escaped/sanitized; avoid unsafe HTML.
-- Server safety: If selection triggers server actions, enforce server-side validation/allowlisting and CSRF protections.
+- 対象コンポーネント/ファイルパスの特定（このスナップショットでの確認）。
+- キーボード整合性: Enter は選択・クローズ済み。Space も同様に扱うべきかの方針。
+- 無効（disabled）オプションの扱い: クリックで選択・クローズされないこと。
+- イベント順序: まれな blur vs click レースの有無（問題がある場合のみ順序調整）。
+- 外側クリックの判定/包含: 将来ポータル/オーバーレイ化された場合の再検証。
+- リスナのクリーンアップ: ドキュメントレベルのハンドラは破棄時に解除。
+- コンテンツ安全性: オプションラベルのエスケープ/サニタイズ維持（XSS 回避）。
+- サーバ安全性: 選択値によるサーバ処理がある場合のサーバ側バリデーション/許可リスト化・CSRF 対策。
+
+**リスク / オープン質問**
+- Space キーでの選択・クローズを追加すべきか（現在は Enter のみ）。
+- 対象コンポーネントの正確なパス確認（本スナップショット基準）。
+- 将来的にパネルをポータル化した場合の外側クリック判定の再検証。
+- ラベルにリッチ HTML を許容する場合のサニタイズ方針。
+- 選択操作がサーバ状態を変更する場合の CSRF/権限検証の再確認。
