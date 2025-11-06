@@ -32,8 +32,7 @@ Source: `frontend/src/app/shared/ui/select/ui-select.ts`
 
 ## Usage Notes
 - Accepts projected `<option>` elements or an `[options]` input with value/label pairs for rendering.
-- Acts as a `ControlValueAccessor` and keeps the native `<select>` element in sync for forms integration.
-- In single-select mode, clicking or pressing Enter on an option immediately closes the
+- Acts as a `ControlValueAccessor` and keeps the native `<select>` element in sync for forms integration.- In single-select mode, clicking or pressing Enter on an option immediately closes the
   panel and returns focus to the trigger button for accessibility.
 - Outside clicks and Escape also close the panel without forcing focus, matching native
   select behaviour.
