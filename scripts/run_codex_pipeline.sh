@@ -317,15 +317,16 @@ run_stage() {
   write_status_json "running" "stage=${STEP}" "started_at=${CURRENT_STAGE_START}"
 
   local APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-never}"
+  # Default to workspace-write so the CLI can modify the repository when no
+  # explicit sandbox mode override is provided.
   local SANDBOX_MODE="${CODEX_SANDBOX_MODE:-workspace-write}"
-  local SANDBOX_CONFIG="sandbox=${SANDBOX_MODE}"
 
   "${CODEX_CLI[@]}" exec \
     --full-auto \
     --cd "${GITHUB_WORKSPACE:-$(pwd)}" \
     --output-last-message "${OUTPUT_FILE}" \
+    --sandbox "${SANDBOX_MODE}" \
     --config "approval_policy=${APPROVAL_POLICY}" \
-    --config "${SANDBOX_CONFIG}" \
     -- \
     - < "${PROMPT_FILE}"
   local STATUS=$?
