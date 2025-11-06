@@ -64,7 +64,7 @@ jobs:
       - name: Install jq (for flags parsing)
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y jq
+          sudo apt-get install -y jq ripgrep
 
       - name: Read Auto-Evolve flags
         id: flags
@@ -412,6 +412,8 @@ jobs:
 
       - name: Install Codex CLI
         if: ${{ steps.detect.outputs.run_codex == 'true' }}
+        env:
+          VSCODE_RIPGREP_SKIP_DOWNLOAD: "1"
         run: |
           npm i -g ${CODEX_NPM_PKG:-@openai/codex}@0.39.0
           codex --version
