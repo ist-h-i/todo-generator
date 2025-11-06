@@ -217,11 +217,11 @@ DEFAULT_POST_PLAN_STEPS=(
 PRE_PLANNER_STEPS=(translator requirements_analyst)
 
 declare -A STAGE_INSTRUCTIONS=(
-  [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points and write 'None' when no follow-up is needed."
+  [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If the source comment does not provide enough detail to firm up requirements, draft direct follow-up questions under '## Clarifying questions' as bullet points so the workflow can pause and ask the user; write 'None' only when you are confident no clarification is needed."
   # The requirements_analyst collects requirements and outstanding questions so
   # the pipeline can pause and ask the user for additional details when
   # necessary.
-  [requirements_analyst]="Summarize functional, non-functional and out-of-scope requirements. Document risks and assumptions, and list clarifying questions under '## Clarifying questions', writing 'None' when no further information is required."
+  [requirements_analyst]="Summarize functional, non-functional and out-of-scope requirements. Document risks and assumptions, and when information gaps block solidifying the requirements, capture explicit user-facing prompts under '## Clarifying questions' (the workflow will reply with these). Use 'None' only after verifying every requirement is sufficiently specified."
   [planner]="Outline an execution plan that selects only the necessary stages, highlights critical risks, and sequences the work for smooth hand-offs."
   [requirements_reviewer]="Audit the proposed requirements for completeness, spot conflicts, and note any missing acceptance criteria."
   [detail_designer]="Translate requirements into module- and component-level design notes, covering data flow, contracts, and integration points."
