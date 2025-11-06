@@ -57,7 +57,7 @@ After finalizing the dossier, briefly validate that all required sections are co
 
 ## Clarifying Questions
 
-When further information is required before planning:
+When further information is required before planning (including when the workflow was triggered by a GitHub comment), draft explicit questions that can be posted back to the requester. Focus on the concrete facts needed to finalize scope and acceptance criteria.
 
 ```markdown
 ## Clarifying questions
@@ -66,7 +66,7 @@ When further information is required before planning:
 - Question 2
 ```
 
-If no clarifications are needed:
+If no clarifications are needed and you are confident the requirements are fully specified:
 
 ```markdown
 ## Clarifying questions
@@ -74,7 +74,7 @@ If no clarifications are needed:
 None
 ```
 
-The automated workflow will pause if any clarifying questions are listed here.
+The automated workflow will pause and reply to the comment with these questions when any clarifying questions are listed here, so prefer targeted prompts over assumptions.
 
 ---
 
