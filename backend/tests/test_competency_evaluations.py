@@ -4,16 +4,14 @@ from fastapi.testclient import TestClient
 
 from app.utils.quotas import DEFAULT_EVALUATION_DAILY_LIMIT
 
+from .utils.auth import register_user
+
 assertions = TestCase()
 
 
 def _register(client: TestClient, email: str) -> dict[str, str]:
-    response = client.post(
-        "/auth/register",
-        json={"email": email, "password": "Password123!", "nickname": "Member"},
-    )
-    assertions.assertTrue(response.status_code == 201, response.text)
-    token = response.json()["access_token"]
+    payload = register_user(client, email=email, password="Password123!", nickname="Member")
+    token = payload["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
 

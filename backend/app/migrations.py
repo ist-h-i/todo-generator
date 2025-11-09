@@ -961,6 +961,40 @@ def _ensure_api_credentials_model_column(engine: Engine) -> None:
         )
 
 
+_DEPRECATED_GEMINI_MODELS = (
+    "models/gemini-2.0-flash-exp",
+    "models/gemini-2.0-flash-exp-image-generation",
+    "gemini-1.0-pro",
+    "models/gemini-1.0-pro",
+    "gemini-1.0-pro-vision",
+    "models/gemini-1.0-pro-vision",
+)
+
+
+def _remove_deprecated_gemini_models(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "api_credentials"):
+            return
+        column_names = _column_names(inspector, "api_credentials")
+
+    if "model" not in column_names:
+        return
+
+    fallback_model = settings.gemini_model.strip()
+    if not fallback_model:
+        fallback_model = "models/gemini-2.0-flash"
+    if fallback_model in _DEPRECATED_GEMINI_MODELS:
+        fallback_model = "models/gemini-2.0-flash"
+
+    with engine.begin() as connection:
+        for deprecated in _DEPRECATED_GEMINI_MODELS:
+            connection.execute(
+                text("UPDATE api_credentials SET model = :fallback WHERE model = :deprecated"),
+                {"fallback": fallback_model, "deprecated": deprecated},
+            )
+
+
 def _normalize_assignees_to_user_ids(engine: Engine) -> None:
     """Backfill cards.assignees (JSON) and subtasks.assignee (TEXT) to user IDs.
 
@@ -1066,6 +1100,7 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_workspace_template_default_flag(engine)
     _ensure_workspace_default_templates(engine)
     _ensure_api_credentials_model_column(engine)
+    _remove_deprecated_gemini_models(engine)
     _ensure_channel_tables(engine)
     _ensure_card_channel_column(engine)
     _ensure_private_channels_and_backfill(engine)

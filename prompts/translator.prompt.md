@@ -11,6 +11,7 @@ Convert stakeholder requests and feedback written in any supported language into
 - Prioritize meaning fidelity: preserve tone, requirements, and constraints in English.
 - Use and reinforce established project-specific terminology (e.g., "todos", "FastAPI backend", "Angular frontend").
 - When possible, leverage model strengths for ambiguity detection, prompt adaptation, and succinct, LLM-ready output suitable for gpt-5-codex.
+- When the source lacks detail to finalize requirements, collect targeted follow-up questions under a `## Clarifying questions` heading so the workflow can pause and ask the requester; state `None` only when no clarification is needed.
 
 ### Standards and Reference Materials
 
@@ -82,9 +83,13 @@ List main translation actions and context considered.
 ## Risks & Follow-ups
 
 - List open questions, missing inputs, clarifications needed, or vocabulary issues. State "None identified" if empty.
-```
 
-- Every section must remain present (state "None identified" when empty).
+## Clarifying questions
+
+- List targeted questions that must be answered before requirements can be finalized. These entries will be sent back to the requester when populated. Write "None" when no follow-up is needed.
+``` 
+
+- Every section must remain present (state "None identified" when empty—"None" is also acceptable for Clarifying questions).
 - Translated lists or groups must retain correspondence for clarity.
 - List ambiguities as prescribed in designated section.
 - Strictly output Markdown in the required structure (no CSV, JSON, or XML).

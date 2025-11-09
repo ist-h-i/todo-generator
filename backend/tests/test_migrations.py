@@ -342,3 +342,62 @@ def test_run_startup_migrations_adds_api_credentials_model_column() -> None:
         ).one()
 
     assertions.assertTrue(row.model == migrations.settings.gemini_model)
+
+
+def test_run_startup_migrations_removes_deprecated_gemini_models() -> None:
+    engine = create_engine("sqlite:///:memory:", future=True)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                CREATE TABLE api_credentials (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    provider VARCHAR NOT NULL UNIQUE,
+                    encrypted_secret TEXT NOT NULL,
+                    secret_hint VARCHAR,
+                    is_active BOOLEAN NOT NULL DEFAULT 1,
+                    model TEXT
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                INSERT INTO api_credentials (provider, encrypted_secret, secret_hint, is_active, model)
+                VALUES (:provider, :encrypted_secret, :secret_hint, :is_active, :model)
+                """
+            ),
+            {
+                "provider": "gemini",
+                "encrypted_secret": "ciphertext",
+                "secret_hint": "sk-***",
+                "is_active": True,
+                "model": "models/gemini-2.0-flash-exp",
+            },
+        )
+        connection.execute(
+            text(
+                """
+                INSERT INTO api_credentials (provider, encrypted_secret, secret_hint, is_active, model)
+                VALUES (:provider, :encrypted_secret, :secret_hint, :is_active, :model)
+                """
+            ),
+            {
+                "provider": "legacy",
+                "encrypted_secret": "ciphertext-2",
+                "secret_hint": "sk-***",
+                "is_active": True,
+                "model": "gemini-1.0-pro",
+            },
+        )
+
+    run_startup_migrations(engine)
+
+    expected = migrations.settings.gemini_model
+    with engine.connect() as connection:
+        rows = connection.execute(text("SELECT provider, model FROM api_credentials ORDER BY id"))
+        models = {row.provider: row.model for row in rows}
+
+    assertions.assertTrue(models["gemini"] == expected)
+    assertions.assertTrue(models["legacy"] == expected)
