@@ -650,7 +650,7 @@
   color: var(--text-secondary);
 }
 
-.subtask-editor__input,
+.subtask-editor__input:not(.app-select),
 .comment-form__input,
 .comment-form__textarea {
   width: 100%;
@@ -664,7 +664,7 @@
     background-color 150ms ease;
 }
 
-.subtask-editor__input:focus-visible,
+.subtask-editor__input:not(.app-select):focus-visible,
 .comment-form__input:focus-visible,
 .comment-form__textarea:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
@@ -1145,7 +1145,7 @@
   border-color: color-mix(in srgb, var(--neutral-border-strong) 80%, transparent);
 }
 
-.dark .board-page .subtask-editor__input,
+.dark .board-page .subtask-editor__input:not(.app-select),
 .dark .board-page .comment-form__input,
 .dark .board-page .comment-form__textarea {
   background: color-mix(in srgb, var(--surface) 80%, transparent);

@@ -1,0 +1,15 @@
+{
+  "run_id": "19119253571",
+  "issue": "662",
+  "variant": "main",
+  "changed": true,
+  "timestamp": "2025-11-05T23:15:33Z",
+  "plan_steps": [
+    "Requirements Reviewer",
+    "Release Manager"
+  ],
+  "lines_added": 191,
+  "lines_deleted": 191,
+  "records": 2,
+  "metrics_file": "metrics/metrics.jsonl"
+}

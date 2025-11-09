@@ -219,11 +219,11 @@ DEFAULT_POST_PLAN_STEPS=(
 PRE_PLANNER_STEPS=(translator requirements_analyst)
 
 declare -A STAGE_INSTRUCTIONS=(
-  [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If more details are required, add them under '## Clarifying questions' as bullet points and write 'None' when no follow-up is needed."
+  [translator]="Clarify the request in English. List assumptions, constraints, and unknowns. If the source comment does not provide enough detail to firm up requirements, draft direct follow-up questions under '## Clarifying questions' as bullet points so the workflow can pause and ask the user; write 'None' only when you are confident no clarification is needed."
   # The requirements_analyst collects requirements and outstanding questions so
   # the pipeline can pause and ask the user for additional details when
   # necessary.
-  [requirements_analyst]="Summarize functional, non-functional and out-of-scope requirements. Document risks and assumptions, and list clarifying questions under '## Clarifying questions', writing 'None' when no further information is required."
+  [requirements_analyst]="Summarize functional, non-functional and out-of-scope requirements. Document risks and assumptions, and when information gaps block solidifying the requirements, capture explicit user-facing prompts under '## Clarifying questions' (the workflow will reply with these). Use 'None' only after verifying every requirement is sufficiently specified."
   [planner]="Outline an execution plan that selects only the necessary stages, highlights critical risks, and sequences the work for smooth hand-offs."
   [requirements_reviewer]="Audit the proposed requirements for completeness, spot conflicts, and note any missing acceptance criteria."
   [detail_designer]="Translate requirements into module- and component-level design notes, covering data flow, contracts, and integration points."
@@ -319,15 +319,16 @@ run_stage() {
   write_status_json "running" "stage=${STEP}" "started_at=${CURRENT_STAGE_START}"
 
   local APPROVAL_POLICY="${CODEX_APPROVAL_POLICY:-never}"
+  # Default to workspace-write so the CLI can modify the repository when no
+  # explicit sandbox mode override is provided.
   local SANDBOX_MODE="${CODEX_SANDBOX_MODE:-workspace-write}"
-  local SANDBOX_CONFIG="sandbox='\"${SANDBOX_MODE}\"'"
 
   "${CODEX_CLI[@]}" exec \
     --full-auto \
     --cd "${GITHUB_WORKSPACE:-$(pwd)}" \
     --output-last-message "${OUTPUT_FILE}" \
+    --sandbox "${SANDBOX_MODE}" \
     --config "approval_policy=${APPROVAL_POLICY}" \
-    --config "${SANDBOX_CONFIG}" \
     -- \
     - < "${PROMPT_FILE}"
   local STATUS=$?
@@ -343,17 +344,19 @@ run_stage() {
   else
     PREVIOUS_CONTEXT="${STEP_OUTPUT}"
   fi
-  PREVIOUS_CONTEXT=$(printf '%s' "${PREVIOUS_CONTEXT}" | python3 - "$PREVIOUS_CONTEXT_LIMIT" <<'PY'
+  PREVIOUS_CONTEXT=$(PREVIOUS_CONTEXT_LIMIT="${PREVIOUS_CONTEXT_LIMIT}" \
+    PREVIOUS_CONTEXT_DATA="${PREVIOUS_CONTEXT}" python3 <<'PY'
+import os
 import sys
 
-limit = int(sys.argv[1])
-data = sys.stdin.read()
+limit = int(os.environ["PREVIOUS_CONTEXT_LIMIT"])
+data = os.environ.get("PREVIOUS_CONTEXT_DATA", "")
 if len(data) <= limit:
-    print(data, end="")
+    sys.stdout.write(data)
 else:
-    print(data[-limit:], end="")
+    sys.stdout.write(data[-limit:])
 PY
-)
+  )
 
   local STAGE_RESULT="completed"
 
@@ -421,11 +424,6 @@ for raw in text.splitlines():
     if '?' in lowered:
         print("true")
         break
-    upper = clean.upper()
-    markers = ("TBD", "TBC", "???", "FIXME", "PENDING", "TO DO", "TODO")
-    if any(marker in upper for marker in markers):
-        print("true")
-        break
     prefixes = (
         "none",
         "n/a",
@@ -439,6 +437,11 @@ for raw in text.splitlines():
         continue
     if any(lowered.startswith(prefix) for prefix in prefixes):
         continue
+    upper = clean.upper()
+    markers = ("TBD", "TBC", "???", "FIXME", "PENDING", "TO DO", "TODO")
+    if any(marker in upper for marker in markers):
+        print("true")
+        break
     print("true")
     break
 else:
