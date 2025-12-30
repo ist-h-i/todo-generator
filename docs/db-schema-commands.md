@@ -222,45 +222,6 @@ CREATE TABLE analytics_snapshots (
 );
 ```
 
-## root_cause_analyses
-
-```sql
-CREATE TABLE root_cause_analyses (
-    id TEXT PRIMARY KEY,
-    snapshot_id TEXT,
-    target_type TEXT NOT NULL DEFAULT 'snapshot',
-    target_id TEXT,
-    created_by TEXT,
-    version INTEGER DEFAULT 1,
-    status TEXT NOT NULL DEFAULT 'pending',
-    model_version TEXT,
-    summary TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (snapshot_id) REFERENCES analytics_snapshots(id) ON DELETE SET NULL
-);
-```
-
-## root_cause_nodes
-
-```sql
-CREATE TABLE root_cause_nodes (
-    id TEXT PRIMARY KEY,
-    analysis_id TEXT NOT NULL,
-    depth INTEGER DEFAULT 0,
-    statement TEXT NOT NULL,
-    confidence REAL,
-    evidence_refs JSON DEFAULT '[]',
-    recommended_metrics JSON DEFAULT '[]',
-    parent_id TEXT,
-    state TEXT DEFAULT 'proposed',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (analysis_id) REFERENCES root_cause_analyses(id) ON DELETE CASCADE,
-    FOREIGN KEY (parent_id) REFERENCES root_cause_nodes(id) ON DELETE SET NULL
-);
-```
-
 ## subtasks
 
 ```sql
@@ -278,12 +239,10 @@ CREATE TABLE subtasks (
     story_points INTEGER,
     checklist JSON DEFAULT '[]',
     ai_similarity_vector_id TEXT,
-    root_cause_node_id TEXT,
     completed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
-    FOREIGN KEY (root_cause_node_id) REFERENCES root_cause_nodes(id) ON DELETE SET NULL
+    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
 );
 ```
 
@@ -346,31 +305,6 @@ CREATE TABLE initiative_progress_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (initiative_id) REFERENCES improvement_initiatives(id) ON DELETE CASCADE
-);
-```
-
-## suggested_actions
-
-```sql
-CREATE TABLE suggested_actions (
-    id TEXT PRIMARY KEY,
-    analysis_id TEXT NOT NULL,
-    node_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT,
-    effort_estimate TEXT,
-    impact_score INTEGER,
-    owner_role TEXT,
-    due_date_hint TIMESTAMP WITH TIME ZONE,
-    status TEXT DEFAULT 'pending',
-    initiative_id TEXT,
-    created_card_id TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (analysis_id) REFERENCES root_cause_analyses(id) ON DELETE CASCADE,
-    FOREIGN KEY (node_id) REFERENCES root_cause_nodes(id) ON DELETE CASCADE,
-    FOREIGN KEY (initiative_id) REFERENCES improvement_initiatives(id) ON DELETE SET NULL,
-    FOREIGN KEY (created_card_id) REFERENCES cards(id) ON DELETE SET NULL
 );
 ```
 

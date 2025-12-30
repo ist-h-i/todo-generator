@@ -169,9 +169,6 @@ class Card(Base, TimestampMixin):
     activity_logs: Mapped[list[ActivityLog]] = relationship(
         "ActivityLog", back_populates="card", cascade="all, delete-orphan"
     )
-    originating_suggestion: Mapped[Optional["SuggestedAction"]] = relationship(
-        "SuggestedAction", back_populates="created_card", uselist=False
-    )
     owner: Mapped[User] = relationship("User", back_populates="cards")
     channel: Mapped[Optional["Channel"]] = relationship("Channel", back_populates="cards")
     status_report_links: Mapped[list["StatusReportCardLink"]] = relationship(
@@ -234,13 +231,9 @@ class Subtask(Base, TimestampMixin):
     story_points: Mapped[int | None] = mapped_column(Integer)
     checklist: Mapped[list[dict]] = mapped_column(JSON, default=list)
     ai_similarity_vector_id: Mapped[str | None] = mapped_column(String)
-    root_cause_node_id: Mapped[str | None] = mapped_column(
-        String, ForeignKey("root_cause_nodes.id", ondelete="SET NULL"), nullable=True
-    )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     card: Mapped[Card] = relationship("Card", back_populates="subtasks")
-    root_cause_node: Mapped[Optional["RootCauseNode"]] = relationship("RootCauseNode", back_populates="subtasks")
     comments: Mapped[list["Comment"]] = relationship(
         "Comment",
         back_populates="subtask",
@@ -381,7 +374,6 @@ class ImprovementInitiative(Base, TimestampMixin):
         cascade="all, delete-orphan",
         order_by="InitiativeProgressLog.timestamp",
     )
-    suggested_actions: Mapped[list["SuggestedAction"]] = relationship("SuggestedAction", back_populates="initiative")
     owner_user: Mapped[User] = relationship("User", back_populates="initiatives")
 
 
@@ -409,94 +401,6 @@ class AnalyticsSnapshot(Base, TimestampMixin):
     generated_by: Mapped[str | None] = mapped_column(String)
     workspace_id: Mapped[str | None] = mapped_column(String)
     narrative: Mapped[str | None] = mapped_column(Text)
-
-    analyses: Mapped[list["RootCauseAnalysis"]] = relationship(
-        "RootCauseAnalysis", back_populates="snapshot", cascade="all, delete-orphan"
-    )
-
-
-class RootCauseAnalysis(Base, TimestampMixin):
-    __tablename__ = "root_cause_analyses"
-
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    snapshot_id: Mapped[str | None] = mapped_column(
-        String, ForeignKey("analytics_snapshots.id", ondelete="SET NULL"), nullable=True
-    )
-    target_type: Mapped[str] = mapped_column(String, default="snapshot")
-    target_id: Mapped[str | None] = mapped_column(String)
-    created_by: Mapped[str | None] = mapped_column(String)
-    version: Mapped[int] = mapped_column(Integer, default=1)
-    status: Mapped[str] = mapped_column(String, default="pending")
-    model_version: Mapped[str | None] = mapped_column(String)
-    summary: Mapped[str | None] = mapped_column(Text)
-
-    snapshot: Mapped[AnalyticsSnapshot | None] = relationship("AnalyticsSnapshot", back_populates="analyses")
-    nodes: Mapped[list["RootCauseNode"]] = relationship(
-        "RootCauseNode", back_populates="analysis", cascade="all, delete-orphan"
-    )
-    suggestions: Mapped[list["SuggestedAction"]] = relationship(
-        "SuggestedAction", back_populates="analysis", cascade="all, delete-orphan"
-    )
-
-
-class RootCauseNode(Base, TimestampMixin):
-    __tablename__ = "root_cause_nodes"
-
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    analysis_id: Mapped[str] = mapped_column(String, ForeignKey("root_cause_analyses.id", ondelete="CASCADE"))
-    depth: Mapped[int] = mapped_column(Integer, default=0)
-    statement: Mapped[str] = mapped_column(Text, nullable=False)
-    confidence: Mapped[float | None] = mapped_column(Float)
-    evidence_refs: Mapped[list[str]] = mapped_column(JSON, default=list)
-    recommended_metrics: Mapped[list[str]] = mapped_column(JSON, default=list)
-    parent_id: Mapped[str | None] = mapped_column(
-        String, ForeignKey("root_cause_nodes.id", ondelete="SET NULL"), nullable=True
-    )
-    state: Mapped[str] = mapped_column(String, default="proposed")
-
-    analysis: Mapped[RootCauseAnalysis] = relationship(
-        "RootCauseAnalysis", back_populates="nodes", foreign_keys=[analysis_id]
-    )
-    parent: Mapped[Optional["RootCauseNode"]] = relationship(
-        "RootCauseNode",
-        remote_side="RootCauseNode.id",
-        back_populates="children",
-    )
-    children: Mapped[list["RootCauseNode"]] = relationship(
-        "RootCauseNode", back_populates="parent", cascade="all, delete-orphan"
-    )
-    suggestions: Mapped[list["SuggestedAction"]] = relationship(
-        "SuggestedAction", back_populates="node", cascade="all, delete-orphan"
-    )
-    subtasks: Mapped[list[Subtask]] = relationship("Subtask", back_populates="root_cause_node")
-
-
-class SuggestedAction(Base, TimestampMixin):
-    __tablename__ = "suggested_actions"
-
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid4()))
-    analysis_id: Mapped[str] = mapped_column(String, ForeignKey("root_cause_analyses.id", ondelete="CASCADE"))
-    node_id: Mapped[str] = mapped_column(String, ForeignKey("root_cause_nodes.id", ondelete="CASCADE"))
-    title: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[str | None] = mapped_column(Text)
-    effort_estimate: Mapped[str | None] = mapped_column(String)
-    impact_score: Mapped[int | None] = mapped_column(Integer)
-    owner_role: Mapped[str | None] = mapped_column(String)
-    due_date_hint: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    status: Mapped[str] = mapped_column(String, default="pending")
-    initiative_id: Mapped[str | None] = mapped_column(
-        String, ForeignKey("improvement_initiatives.id", ondelete="SET NULL"), nullable=True
-    )
-    created_card_id: Mapped[str | None] = mapped_column(
-        String, ForeignKey("cards.id", ondelete="SET NULL"), nullable=True
-    )
-
-    analysis: Mapped[RootCauseAnalysis] = relationship("RootCauseAnalysis", back_populates="suggestions")
-    node: Mapped[RootCauseNode] = relationship("RootCauseNode", back_populates="suggestions")
-    initiative: Mapped[Optional[ImprovementInitiative]] = relationship(
-        "ImprovementInitiative", back_populates="suggested_actions"
-    )
-    created_card: Mapped[Optional[Card]] = relationship("Card", back_populates="originating_suggestion")
 
 
 class StatusReport(Base, TimestampMixin):

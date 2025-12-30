@@ -28,10 +28,10 @@ This document explains how the main user-facing workflows traverse the Angular U
 - Publishing an accepted proposal invokes `WorkspaceStore.createCardFromSuggestion`, which normalizes the request, calls `CardsApiService.createCard`, and injects the created card into the signal store before the backend responds.【F:frontend/src/app/core/state/workspace-store.ts†L1613-L1678】 The backend runs the same quota, scoring, and persistence flow described in §1.1, storing any AI-generated subtasks alongside the card.【F:backend/app/routers/cards.py†L327-L419】
 - The `/analysis` endpoint enriches requests with the user profile, delegates to the Gemini client, and stores each submission and response in `analysis_sessions` before returning structured proposals.【F:backend/app/routers/analysis.py†L1-L51】【F:backend/app/models.py†L753-L768】
 
-### 2.2 Analytics insights → improvement records
+### 2.2 Analytics insights → immunity map visualization
 
-- The analytics dashboard reads derived board metrics and improvement fixtures while offering a “convert to card” action for suggested improvements.【F:frontend/src/app/features/analytics/page.ts†L46-L144】 When a suggestion is promoted, `ContinuousImprovementStore.convertSuggestedAction` routes the payload to `WorkspaceStore.createCardFromSuggestion` and annotates the originating suggestion and initiative progress locally.【F:frontend/src/app/core/state/continuous-improvement-store.ts†L155-L218】
-- On the backend, suggested actions, analyses, and initiatives are persisted through the analytics routers. `SuggestedAction.created_card_id` links each promoted action back to its generated card for traceability in the database.【F:backend/app/models.py†L364-L460】
+- The analytics dashboard reads derived board metrics and analytics snapshots for the selected period.
+- The immunity map form sends the user’s A-items and optional context through `ImmunityMapGateway` to `POST /analysis/immunity-map`, then shows the returned Mermaid document (copyable / Mermaid Live Editor link).
 
 ## 3. Status Reporting and AI Summaries
 

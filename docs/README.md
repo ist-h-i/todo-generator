@@ -30,8 +30,10 @@ Welcome to the Verbalize Yourself knowledge base. Use this index to navigate arc
 
 - **Analyzer & status reports**: [AI intake requirements](features/analysis-intake/requirements.md) and [Status reporting detail design](features/status-reporting/detail-design.md).
 - **Board operations**: [Board collaboration requirements](features/board/requirements.md) and [Recommendation scoring specs](features/recommendation-scoring/requirements.md).
+- **Authentication & user management**: [ユーザー登録・ユーザー種別・管理者ユーザー管理 要件定義](features/user-management/requirements.md).
 - **Governance & competencies**: [Governance feature requirements](features/governance/requirements.md) and [Competency evaluations workflow](features/competency-evaluations/requirements.md).
 - **Analytics**: [Analytics insights requirements](features/analytics-insights/requirements.md) and [Analysis intake detail design](features/analysis-intake/detail-design.md).
+- **Immunity map**: [Immunity map requirements](features/immunity-map/requirements.md) and [Immunity map detail design](features/immunity-map/detail-design.md).
 - **Appeals**: [Appeal generation requirements](features/appeal-generation/requirements.md) and [Appeal detail design](features/appeal-generation/detail-design.md).
 
 ## UI & Experience Design
@@ -45,6 +47,7 @@ Welcome to the Verbalize Yourself knowledge base. Use this index to navigate arc
 - [HTTP error interceptor requirements](spec-updates/http-error-interceptor.md): Shared error handling banner contract for API failures.
 - [Notification layer relocation](spec-updates/toast-layer-layout.md): Placement rules for the global error banner and toast stack.
 - [Gemini migration](spec-updates/gemini-migration.md): Configuration and rollout plan for Gemini-powered AI flows.
+- [Gemini backend upgrade plan](spec-updates/gemini-backend-upgrade.md): Inventory and migration plan to remove heuristic/fallback logic and standardize on live Gemini API requests.
 
 ## Prompts, Automation, and MCP Tooling
 

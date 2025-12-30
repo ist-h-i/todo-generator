@@ -1,21 +1,12 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  DestroyRef,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
-import { FeedbackSeverity } from '@core/models';
-import { ContinuousImprovementStore } from '@core/state/continuous-improvement-store';
+import { ImmunityMapGateway } from '@core/api/immunity-map-gateway';
+import { ImmunityMapAItem, ImmunityMapAItemKind, ImmunityMapResponse } from '@core/models';
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { PageLayoutComponent } from '@shared/ui/page-layout/page-layout';
-import { LocalDateTimePipe } from '@shared/pipes/local-date-time.pipe';
-
-type ActionFeedback = { status: 'success' | 'error'; message: string };
 
 /**
  * Analytics dashboard summarizing board metrics for the workspace.
@@ -23,26 +14,16 @@ type ActionFeedback = { status: 'success' | 'error'; message: string };
 @Component({
   selector: 'app-analytics-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, PageLayoutComponent, LocalDateTimePipe],
+  imports: [CommonModule, RouterLink, PageLayoutComponent],
   templateUrl: './analytics-page.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AnalyticsPageComponent {
   private readonly workspace = inject(WorkspaceStore);
-  private readonly improvement = inject(ContinuousImprovementStore);
-  private readonly destroyRef = inject(DestroyRef);
-
-  private readonly actionPendingSignal = signal<Record<string, boolean>>({});
-  private readonly actionStatusSignal = signal<Record<string, ActionFeedback | undefined>>({});
-  private readonly statusTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  private readonly statusVisibilityMs = 5000;
+  private readonly immunityMapGateway = inject(ImmunityMapGateway);
 
   public constructor() {
     void this.workspace.refreshWorkspaceData();
-    this.destroyRef.onDestroy(() => {
-      this.statusTimers.forEach((timer) => clearTimeout(timer));
-      this.statusTimers.clear();
-    });
   }
 
   public readonly summarySignal = this.workspace.summary;
@@ -86,139 +67,99 @@ export class AnalyticsPageComponent {
     };
   });
 
-  public readonly snapshots = this.improvement.snapshots;
-  public readonly activeSnapshot = this.improvement.activeSnapshot;
-  public readonly topIssues = this.improvement.topIssueSummary;
-  public readonly causeLayers = this.improvement.causeLayers;
-  public readonly actionPlan = this.improvement.actionPlan;
-  public readonly improvementOverview = this.improvement.improvementOverview;
-  public readonly initiatives = this.improvement.initiatives;
-  public readonly reportInstruction = this.improvement.reportInstruction;
-  public readonly reportPreview = this.improvement.reportPreview;
+  public readonly shouldText = signal('');
+  public readonly cannotText = signal('');
+  public readonly wantText = signal('');
+  public readonly contextText = signal('');
 
-  public readonly selectSnapshot = (snapshotId: string): void => {
-    this.improvement.selectSnapshot(snapshotId);
-  };
+  public readonly isGenerating = signal(false);
+  public readonly generationError = signal<string | null>(null);
+  public readonly generatedMap = signal<ImmunityMapResponse | null>(null);
+  public readonly copyStatus = signal<'idle' | 'copied' | 'failed'>('idle');
 
-  public readonly convertAction = async (actionId: string): Promise<void> => {
-    if (this.isActionPending(actionId)) {
+  public readonly updateShouldText = (value: string): void => this.shouldText.set(value);
+  public readonly updateCannotText = (value: string): void => this.cannotText.set(value);
+  public readonly updateWantText = (value: string): void => this.wantText.set(value);
+  public readonly updateContextText = (value: string): void => this.contextText.set(value);
+
+  public readonly generateImmunityMap = async (): Promise<void> => {
+    if (this.isGenerating()) {
       return;
     }
 
-    this.setActionPending(actionId, true);
-    this.clearStatusTimer(actionId);
-    this.clearActionStatus(actionId);
+    const aItems = [
+      ...this.parseLines(this.shouldText()).map((text) => this.toAItem('should', text)),
+      ...this.parseLines(this.cannotText()).map((text) => this.toAItem('cannot', text)),
+      ...this.parseLines(this.wantText()).map((text) => this.toAItem('want', text)),
+    ];
+
+    if (aItems.length === 0) {
+      this.generationError.set('A（やるべき/やれない/やりたい）を 1 件以上入力してください。');
+      this.generatedMap.set(null);
+      return;
+    }
+
+    this.isGenerating.set(true);
+    this.generationError.set(null);
+    this.copyStatus.set('idle');
 
     try {
-      const result = await this.improvement.convertSuggestedAction(actionId);
-      if (result.status === 'success') {
-        const message = result.card?.id
-          ? `カードを作成しました (ID: ${result.card.id})`
-          : 'カードを作成しました。';
-        this.setActionStatus(actionId, { status: 'success', message });
-      } else {
-        this.setActionStatus(actionId, {
-          status: 'error',
-          message: result.message ?? 'カードの作成に失敗しました。',
-        });
+      const context = this.contextText().trim();
+      const response = await firstValueFrom(
+        this.immunityMapGateway.generate({
+          a_items: aItems,
+          context: context.length > 0 ? context : null,
+        }),
+      );
+      this.generatedMap.set(response);
+    } catch {
+      this.generationError.set('免疫マップの生成に失敗しました。時間をおいて再実行してください。');
+      this.generatedMap.set(null);
+    } finally {
+      this.isGenerating.set(false);
+    }
+  };
+
+  public readonly copyMermaid = async (): Promise<void> => {
+    const mermaid = this.generatedMap()?.mermaid;
+    if (!mermaid) {
+      return;
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(mermaid);
+        this.copyStatus.set('copied');
+        return;
       }
     } catch {
-      this.setActionStatus(actionId, {
-        status: 'error',
-        message: 'カードの作成に失敗しました。',
-      });
-    } finally {
-      this.setActionPending(actionId, false);
-      if (this.actionStatus(actionId)) {
-        this.scheduleStatusClear(actionId);
-      }
+      // fall through
+    }
+
+    try {
+      const element = document.createElement('textarea');
+      element.value = mermaid;
+      element.setAttribute('readonly', 'true');
+      element.style.position = 'fixed';
+      element.style.left = '-9999px';
+      document.body.appendChild(element);
+      element.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(element);
+      this.copyStatus.set(ok ? 'copied' : 'failed');
+    } catch {
+      this.copyStatus.set('failed');
     }
   };
 
-  public readonly updateReportInstruction = (value: string): void => {
-    this.improvement.updateReportInstruction(value);
-  };
+  private readonly parseLines = (value: string): string[] =>
+    value
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
 
-  public readonly generateReport = (): void => {
-    this.improvement.generateReportPreview();
-  };
-
-  public readonly isActionPending = (actionId: string): boolean => {
-    const pending = this.actionPendingSignal();
-    return Boolean(pending[actionId]);
-  };
-
-  public readonly actionStatus = (actionId: string): ActionFeedback | undefined => {
-    const statuses = this.actionStatusSignal();
-    return statuses[actionId];
-  };
-
-  public readonly severityClass = (severity: FeedbackSeverity): string => {
-    switch (severity) {
-      case 'critical':
-        return 'bg-rose-500/10 text-rose-500';
-      case 'high':
-        return 'bg-amber-500/10 text-amber-500';
-      case 'medium':
-        return 'bg-blue-500/10 text-blue-500';
-      default:
-        return 'bg-slate-500/10 text-slate-500';
-    }
-  };
-
-  public readonly formatChange = (value: number): string => {
-    const percent = Math.round(value * 100);
-    if (percent === 0) {
-      return '±0%';
-    }
-
-    return `${percent > 0 ? '+' : ''}${percent}%`;
-  };
-
-  private readonly setActionPending = (actionId: string, value: boolean): void => {
-    this.actionPendingSignal.update((pending) => {
-      if (value) {
-        return { ...pending, [actionId]: true };
-      }
-
-      if (!(actionId in pending)) {
-        return pending;
-      }
-
-      const { [actionId]: _removed, ...rest } = pending;
-      return rest;
-    });
-  };
-
-  private readonly setActionStatus = (actionId: string, value: ActionFeedback): void => {
-    this.actionStatusSignal.update((statuses) => ({ ...statuses, [actionId]: value }));
-  };
-
-  private readonly clearActionStatus = (actionId: string): void => {
-    this.actionStatusSignal.update((statuses) => {
-      if (!(actionId in statuses)) {
-        return statuses;
-      }
-
-      const { [actionId]: _removed, ...rest } = statuses;
-      return rest;
-    });
-  };
-
-  private readonly scheduleStatusClear = (actionId: string): void => {
-    this.clearStatusTimer(actionId);
-    const timeoutId = setTimeout(() => {
-      this.clearStatusTimer(actionId);
-      this.clearActionStatus(actionId);
-    }, this.statusVisibilityMs);
-    this.statusTimers.set(actionId, timeoutId);
-  };
-
-  private readonly clearStatusTimer = (actionId: string): void => {
-    const existing = this.statusTimers.get(actionId);
-    if (existing) {
-      clearTimeout(existing);
-      this.statusTimers.delete(actionId);
-    }
-  };
+  private readonly toAItem = (kind: ImmunityMapAItemKind, text: string): ImmunityMapAItem => ({
+    kind,
+    text,
+  });
 }

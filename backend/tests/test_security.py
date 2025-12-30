@@ -271,28 +271,6 @@ def test_analytics_routes_require_admin(client: TestClient) -> None:
     assertions.assertTrue(isinstance(allowed.json(), list))
 
 
-def test_suggested_actions_routes_require_admin(client: TestClient) -> None:
-    admin_payload, member_payload = _bootstrap_admin_and_member(client)
-    admin_token = admin_payload["access_token"]
-    member_token = member_payload["access_token"]
-
-    unauthenticated = client.get("/suggested-actions/")
-    assertions.assertTrue(unauthenticated.status_code == 401)
-
-    forbidden = client.get(
-        "/suggested-actions/",
-        headers={"Authorization": f"Bearer {member_token}"},
-    )
-    assertions.assertTrue(forbidden.status_code == 403)
-
-    allowed = client.get(
-        "/suggested-actions/",
-        headers={"Authorization": f"Bearer {admin_token}"},
-    )
-    assertions.assertTrue(allowed.status_code == 200, allowed.text)
-    assertions.assertTrue(isinstance(allowed.json(), list))
-
-
 def test_reports_routes_require_admin(client: TestClient) -> None:
     admin_payload, member_payload = _bootstrap_admin_and_member(client)
     admin_token = admin_payload["access_token"]

@@ -218,6 +218,15 @@ class GeminiClient:
         self.model = self._ensure_supported_model(self.model)
         self._client = genai.GenerativeModel(self.model)
 
+    def _get_model_client(self, model_override: str | None) -> tuple[Any, str]:
+        if not model_override:
+            return self._client, self.model
+
+        normalized = self.normalize_model_name(model_override)
+        sanitized = self.sanitize_model_name(normalized, fallback=self.model)
+        resolved = self._ensure_supported_model(sanitized)
+        return genai.GenerativeModel(resolved), resolved
+
     def _ensure_supported_model(self, model: str) -> str:
         """Return a model that is supported by the configured Gemini account."""
 
@@ -417,20 +426,36 @@ class GeminiClient:
     ) -> dict[str, Any]:
         """Invoke the Gemini API to craft appeal narratives."""
 
+        return self.generate_structured(
+            prompt=prompt,
+            response_schema=response_schema,
+            system_prompt=self._APPEAL_SYSTEM_PROMPT,
+        )
+
+    def generate_structured(
+        self,
+        *,
+        prompt: str,
+        response_schema: dict[str, Any],
+        system_prompt: str | None = None,
+        model_override: str | None = None,
+    ) -> dict[str, Any]:
         if not prompt.strip():
-            raise GeminiError("Prompt for appeal generation must not be empty.")
+            raise GeminiError("Prompt must not be empty.")
 
         sanitized_schema = self._sanitize_schema(response_schema)
         generation_config = self._build_generation_config(sanitized_schema)
-        combined_prompt = f"{self._APPEAL_SYSTEM_PROMPT}\n\n{prompt}"
+        combined_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
+
+        client, used_model = self._get_model_client(model_override)
 
         try:
-            response = self._client.generate_content(
+            response = client.generate_content(
                 combined_prompt,
                 generation_config=generation_config,
             )
         except GoogleAPIError as exc:
-            logger.exception("Gemini appeal generation failed")
+            logger.exception("Gemini structured generation failed")
             raise GeminiError("Gemini request failed.") from exc
 
         content = self._extract_content(response)
@@ -941,6 +966,8 @@ def get_optional_gemini_client(db: Session = Depends(get_db)) -> GeminiClient | 
         return get_gemini_client(db)
     except HTTPException:
         return None
+
+
 @dataclass(frozen=True)
 class AnalysisWorkspaceStatusOption:
     """Serializable representation of a workspace status for prompt guidance."""

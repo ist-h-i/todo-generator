@@ -1,15 +1,13 @@
 <app-page-layout
   class="analytics-page"
   eyebrow="分析ダッシュボード"
-  title="ワークスペース全体の指標"
-  description="完了率やポイント配分に加え、指摘の傾向や原因、改善活動の進捗までひと目で確認できます。"
+  title="ワークスペース全体の状況"
+  description="進捗・ステータス・ラベルの内訳をまとめて確認できます。"
   headingLevel="h1"
 >
   <section class="page-section analytics-page__intro">
     <div class="analytics-page__intro-content">
-      <p>
-        最新のコンピテンシー判定とあわせてボード分析を見ると、改善の優先度が整理しやすくなります。
-      </p>
+      <p>日々のタスク実行状況を俯瞰して、次の一手を決めやすくします。</p>
     </div>
     <div class="analytics-page__intro-actions">
       <a routerLink="/profile/evaluations" class="button button--secondary button--pill">
@@ -34,9 +32,7 @@
         <li class="page-list__item analytics-summary__metric">
           <p class="analytics-summary__eyebrow">進捗率</p>
           <p class="analytics-summary__value">{{ summary.progressRatio }}%</p>
-          <p class="analytics-summary__note">
-            完了したカード {{ summary.doneCards }}/{{ summary.totalCards }}
-          </p>
+          <p class="analytics-summary__note">完了カード {{ summary.doneCards }}/{{ summary.totalCards }}</p>
         </li>
         <li class="page-list__item analytics-summary__metric">
           <p class="analytics-summary__eyebrow">カード総数</p>
@@ -49,9 +45,9 @@
           <p class="analytics-summary__note">残り {{ pointSummary().remaining }}</p>
         </li>
         <li class="page-list__item analytics-summary__metric">
-          <p class="analytics-summary__eyebrow">総ポイント数</p>
+          <p class="analytics-summary__eyebrow">総ポイント</p>
           <p class="analytics-summary__value">{{ pointSummary().total }}</p>
-          <p class="analytics-summary__note">スプリント負荷の目安として活用できます</p>
+          <p class="analytics-summary__note">負荷の目安として活用できます</p>
         </li>
       </ul>
     </section>
@@ -93,287 +89,118 @@
 
   <section class="surface-panel space-y-6 px-6 py-6">
     <header class="space-y-2">
-      <div class="flex items-center justify-between gap-4">
-        <div>
-          <h3 class="text-lg font-semibold text-on-surface">指摘トレンドの分析</h3>
-          <p class="text-xs text-slate-500">
-            期間を切り替えて、どの指摘やエラーが多いかを確認できます。
-          </p>
-        </div>
-        <span class="text-xs text-slate-500">{{ snapshots().length }} スナップショット</span>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        @for (snapshot of snapshots(); track snapshot.id) {
-          <button
-            type="button"
-            class="snapshot-chip"
-            [class.snapshot-chip--active]="activeSnapshot()?.id === snapshot.id"
-            (click)="selectSnapshot(snapshot.id)"
-          >
-            <span class="text-sm font-medium text-on-surface">{{ snapshot.title }}</span>
-            <span class="text-[11px] text-slate-500"
-              >{{ snapshot.periodStart }}〜{{ snapshot.periodEnd }}</span
-            >
-          </button>
-        }
-      </div>
-    </header>
-
-    <div class="grid gap-6 lg:grid-cols-[3fr_2fr]">
-      <div class="space-y-4">
-        <h4 class="text-sm font-semibold text-on-surface">主な指摘内容</h4>
-        <ul class="space-y-3">
-          @for (issue of topIssues(); track issue.id) {
-            <li class="rounded-2xl border border-subtle p-4">
-              <div class="flex items-start justify-between gap-4">
-                <div class="space-y-2">
-                  <p class="text-sm font-semibold text-on-surface">{{ issue.title }}</p>
-                  <p class="text-xs text-slate-500">{{ issue.description }}</p>
-                  <p class="text-xs text-amber-600 dark:text-amber-400">{{ issue.causeHint }}</p>
-                  <div class="flex flex-wrap gap-3 text-xs text-slate-500">
-                    <span>頻度 {{ issue.frequency }}件 ({{ issue.share }}%)</span>
-                    <span>変化 {{ formatChange(issue.changeRatio) }}</span>
-                    <span>カテゴリ {{ issue.category }}</span>
-                  </div>
-                  <div class="flex flex-wrap gap-2 text-[11px] text-slate-500">
-                    @for (example of issue.recentExamples; track example) {
-                      <span class="rounded-full bg-slate-500/10 px-2 py-1">{{ example }}</span>
-                    }
-                  </div>
-                </div>
-                <span class="severity-pill" [ngClass]="severityClass(issue.severity)">
-                  {{ issue.severity }}
-                </span>
-              </div>
-            </li>
-          }
-        </ul>
-      </div>
-
-      <div class="space-y-4">
-        @if (activeSnapshot(); as snapshot) {
-          <div class="rounded-2xl border border-subtle p-4">
-            <h4 class="text-sm font-semibold text-on-surface">この期間のサマリー</h4>
-            <p class="mt-2 text-xs text-slate-500">{{ snapshot.summary }}</p>
-            <ul class="mt-4 space-y-2 text-sm text-on-surface">
-              @for (metric of snapshot.metrics; track metric.label) {
-                <li
-                  class="flex items-center justify-between gap-4 rounded-xl bg-surface-strong px-3 py-2"
-                >
-                  <span>{{ metric.label }}</span>
-                  <span class="text-right text-sm font-semibold">
-                    {{ metric.value }}
-                    <span class="ml-2 text-xs font-normal text-slate-500">
-                      {{ formatChange(metric.delta) }}
-                    </span>
-                  </span>
-                </li>
-              }
-            </ul>
-          </div>
-        } @else {
-          <p class="rounded-2xl border border-dashed border-subtle p-4 text-sm text-slate-500">
-            スナップショットが選択されていません。上の一覧から選んでください。
-          </p>
-        }
-      </div>
-    </div>
-  </section>
-
-  <section class="surface-panel space-y-6 px-6 py-6">
-    <header class="space-y-2">
-      <h3 class="text-lg font-semibold text-on-surface">なぜなぜ分析の結果一覧</h3>
+      <h3 class="text-lg font-semibold text-on-surface">免疫マップ（Mermaid）</h3>
       <p class="text-xs text-slate-500">
-        AIが推定した各階層の原因を表示します。率直な指摘もあいまいにせずに示します。
+        AI が免疫マップ構造（A〜F）を推測し、Mermaid 形式で出力します。内容がない要素・線は表示しません。
       </p>
     </header>
-    <div class="grid gap-4 md:grid-cols-3">
-      @for (layer of causeLayers(); track layer.depth) {
-        <article class="cause-column">
-          <h4 class="text-sm font-semibold text-on-surface">第{{ layer.depth }}層</h4>
-          <ul class="mt-3 space-y-3">
-            @for (node of layer.nodes; track node.id) {
-              <li class="cause-card">
-                <p class="text-sm font-semibold text-on-surface">{{ node.statement }}</p>
-                <p class="text-xs text-slate-500">
-                  おすすめ度 {{ node.confidence * 100 | number: '1.0-0' }}% · 状況 {{ node.state }}
-                </p>
-                <p class="text-xs text-slate-500">
-                  推奨指標: {{ node.recommendedMetrics.join(', ') || '未設定' }}
-                </p>
-                @if (node.tone === 'direct') {
-                  <p class="text-xs font-semibold text-rose-500">
-                    率直な指摘:
-                    {{ node.toneMessage || '感情に配慮しながら事実をはっきり伝えています。' }}
-                  </p>
-                }
-              </li>
-            }
-          </ul>
-        </article>
-      }
-    </div>
-  </section>
 
-  <section class="surface-panel space-y-6 px-6 py-6">
-    <header class="flex items-center justify-between">
-      <div>
-        <h3 class="text-lg font-semibold text-on-surface">ネクストアクション</h3>
-        <p class="text-xs text-slate-500">
-          原因ごとの推奨アクションをワンクリックでタスクにできます。
-        </p>
+    <div class="grid gap-4 lg:grid-cols-3">
+      <div class="space-y-2">
+        <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
+          >A：やるべきこと</label
+        >
+        <textarea
+          class="w-full rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm text-on-surface"
+          rows="5"
+          placeholder="例）週次レポートを出す"
+          [value]="shouldText()"
+          (input)="updateShouldText($any($event.target).value)"
+        ></textarea>
       </div>
-      <span class="text-xs text-slate-500">{{ actionPlan().length }} 件</span>
-    </header>
-    <ul class="analytics-action-plan__list">
-      @for (action of actionPlan(); track action.id) {
-        <li class="analytics-action-plan__item action-card">
-          <div class="flex items-start justify-between gap-4">
-            <div class="space-y-2">
-              <p class="text-sm font-semibold text-on-surface">{{ action.title }}</p>
-              <p class="text-xs text-slate-500">{{ action.summary }}</p>
-              <p class="text-xs text-slate-500">
-                担当: {{ action.ownerRole }} · 工数 {{ action.effort }} · 影響度
-                {{ action.impactScore }}
-              </p>
-              <p class="text-xs text-slate-500">
-                期限の目安 {{ action.dueInDays }} 日 · 推奨ラベル {{ action.labelIds.join(', ') }}
-              </p>
-            </div>
-            <span
-              class="status-pill"
-              [class.status-pill--done]="action.status === 'converted'"
-              [class.status-pill--pending]="action.status !== 'converted'"
-            >
-              {{ action.status === 'converted' ? 'タスク化済み' : '提案中' }}
-            </span>
-          </div>
-          <div class="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              class="button button--primary"
-              [disabled]="action.status === 'converted' || isActionPending(action.id)"
-              (click)="convertAction(action.id)"
-            >
-              <span
-                class="button__spinner"
-                [class.button__spinner--visible]="isActionPending(action.id)"
-                aria-hidden="true"
-              ></span>
-              <span class="button__label">
-                {{
-                  action.status === 'converted'
-                    ? '作成済み'
-                    : isActionPending(action.id)
-                      ? '作成中…'
-                      : 'ワンクリックでタスク化'
-                }}
-              </span>
-            </button>
-            @if (action.createdCardId) {
-              <span class="text-xs text-slate-500">カードID: {{ action.createdCardId }}</span>
-            }
-            @if (actionStatus(action.id); as status) {
-              <p
-                class="text-xs font-medium"
-                [class.text-emerald-600]="status.status === 'success'"
-                [class.text-rose-600]="status.status === 'error'"
-                [attr.role]="status.status === 'error' ? 'alert' : 'status'"
-                [attr.aria-live]="status.status === 'error' ? 'assertive' : 'polite'"
-              >
-                {{ status.message }}
-              </p>
-            }
-          </div>
-        </li>
-      }
-    </ul>
-  </section>
 
-  <section class="surface-panel space-y-6 px-6 py-6">
-    @if (improvementOverview(); as overview) {
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article class="metric-card">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-400">再発率</p>
-          <p class="metric-card__value">{{ overview.recurrenceRate * 100 | number: '1.0-0' }}%</p>
-          <p class="text-xs text-slate-500">前期比 {{ formatChange(overview.recurrenceDelta) }}</p>
-        </article>
-        <article class="metric-card">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-400">フィードバック件数</p>
-          <p class="metric-card__value">{{ overview.totalFeedback }}</p>
-          <p class="text-xs text-slate-500">ヒアリングとインシデントの総数</p>
-        </article>
-        <article class="metric-card">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-400">タスク化した提案</p>
-          <p class="metric-card__value">{{ overview.convertedActions }}</p>
-          <p class="text-xs text-slate-500">残り {{ overview.pendingActions }} 件がレビュー待ち</p>
-        </article>
-        <article class="metric-card">
-          <p class="text-xs uppercase tracking-[0.2em] text-slate-400">改善イニシアチブ</p>
-          <p class="metric-card__value">{{ overview.completedInitiatives }}</p>
-          <p class="text-xs text-slate-500">進行中 {{ overview.activeInitiatives }} 件</p>
-        </article>
+      <div class="space-y-2">
+        <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
+          >A：やれないこと</label
+        >
+        <textarea
+          class="w-full rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm text-on-surface"
+          rows="5"
+          placeholder="例）まとまった作業時間が取れない"
+          [value]="cannotText()"
+          (input)="updateCannotText($any($event.target).value)"
+        ></textarea>
       </div>
-    }
 
-    <div class="space-y-3">
-      <h3 class="text-sm font-semibold text-on-surface">改善活動の進捗</h3>
-      <div class="grid gap-4 lg:grid-cols-2">
-        @for (initiative of initiatives(); track initiative.id) {
-          <article class="initiative-card">
-            <div class="flex items-start justify-between gap-4">
-              <div class="space-y-1">
-                <p class="text-sm font-semibold text-on-surface">{{ initiative.name }}</p>
-                <p class="text-xs text-slate-500">
-                  担当者 {{ initiative.owner }} · ステータス {{ initiative.status }}
-                </p>
-                <p class="text-xs text-slate-500">目標: {{ initiative.targetMetric }}</p>
-                <p class="text-xs text-slate-500">{{ initiative.summary }}</p>
-              </div>
-              <span class="health-pill" [attr.data-health]="initiative.health">{{
-                initiative.health
-              }}</span>
-            </div>
-            <ul class="mt-3 space-y-2 text-xs text-slate-500">
-              @for (log of initiative.progress; track log.id) {
-                <li>
-                  <span class="font-semibold">{{
-                    log.timestamp | localDateTime: 'yyyy/MM/dd'
-                  }}</span>
-                  {{ log.status }} — {{ log.notes }}
-                </li>
-              }
-            </ul>
-          </article>
-        }
+      <div class="space-y-2">
+        <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
+          >A：やりたいこと</label
+        >
+        <textarea
+          class="w-full rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm text-on-surface"
+          rows="5"
+          placeholder="例）深い集中で品質を上げたい"
+          [value]="wantText()"
+          (input)="updateWantText($any($event.target).value)"
+        ></textarea>
       </div>
     </div>
-  </section>
 
-  <section class="surface-panel space-y-4 px-6 py-6">
-    <header class="space-y-1">
-      <h3 class="text-lg font-semibold text-on-surface">レポート作成</h3>
-      <p class="text-xs text-slate-500">指示文を入力すると、改善活動を報告書形式でまとめます。</p>
-    </header>
-    <div class="space-y-3">
+    <div class="space-y-2">
       <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
-        >指示内容</label
+        >背景（任意）</label
       >
       <textarea
         class="w-full rounded-2xl border border-subtle bg-surface px-4 py-3 text-sm text-on-surface"
         rows="3"
-        [value]="reportInstruction()"
-        (input)="updateReportInstruction($any($event.target).value)"
+        placeholder="例）直近の状況、制約、関係者、重要視していること など"
+        [value]="contextText()"
+        (input)="updateContextText($any($event.target).value)"
       ></textarea>
-      <div class="flex items-center justify-end">
-        <button type="button" class="button button--primary" (click)="generateReport()">
-          レポートを再作成
-        </button>
-      </div>
-      <label class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400"
-        >プレビュー</label
-      >
-      <textarea class="report-preview" rows="10" readonly [value]="reportPreview()"></textarea>
     </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <p class="text-xs text-slate-500">
+        出力は Mermaid Live Editor へ貼り付けて可視化できます（`https://mermaid.live`）。
+      </p>
+      <button
+        type="button"
+        class="button button--primary"
+        [disabled]="isGenerating()"
+        (click)="generateImmunityMap()"
+      >
+        {{ isGenerating() ? '生成中…' : '免疫マップを生成' }}
+      </button>
+    </div>
+
+    @if (generationError(); as error) {
+      <p class="text-sm font-medium text-rose-600" role="alert">{{ error }}</p>
+    }
+
+    @if (generatedMap(); as result) {
+      <div class="space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="text-xs text-slate-500">
+            @if (result.model) {
+              <span>model: {{ result.model }}</span>
+            }
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" class="button button--secondary" (click)="copyMermaid()">
+              Mermaid をコピー
+            </button>
+            <a
+              class="button button--secondary"
+              href="https://mermaid.live"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Mermaid Live Editor</a
+            >
+          </div>
+        </div>
+
+        @if (copyStatus() === 'copied') {
+          <p class="text-xs font-medium text-emerald-600" role="status">コピーしました。</p>
+        } @else if (copyStatus() === 'failed') {
+          <p class="text-xs font-medium text-rose-600" role="alert">コピーに失敗しました。</p>
+        }
+
+        <textarea class="report-preview" rows="14" readonly [value]="result.mermaid"></textarea>
+
+        @if (result.summary) {
+          <p class="text-xs text-slate-500">{{ result.summary }}</p>
+        }
+      </div>
+    }
   </section>
 </app-page-layout>

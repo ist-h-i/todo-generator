@@ -37,6 +37,7 @@ jobs:
       auto_evolve_metrics_summary: ${{ steps.auto_evolve_metrics.outputs.metrics_summary }}
     env:
       CODEX_NPM_PKG: "@openai/codex"
+      CODEX_STOP_ON_CLARIFICATION: "false"
 
     steps:
       - uses: actions/checkout@v4
@@ -573,8 +574,8 @@ jobs:
               body
             });
 
-      - name: Stop after clarification
-        if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' }}
+        - name: Stop after clarification
+          if: ${{ steps.detect.outputs.run_codex == 'true' && steps.clarifications.outputs.needs_clarification == 'true' && env.CODEX_STOP_ON_CLARIFICATION != 'false' }}
         run: |
           echo "::notice::Waiting for user clarifications."
           exit 0

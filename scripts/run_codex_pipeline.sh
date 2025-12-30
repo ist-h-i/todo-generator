@@ -157,6 +157,8 @@ write_status_json "running" "stage=initializing"
 
 CURRENT_STAGE=""
 CURRENT_STAGE_START=""
+STOP_ON_CLARIFICATION="${CODEX_STOP_ON_CLARIFICATION:-true}"
+STOP_ON_CLARIFICATION="${STOP_ON_CLARIFICATION,,}"
 
 handle_error() {
   local exit_code="$1"
@@ -356,6 +358,8 @@ else:
 PY
   )
 
+  local STAGE_RESULT="completed"
+
   # After the translator or requirements_analyst stage, scan for clarifying
   # questions and pause the pipeline if more details are required from the
   # user.
@@ -452,19 +456,25 @@ PY
       } > "${CODEX_OUTPUT_ROOT}/clarifying_questions.md"
       local CLARIFY_END
       CLARIFY_END=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-      write_status_json "needs_clarification" "stage=${STEP}" "finished_at=${CLARIFY_END}"
-      append_meta_entry "${STEP}" "${CURRENT_STAGE_START}" "${CLARIFY_END}" "needs_clarification"
-      CURRENT_STAGE=""
-      CURRENT_STAGE_START=""
-      local HUMAN_STAGE_LABEL="${HUMAN_STEP_NAME^}"
-      oneline "::notice::${HUMAN_STAGE_LABEL} stage requested clarifications. Stopping pipeline early."
-      exit 0
+      if [ "${STOP_ON_CLARIFICATION}" != "false" ]; then
+        write_status_json "needs_clarification" "stage=${STEP}" "finished_at=${CLARIFY_END}"
+        append_meta_entry "${STEP}" "${CURRENT_STAGE_START}" "${CLARIFY_END}" "needs_clarification"
+        CURRENT_STAGE=""
+        CURRENT_STAGE_START=""
+        local HUMAN_STAGE_LABEL="${HUMAN_STEP_NAME^}"
+        oneline "::notice::${HUMAN_STAGE_LABEL} stage requested clarifications. Stopping pipeline early."
+        exit 0
+      else
+        STAGE_RESULT="clarification_requested"
+        local HUMAN_STAGE_LABEL="${HUMAN_STEP_NAME^}"
+        oneline "::notice::${HUMAN_STAGE_LABEL} stage requested clarifications; continuing because CODEX_STOP_ON_CLARIFICATION=false."
+      fi
     fi
   fi
 
   local STAGE_END_ISO
   STAGE_END_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-  append_meta_entry "${STEP}" "${CURRENT_STAGE_START}" "${STAGE_END_ISO}" "completed"
+  append_meta_entry "${STEP}" "${CURRENT_STAGE_START}" "${STAGE_END_ISO}" "${STAGE_RESULT}"
   write_status_json "running" "last_completed=${STEP}" "completed_at=${STAGE_END_ISO}"
   CURRENT_STAGE=""
   CURRENT_STAGE_START=""
