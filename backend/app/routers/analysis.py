@@ -1,7 +1,9 @@
+from copy import deepcopy
 import re
 from typing import Any, Iterable, Mapping, Sequence
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from .. import models
@@ -11,9 +13,15 @@ from ..schemas import (
     AnalysisCard,
     AnalysisRequest,
     AnalysisResponse,
+    ImmunityMapAItem,
+    ImmunityMapCandidate,
+    ImmunityMapCandidateRequest,
+    ImmunityMapCandidateResponse,
+    ImmunityMapEvidence,
     ImmunityMapEdge,
     ImmunityMapNode,
     ImmunityMapPayload,
+    ImmunityMapReadoutCard,
     ImmunityMapRequest,
     ImmunityMapResponse,
 )
@@ -22,6 +30,10 @@ from ..services.gemini import (
     GeminiError,
     build_workspace_analysis_options,
     get_gemini_client,
+)
+from ..services.immunity_map import (
+    DEFAULT_IMMUNITY_MAP_WINDOW_DAYS,
+    build_immunity_map_context,
 )
 from ..services.profile import build_user_profile
 
@@ -181,9 +193,73 @@ _IMMUNITY_MAP_SYSTEM_PROMPT = (
     " You infer an Immunity Map from user-provided statements."
     " Your output must be a JSON object that matches the provided schema."
     " Write labels in natural Japanese."
+    " Provide optional readout_cards that distinguish observation vs hypothesis and include evidence when possible."
     " Treat deep psychology as hypotheses; avoid clinical or diagnostic language."
     " Do not include any extra keys or any prose outside JSON."
 )
+
+_IMMUNITY_MAP_CANDIDATE_SYSTEM_PROMPT = (
+    "You are Verbalize Yourself's reflection assistant."
+    " Generate candidate A items for an Immunity Map using the provided context."
+    " Keep A item text concise and written in natural Japanese."
+    " Treat deep psychology as hypotheses; avoid clinical or diagnostic language."
+    " Provide evidence references only from the supplied context."
+    " Respond strictly with JSON that matches the provided schema."
+    " Do not include any extra keys or any prose outside JSON."
+)
+
+_IMMUNITY_MAP_CANDIDATE_RESPONSE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "candidates": {
+            "type": "array",
+            "default": [],
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["a_item", "rationale"],
+                "properties": {
+                    "a_item": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["kind", "text"],
+                        "properties": {
+                            "kind": {"type": "string", "enum": ["should", "cannot", "want"]},
+                            "text": {"type": "string", "minLength": 1},
+                        },
+                    },
+                    "rationale": {"type": "string", "minLength": 1},
+                    "confidence": {"type": "number"},
+                    "questions": {
+                        "type": "array",
+                        "default": [],
+                        "items": {"type": "string"},
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "default": [],
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": ["type"],
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": ["status_report", "card", "snapshot", "other"],
+                                },
+                                "id": {"type": "string"},
+                                "snippet": {"type": "string"},
+                                "timestamp": {"type": "string"},
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    },
+    "required": ["candidates"],
+}
 
 
 _IMMUNITY_MAP_RESPONSE_SCHEMA: dict[str, Any] = {
@@ -219,6 +295,48 @@ _IMMUNITY_MAP_RESPONSE_SCHEMA: dict[str, Any] = {
             },
         },
         "summary": {"type": "string"},
+        "readout_cards": {
+            "type": "array",
+            "default": [],
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["title", "kind", "body"],
+                "properties": {
+                    "title": {"type": "string"},
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "observation",
+                            "hypothesis",
+                            "barrier",
+                            "need",
+                            "assumption",
+                            "next_step",
+                        ],
+                    },
+                    "body": {"type": "string"},
+                    "evidence": {
+                        "type": "array",
+                        "default": [],
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": ["type"],
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": ["status_report", "card", "snapshot", "other"],
+                                },
+                                "id": {"type": "string"},
+                                "snippet": {"type": "string"},
+                                "timestamp": {"type": "string"},
+                            },
+                        },
+                    },
+                },
+            },
+        },
     },
     "required": ["nodes", "edges"],
 }
@@ -290,44 +408,267 @@ def _safe_list(value: Any) -> list[Any]:
     return [value]
 
 
+_MAX_LABEL_LENGTH = 200
+_ALLOWED_READOUT_KINDS = {
+    "observation",
+    "hypothesis",
+    "barrier",
+    "need",
+    "assumption",
+    "next_step",
+}
+_ALLOWED_EVIDENCE_TYPES = {"status_report", "card", "snapshot", "other"}
+
+
+def _resolve_context_policy(payload: ImmunityMapRequest) -> str:
+    policy = payload.context_policy or ("auto+manual" if payload.context else "auto")
+    if policy == "auto" and payload.context:
+        return "auto+manual"
+    if policy not in {"auto", "manual", "auto+manual"}:
+        return "auto"
+    return policy
+
+
+def _truncate_label(value: str) -> str:
+    normalized = " ".join(value.split()).strip()
+    if len(normalized) <= _MAX_LABEL_LENGTH:
+        return normalized
+    return normalized[: _MAX_LABEL_LENGTH].rstrip()
+
+
+def _coerce_confidence(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if 0 < numeric <= 1:
+        numeric *= 100
+    return max(0.0, min(100.0, numeric))
+
+
+def _parse_questions(value: Any) -> list[str]:
+    items = _safe_list(value)
+    questions: list[str] = []
+    for item in items:
+        text = str(item or "").strip()
+        if text:
+            questions.append(text)
+    return questions
+
+
+def _parse_evidence_list(value: Any) -> list[ImmunityMapEvidence]:
+    evidence: list[ImmunityMapEvidence] = []
+    for raw in _safe_list(value):
+        item = _to_mapping(raw)
+        if not item:
+            continue
+        evidence_type = str(item.get("type") or "").strip()
+        if evidence_type not in _ALLOWED_EVIDENCE_TYPES:
+            continue
+        payload = {
+            "type": evidence_type,
+            "id": item.get("id"),
+            "snippet": item.get("snippet"),
+            "timestamp": item.get("timestamp"),
+        }
+        try:
+            evidence.append(ImmunityMapEvidence(**payload))
+        except ValidationError:
+            continue
+    return evidence
+
+
+def _parse_immunity_map_candidates(raw_value: Any, max_candidates: int) -> list[ImmunityMapCandidate]:
+    candidates: list[ImmunityMapCandidate] = []
+    for index, raw in enumerate(_safe_list(raw_value), start=1):
+        if len(candidates) >= max_candidates:
+            break
+        item = _to_mapping(raw)
+        if not item:
+            continue
+        a_item_raw = _to_mapping(item.get("a_item"))
+        if not a_item_raw:
+            continue
+        kind = str(a_item_raw.get("kind") or "").strip()
+        text = _truncate_label(str(a_item_raw.get("text") or ""))
+        rationale = str(item.get("rationale") or "").strip()
+        if not kind or not text or not rationale:
+            continue
+        try:
+            a_item = ImmunityMapAItem(kind=kind, text=text)
+        except ValidationError:
+            continue
+        confidence = _coerce_confidence(item.get("confidence"))
+        questions = _parse_questions(item.get("questions"))
+        evidence = _parse_evidence_list(item.get("evidence"))
+        candidate_id = f"cand_{len(candidates) + 1}"
+        try:
+            candidates.append(
+                ImmunityMapCandidate(
+                    id=candidate_id,
+                    a_item=a_item,
+                    rationale=rationale,
+                    confidence=confidence,
+                    questions=questions,
+                    evidence=evidence,
+                )
+            )
+        except ValidationError:
+            continue
+    return candidates
+
+
+def _parse_readout_cards(raw_value: Any) -> list[ImmunityMapReadoutCard]:
+    cards: list[ImmunityMapReadoutCard] = []
+    for raw in _safe_list(raw_value):
+        item = _to_mapping(raw)
+        if not item:
+            continue
+        title = str(item.get("title") or "").strip()
+        body = str(item.get("body") or "").strip()
+        kind = str(item.get("kind") or "").strip()
+        if not title or not body or kind not in _ALLOWED_READOUT_KINDS:
+            continue
+        evidence = _parse_evidence_list(item.get("evidence"))
+        try:
+            cards.append(
+                ImmunityMapReadoutCard(
+                    title=title,
+                    kind=kind,
+                    body=body,
+                    evidence=evidence,
+                )
+            )
+        except ValidationError:
+            continue
+    return cards
+
+
+@router.post("/immunity-map/candidates", response_model=ImmunityMapCandidateResponse)
+def generate_immunity_map_candidates(
+    payload: ImmunityMapCandidateRequest,
+    gemini: GeminiClient = Depends(get_gemini_client),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ImmunityMapCandidateResponse:
+    include = payload.include
+    context_bundle = build_immunity_map_context(
+        db,
+        user=current_user,
+        window_days=payload.window_days,
+        include_status_reports=include.status_reports,
+        include_cards=include.cards,
+        include_profile=include.profile,
+        include_snapshots=include.snapshots,
+    )
+    response_schema = deepcopy(_IMMUNITY_MAP_CANDIDATE_RESPONSE_SCHEMA)
+    candidates_schema = response_schema.get("properties", {}).get("candidates")
+    if isinstance(candidates_schema, dict):
+        candidates_schema["maxItems"] = payload.max_candidates
+
+    prompt_parts = [
+        "Generate candidate A items for an Immunity Map.",
+        f"Return between 1 and {payload.max_candidates} candidates.",
+        "",
+        "Context JSON:",
+        context_bundle.prompt,
+        "",
+        "Output rules:",
+        "- Provide a_item {kind, text} with short, user-friendly Japanese text.",
+        "- Provide rationale as a hypothesis, not a diagnosis.",
+        "- Use evidence only from the context; avoid fabrication.",
+        "- If evidence is weak, keep confidence low and add questions.",
+    ]
+    prompt = "\n".join(prompt_parts).strip()
+
+    try:
+        generated = gemini.generate_structured(
+            prompt=prompt,
+            response_schema=response_schema,
+            system_prompt=_IMMUNITY_MAP_CANDIDATE_SYSTEM_PROMPT,
+        )
+    except GeminiError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    candidates = _parse_immunity_map_candidates(
+        generated.get("candidates"),
+        payload.max_candidates,
+    )
+    model = generated.get("model")
+    token_usage = generated.get("token_usage")
+
+    return ImmunityMapCandidateResponse(
+        candidates=candidates,
+        context_summary=context_bundle.summary,
+        used_sources=context_bundle.used_sources,
+        model=str(model) if model else None,
+        token_usage=token_usage if isinstance(token_usage, Mapping) else {},
+    )
+
+
 @router.post("/immunity-map", response_model=ImmunityMapResponse)
 def generate_immunity_map(
     payload: ImmunityMapRequest,
     gemini: GeminiClient = Depends(get_gemini_client),
     current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> ImmunityMapResponse:
+    policy = _resolve_context_policy(payload)
+    include_auto = policy in {"auto", "auto+manual"}
+    include_manual = policy in {"manual", "auto+manual"}
+
+    context = payload.context.strip() if include_manual and payload.context else ""
+    context_bundle = None
+    if include_auto:
+        include_snapshots = bool(payload.target and payload.target.type == "snapshot")
+        context_bundle = build_immunity_map_context(
+            db,
+            user=current_user,
+            window_days=DEFAULT_IMMUNITY_MAP_WINDOW_DAYS,
+            include_status_reports=True,
+            include_cards=True,
+            include_profile=True,
+            include_snapshots=include_snapshots,
+            target=payload.target,
+        )
+
     a_nodes: list[ImmunityMapNode] = []
-    kind_prefix = {"should": "やるべき：", "cannot": "やれない：", "want": "やりたい："}
+    kind_prefix = {"should": "", "cannot": "", "want": ""}
     for index, item in enumerate(payload.a_items, start=1):
         prefix = kind_prefix.get(item.kind, "")
+        label = _truncate_label(f"{prefix}{item.text}")
         a_nodes.append(
             ImmunityMapNode(
                 id=f"A{index}",
                 group="A",
-                label=f"{prefix}{item.text}",
+                label=label,
                 kind=item.kind,
             )
         )
 
-    context = payload.context.strip() if payload.context else ""
     a_lines = [f"- {node.id}: {node.label}" for node in a_nodes]
     user_prompt_parts = [
-        "免疫マップ（A〜F）を作成してください。A は入力として与えます。",
+        "Create an Immunity Map for levels A through F. A nodes are provided.",
         "",
-        "A（階層1）:",
+        "A (level 1):",
         *a_lines,
     ]
+    if context_bundle and context_bundle.prompt and context_bundle.prompt != "{}":
+        user_prompt_parts.extend(["", "Context (JSON):", context_bundle.prompt])
     if context:
-        user_prompt_parts.extend(["", "背景（任意）:", context])
+        user_prompt_parts.extend(["", "Additional context:", context])
 
     user_prompt_parts.extend(
         [
             "",
-            "出力ルール:",
-            "- A のノードは生成しない（上記 A を参照する）。",
-            "- 空のノードや空の線は出力しない。",
-            "- 接続は次のみ: A→B, A→C, B→D, B→E, C→E, C→F。",
-            "- ラベルは日本語で簡潔に（断定しすぎない）。",
+            "Output rules:",
+            "- Do not create new A nodes; only reference the provided A nodes.",
+            "- Omit empty nodes, edges, and empty groups.",
+            "- Allowed connections: A->B, A->C, B->D, B->E, C->E, C->F.",
+            "- Keep labels short in natural Japanese and avoid clinical language.",
+            "- readout_cards should distinguish observations vs hypotheses and include evidence.",
         ]
     )
     prompt = "\n".join(user_prompt_parts).strip()
@@ -354,7 +695,7 @@ def generate_immunity_map(
             continue
         node_id = str(item.get("id") or "").strip()
         group = str(item.get("group") or "").strip()
-        label = str(item.get("label") or "").strip()
+        label = _truncate_label(str(item.get("label") or ""))
 
         if not node_id or not group or not label:
             continue
@@ -408,11 +749,13 @@ def generate_immunity_map(
     model = generated.get("model")
     token_usage = generated.get("token_usage")
     summary = generated.get("summary") if isinstance(generated.get("summary"), str) else None
+    readout_cards = _parse_readout_cards(generated.get("readout_cards"))
 
     return ImmunityMapResponse(
         model=str(model) if model else None,
         payload=response_payload,
         mermaid=mermaid,
         summary=summary,
+        readout_cards=readout_cards,
         token_usage=token_usage if isinstance(token_usage, Mapping) else {},
     )

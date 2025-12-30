@@ -223,6 +223,107 @@ def test_immunity_map_requires_api_key(client: TestClient) -> None:
     assertions.assertIn("Gemini API key is not configured", payload["detail"])
 
 
+def test_immunity_map_candidates_requires_api_key(client: TestClient) -> None:
+    headers = _register_and_login(client, "immunity-map-candidates@example.com")
+    response = client.post(
+        "/analysis/immunity-map/candidates",
+        json={"window_days": 28, "max_candidates": 6},
+        headers=headers,
+    )
+
+    if response.status_code != 503:
+        pytest.skip("Gemini integration is enabled; skipping configuration error assertion.")
+
+    assertions.assertEqual(response.status_code, 503)
+    payload = response.json()
+    assertions.assertIn("Gemini API key is not configured", payload["detail"])
+
+
+def test_immunity_map_candidates_generates_candidates(client: TestClient) -> None:
+    headers = _register_and_login(client, "immunity-map-candidates-stub@example.com")
+
+    with TestingSessionLocal() as db:
+        user = db.query(models.User).filter(models.User.email == "immunity-map-candidates-stub@example.com").one()
+        report = models.StatusReport(
+            owner_id=user.id,
+            shift_type=None,
+            tags=["daily"],
+            content={
+                "sections": [
+                    {"title": "Daily", "body": "Struggled to focus on report writing."},
+                ]
+            },
+            status=schemas.StatusReportStatus.COMPLETED.value,
+            auto_ticket_enabled=False,
+        )
+        card = models.Card(
+            owner_id=user.id,
+            title="Review weekly report template",
+            summary="Needs a tighter checklist.",
+        )
+        db.add(report)
+        db.add(card)
+        db.commit()
+        db.refresh(report)
+        db.refresh(card)
+
+    class StubGemini:
+        model = "gemini-pro-test"
+
+        def generate_structured(
+            self,
+            *,
+            prompt: str,
+            response_schema: dict[str, Any],
+            system_prompt: str | None = None,
+            model_override: str | None = None,
+        ) -> dict[str, Any]:
+            assertions.assertIn("Context JSON", prompt)
+            return {
+                "model": "gemini-pro-test",
+                "candidates": [
+                    {
+                        "a_item": {"kind": "should", "text": "週次レポートを整える"},
+                        "rationale": "報告書への集中が乱れている可能性があるため。",
+                        "confidence": 62,
+                        "questions": ["直近で締切に追われていましたか？"],
+                        "evidence": [
+                            {
+                                "type": "status_report",
+                                "id": report.id,
+                                "snippet": "Struggled to focus on report writing.",
+                            },
+                            {
+                                "type": "card",
+                                "id": card.id,
+                                "snippet": "Review weekly report template",
+                            },
+                        ],
+                    }
+                ],
+                "token_usage": {"total": 88},
+            }
+
+    app.dependency_overrides[get_gemini_client] = lambda: StubGemini()
+    try:
+        response = client.post(
+            "/analysis/immunity-map/candidates",
+            json={"window_days": 28, "max_candidates": 6},
+            headers=headers,
+        )
+    finally:
+        app.dependency_overrides.pop(get_gemini_client, None)
+
+    assertions.assertEqual(response.status_code, 200, response.text)
+    data = response.json()
+    assertions.assertEqual(data["model"], "gemini-pro-test")
+    assertions.assertEqual(len(data["candidates"]), 1)
+    assertions.assertEqual(data["candidates"][0]["id"], "cand_1")
+    assertions.assertTrue(data["context_summary"])
+    assertions.assertEqual(data["used_sources"]["status_reports"], 1)
+    assertions.assertEqual(data["used_sources"]["cards"], 1)
+
+
 def test_immunity_map_generates_mermaid(client: TestClient) -> None:
     headers = _register_and_login(client, "immunity-map-stub@example.com")
 
@@ -260,6 +361,20 @@ def test_immunity_map_generates_mermaid(client: TestClient) -> None:
                     {"from": "B1", "to": "C1"},
                     {"from": "A1", "to": "B2"},
                 ],
+                "readout_cards": [
+                    {
+                        "title": "観察: 締切が近い",
+                        "kind": "observation",
+                        "body": "期限が迫るとタスク切り替えが増える傾向がある。",
+                        "evidence": [
+                            {
+                                "type": "status_report",
+                                "id": "status-1",
+                                "snippet": "締め切りが近い",
+                            }
+                        ],
+                    }
+                ],
                 "token_usage": {"total": 123},
             }
 
@@ -283,6 +398,8 @@ def test_immunity_map_generates_mermaid(client: TestClient) -> None:
     assertions.assertTrue(any(node["id"] == "A1" for node in data["payload"]["nodes"]))
     assertions.assertTrue(any(node["id"] == "B1" for node in data["payload"]["nodes"]))
     assertions.assertTrue(all(node["id"] != "X1" for node in data["payload"]["nodes"]))
+    assertions.assertTrue(data["readout_cards"])
+    assertions.assertEqual(data["readout_cards"][0]["kind"], "observation")
 
     edge_pairs = {(edge["from"], edge["to"]) for edge in data["payload"]["edges"]}
     assertions.assertIn(("A1", "B1"), edge_pairs)
