@@ -78,7 +78,7 @@ Create a `.env` file in the repository root or export variables before launching
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `DATABASE_URL` | SQLAlchemy connection string. Supply the pooled Neon connection string via environment variables. | (required) |
+| `DATABASE_URL` | SQLAlchemy connection string. Uses SQLite by default; supply the pooled Neon connection string to target PostgreSQL. | `sqlite:///./todo.db` |
 | `DEBUG` | Enables verbose logging and exception responses. | `False` |
 | `GEMINI_MODEL` | Gemini model identifier for AI-assisted flows. | `models/gemini-2.0-flash` |
 | `GEMINI_API_KEY` / `GOOGLE_API_KEY` | Gemini API key. Provide before enabling analyzer or report AI flows. | (required for AI features) |
@@ -87,7 +87,7 @@ Create a `.env` file in the repository root or export variables before launching
 | `RECOMMENDATION_WEIGHT_PROFILE` | Weight applied to profile alignment when computing `ai_confidence`. | `0.4` |
 | `ALLOWED_ORIGINS` | Comma-separated list of CORS origins for the SPA. | `http://localhost:4200` |
 
-Store the Neon credentials outside the repository (for example, in a `.env` file that is excluded from version control) and inject them through `DATABASE_URL` before starting the backend service.
+Store the Neon credentials outside the repository (for example, in a `.env` file that is excluded from version control) and inject them through `DATABASE_URL` when you want to run against PostgreSQL.
 
 If you plan to use the `@21st-dev/magic` MCP server, define `MAGIC_API_KEY` in your environment (or `.env`) before running `start-mcp-servers.*`; both `.modelcontext.json` and `.codex/config.toml` now load the API key from that variable at runtime.
 
@@ -127,7 +127,7 @@ The backend starts on <http://localhost:8000> (with auto-applied migrations and 
 
 ### Run the stack
 
-- Login with the seeded administrator account or create a new user via `/auth`.
+- Sign in from the frontend at `http://localhost:4200/login` (backend auth endpoints live under `POST /auth/*`).
 - Store secrets and Gemini keys through the admin console once `SECRET_ENCRYPTION_KEY` is configured.
 - Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, with optional Magic and Playwright adapters) when running Codex automation or other MCP-aware tooling.
 

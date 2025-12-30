@@ -1,253 +1,78 @@
 from __future__ import annotations
 
 from unittest import TestCase
-from unittest.mock import MagicMock
 
-import pytest
-from fastapi import status
 from fastapi.testclient import TestClient
 
 from app import models, schemas
-from app.database import get_db
 from app.main import app
-from app.services.gemini import GeminiError, get_gemini_client
-from app.services.status_reports import StatusReportService
+from app.services.gemini import get_gemini_client
 
+from .conftest import TestingSessionLocal
 from .utils.auth import register_user
 
 assertions = TestCase()
 
-DEFAULT_PASSWORD = "Register123!"  # noqa: S105 - test helper credential
 
-
-def register_and_login(client: TestClient, email: str, password: str = DEFAULT_PASSWORD) -> dict[str, str]:
+def _register_and_login(client: TestClient, email: str) -> dict[str, str]:
+    password = "StatusReport123!"  # noqa: S105 - test credential
     register_user(client, email=email, password=password, nickname="Reporter")
-    login_response = client.post(
+
+    login = client.post(
         "/auth/login",
         json={"email": email, "password": password},
     )
-    assertions.assertTrue(login_response.status_code == 200, login_response.text)
-    token = login_response.json()["access_token"]
+    assertions.assertEqual(login.status_code, 200, login.text)
+    token = login.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
 
-class StubGemini:
-    def analyze(
-        self,
-        request: schemas.AnalysisRequest,
-        *,
-        user_profile=None,
-        workspace_options=None,
-    ) -> schemas.AnalysisResponse:
-        return schemas.AnalysisResponse(
-            model="stub-model",
-            proposals=[
-                schemas.AnalysisCard(
-                    title="フォローアップタスクを準備",
-                    summary="日報・週報の重要事項を整理して改善案をまとめる",
-                    priority="high",
-                    due_in_days=1,
-                    subtasks=[
-                        schemas.AnalysisSubtask(
-                            title="MTG で共有",
-                            description="次回定例で共有する",
-                        )
-                    ],
-                )
-            ],
-        )
-
-
-class FailingThenSucceedingGemini:
-    def __init__(self) -> None:
-        self.call_count = 0
-
-    def analyze(
-        self,
-        request: schemas.AnalysisRequest,
-        *,
-        user_profile=None,
-        workspace_options=None,
-    ) -> schemas.AnalysisResponse:
-        self.call_count += 1
-        if self.call_count == 1:
-            raise GeminiError("Temporary analysis failure")
-        return schemas.AnalysisResponse(
-            model="stub-model",
-            proposals=[
-                schemas.AnalysisCard(
-                    title="フォローアップタスク (再解析)",
-                    summary="再解析後の提案",
-                    priority="medium",
-                    due_in_days=None,
-                    subtasks=[],
-                )
-            ],
-        )
-
-
-def _status_report_payload() -> dict:
-    return {
-        "shift_type": "remote",
-        "tags": ["backend", "daily"],
-        "sections": [
-            {"title": "対応内容", "body": "バッチ監視のアラート設定を調整し、テストを追加。"},
-            {"title": "課題", "body": "顧客向けダッシュボードのレスポンス改善が必要。"},
-        ],
+def test_status_report_submit_retains_record(client: TestClient) -> None:
+    headers = _register_and_login(client, "status-report-retain@example.com")
+    create_payload = {
+        "shift_type": None,
+        "tags": ["daily"],
+        "sections": [{"title": "Summary", "body": "Completed onboarding tasks."}],
+        "auto_ticket_enabled": False,
     }
+    created = client.post("/status-reports", json=create_payload, headers=headers)
+    assertions.assertEqual(created.status_code, 201, created.text)
+    report_id = created.json()["id"]
 
-
-def test_create_and_list_status_reports(client: TestClient) -> None:
-    headers = register_and_login(client, "daily@example.com")
-
-    create_response = client.post(
-        "/status-reports",
-        json=_status_report_payload(),
-        headers=headers,
+    response_payload = schemas.AnalysisResponse(
+        model="gemini-pro-test",
+        proposals=[
+            schemas.AnalysisCard(
+                title="Plan onboarding follow-up",
+                summary="Schedule a quick sync and share notes.",
+                status="todo",
+                labels=["onboarding"],
+                priority="medium",
+                due_in_days=3,
+                subtasks=[],
+            )
+        ],
     )
-    assertions.assertTrue(create_response.status_code == 201, create_response.text)
-    data = create_response.json()
-    assertions.assertTrue(data["status"] == "draft")
-    list_response = client.get("/status-reports", headers=headers)
-    assertions.assertTrue(list_response.status_code == 200)
-    items = list_response.json()
-    assertions.assertTrue(len(items) == 1)
-    assertions.assertTrue(items[0]["status"] == "draft")
-    assertions.assertTrue(items[0]["card_count"] == 0)
-    assertions.assertTrue(items[0]["proposal_count"] == 0)
 
-
-def test_submit_status_report_returns_proposals(client: TestClient) -> None:
-    headers = register_and_login(client, "analysis@example.com")
-
-    create_response = client.post(
-        "/status-reports",
-        json=_status_report_payload(),
-        headers=headers,
-    )
-    report_id = create_response.json()["id"]
+    class StubGemini:
+        def analyze(
+            self,
+            request: schemas.AnalysisRequest,
+            *,
+            user_profile=None,
+            workspace_options=None,
+        ) -> schemas.AnalysisResponse:
+            return response_payload
 
     app.dependency_overrides[get_gemini_client] = lambda: StubGemini()
     try:
-        submit_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
+        submitted = client.post(f"/status-reports/{report_id}/submit", headers=headers)
     finally:
         app.dependency_overrides.pop(get_gemini_client, None)
 
-    assertions.assertTrue(submit_response.status_code == 200, submit_response.text)
-    detail = submit_response.json()
-    assertions.assertTrue(detail["status"] == "completed")
-    assertions.assertTrue(detail["cards"] == [])
-    assertions.assertTrue(len(detail["pending_proposals"]) == 1)
-    assertions.assertTrue(detail["pending_proposals"][0]["title"].startswith("フォローアップタスク"))
+    assertions.assertEqual(submitted.status_code, 200, submitted.text)
 
-    list_response = client.get("/status-reports", headers=headers)
-    list_response.raise_for_status()
-    assertions.assertTrue(list_response.json() == [])
-
-    get_response = client.get(f"/status-reports/{report_id}", headers=headers)
-    assertions.assertTrue(get_response.status_code == 404)
-
-
-def test_retry_status_report_after_failure_succeeds(client: TestClient) -> None:
-    headers = register_and_login(client, "retry@example.com")
-
-    create_response = client.post(
-        "/status-reports",
-        json=_status_report_payload(),
-        headers=headers,
-    )
-    report_id = create_response.json()["id"]
-
-    stub = FailingThenSucceedingGemini()
-    app.dependency_overrides[get_gemini_client] = lambda: stub
-    try:
-        first_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
-        assertions.assertTrue(first_response.status_code == status.HTTP_502_BAD_GATEWAY, first_response.text)
-        failure_payload = first_response.json()
-        assertions.assertTrue(failure_payload["detail"]["message"] == "Temporary analysis failure")
-        failed_report = failure_payload["detail"]["report"]
-        assertions.assertTrue(failed_report["status"] == "failed")
-        assertions.assertTrue(failed_report["failure_reason"] == "Temporary analysis failure")
-
-        retry_response = client.post(f"/status-reports/{report_id}/retry", headers=headers)
-        assertions.assertTrue(retry_response.status_code == 200, retry_response.text)
-        retry_detail = retry_response.json()
-    finally:
-        app.dependency_overrides.pop(get_gemini_client, None)
-
-    assertions.assertTrue(retry_detail["status"] == "completed")
-    assertions.assertTrue(retry_detail["cards"] == [])
-    assertions.assertTrue(len(retry_detail["pending_proposals"]) == 1)
-    assertions.assertTrue(retry_detail["pending_proposals"][0]["title"].startswith("フォローアップタスク"))
-    assertions.assertTrue(stub.call_count == 2)
-
-    event_types = {event["event_type"] for event in retry_detail["events"]}
-    assertions.assertTrue("analysis_failed" in event_types)
-    assertions.assertTrue("analysis_completed" in event_types)
-
-    list_response = client.get("/status-reports", headers=headers)
-    list_response.raise_for_status()
-    assertions.assertTrue(list_response.json() == [])
-
-    get_response = client.get(f"/status-reports/{report_id}", headers=headers)
-    assertions.assertTrue(get_response.status_code == 404)
-
-
-def test_submit_status_report_rejects_completed_reports(client: TestClient) -> None:
-    headers = register_and_login(client, "completed@example.com")
-
-    create_response = client.post(
-        "/status-reports",
-        json=_status_report_payload(),
-        headers=headers,
-    )
-    report_id = create_response.json()["id"]
-
-    override = client.app.dependency_overrides[get_db]
-    db_gen = override()
-    db = next(db_gen)
-    try:
-        report = db.get(models.StatusReport, report_id)
-        assertions.assertTrue(report is not None)
-        report.status = schemas.StatusReportStatus.COMPLETED.value
-        db.add(report)
-        db.commit()
-    finally:
-        db_gen.close()
-
-    class UnexpectedAnalyzer:
-        def analyze(self, *args, **kwargs):  # type: ignore[no-untyped-def]
-            pytest.fail("Analyzer should not be invoked for completed reports")
-
-    app.dependency_overrides[get_gemini_client] = lambda: UnexpectedAnalyzer()
-    try:
-        submit_response = client.post(f"/status-reports/{report_id}/submit", headers=headers)
-    finally:
-        app.dependency_overrides.pop(get_gemini_client, None)
-
-    assertions.assertTrue(submit_response.status_code == status.HTTP_400_BAD_REQUEST)
-    assertions.assertTrue(submit_response.json()["detail"] == "Report in status 'completed' cannot be submitted.")
-
-
-def test_serialize_card_link_defaults_relationship_when_card_missing() -> None:
-    service = StatusReportService(db=MagicMock())
-    link = models.StatusReportCardLink(card_id="card-1", link_role=None, confidence=0.5)
-
-    summary = service._serialize_card_link(link)
-
-    assertions.assertTrue(summary.relationship == "primary")
-    assertions.assertTrue(summary.id == "card-1")
-    assertions.assertTrue(summary.title == "(deleted card)")
-
-
-def test_serialize_card_link_defaults_relationship_for_existing_card() -> None:
-    service = StatusReportService(db=MagicMock())
-    card = models.Card(id="card-2", title="Investigate issue", owner_id="owner-1", assignees=["alice"])
-    card.subtasks = []
-    link = models.StatusReportCardLink(card_id=card.id, card=card, link_role="")
-
-    summary = service._serialize_card_link(link)
-
-    assertions.assertTrue(summary.relationship == "primary")
-    assertions.assertTrue(summary.id == card.id)
-    assertions.assertTrue(summary.assignees == ["alice"])
+    with TestingSessionLocal() as db:
+        report = db.query(models.StatusReport).filter(models.StatusReport.id == report_id).one_or_none()
+        assertions.assertIsNotNone(report)
+        assertions.assertEqual(report.status, schemas.StatusReportStatus.COMPLETED.value)

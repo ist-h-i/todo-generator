@@ -4,6 +4,7 @@ from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_SECRET_ENCRYPTION_KEY = "verbalize-yourself"  # noqa: S105 - documented fallback value
+DEFAULT_DATABASE_URL = "sqlite:///./todo.db"
 PLACEHOLDER_DATABASE_URL = "postgresql://username:password@host:5432/database"
 
 
@@ -17,7 +18,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = Field(
-        default=PLACEHOLDER_DATABASE_URL,
+        default=DEFAULT_DATABASE_URL,
         validation_alias=AliasChoices("DATABASE_URL", "database_url"),
     )
     debug: bool = Field(
@@ -129,8 +130,9 @@ class Settings(BaseSettings):
 
         if value == PLACEHOLDER_DATABASE_URL:
             msg = (
-                "DATABASE_URL must be configured via environment variables. "
-                "Refer to the README for the Neon connection instructions."
+                "DATABASE_URL is set to the placeholder connection string. "
+                "Configure DATABASE_URL with a real connection string (for example, Neon), "
+                "or omit it to use the default SQLite database."
             )
             raise ValueError(msg)
 

@@ -755,6 +755,16 @@ class AnalyticsSnapshotRead(AnalyticsSnapshotBase):
 
 ImmunityMapAItemKind = Literal["should", "cannot", "want"]
 ImmunityMapNodeGroup = Literal["A", "B", "C", "D", "E", "F"]
+ImmunityMapEvidenceType = Literal["status_report", "card", "snapshot", "other"]
+ImmunityMapContextPolicy = Literal["auto", "manual", "auto+manual"]
+ImmunityMapReadoutKind = Literal[
+    "observation",
+    "hypothesis",
+    "barrier",
+    "need",
+    "assumption",
+    "next_step",
+]
 
 
 class ImmunityMapAItem(BaseModel):
@@ -772,9 +782,74 @@ class ImmunityMapAItem(BaseModel):
         return normalized
 
 
+class ImmunityMapEvidence(BaseModel):
+    type: ImmunityMapEvidenceType
+    id: Optional[str] = None
+    snippet: Optional[str] = None
+    timestamp: Optional[datetime] = None
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ImmunityMapReadoutCard(BaseModel):
+    title: str
+    kind: ImmunityMapReadoutKind
+    body: str
+    evidence: List[ImmunityMapEvidence] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ImmunityMapTarget(BaseModel):
+    type: Literal["snapshot", "card"]
+    id: str
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ImmunityMapCandidate(BaseModel):
+    id: str
+    a_item: ImmunityMapAItem
+    rationale: str
+    confidence: Optional[float] = Field(default=None, ge=0, le=100)
+    questions: List[str] = Field(default_factory=list)
+    evidence: List[ImmunityMapEvidence] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ImmunityMapCandidateInclude(BaseModel):
+    status_reports: bool = True
+    cards: bool = True
+    profile: bool = True
+    snapshots: bool = False
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ImmunityMapCandidateRequest(BaseModel):
+    window_days: int = Field(default=28, ge=7, le=180)
+    max_candidates: int = Field(default=10, ge=1, le=20)
+    include: ImmunityMapCandidateInclude = Field(default_factory=ImmunityMapCandidateInclude)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ImmunityMapCandidateResponse(BaseModel):
+    candidates: List[ImmunityMapCandidate] = Field(default_factory=list)
+    context_summary: Optional[str] = None
+    used_sources: Dict[str, int] = Field(default_factory=dict)
+    model: Optional[str] = None
+    token_usage: Dict[str, Any] = Field(default_factory=dict)
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class ImmunityMapRequest(BaseModel):
     a_items: List[ImmunityMapAItem] = Field(default_factory=list)
     context: Optional[str] = None
+    context_policy: Optional[ImmunityMapContextPolicy] = None
+    target: Optional[ImmunityMapTarget] = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -813,9 +888,11 @@ class ImmunityMapResponse(BaseModel):
     payload: ImmunityMapPayload
     mermaid: str
     summary: Optional[str] = None
+    readout_cards: List[ImmunityMapReadoutCard] = Field(default_factory=list)
     token_usage: Dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid")
+
 
 class ReportTemplateBase(BaseModel):
     name: str

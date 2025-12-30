@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.requests import Request
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
@@ -24,6 +26,33 @@ from ..services.status_defaults import ensure_default_statuses
 from ..services.workspace_template_defaults import ensure_default_workspace_template
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+_LOCAL_FRONTEND_LOGIN_URL = "http://localhost:4200/login"
+
+
+def _resolve_frontend_login_url(request: Request) -> str:
+    hostname = request.url.hostname or ""
+    if hostname in {"localhost", "127.0.0.1"}:
+        return _LOCAL_FRONTEND_LOGIN_URL
+
+    for origin in settings.allowed_origins:
+        if origin.startswith(("http://localhost", "http://127.")):
+            continue
+        return f"{origin}/login"
+
+    return _LOCAL_FRONTEND_LOGIN_URL
+
+
+@router.get("/login", include_in_schema=False)
+def login_page_redirect(request: Request) -> Response:
+    """Redirect accidental browser navigations to the SPA login screen."""
+
+    return RedirectResponse(_resolve_frontend_login_url(request))
+
+
+@router.get("/", include_in_schema=False)
+def auth_root_redirect(request: Request) -> Response:
+    return RedirectResponse(_resolve_frontend_login_url(request))
 
 
 @router.post(

@@ -243,11 +243,10 @@ class StatusReportService:
         )
         self.db.flush()
         detail = self.to_detail(report)
-        self.db.delete(report)
         return StatusReportProcessResult(
             detail=detail,
             proposals=stored_proposals,
-            destroyed=True,
+            destroyed=False,
             error=None,
         )
 
