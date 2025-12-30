@@ -47,30 +47,10 @@ def _format_metrics(snapshot: models.AnalyticsSnapshot | None) -> str:
     return "\n".join(lines)
 
 
-def _format_analysis(analysis: models.RootCauseAnalysis | None) -> str:
-    if not analysis:
-        return "No root cause analysis has been generated for this period."
-
-    nodes = sorted(analysis.nodes, key=lambda node: (node.depth, node.created_at))
-    root = nodes[0] if nodes else None
-    lines: List[str] = []
-    if root:
-        lines.append(f"Primary question: {root.statement}")
-    if nodes:
-        lines.append("Key contributing causes:")
-        for node in nodes[1:6]:
-            lines.append(f"- {node.statement} (confidence {node.confidence or 0:.0%}, status {node.state})")
-    if analysis.suggestions:
-        lines.append("Recommended actions:")
-        for suggestion in analysis.suggestions[:5]:
-            effort = suggestion.effort_estimate or "n/a"
-            owner = suggestion.owner_role or "unassigned"
-            lines.append(
-                f"- {suggestion.title} — effort {effort}, owner {owner}, impact {suggestion.impact_score or 'n/a'}"
-            )
-    if not lines:
-        lines.append("Analysis is pending additional investigation.")
-    return "\n".join(lines)
+def _format_immunity_map(immunity_map_id: str | None) -> str:
+    if not immunity_map_id:
+        return "No immunity map selected."
+    return "Immunity map detail is not stored yet. Generate Mermaid via /analysis/immunity-map and paste it here."
 
 
 def _format_initiatives(initiatives: List[models.ImprovementInitiative]) -> str:
@@ -222,14 +202,6 @@ def generate_report(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
     snapshot = db.get(models.AnalyticsSnapshot, payload.snapshot_id) if payload.snapshot_id else None
-    analysis = (
-        db.query(models.RootCauseAnalysis)
-        .options(selectinload(models.RootCauseAnalysis.nodes), selectinload(models.RootCauseAnalysis.suggestions))
-        .filter(models.RootCauseAnalysis.id == payload.analysis_id)
-        .first()
-        if payload.analysis_id
-        else None
-    )
     initiatives: List[models.ImprovementInitiative] = []
     if payload.initiative_ids:
         initiatives = (
@@ -242,7 +214,7 @@ def generate_report(
     section_source = payload.parameters.get("sections") if payload.parameters else None
     if section_source is None and template:
         section_source = template.sections
-    sections = section_source or ["Overview", "Analytics", "Root Cause", "Next Steps"]
+    sections = section_source or ["Overview", "Analytics", "Immunity Map", "Next Steps"]
 
     content_blocks: List[str] = []
     title = payload.parameters.get("title") if payload.parameters else None
@@ -252,17 +224,8 @@ def generate_report(
         content_blocks.append(f"# {title}")
 
     analytics_summary = _format_metrics(snapshot)
-    analysis_summary = _format_analysis(analysis)
+    immunity_map_summary = _format_immunity_map(payload.immunity_map_id)
     initiatives_summary = _format_initiatives(initiatives)
-
-    suggestions_summary = "No actions available."
-    if analysis and analysis.suggestions:
-        suggestions_lines = ["Action plan:"]
-        for suggestion in analysis.suggestions[:10]:
-            suggestions_lines.append(
-                f"- {suggestion.title} (status {suggestion.status}, owner {suggestion.owner_role or 'n/a'})"
-            )
-        suggestions_summary = "\n".join(suggestions_lines)
 
     for raw_section in sections:
         if isinstance(raw_section, dict):
@@ -272,12 +235,12 @@ def generate_report(
         key = heading.lower()
         if "analytic" in key or "metric" in key:
             body = analytics_summary
-        elif "cause" in key or "analysis" in key:
-            body = analysis_summary
+        elif "immunity" in key or "map" in key:
+            body = immunity_map_summary
         elif "initiative" in key or "program" in key:
             body = initiatives_summary
         elif "action" in key or "next" in key:
-            body = suggestions_summary
+            body = payload.parameters.get("notes", "") if payload.parameters else ""
         else:
             body = payload.parameters.get("notes", "") if payload.parameters else ""
         content_blocks.append(f"## {heading}\n{body.strip() or 'No content available.'}")

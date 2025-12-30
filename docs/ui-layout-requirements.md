@@ -55,10 +55,10 @@ A recent audit uncovered inconsistent spacing across key screens: some areas fee
 
 ### 5.1 Dashboard / Analytics Page
 
-- **Structure**: page header, KPI card grid, two-column section (cause tree & suggested actions), report draft section.
+- **Structure**: page header, KPI card grid, two-column section (immunity map generator & Mermaid output), report draft section.
 - **Spacing**: `space-2xl` below the header, `space-xl` between grid rows.
 - **Card grid**: `grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))` with `space-lg` gaps.
-- **Cause tree & actions**: `7col : 5col` split on desktop; stack with `space-xl` on tablet/mobile.
+- **Immunity map**: `7col : 5col` split on desktop; stack with `space-xl` on tablet/mobile.
 
 ### 5.2 Board Page
 

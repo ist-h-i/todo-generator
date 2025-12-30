@@ -263,7 +263,6 @@ class SubtaskBase(BaseModel):
     story_points: Optional[int] = None
     checklist: List[ChecklistItem] = Field(default_factory=list)
     ai_similarity_vector_id: Optional[str] = None
-    root_cause_node_id: Optional[str] = None
 
 
 class SubtaskCreate(SubtaskBase):
@@ -282,7 +281,6 @@ class SubtaskUpdate(BaseModel):
     story_points: Optional[int] = None
     checklist: Optional[List[ChecklistItem]] = None
     ai_similarity_vector_id: Optional[str] = None
-    root_cause_node_id: Optional[str] = None
 
 
 class SubtaskRead(SubtaskBase):
@@ -753,108 +751,71 @@ class AnalyticsSnapshotRead(AnalyticsSnapshotBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class WhyWhyRequest(BaseModel):
-    actor_id: Optional[str] = None
-    focus_question: Optional[str] = None
-    context: Dict[str, Any] = Field(default_factory=dict)
+# --- Immunity map (Mermaid) -----------------------------------------------------------------
 
-    model_config = ConfigDict(extra="allow")
+ImmunityMapAItemKind = Literal["should", "cannot", "want"]
+ImmunityMapNodeGroup = Literal["A", "B", "C", "D", "E", "F"]
 
 
-class WhyWhyTriggerResponse(BaseModel):
-    analysis_id: str
-    status: str
+class ImmunityMapAItem(BaseModel):
+    kind: ImmunityMapAItemKind
+    text: str
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("text")
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        normalized = " ".join(value.split()).strip()
+        if not normalized:
+            raise ValueError("text must not be empty")
+        return normalized
 
 
-class RootCauseNodeRead(BaseModel):
+class ImmunityMapRequest(BaseModel):
+    a_items: List[ImmunityMapAItem] = Field(default_factory=list)
+    context: Optional[str] = None
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def validate_request(self) -> "ImmunityMapRequest":
+        if not self.a_items:
+            raise ValueError("a_items must not be empty")
+        return self
+
+
+class ImmunityMapNode(BaseModel):
     id: str
-    analysis_id: str
-    depth: int
-    statement: str
-    confidence: Optional[float] = None
-    evidence_refs: List[str] = Field(default_factory=list)
-    recommended_metrics: List[str] = Field(default_factory=list)
-    parent_id: Optional[str] = None
-    state: str
-    created_at: datetime
-    updated_at: datetime
+    group: ImmunityMapNodeGroup
+    label: str
+    kind: Optional[ImmunityMapAItemKind] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(extra="forbid")
 
 
-class SuggestedActionBase(BaseModel):
-    title: str
-    description: Optional[str] = None
-    effort_estimate: Optional[str] = None
-    impact_score: Optional[int] = None
-    owner_role: Optional[str] = None
-    due_date_hint: Optional[datetime] = None
-    initiative_id: Optional[str] = None
-    status: Optional[str] = None
+class ImmunityMapEdge(BaseModel):
+    from_: str = Field(alias="from")
+    to: str
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
 
 
-class SuggestedActionCreate(SuggestedActionBase):
-    node_id: str
-    analysis_id: str
+class ImmunityMapPayload(BaseModel):
+    nodes: List[ImmunityMapNode] = Field(default_factory=list)
+    edges: List[ImmunityMapEdge] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid")
 
 
-class SuggestedActionUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    effort_estimate: Optional[str] = None
-    impact_score: Optional[int] = None
-    owner_role: Optional[str] = None
-    due_date_hint: Optional[datetime] = None
-    initiative_id: Optional[str] = None
-    status: Optional[str] = None
-
-
-class SuggestedActionRead(SuggestedActionBase):
-    id: str
-    analysis_id: str
-    node_id: str
-    created_card_id: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class RootCauseAnalysisRead(BaseModel):
-    id: str
-    snapshot_id: Optional[str] = None
-    target_type: str
-    target_id: Optional[str] = None
-    created_by: Optional[str] = None
-    version: int
-    status: str
-    model_version: Optional[str] = None
+class ImmunityMapResponse(BaseModel):
+    model: Optional[str] = None
+    payload: ImmunityMapPayload
+    mermaid: str
     summary: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-    nodes: List[RootCauseNodeRead] = Field(default_factory=list)
-    suggestions: List[SuggestedActionRead] = Field(default_factory=list)
+    token_usage: Dict[str, Any] = Field(default_factory=dict)
 
-    model_config = ConfigDict(from_attributes=True)
-
-
-class SuggestionConversionRequest(BaseModel):
-    title: Optional[str] = None
-    summary: Optional[str] = None
-    description: Optional[str] = None
-    status_id: Optional[str] = None
-    priority: Optional[str] = None
-    assignees: List[str] = Field(default_factory=list)
-    label_ids: List[str] = Field(default_factory=list)
-    initiative_id: Optional[str] = None
-    error_category_id: Optional[str] = None
-    due_date: Optional[datetime] = None
-
-
-class SuggestionConversionResponse(BaseModel):
-    card: CardRead
-    suggestion: SuggestedActionRead
-
+    model_config = ConfigDict(extra="forbid")
 
 class ReportTemplateBase(BaseModel):
     name: str
@@ -900,7 +861,7 @@ class ReportGenerateRequest(BaseModel):
     template_id: Optional[str] = None
     author_id: Optional[str] = None
     snapshot_id: Optional[str] = None
-    analysis_id: Optional[str] = None
+    immunity_map_id: Optional[str] = None
     initiative_ids: List[str] = Field(default_factory=list)
     parameters: Dict[str, Any] = Field(default_factory=dict)
 

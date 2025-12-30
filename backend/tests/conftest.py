@@ -2,6 +2,7 @@ import importlib
 import importlib.util
 import itertools
 import os
+import platform
 import sys
 import warnings
 from pathlib import Path
@@ -10,6 +11,13 @@ from typing import TYPE_CHECKING, Callable, Generator
 import pytest
 from _pytest.config.argparsing import Parser
 from _pytest.warning_types import PytestWarning
+if sys.platform == "win32" and sys.version_info >= (3, 13) and hasattr(platform, "_wmi_query"):
+    # Work around occasional WMI hangs on some Windows setups (Python 3.13 platform module).
+    def _disabled_wmi_query(table: str, *keys: str):
+        raise OSError("not supported")
+
+    platform._wmi_query = _disabled_wmi_query  # type: ignore[attr-defined]
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

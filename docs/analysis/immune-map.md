@@ -1,72 +1,62 @@
-# Immunity Map (Mermaid Template)
+# 免疫マップ（Mermaid テンプレート）
 
-This replaces "5 Whys" with an Immunity Map structure for retrospectives. Paste the Mermaid snippet below into Mermaid Live Editor to render and tailor it. Only add nodes and edges that have content; leaving examples commented keeps empty items hidden.
+「なぜなぜ分析（Why-Why）」を置換するための免疫マップ構造（A〜F）テンプレートです。Mermaid Live Editor に貼り付けて編集してください。
 
-## Usage
+## 使い方
 
-- Open Mermaid Live Editor and paste the snippet.
-- Duplicate/uncomment example nodes (A1, B1, …) and rename labels with actual content.
-- Add edges only between existing nodes to reflect: A→B, A→C, B→D, B→E, C→E, C→F.
-- Keep unused nodes/edges commented so they do not render.
-
-> Note: Empty subgraphs still show their titles in Mermaid. Nodes/edges remain hidden if left commented.
+- Mermaid Live Editor を開き、下の Mermaid スニペットを貼り付ける。
+- A〜F のうち、内容があるブロックだけを残す。
+  - Mermaid は空の `subgraph` でも「タイトル枠」だけ表示されるため、**使わないカテゴリは subgraph ごと削除/コメントアウト**する。
+- ノード（要素）とエッジ（線）は、内容があるものだけを残す（空のものは削除/コメントアウトする）。
+- 接続は次のみを使用する: A→B, A→C, B→D, B→E, C→E, C→F。
 
 ```mermaid
 flowchart TD
-  %% Immunity Map Template (A–F)
-  %% Direction: top-down (TD). Switch to LR if preferred (flowchart LR).
+  %% 免疫マップ（A〜F）テンプレート
+  %% 内容がないノード/線/カテゴリ（subgraph）は削除 or 行頭を %% にしてコメントアウトしてください。
 
-  %% Level 1 (A): Things to do / Can't do / Want to do
-  subgraph A["Level 1 – Actions & Constraints (Do / Can't / Want)"]
-    %% Uncomment and edit actual items:
-    %% A1["Do: <text>"]
-    %% A2["Can't: <text>"]
-    %% A3["Want: <text>"]
-  end
+  %% --- 階層1：A（やるべき/やれない/やりたい）---
+  %% subgraph A["階層1：A（やるべき/やれない/やりたい）"]
+  %%   A1["やるべき：<text>"]
+  %%   A2["やれない：<text>"]
+  %%   A3["やりたい：<text>"]
+  %% end
 
-  %% Level 2 (B, C)
-  subgraph B["Level 2 – Inhibitors"]
-    %% B1["<inhibitor>"]
-    %% B2["<inhibitor>"]
-  end
+  %% --- 階層2：B（阻害要因）---
+  %% subgraph B["階層2：B（阻害要因）"]
+  %%   B1["<text>"]
+  %% end
 
-  subgraph C["Level 2 – Shadow Goals / Ideals / Goals"]
-    %% C1["<shadow goal / ideal>"]
-    %% C2["<goal>"]
-  end
+  %% --- 階層2：C（裏の目標/理想像/ゴール）---
+  %% subgraph C["階層2：C（裏の目標/理想像/ゴール）"]
+  %%   C1["<text>"]
+  %% end
 
-  %% Level 3 (D, E, F)
-  subgraph D["Level 3 – Deep Psychology / Bias (causing B)"]
-    %% D1["<deep cause / bias>"]
-  end
+  %% --- 階層3：D（深層心理/バイアス：B の原因）---
+  %% subgraph D["階層3：D（深層心理/バイアス：B の原因）"]
+  %%   D1["<text>"]
+  %% end
 
-  subgraph E["Level 3 – True Needs (from B & C)"]
-    %% E1["<true need>"]
-  end
+  %% --- 階層3：E（真のニーズ）---
+  %% subgraph E["階層3：E（真のニーズ）"]
+  %%   E1["<text>"]
+  %% end
 
-  subgraph F["Level 3 – Fundamental Fixed Concepts (from C)"]
-    %% F1["<fixed concept>"]
-  end
+  %% --- 階層3：F（根源的固定概念）---
+  %% subgraph F["階層3：F（根源的固定概念）"]
+  %%   F1["<text>"]
+  %% end
 
-  %% Edges (add only when both referenced nodes exist):
+  %% --- 接続（存在するノード同士だけ残す）---
   %% A1 --> B1
   %% A1 --> C1
-  %% A2 --> B2
-  %% A3 --> C2
   %% B1 --> D1
   %% B1 --> E1
   %% C1 --> E1
   %% C1 --> F1
 ```
 
-## Mapping
+## メモ
 
-- Level 1 (A): Things to do / Can't do / Want to do
-- Level 2 (B): Inhibitors; (C): Shadow goals / ideal self / goals
-- Level 3 (D): Deep psychology/bias (from B); (E): True needs (from B & C); (F): Fundamental fixed concepts (from C)
-
-## Tips
-
-- Prefer concise, specific labels for each node.
-- If you want a left-to-right layout, change the first line to `flowchart LR`.
-- Keep letters A–F as structural hints in subgraph titles; omit from node labels if you prefer cleaner output.
+- 文字量が多い場合は、ラベル内で `<br/>` を使うと改行できます。
+- 左右配置にしたい場合は `flowchart LR` に変更してください。

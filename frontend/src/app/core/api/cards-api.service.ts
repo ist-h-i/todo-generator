@@ -39,7 +39,6 @@ export interface SubtaskCreateRequest {
   story_points?: number | null;
   checklist?: readonly unknown[];
   ai_similarity_vector_id?: string | null;
-  root_cause_node_id?: string | null;
 }
 
 export interface SubtaskUpdateRequest {
@@ -54,7 +53,6 @@ export interface SubtaskUpdateRequest {
   story_points?: number | null;
   checklist?: readonly unknown[];
   ai_similarity_vector_id?: string | null;
-  root_cause_node_id?: string | null;
 }
 
 export interface CardCreateRequest {

@@ -28,11 +28,11 @@ This document explains how the workspace persists data across board management, 
 - **Statuses, labels, templates**: `/statuses`, `/labels`, and `/workspace/templates` are handled by dedicated routers. The Angular settings page (`frontend/src/app/features/settings/page.ts`) uses `WorkspaceConfigApiService` to create, update, and delete records. `WorkspaceStore.refreshWorkspaceConfig` fetches authoritative lists and harmonises cached defaults, label IDs, and template confidence thresholds.
 - **Ordering**: Status order is derived from the `order` column in the database. The current UI appends new statuses at the end (see `WorkspaceStore.addStatus`) and relies on backend sorting when rendering columns.
 
-## 2. Analytics and continuous improvement
+## 2. Analytics and reflection (immunity map)
 
-- **Snapshots and analyses**: `/analytics` (`backend/app/routers/analytics.py`) returns analytics snapshots, root-cause analyses, and token usage metrics. Data is eager-loaded with `selectinload` to hydrate relationships efficiently.
-- **Improvement initiatives**: `/initiatives` links analytics insights to ongoing improvement work. `ContinuousImprovementStore` maps initiatives into board-friendly payloads and resolves initiative assignments during card creation.
-- **Suggested actions**: `/suggested-actions` exposes AI recommendations derived from analytics. Operators can promote actions into cards via `WorkspaceStore.createCardFromSuggestion`, which records the origin suggestion ID for traceability.
+- **Snapshots**: `/analytics/snapshots` (`backend/app/routers/analytics.py`) persists snapshot records consumed by dashboards and reports.
+- **Immunity map generation**: `/analysis/immunity-map` (`backend/app/routers/analysis.py`) turns reflective inputs into Mermaid-formatted immunity maps. Empty nodes/edges are omitted so the diagram stays readable.
+- **Improvement initiatives**: `/initiatives` links analytics snapshots to ongoing improvement work, tracking progress logs and optionally linking initiatives to cards for execution.
 
 ## 3. Reports and AI workflows
 
@@ -48,8 +48,8 @@ This document explains how the workspace persists data across board management, 
 
 ### 3.3 Report templates and narratives
 
-- `/reports` handles templates (`ReportTemplate`), generated reports (`GeneratedReport`), and formatting utilities that combine analytics snapshots, analyses, and initiatives into human-readable summaries.
-- `_format_metrics`, `_format_analysis`, and related helpers convert JSON metrics into paragraphs before saving or returning responses.
+- `/reports` handles templates (`ReportTemplate`), generated reports (`GeneratedReport`), and formatting utilities that combine analytics snapshots, immunity map context (optional), and initiatives into human-readable summaries.
+- `_format_metrics` and related helpers convert JSON metrics into paragraphs before saving or returning responses.
 
 ### 3.4 Appeals
 

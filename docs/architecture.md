@@ -41,7 +41,7 @@ The product is modelled around five bounded contexts shared by the frontend and 
 | `/board` | `features/board/page` | Kanban workspace with drag-and-drop cards, subtasks, filters, and quick actions. |
 | `/input` | `features/analyze/page` | AI intake form that submits notes to `/analysis`, filters proposals, and lets operators publish cards. |
 | `/reports` | `features/reports/reports-page.component` | Shift report assistant with AI drafting, audit log, and card publishing. |
-| `/analytics` | `features/analytics/page` | Dashboards visualising recurrence trends, root-cause trees, initiatives, and suggested actions. |
+| `/analytics` | `features/analytics/feature` | Workspace dashboards plus AI-generated immunity maps exported in Mermaid format. |
 | `/profile/evaluations` | `features/profile/evaluations/page` | User-facing competency evaluations, quota status, and historical feedback. |
 | `/settings` | `features/settings/page` | Workspace configuration for statuses, labels, and analyzer templates. |
 | `/admin` | `features/admin/page` | Admin console for API credentials, quotas, governance data, and user role management. |
@@ -51,7 +51,7 @@ Standalone components are lazy loaded through `app.routes.ts` to minimise bootst
 ### State and data flow
 
 - **WorkspaceStore (`core/state/workspace-store.ts`)** caches cards, subtasks, comments, workspace settings, filters, and templates. It persists selections to local storage per user while synchronising authoritative data from the backend through `WorkspaceConfigApiService` and `CardsApiService` calls. Optimistic updates roll back on failure and reconcile card responses from the API.
-- **ContinuousImprovementStore (`core/state/continuous-improvement-store.ts`)** aggregates analytics snapshots, initiatives, suggested actions, and AI recommendations. It normalises data for the analytics and report assistant features and exposes helper selectors for board conversions.
+- **Immunity map generation** lives in the analytics feature UI and calls `/analysis/immunity-map` via the `ImmunityMapGateway` API client.
 - **AuthService (`core/auth/auth.service.ts`)** stores the active session token in memory and browser storage, exposes the active user profile, and coordinates guard redirects.
 - **Signal forms (`lib/forms/signal-forms.ts`)** provide type-safe abstractions for forms backed by Angular signals, reducing template boilerplate for settings and report workflows.
 
@@ -84,8 +84,8 @@ HTTP concerns are centralised under `core/api`:
 
 - **Authentication and profile**: `/auth` issues session tokens, hashes them in the database, and rotates credentials on login. `/profile` returns enriched user metadata. `/board-layouts` (preferences router) persists per-user column widths, filters, and layout choices. `/preferences` is complemented by `/filters` for saved board queries.
 - **Workspace operations**: `/cards` handles card CRUD, drag-and-drop updates, nested `/subtasks`, and `/cards/{id}/similar`. `/comments` and `/activity-log` manage discussions and manual activity entries. `/labels`, `/statuses`, `/error-categories`, and `/workspace/templates` provide configuration endpoints used by the settings UX.
-- **Analysis and automation**: `/analysis` forwards intake requests to `GeminiClient` and returns JSON-schema validated proposals. `/status-reports` orchestrates shift report CRUD plus AI processing through `StatusReportService`. `/reports` manages report templates and generated narratives and formats analytics context. `/suggested-actions` promotes AI-generated follow-up actions into cards, while `/appeals` produces Japanese appeal narratives for external escalation workflows.
-- **Analytics and improvement**: `/analytics` serves snapshots, root-cause analyses, and token metrics. `/initiatives` coordinates improvement initiatives linked to analytics snapshots.
+- **Analysis and automation**: `/analysis` forwards intake requests to `GeminiClient` and returns JSON-schema validated proposals. `/analysis/immunity-map` turns reflective inputs into Mermaid-formatted immunity maps. `/status-reports` orchestrates shift report CRUD plus AI processing through `StatusReportService`. `/reports` manages report templates and generated narratives and formats analytics context, while `/appeals` produces Japanese appeal narratives for external escalation workflows.
+- **Analytics and improvement**: `/analytics` serves snapshot records for dashboards. `/initiatives` coordinates improvement initiatives linked to analytics snapshots.
 - **Competency management**: `/admin/competencies` allows administrators to manage competency rubrics and trigger evaluations. `/admin/evaluations` and `/users/me/evaluations` expose evaluation history and quotas for administrators and end users respectively.
 - **Administration**: `/admin/users` manages user roles, quota overrides, and invites. `/admin/api-credentials`, `/admin/quotas/defaults`, and `/admin/quotas/{user_id}` (exposed through `admin_settings.py`) provide credential storage and quota configuration guarded by `require_admin`.
 
@@ -104,7 +104,7 @@ SQLAlchemy models in `app/models.py` capture:
 
 - **Identity**: `User`, `SessionToken`, `UserPreference`, `UserQuotaOverride`, and `ApiCredential` (encrypted secret storage with hints).
 - **Workspace**: `Card`, `Subtask`, `CardComment`, `CardActivity`, `Label`, `Status`, `ErrorCategory`, `WorkspaceTemplate`, and the `card_labels` association table.
-- **Analytics and improvement**: `AnalyticsSnapshot`, `RootCauseAnalysis` with `RootCauseNode`, `ImprovementInitiative`, and `SuggestedAction` with link tables.
+- **Analytics and improvement**: `AnalyticsSnapshot`, `ImprovementInitiative`, and `InitiativeProgressLog`.
 - **Reporting**: `StatusReport`, `StatusReportEvent`, `GeneratedReport`, and `ReportTemplate`.
 - **Competencies**: `Competency`, `CompetencyPrompt`, `CompetencyEvaluation`, and `EvaluationJob`.
 Timestamp mixins enforce UTC-aware audit fields, and helper methods normalise IDs through UUID4 generation.
@@ -137,9 +137,9 @@ Timestamp mixins enforce UTC-aware audit fields, and helper methods normalise ID
 
 ### Analytics and improvement loop
 
-1. Admins import analytics snapshots and root-cause analyses through `/analytics`.
-2. Suggested actions indexed by analysis nodes surface in the analytics page. Publishing an action uses `WorkspaceStore.createCardFromSuggestion`, which builds a card payload and persists it via `CardsApiService`.
-3. Improvement initiatives and suggested actions maintain bidirectional links so the analytics store can keep dashboards in sync.
+1. Admins import analytics snapshots through `/analytics`.
+2. Users generate immunity maps through `/analysis/immunity-map` and export Mermaid diagrams to discuss current constraints and deep drivers.
+3. Improvement initiatives track progress logs and can be linked to cards for execution and reporting.
 
 ### Competency evaluation lifecycle
 
