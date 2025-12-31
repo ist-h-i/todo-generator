@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session, joinedload
 
 from .. import models, schemas
@@ -129,6 +129,26 @@ def update_competency(
     db.commit()
     db.refresh(competency)
     return competency
+
+
+@router.delete("/{competency_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+def delete_competency(
+    competency_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> Response:
+    competency = db.get(models.Competency, competency_id)
+    if not competency:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Competency not found")
+
+    db.query(models.CompetencyEvaluationJob).filter(
+        models.CompetencyEvaluationJob.competency_id == competency_id
+    ).update({models.CompetencyEvaluationJob.competency_id: None}, synchronize_session=False)
+
+    db.delete(competency)
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{competency_id}/evaluate", response_model=schemas.CompetencyEvaluationRead)

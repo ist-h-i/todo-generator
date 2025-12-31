@@ -24,6 +24,7 @@ from ..schemas import (
     ImmunityMapReadoutCard,
     ImmunityMapRequest,
     ImmunityMapResponse,
+    ImmunityMapSummary,
 )
 from ..services.gemini import (
     GeminiClient,
@@ -206,6 +207,7 @@ _IMMUNITY_MAP_SYSTEM_PROMPT = (
     " You infer an Immunity Map from user-provided statements."
     " Your output must be a JSON object that matches the provided schema."
     " Write labels in natural Japanese."
+    " Provide a summary with current_analysis and one_line_advice in natural Japanese."
     " Provide optional readout_cards that distinguish observation vs hypothesis and include evidence when possible."
     " Treat deep psychology as hypotheses; avoid clinical or diagnostic language."
     " Do not include any extra keys or any prose outside JSON."
@@ -307,7 +309,15 @@ _IMMUNITY_MAP_RESPONSE_SCHEMA: dict[str, Any] = {
                 },
             },
         },
-        "summary": {"type": "string"},
+        "summary": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["current_analysis", "one_line_advice"],
+            "properties": {
+                "current_analysis": {"type": "string", "minLength": 1},
+                "one_line_advice": {"type": "string", "minLength": 1},
+            },
+        },
         "readout_cards": {
             "type": "array",
             "default": [],
@@ -559,6 +569,25 @@ def _parse_readout_cards(raw_value: Any) -> list[ImmunityMapReadoutCard]:
     return cards
 
 
+def _parse_immunity_map_summary(raw_value: Any) -> ImmunityMapSummary | None:
+    item = _to_mapping(raw_value)
+    if not item:
+        return None
+
+    current_analysis = str(item.get("current_analysis") or "").strip()
+    one_line_advice = str(item.get("one_line_advice") or "").strip()
+    if not current_analysis or not one_line_advice:
+        return None
+
+    try:
+        return ImmunityMapSummary(
+            current_analysis=current_analysis,
+            one_line_advice=one_line_advice,
+        )
+    except ValidationError:
+        return None
+
+
 @router.post("/immunity-map/candidates", response_model=ImmunityMapCandidateResponse)
 def generate_immunity_map_candidates(
     payload: ImmunityMapCandidateRequest,
@@ -690,6 +719,8 @@ def generate_immunity_map(
             "- Omit empty nodes, edges, and empty groups.",
             "- Allowed connections: A->B, A->C, B->D, B->E, C->E, C->F.",
             "- Keep labels short in natural Japanese and avoid clinical language.",
+            "- summary.current_analysis should concisely describe the current situation in Japanese.",
+            "- summary.one_line_advice should be a single short actionable sentence in Japanese.",
             "- readout_cards should distinguish observations vs hypotheses and include evidence.",
         ]
     )
@@ -779,7 +810,7 @@ def generate_immunity_map(
     response_payload = ImmunityMapPayload(nodes=list(nodes), edges=list(edges))
     model = generated.get("model")
     token_usage = generated.get("token_usage")
-    summary = generated.get("summary") if isinstance(generated.get("summary"), str) else None
+    summary = _parse_immunity_map_summary(generated.get("summary"))
     readout_cards = _parse_readout_cards(generated.get("readout_cards"))
 
     return ImmunityMapResponse(

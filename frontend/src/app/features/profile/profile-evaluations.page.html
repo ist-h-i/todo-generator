@@ -7,7 +7,7 @@
 >
   <section
     appPageHeaderActions
-    class="flex flex-col gap-[clamp(1rem,2vw,1.5rem)] lg:flex-row lg:items-stretch lg:justify-between lg:gap-[clamp(1.25rem,2vw,1.75rem)]"
+    class="flex flex-col gap-[clamp(1rem,2vw,1.5rem)] lg:flex-row lg:flex-wrap lg:items-stretch lg:justify-between lg:gap-[clamp(1.25rem,2vw,1.75rem)]"
   >
     <article class="surface-panel page-panel evaluations-page__quota" aria-live="polite">
       <p class="evaluations-page__quota-label">本日の評価判定可能回数</p>
@@ -32,29 +32,69 @@
       }
     </article>
 
+    <article class="surface-panel page-panel evaluations-page__targets" aria-live="polite">
+      <p class="evaluations-page__targets-label">評価対象コンピテンシー（複数選択）</p>
+
+      @if (competenciesLoading()) {
+        <p class="evaluations-page__targets-loading">読み込み中…</p>
+      } @else if (competenciesError(); as message) {
+        <p class="evaluations-page__targets-warning">{{ message }}</p>
+      } @else {
+        <div class="evaluations-page__targets-group">
+          @for (competency of competencies(); track competency.id) {
+            <label class="evaluations-page__targets-checkbox">
+              <input
+                type="checkbox"
+                [checked]="selectedCompetencyIds().includes(competency.id)"
+                (change)="toggleCompetencySelection(competency.id, $any($event.target).checked)"
+              />
+              <span>{{ competency.name }}</span>
+            </label>
+          }
+          @if (competencies().length === 0) {
+            <span class="evaluations-page__targets-empty">コンピテンシーが未設定です。</span>
+          }
+        </div>
+
+        <div class="evaluations-page__targets-actions">
+          <button
+            type="button"
+            class="button button--ghost button--pill focus-ring"
+            (click)="selectAllCompetencies()"
+            [disabled]="competencies().length === 0"
+          >
+            全選択
+          </button>
+          <button
+            type="button"
+            class="button button--ghost button--pill focus-ring"
+            (click)="clearCompetencySelection()"
+            [disabled]="selectedCompetencyIds().length === 0"
+          >
+            全解除
+          </button>
+        </div>
+
+        <p class="evaluations-page__targets-meta">
+          選択中 {{ selectedCompetencyIds().length }} 件
+          @if (remainingCount() !== null) {
+            <span>／残り {{ remainingCount() }} 回</span>
+            <span>（一括評価は 1 回消費）</span>
+          }
+        </p>
+      }
+    </article>
+
     <div
       class="flex flex-wrap items-center gap-3 justify-start lg:self-stretch lg:items-end lg:justify-end"
     >
       <button
         type="button"
         class="button button--primary button--pill focus-ring"
-        (click)="runEvaluation()"
-        [disabled]="runningEvaluation() || loading() || !canRunEvaluation()"
+        (click)="runBatchEvaluation()"
+        [disabled]="runningEvaluation() || loading() || !canRunBatchEvaluation()"
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          class="evaluations-page__action-icon"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 3v2m0 14v2m9-9h-2M5 12H3m12.364-5.364-1.414 1.414M6.05 17.95l-1.414 1.414m12.728 0-1.414-1.414M6.05 6.05 4.636 4.636M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z"
-          />
-        </svg>
+        <shared-ai-mark />
         評価を実行
       </button>
 

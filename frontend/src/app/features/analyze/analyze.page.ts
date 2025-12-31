@@ -15,6 +15,7 @@ import { AnalysisProposal, AnalysisRequest } from '@core/models';
 import { createId } from '@core/utils/create-id';
 import { createSignalForm } from '@shared/forms/signal-forms';
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
+import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 
 type AnalyzerToastState = 'loading' | 'success' | 'notice' | 'error';
 
@@ -38,7 +39,7 @@ interface EditableProposalDraft {
  */
 @Component({
   selector: 'app-analyze-page',
-  imports: [CommonModule, PageLayout],
+  imports: [CommonModule, PageLayout, AiMark],
   templateUrl: './analyze.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

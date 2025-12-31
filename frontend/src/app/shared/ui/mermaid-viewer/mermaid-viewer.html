@@ -1,0 +1,12 @@
+<div class="mermaid-viewer" [attr.aria-busy]="isRendering()">
+  @if (isRendering()) {
+    <p class="form-note">Mermaid を描画中…</p>
+  }
+
+  <div #canvas class="mermaid-viewer__canvas"></div>
+
+  @if (renderError(); as error) {
+    <p class="app-alert app-alert--error" role="alert">{{ error }}</p>
+  }
+</div>
+

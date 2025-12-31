@@ -27,10 +27,19 @@ import { createId } from '@core/utils/create-id';
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
 import { UiSelect } from '@shared/ui/select/ui-select';
+import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 
 @Component({
   selector: 'app-report-assistant-page',
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, PageLayout, LocalDateTimePipe, UiSelect],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    PageLayout,
+    LocalDateTimePipe,
+    UiSelect,
+    AiMark,
+  ],
   templateUrl: './reports.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

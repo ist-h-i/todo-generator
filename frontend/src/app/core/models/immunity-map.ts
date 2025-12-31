@@ -88,11 +88,16 @@ export interface ImmunityMapPayload {
   readonly edges: readonly ImmunityMapEdge[];
 }
 
+export interface ImmunityMapSummary {
+  readonly current_analysis: string;
+  readonly one_line_advice: string;
+}
+
 export interface ImmunityMapResponse {
   readonly model: string | null;
   readonly payload: ImmunityMapPayload;
   readonly mermaid: string;
-  readonly summary: string | null;
+  readonly summary: ImmunityMapSummary | null;
   readonly readout_cards?: readonly ImmunityMapReadoutCard[];
   readonly token_usage?: Readonly<Record<string, unknown>>;
 }

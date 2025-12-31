@@ -874,11 +874,18 @@ class ImmunityMapPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ImmunityMapSummary(BaseModel):
+    current_analysis: str
+    one_line_advice: str
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class ImmunityMapResponse(BaseModel):
     model: Optional[str] = None
     payload: ImmunityMapPayload
     mermaid: str
-    summary: Optional[str] = None
+    summary: Optional[ImmunityMapSummary] = None
     readout_cards: List[ImmunityMapReadoutCard] = Field(default_factory=list)
     token_usage: Dict[str, Any] = Field(default_factory=dict)
 
@@ -1091,6 +1098,19 @@ class SelfEvaluationRequest(BaseModel):
 
     @model_validator(mode="after")
     def ensure_period(self) -> "SelfEvaluationRequest":
+        if self.period_start and self.period_end:
+            if self.period_start > self.period_end:
+                raise ValueError("period_start must be on or before period_end")
+        return self
+
+
+class SelfEvaluationBatchRequest(BaseModel):
+    competency_ids: List[str] = Field(default_factory=list, min_length=1)
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+
+    @model_validator(mode="after")
+    def ensure_period(self) -> "SelfEvaluationBatchRequest":
         if self.period_start and self.period_end:
             if self.period_start > self.period_end:
                 raise ValueError("period_start must be on or before period_end")

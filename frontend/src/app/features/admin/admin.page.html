@@ -81,15 +81,35 @@
                     competencyLevelBadge(competency)
                   }}</span>
                 </div>
-                <label class="form-toggle">
-                  <input
-                    type="checkbox"
-                    [checked]="competency.is_active"
-                    (change)="toggleCompetencyActive(competency, $any($event.target).checked)"
-                    aria-label="{{ competency.name }} を有効化"
-                  />
-                  <span>有効</span>
-                </label>
+                <div class="page-list__actions">
+                  <label class="form-toggle">
+                    <input
+                      type="checkbox"
+                      [checked]="competency.is_active"
+                      (change)="toggleCompetencyActive(competency, $any($event.target).checked)"
+                      aria-label="{{ competency.name }} を有効化"
+                    />
+                    <span>有効</span>
+                  </label>
+                  <button
+                    type="button"
+                    class="button button--secondary button--pill"
+                    (click)="editCompetency(competency)"
+                    [disabled]="loading() || editingCompetencyId() === competency.id"
+                    aria-label="{{ competency.name }} を編集"
+                  >
+                    編集
+                  </button>
+                  <button
+                    type="button"
+                    class="button button--danger button--pill"
+                    (click)="deleteCompetency(competency)"
+                    [disabled]="loading()"
+                    aria-label="{{ competency.name }} を削除"
+                  >
+                    削除
+                  </button>
+                </div>
               </div>
               <p class="page-list__description">
                 {{ competency.description || '説明は登録されていません。' }}
@@ -106,10 +126,19 @@
 
     <section class="page-section">
       <header class="page-section__header">
-        <h2 class="page-section__title">コンピテンシーを登録</h2>
+        <h2 class="page-section__title">
+          @if (editingCompetencyId()) {
+            コンピテンシーを編集
+          } @else {
+            コンピテンシーを登録
+          }
+        </h2>
         <p class="page-section__subtitle">
           名称・レベル・評価項目を設定して AI 判定対象を作成します。
         </p>
+        @if (editingCompetency(); as editing) {
+          <p class="form-note">編集中: {{ editing.name }}</p>
+        }
       </header>
 
       <form class="page-form" [formGroup]="competencyForm" (ngSubmit)="createCompetency()">
@@ -196,9 +225,25 @@
           }
         </div>
 
-        <button type="submit" class="button button--primary" [disabled]="loading()">
-          コンピテンシーを登録
-        </button>
+        <div class="form-actions">
+          @if (editingCompetencyId()) {
+            <button
+              type="button"
+              class="button button--ghost"
+              (click)="cancelCompetencyEdit()"
+              [disabled]="loading()"
+            >
+              キャンセル
+            </button>
+          }
+          <button type="submit" class="button button--primary" [disabled]="loading()">
+            @if (editingCompetencyId()) {
+              更新する
+            } @else {
+              コンピテンシーを登録
+            }
+          </button>
+        </div>
       </form>
     </section>
 
@@ -347,6 +392,7 @@
         </div>
 
         <button type="submit" class="button button--primary" [disabled]="loading()">
+          <shared-ai-mark />
           判定を実行
         </button>
       </form>

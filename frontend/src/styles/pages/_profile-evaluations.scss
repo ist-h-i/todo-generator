@@ -11,6 +11,75 @@
   min-width: 0;
 }
 
+.evaluations-page__targets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.evaluations-page__targets-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 85%, transparent);
+}
+
+.evaluations-page__targets-loading {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.evaluations-page__targets-warning {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--danger) 85%, transparent);
+}
+
+.evaluations-page__targets-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.evaluations-page__targets-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-card) 88%, transparent);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.evaluations-page__targets-checkbox input {
+  width: 1rem;
+  height: 1rem;
+}
+
+.evaluations-page__targets-empty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.evaluations-page__targets-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.evaluations-page__targets-meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .evaluations-page__quota-label {
   font-size: 0.78rem;
   font-weight: 600;

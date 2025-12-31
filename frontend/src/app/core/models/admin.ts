@@ -120,6 +120,12 @@ export interface SelfEvaluationRequest {
   period_end?: IsoDateString | null;
 }
 
+export interface SelfEvaluationBatchRequest {
+  competency_ids: string[];
+  period_start?: IsoDateString | null;
+  period_end?: IsoDateString | null;
+}
+
 export interface EvaluationQuotaStatus {
   daily_limit: number;
   used: number;

@@ -36,6 +36,7 @@ import {
 } from '@core/models';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
 import { UiSelect } from '@shared/ui/select/ui-select';
+import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 
 type AdminTab = 'competencies' | 'evaluations' | 'users' | 'settings';
 type CriterionFormGroup = FormGroup<{
@@ -63,7 +64,7 @@ type CompetencyLevelFormControls = {
 
 @Component({
   selector: 'app-admin-page',
-  imports: [CommonModule, ReactiveFormsModule, PageLayout, LocalDateTimePipe, UiSelect],
+  imports: [CommonModule, ReactiveFormsModule, PageLayout, LocalDateTimePipe, UiSelect, AiMark],
   templateUrl: './admin.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -75,6 +76,14 @@ export class AdminPage {
 
   public readonly activeTab = signal<AdminTab>('competencies');
   public readonly competencies = signal<Competency[]>([]);
+  public readonly editingCompetencyId = signal<string | null>(null);
+  public readonly editingCompetency = computed(() => {
+    const id = this.editingCompetencyId();
+    if (!id) {
+      return null;
+    }
+    return this.competencies().find((competency) => competency.id === id) ?? null;
+  });
   public readonly competencyLevels = signal<CompetencyLevelDefinition[]>([]);
   public readonly users = signal<AdminUser[]>([]);
   public readonly evaluations = signal<CompetencyEvaluation[]>([]);
@@ -268,6 +277,42 @@ export class AdminPage {
     this.competencyCriteria.removeAt(index);
   }
 
+  public editCompetency(competency: Competency): void {
+    this.clearError();
+    this.editingCompetencyId.set(competency.id);
+
+    this.competencyForm.patchValue({
+      name: competency.name,
+      level: competency.level,
+      description: competency.description ?? '',
+      is_active: competency.is_active,
+    });
+
+    while (this.competencyCriteria.length > 0) {
+      this.competencyCriteria.removeAt(this.competencyCriteria.length - 1);
+    }
+
+    if (competency.criteria.length === 0) {
+      this.competencyCriteria.push(this.createCriterionGroup());
+    } else {
+      for (const criterion of competency.criteria) {
+        this.competencyCriteria.push(
+          this.createCriterionGroup({
+            title: criterion.title,
+            description: criterion.description ?? '',
+          }),
+        );
+      }
+    }
+
+    this.ensureCompetencyLevelSelection();
+  }
+
+  public cancelCompetencyEdit(): void {
+    this.clearError();
+    this.resetCompetencyForm();
+  }
+
   public createCompetency(): void {
     this.clearError();
 
@@ -293,7 +338,6 @@ export class AdminPage {
       level,
       description: value.description.trim(),
       is_active: value.is_active,
-      rubric: {},
       criteria: value.criteria
         .map((criterion, index) => ({
           title: criterion.title.trim(),
@@ -307,20 +351,34 @@ export class AdminPage {
         .filter((criterion) => criterion.title.length > 0),
     };
 
+    const editingId = this.editingCompetencyId();
+    const isEditing = Boolean(editingId);
+    const request$ = editingId
+      ? this.api.updateCompetency(editingId, payload)
+      : this.api.createCompetency(payload);
+
     this.loading.set(true);
-    this.api
-      .createCompetency(payload)
+    request$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (competency) => {
           this.loading.set(false);
-          this.competencies.update((list) => [...list, competency]);
+          if (isEditing) {
+            this.replaceCompetency(competency);
+          } else {
+            this.competencies.update((list) => [...list, competency]);
+          }
           this.resetCompetencyForm();
-          this.notify('コンピテンシーを登録しました。');
+          this.notify(isEditing ? 'コンピテンシーを更新しました。' : 'コンピテンシーを登録しました。');
         },
         error: (err) => {
           this.loading.set(false);
-          this.handleError(err, 'コンピテンシーの登録に失敗しました。');
+          this.handleError(
+            err,
+            isEditing
+              ? 'コンピテンシーの更新に失敗しました。'
+              : 'コンピテンシーの登録に失敗しました。',
+          );
         },
       });
   }
@@ -377,6 +435,7 @@ export class AdminPage {
   }
 
   public resetCompetencyForm(): void {
+    this.editingCompetencyId.set(null);
     while (this.competencyCriteria.length > 1) {
       this.competencyCriteria.removeAt(this.competencyCriteria.length - 1);
     }
@@ -401,6 +460,33 @@ export class AdminPage {
           this.notify('コンピテンシーの状態を更新しました。');
         },
         error: (err) => this.handleError(err, 'コンピテンシーの更新に失敗しました。'),
+      });
+  }
+
+  public deleteCompetency(competency: Competency): void {
+    this.clearError();
+
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        `${competency.name} を削除しますか？この操作は取り消せません。`,
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    this.api
+      .deleteCompetency(competency.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.competencies.update((list) => list.filter((item) => item.id !== competency.id));
+          if (this.editingCompetencyId() === competency.id) {
+            this.resetCompetencyForm();
+          }
+          this.notify('コンピテンシーを削除しました。');
+        },
+        error: (err) => this.handleError(err, 'コンピテンシーの削除に失敗しました。'),
       });
   }
 

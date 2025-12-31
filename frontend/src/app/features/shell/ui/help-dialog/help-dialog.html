@@ -16,7 +16,8 @@
         <p class="help-dialog__eyebrow">ガイドとサポート</p>
         <h2 class="help-dialog__title" id="help-dialog-title">Verbalize Yourself ヘルプセンター</h2>
         <p class="help-dialog__description" id="help-dialog-description">
-          代表的なユースケース、主要な画面の使い方、よくある質問への回答をまとめています。
+          AI
+          活用の整理、代表的なユースケース、主要な画面の使い方、よくある質問への回答をまとめています。
         </p>
       </div>
       <button
@@ -39,6 +40,58 @@
     </header>
 
     <section class="help-dialog__section">
+      <h3 class="help-dialog__section-title">AI活用（機能別の整理）</h3>
+      <p class="help-dialog__section-lead">
+        AI
+        が使われる画面と、入力→生成→次のアクション、関連するデータをまとめています。生成結果は必ずレビューしてからカード化してください。
+      </p>
+      <div class="help-dialog__usecases">
+        @for (feature of aiFeatures; track feature.title) {
+          <article class="help-dialog__usecase-card">
+            <h4 class="help-dialog__usecase-title">{{ feature.title }}</h4>
+            <p class="help-dialog__usecase-summary">{{ feature.summary }}</p>
+            <ul class="help-dialog__usecase-steps">
+              @for (bullet of feature.bullets; track bullet) {
+                <li class="help-dialog__usecase-step">
+                  @if (bullet.startsWith('AI:')) {
+                    <span class="help-dialog__ai-marker" role="img" aria-label="AI">
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        class="help-dialog__ai-marker-icon"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="12" cy="4" r="1" />
+                        <path d="M12 5v3" />
+                        <rect x="5" y="8" width="14" height="12" rx="3" />
+                        <circle cx="10" cy="13" r="1" />
+                        <circle cx="14" cy="13" r="1" />
+                        <path d="M10 16h4" />
+                      </svg>
+                    </span>
+                    <span class="help-dialog__usecase-step-text">{{
+                      bullet.slice(3).trimStart()
+                    }}</span>
+                  } @else {
+                    <span class="help-dialog__usecase-step-text">{{ bullet }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+      <p class="help-dialog__section-lead">
+        AI 機能が利用できない場合は、管理者が Gemini API キー（管理 >
+        API・日次上限）を設定しているか確認してください。
+      </p>
+    </section>
+
+    <section class="help-dialog__section">
       <h3 class="help-dialog__section-title">基本的なユースケース</h3>
       <p class="help-dialog__section-lead">
         何から始めればよいか迷ったときは、下記のシナリオを参考に全体の流れを把握してください。
@@ -50,7 +103,9 @@
             <p class="help-dialog__usecase-summary">{{ useCase.summary }}</p>
             <ul class="help-dialog__usecase-steps">
               @for (step of useCase.steps; track step) {
-                <li>{{ step }}</li>
+                <li class="help-dialog__usecase-step">
+                  <span class="help-dialog__usecase-step-text">{{ step }}</span>
+                </li>
               }
             </ul>
           </article>

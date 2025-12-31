@@ -193,7 +193,8 @@ def _build_card_metrics(cards: Iterable[models.Card], status_index: dict[str, st
         elif category == "todo":
             todo += 1
 
-        if card.due_date and card.due_date < now and not completed:
+        due_date = _to_utc_datetime(card.due_date)
+        if due_date and due_date < now and not completed:
             overdue += 1
 
     return {
@@ -203,6 +204,14 @@ def _build_card_metrics(cards: Iterable[models.Card], status_index: dict[str, st
         "todo": todo,
         "overdue": overdue,
     }
+
+
+def _to_utc_datetime(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def _serialize_card(card: models.Card, status_index: dict[str, str]) -> dict[str, Any]:

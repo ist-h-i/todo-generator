@@ -10,7 +10,7 @@
   </a>
 
   <div class="app-alert app-alert--notice report-assistant-page__notice" role="status">
-    解析に使用した本文はカード作成後に破棄され、ワークスペースに保存されません。
+    入力した本文は日報・週報の履歴として保存され、免疫マップ生成のコンテキストにも利用されます。機密情報は入力しないでください。
   </div>
 
   <div class="page-grid page-grid--two report-assistant-page__layout">
@@ -90,6 +90,7 @@
 
         <div class="form-actions">
           <button type="submit" class="button button--primary focus-ring" [disabled]="pending()">
+            <shared-ai-mark />
             解析を実行
           </button>
         </div>

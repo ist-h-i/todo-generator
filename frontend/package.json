@@ -42,6 +42,7 @@
     "@angular/platform-browser": "^20.3.2",
     "@angular/router": "^20.3.2",
     "@js-temporal/polyfill": "^0.5.1",
+    "mermaid": "^11.12.2",
     "rxjs": "~7.8.2",
     "tslib": "^2.8.1",
     "zone.js": "~0.15.1"
