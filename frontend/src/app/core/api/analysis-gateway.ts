@@ -44,6 +44,7 @@ interface ApiAnalysisRequest {
 
 interface ApiAnalysisResponse {
   readonly model: string;
+  readonly warnings?: readonly string[];
   readonly proposals: readonly ApiAnalysisCard[];
 }
 
@@ -353,6 +354,7 @@ export class AnalysisGateway {
 
     return {
       model: response.model ?? null,
+      warnings: Array.isArray(response.warnings) ? response.warnings : [],
       proposals,
     } satisfies AnalysisResult;
   }

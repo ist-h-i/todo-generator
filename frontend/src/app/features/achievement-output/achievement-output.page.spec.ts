@@ -38,6 +38,8 @@ class AppealsApiStub {
     formats: {
       markdown: { content: 'Output', tokens_used: 12 },
     },
+    generation_status: 'success',
+    ai_failure_reason: null,
   };
 
   public readonly getConfig = jasmine.createSpy('getConfig').and.callFake(() => of(this.config));
@@ -87,7 +89,7 @@ describe('AchievementOutputPage', () => {
       component,
       'buildRequestPayload',
     );
-    const payload = buildRequestPayload();
+    const payload = buildRequestPayload.call(component);
 
     expect(payload).toEqual({
       subject: { type: 'custom', value: 'Onboarding' },
@@ -113,5 +115,40 @@ describe('AchievementOutputPage', () => {
 
     expect(component.limitReached()).toBeTrue();
     expect(component.generationError()).toBeNull();
+  });
+
+  it('switches download labels by active format', () => {
+    expect(component.downloadButtonLabel()).toBe('Markdown (.md) をダウンロード');
+
+    component.setActiveTab('bullet_list');
+    expect(component.downloadButtonLabel()).toBe('箇条書き (.txt) をダウンロード');
+
+    component.setActiveTab('table');
+    expect(component.downloadButtonLabel()).toBe('CSV をダウンロード');
+  });
+
+  it('surfaces fallback status when AI fails', async () => {
+    api.generateResponse = {
+      generation_id: 'gen-fallback',
+      subject_echo: 'Sales',
+      flow: ['challenge', 'action'],
+      warnings: [],
+      formats: {
+        markdown: { content: 'Fallback output', tokens_used: 0 },
+      },
+      generation_status: 'fallback',
+      ai_failure_reason: 'boom',
+    };
+
+    const event = { preventDefault: jasmine.createSpy('preventDefault') } as unknown as SubmitEvent;
+    await component.submit(event);
+    fixture.detectChanges();
+
+    const badge: HTMLElement | null = fixture.nativeElement.querySelector(
+      '.achievement-output-page__generation-badge',
+    );
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent ?? '').toContain('フォールバック');
+    expect(badge?.getAttribute('title') ?? '').toContain('boom');
   });
 });

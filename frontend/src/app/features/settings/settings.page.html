@@ -244,18 +244,13 @@
                   <span class="form-field__label" [attr.for]="'template-edit-status-' + template.id"
                     >初期ステータス</span
                   >
-                  <select
-                    [attr.id]="'template-edit-status-' + template.id"
-                    class="form-control app-select"
-                    [value]="templateEditForm.controls.defaultStatusId.value()"
-                    (change)="
-                      templateEditForm.controls.defaultStatusId.setValue($any($event.target).value)
-                    "
-                  >
-                    @for (status of settingsSignal().statuses; track status.id) {
-                      <option [value]="status.id">{{ status.name }}</option>
-                    }
-                  </select>
+                  <shared-ui-select
+                    [id]="'template-edit-status-' + template.id"
+                    [name]="'template-edit-status-' + template.id"
+                    [options]="statusSelectOptions()"
+                    [ngModel]="templateEditForm.controls.defaultStatusId.value()"
+                    (ngModelChange)="templateEditForm.controls.defaultStatusId.setValue($event)"
+                  ></shared-ui-select>
                 </label>
 
                 <label class="form-field">
@@ -423,16 +418,13 @@
 
         <label class="form-field">
           <span class="form-field__label" for="template-status">初期ステータス</span>
-          <select
+          <shared-ui-select
             id="template-status"
-            class="form-control app-select"
-            [value]="templateForm.controls.defaultStatusId.value()"
-            (change)="templateForm.controls.defaultStatusId.setValue($any($event.target).value)"
-          >
-            @for (status of settingsSignal().statuses; track status.id) {
-              <option [value]="status.id">{{ status.name }}</option>
-            }
-          </select>
+            name="template-status"
+            [options]="statusSelectOptions()"
+            [ngModel]="templateForm.controls.defaultStatusId.value()"
+            (ngModelChange)="templateForm.controls.defaultStatusId.setValue($event)"
+          ></shared-ui-select>
         </label>
 
         <label class="form-field">

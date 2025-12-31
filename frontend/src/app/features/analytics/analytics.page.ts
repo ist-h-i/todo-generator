@@ -133,6 +133,7 @@ export class AnalyticsPage {
   public readonly candidateUsedSources = computed(
     () => this.candidatesResource.value()?.used_sources ?? null,
   );
+  public readonly candidateWarnings = computed(() => this.candidatesResource.value()?.warnings ?? []);
   public readonly candidateSourcesLabel = computed(() =>
     this.formatSourcesLabel(this.candidateUsedSources()),
   );
@@ -200,6 +201,7 @@ export class AnalyticsPage {
   public readonly isGenerating = signal(false);
   public readonly generationError = signal<string | null>(null);
   public readonly generatedMap = signal<ImmunityMapResponse | null>(null);
+  public readonly immunityMapWarnings = computed(() => this.generatedMap()?.warnings ?? []);
   public readonly copyStatus = signal<'idle' | 'copied' | 'failed'>('idle');
   public readonly isMermaidDialogOpen = signal(false);
 
@@ -438,6 +440,15 @@ export class AnalyticsPage {
     lines.push(`- Generated: ${new Date().toISOString()}`);
     if (generated.model) {
       lines.push(`- Model: ${generated.model}`);
+    }
+    if (generated.warnings?.length) {
+      lines.push(`- Warnings:`);
+      for (const warning of generated.warnings) {
+        const text = `${warning}`.trim();
+        if (text) {
+          lines.push(`  - ${text}`);
+        }
+      }
     }
     lines.push('');
 

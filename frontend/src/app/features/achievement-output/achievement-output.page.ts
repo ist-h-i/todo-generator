@@ -9,6 +9,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
 import { AppealsApi } from '@core/api/appeals-api';
@@ -20,9 +21,22 @@ import {
 import { createSignalForm } from '@shared/forms/signal-forms';
 import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
+import { UiSelect } from '@shared/ui/select/ui-select';
 
 type SubjectType = 'label' | 'custom';
 type CopyStatus = 'idle' | 'copied' | 'failed';
+type GenerationStatus = 'success' | 'partial' | 'fallback';
+
+interface GenerationBadge {
+  readonly label: string;
+  readonly message: string;
+}
+
+interface DownloadOption {
+  readonly label: string;
+  readonly extension: string;
+  readonly mime: string;
+}
 
 interface AchievementOutputForm {
   subjectType: SubjectType;
@@ -34,7 +48,7 @@ interface AchievementOutputForm {
 
 @Component({
   selector: 'app-achievement-output-page',
-  imports: [CommonModule, PageLayout, AiMark],
+  imports: [CommonModule, FormsModule, PageLayout, UiSelect, AiMark],
   templateUrl: './achievement-output.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -77,6 +91,9 @@ export class AchievementOutputPage {
   public readonly copyStatus = computed(() => this.copyStatusState());
 
   public readonly labels = computed(() => this.configState()?.labels ?? []);
+  public readonly labelSelectOptions = computed(() =>
+    this.labels().map((label) => ({ value: label.id, label: label.name })),
+  );
   public readonly formats = computed(() => this.configState()?.formats ?? []);
   public readonly hasLabels = computed(() => this.labels().length > 0);
   public readonly flowSteps = computed(() => this.form.controls.flow.value());
@@ -118,14 +135,81 @@ export class AchievementOutputPage {
     return typeof tokens === 'number' ? tokens : null;
   });
 
+  public readonly generationBadge = computed<GenerationBadge | null>(() => {
+    const result = this.resultState();
+    const status = result?.generation_status as GenerationStatus | undefined;
+    if (!result || !status || status === 'success') {
+      return null;
+    }
+
+    const reason = result.ai_failure_reason?.trim();
+
+    if (status === 'partial') {
+      return {
+        label: '一部フォールバック',
+        message: reason
+          ? `AI の一部生成に失敗したため、フォールバック結果を混在させています（理由: ${reason}）`
+          : 'AI の応答が不完全だったため、フォールバック結果を混在させています。',
+      };
+    }
+
+    return {
+      label: 'フォールバック',
+      message: reason
+        ? `AI 生成に失敗したため、フォールバック結果を表示しています（理由: ${reason}）`
+        : 'AI が利用できないため、フォールバック結果を表示しています。',
+    };
+  });
+
   public readonly canCopy = computed(() => {
     const content = this.activeContent().trim();
     return content.length > 0;
   });
 
-  public readonly canDownload = computed(() => {
+  private readonly downloadOption = computed<DownloadOption | null>(() => {
     const format = this.activeFormat();
-    if (!format || format.editor_mode !== 'csv') {
+    if (!format) {
+      return null;
+    }
+
+    if (format.id === 'markdown') {
+      return {
+        label: 'Markdown (.md) をダウンロード',
+        extension: 'md',
+        mime: 'text/markdown;charset=utf-8',
+      };
+    }
+
+    if (format.id === 'bullet_list') {
+      return {
+        label: '箇条書き (.txt) をダウンロード',
+        extension: 'txt',
+        mime: 'text/plain;charset=utf-8',
+      };
+    }
+
+    if (format.editor_mode === 'csv') {
+      return {
+        label: 'CSV をダウンロード',
+        extension: 'csv',
+        mime: 'text/csv;charset=utf-8',
+      };
+    }
+
+    return {
+      label: 'テキスト (.txt) をダウンロード',
+      extension: 'txt',
+      mime: 'text/plain;charset=utf-8',
+    };
+  });
+
+  public readonly downloadButtonLabel = computed(
+    () => this.downloadOption()?.label ?? 'ダウンロード',
+  );
+
+  public readonly canDownload = computed(() => {
+    const option = this.downloadOption();
+    if (!option) {
       return false;
     }
     return this.activeContent().trim().length > 0;
@@ -294,21 +378,17 @@ export class AchievementOutputPage {
     }
   };
 
-  public readonly downloadCsv = (): void => {
-    if (!this.canDownload()) {
-      return;
-    }
-
-    const format = this.activeFormat();
-    if (!format || format.editor_mode !== 'csv' || typeof document === 'undefined') {
+  public readonly downloadActiveContent = (): void => {
+    const option = this.downloadOption();
+    if (!option || !this.canDownload() || typeof document === 'undefined') {
       return;
     }
 
     try {
       const content = this.activeContent();
       const timestamp = new Date().toISOString().split('.')[0].replaceAll(':', '-');
-      const fileName = `achievement-output-${timestamp}.csv`;
-      const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+      const fileName = `achievement-output-${timestamp}.${option.extension}`;
+      const blob = new Blob([content], { type: option.mime });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;

@@ -99,6 +99,7 @@ export interface CompetencyEvaluation {
   attitude_actions: string[];
   behavior_actions: string[];
   ai_model?: string | null;
+  warnings?: string[];
   triggered_by: string;
   created_at: IsoDateString;
   updated_at: IsoDateString;

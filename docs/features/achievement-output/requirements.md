@@ -74,9 +74,12 @@
    - ユーザーは subject / flow / formats を指定して生成を実行できる。
    - `POST /appeals/generate` 成功時、生成結果が表示される。
    - `warnings` があれば UI に表示される（例: 因果が伝わりづらいフロー）。
+   - AI 生成が失敗しフォールバックした場合、その旨と（可能なら）理由を UI に表示する（ホバー等）。
 
 4. **Editing & Export**
    - 各形式の出力はコピーできる。
+   - `markdown` は `.md` としてダウンロードできる。
+   - `bullet_list` は `.txt` としてダウンロードできる。
    - `table` は `.csv` としてダウンロードできる（改行を含まない前提）。
 
 5. **Rate Limit**
@@ -125,4 +128,3 @@
 - SPA の最終ルート名（`/achievement-output` か `/outputs/achievements` 等）
 - 生成履歴を UI で見せる要否（API 追加: `GET /appeals/recent` など）
 - 実績の検索/選択 UI をどの段階で導入するか（バックエンド API 拡張含む）
-

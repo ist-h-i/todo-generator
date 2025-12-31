@@ -248,6 +248,8 @@ def test_generate_appeal_uses_gemini_when_available(monkeypatch, client: TestCli
     assertions.assertTrue(body["formats"]["markdown"]["tokens_used"] == 42)
     assertions.assertTrue(body["formats"]["bullet_list"]["tokens_used"] == 18)
     assertions.assertTrue(body["formats"]["table"]["tokens_used"] == 0)
+    assertions.assertTrue(body["generation_status"] == "partial")
+    assertions.assertTrue(body["ai_failure_reason"] is None)
 
 
 def test_generate_appeal_recovers_from_gemini_failure(monkeypatch, client: TestClient) -> None:
@@ -274,6 +276,8 @@ def test_generate_appeal_recovers_from_gemini_failure(monkeypatch, client: TestC
         app.dependency_overrides.pop(get_optional_gemini_client, None)
     assertions.assertTrue(response.status_code == 200, response.text)
     body = response.json()
+    assertions.assertTrue(body["generation_status"] == "fallback")
+    assertions.assertTrue("boom" in (body.get("ai_failure_reason") or ""))
     assertions.assertTrue(body["formats"]["markdown"]["tokens_used"] == 0)
     assertions.assertTrue(body["formats"]["table"]["tokens_used"] == 0)
     assertions.assertTrue("そのため" in body["formats"]["markdown"]["content"])

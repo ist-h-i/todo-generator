@@ -200,12 +200,23 @@
 }
 
 .achievement-output-page__output-eyebrow {
-  margin: 0 0 0.3rem;
+  margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.achievement-output-page__output-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 0.3rem;
+}
+
+.achievement-output-page__generation-badge {
+  cursor: help;
 }
 
 .achievement-output-page__tabs {

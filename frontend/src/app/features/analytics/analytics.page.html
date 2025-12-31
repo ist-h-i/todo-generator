@@ -181,6 +181,13 @@
               <p>{{ candidateContextSummary() }}</p>
             </div>
           }
+          @if (candidateWarnings().length) {
+            <div class="app-alert app-alert--notice" role="status">
+              @for (warning of candidateWarnings(); track warning) {
+                <p>{{ warning }}</p>
+              }
+            </div>
+          }
 
           <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -428,6 +435,14 @@
               <p>AI がマップと読み解きを準備しています...</p>
             </div>
           } @else if (generatedMap(); as generated) {
+            @if (generated.warnings?.length) {
+              <div class="app-alert app-alert--notice" role="status">
+                @for (warning of generated.warnings ?? []; track warning) {
+                  <p>{{ warning }}</p>
+                }
+              </div>
+            }
+
             @if (generated.summary) {
               <div class="surface-card flex flex-col gap-3">
                 <p class="form-field__label">サマリー</p>

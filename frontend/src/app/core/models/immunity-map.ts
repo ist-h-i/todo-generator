@@ -62,6 +62,7 @@ export interface ImmunityMapCandidateResponse {
   readonly used_sources?: Readonly<Record<string, number>>;
   readonly model?: string | null;
   readonly token_usage?: Readonly<Record<string, unknown>>;
+  readonly warnings?: readonly string[];
 }
 
 export interface ImmunityMapRequest {
@@ -100,4 +101,5 @@ export interface ImmunityMapResponse {
   readonly summary: ImmunityMapSummary | null;
   readonly readout_cards?: readonly ImmunityMapReadoutCard[];
   readonly token_usage?: Readonly<Record<string, unknown>>;
+  readonly warnings?: readonly string[];
 }

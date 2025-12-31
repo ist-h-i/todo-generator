@@ -169,6 +169,14 @@
       </div>
     </header>
 
+    @if (analysisWarnings().length) {
+      <div class="app-alert app-alert--notice" role="status">
+        @for (warning of analysisWarnings(); track warning) {
+          <p>{{ warning }}</p>
+        }
+      </div>
+    }
+
     @if (proposalPublishFeedback(); as feedback) {
       <div
         class="analyze-page__toast analyze-page__toast--inline"
@@ -260,15 +268,12 @@
                 <div class="analyze-page__proposal-metadata">
                   <label class="form-field">
                     <span class="form-field__label">ステータス</span>
-                    <select
-                      class="form-control app-select"
-                      [value]="proposal.statusId"
-                      (change)="updateProposalStatus(proposal.id, $any($event.target).value)"
-                    >
-                      @for (status of workspaceStatuses(); track status.id) {
-                        <option [value]="status.id">{{ status.name }}</option>
-                      }
-                    </select>
+                    <shared-ui-select
+                      [name]="'proposal-status-' + proposal.id"
+                      [options]="statusSelectOptions()"
+                      [ngModel]="proposal.statusId"
+                      (ngModelChange)="updateProposalStatus(proposal.id, $event)"
+                    ></shared-ui-select>
                   </label>
                   <div class="form-field analyze-page__label-field">
                     <span class="form-field__label">ラベル</span>

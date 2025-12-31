@@ -106,6 +106,23 @@ def _string_list(value: Any) -> list[str]:
     return results
 
 
+def _extract_ai_warnings(context: Any) -> list[str]:
+    if not isinstance(context, Mapping):
+        return []
+    raw = context.get("ai_warnings")
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        return [text for text in (str(item or "").strip() for item in raw) if text]
+    text = str(raw).strip()
+    return [text] if text else []
+
+
+def _attach_evaluation_warnings(evaluation: models.CompetencyEvaluation) -> None:
+    warnings = _extract_ai_warnings(getattr(evaluation, "context", None))
+    setattr(evaluation, "warnings", warnings)
+
+
 def _resolve_scale(db: Session, competency: models.Competency) -> int:
     level_value = (competency.level or "").strip()
     if not level_value:
@@ -211,6 +228,8 @@ def admin_list_evaluations(
         query = query.filter(models.CompetencyEvaluation.period_end <= period_end)
 
     evaluations = query.all()
+    for evaluation in evaluations:
+        _attach_evaluation_warnings(evaluation)
     return evaluations
 
 
@@ -222,6 +241,8 @@ def my_evaluations(
 ) -> list[models.CompetencyEvaluation]:
     query = _evaluation_query(db).filter(models.CompetencyEvaluation.user_id == current_user.id)
     evaluations = query.limit(limit).all()
+    for evaluation in evaluations:
+        _attach_evaluation_warnings(evaluation)
     return evaluations
 
 
@@ -289,9 +310,12 @@ def create_my_evaluation(
 
     evaluator = CompetencyEvaluator(db)
     used_fallback = False
+    ai_warnings: list[str] = []
 
     try:
         if gemini is None:
+            used_fallback = True
+            ai_warnings.append("AI が未設定のため、ルールベース評価にフォールバックしました。")
             evaluation = evaluator.evaluate(
                 user=current_user,
                 competency=competency,
@@ -349,6 +373,7 @@ def create_my_evaluation(
                 response_schema=_COMPETENCY_BATCH_RESPONSE_SCHEMA,
                 system_prompt=_COMPETENCY_BATCH_SYSTEM_PROMPT,
             )
+            ai_warnings = _string_list(generated.get("warnings"))
 
             raw_evaluations = _safe_list(generated.get("evaluations"))
             raw: Mapping[str, Any] | None = None
@@ -365,6 +390,7 @@ def create_my_evaluation(
 
             if not raw:
                 used_fallback = True
+                ai_warnings.append("Gemini の応答が不完全だったため、ルールベース評価にフォールバックしました。")
                 evaluation = evaluator.evaluate(
                     user=current_user,
                     competency=competency,
@@ -400,7 +426,12 @@ def create_my_evaluation(
                     ai_model=ai_model or "gemini",
                     triggered_by="manual",
                     job=job,
-                    context={"metrics": metrics},
+                    context={
+                        "metrics": metrics,
+                        "ai_requested_model": getattr(gemini, "requested_model", None),
+                        "ai_used_model": ai_model or "gemini",
+                        "ai_warnings": ai_warnings,
+                    },
                 )
 
                 db.add(evaluation)
@@ -423,6 +454,7 @@ def create_my_evaluation(
                 db.flush()
     except (GeminiRateLimitError, GeminiError):
         used_fallback = True
+        ai_warnings.append("Gemini の呼び出しに失敗したため、ルールベース評価にフォールバックしました。")
         logger.warning(
             "Gemini evaluation failed; falling back to rule-based evaluator.",
             exc_info=True,
@@ -445,6 +477,14 @@ def create_my_evaluation(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
         ) from exc
+
+    evaluation.context = {
+        **(evaluation.context or {}),
+        "ai_requested_model": getattr(gemini, "requested_model", None) if gemini is not None else None,
+        "ai_used_model": evaluation.ai_model,
+        "ai_warnings": ai_warnings,
+    }
+    _attach_evaluation_warnings(evaluation)
 
     job.status = "succeeded"
     job.completed_at = datetime.now(timezone.utc)
@@ -502,9 +542,11 @@ def create_my_evaluations_batch(
     evaluator = CompetencyEvaluator(db)
     evaluations: list[models.CompetencyEvaluation] = []
     used_fallback = False
+    batch_ai_warnings: list[str] = []
 
     try:
         if gemini is None:
+            used_fallback = True
             for competency in competencies:
                 evaluation = evaluator.evaluate(
                     user=current_user,
@@ -514,6 +556,13 @@ def create_my_evaluations_batch(
                     triggered_by="manual",
                     job=job,
                 )
+                evaluation.context = {
+                    **(evaluation.context or {}),
+                    "ai_requested_model": None,
+                    "ai_used_model": evaluation.ai_model,
+                    "ai_warnings": ["AI が未設定のため、ルールベース評価にフォールバックしました。"],
+                }
+                _attach_evaluation_warnings(evaluation)
                 evaluations.append(evaluation)
         else:
             start_dt, end_dt = evaluator._to_datetime_range(period_start, period_end)
@@ -568,6 +617,7 @@ def create_my_evaluations_batch(
                 response_schema=_COMPETENCY_BATCH_RESPONSE_SCHEMA,
                 system_prompt=_COMPETENCY_BATCH_SYSTEM_PROMPT,
             )
+            batch_ai_warnings = _string_list(generated.get("warnings"))
 
             raw_evaluations = _safe_list(generated.get("evaluations"))
             by_competency_id: dict[str, Mapping[str, Any]] = {}
@@ -586,6 +636,7 @@ def create_my_evaluations_batch(
             for competency in competencies:
                 raw = by_competency_id.get(competency.id)
                 if not raw:
+                    used_fallback = True
                     evaluation = evaluator.evaluate(
                         user=current_user,
                         competency=competency,
@@ -594,6 +645,16 @@ def create_my_evaluations_batch(
                         triggered_by="manual",
                         job=job,
                     )
+                    evaluation.context = {
+                        **(evaluation.context or {}),
+                        "ai_requested_model": getattr(gemini, "requested_model", None),
+                        "ai_used_model": evaluation.ai_model,
+                        "ai_warnings": [
+                            *batch_ai_warnings,
+                            "Gemini の応答が不完全だったため、ルールベース評価にフォールバックしました。",
+                        ],
+                    }
+                    _attach_evaluation_warnings(evaluation)
                     evaluations.append(evaluation)
                     continue
 
@@ -621,7 +682,12 @@ def create_my_evaluations_batch(
                     ai_model=ai_model or "gemini",
                     triggered_by="manual",
                     job=job,
-                    context={"metrics": metrics},
+                    context={
+                        "metrics": metrics,
+                        "ai_requested_model": getattr(gemini, "requested_model", None),
+                        "ai_used_model": ai_model or "gemini",
+                        "ai_warnings": batch_ai_warnings,
+                    },
                 )
 
                 db.add(evaluation)
@@ -642,9 +708,11 @@ def create_my_evaluations_batch(
                     )
 
                 db.flush()
+                _attach_evaluation_warnings(evaluation)
                 evaluations.append(evaluation)
     except (GeminiRateLimitError, GeminiError):
         used_fallback = True
+        fallback_warning = "Gemini の呼び出しに失敗したため、ルールベース評価にフォールバックしました。"
         logger.warning(
             "Gemini batch evaluation failed; falling back to rule-based evaluator.",
             exc_info=True,
@@ -661,6 +729,13 @@ def create_my_evaluations_batch(
                 triggered_by="manual",
                 job=job,
             )
+            evaluation.context = {
+                **(evaluation.context or {}),
+                "ai_requested_model": getattr(gemini, "requested_model", None) if gemini is not None else None,
+                "ai_used_model": evaluation.ai_model,
+                "ai_warnings": [fallback_warning],
+            }
+            _attach_evaluation_warnings(evaluation)
             evaluations.append(evaluation)
     except Exception as exc:  # pragma: no cover - defensive handling
         job.status = "failed"
@@ -684,6 +759,7 @@ def create_my_evaluations_batch(
 
     for evaluation in evaluations:
         db.refresh(evaluation)
+        _attach_evaluation_warnings(evaluation)
 
     return evaluations
 

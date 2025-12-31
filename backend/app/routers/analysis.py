@@ -703,6 +703,11 @@ def generate_immunity_map_candidates(
     )
     model = generated.get("model")
     token_usage = generated.get("token_usage")
+    warnings = [
+        text
+        for text in (str(item or "").strip() for item in _safe_list(generated.get("warnings")))
+        if text
+    ]
 
     return ImmunityMapCandidateResponse(
         candidates=candidates,
@@ -710,6 +715,7 @@ def generate_immunity_map_candidates(
         used_sources=context_bundle.used_sources,
         model=str(model) if model else None,
         token_usage=token_usage if isinstance(token_usage, Mapping) else {},
+        warnings=warnings,
     )
 
 
@@ -882,6 +888,11 @@ def generate_immunity_map(
     token_usage = generated.get("token_usage")
     summary = _parse_immunity_map_summary(generated.get("summary"))
     readout_cards = _parse_readout_cards(generated.get("readout_cards"))
+    warnings = [
+        text
+        for text in (str(item or "").strip() for item in _safe_list(generated.get("warnings")))
+        if text
+    ]
 
     return ImmunityMapResponse(
         model=str(model) if model else None,
@@ -890,4 +901,5 @@ def generate_immunity_map(
         summary=summary,
         readout_cards=readout_cards,
         token_usage=token_usage if isinstance(token_usage, Mapping) else {},
+        warnings=warnings,
     )

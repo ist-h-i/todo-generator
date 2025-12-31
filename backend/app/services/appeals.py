@@ -130,6 +130,7 @@ class AppealGenerationService:
         generated_formats = dict(fallback_formats)
         token_usage = {fmt: payload.tokens_used or 0 for fmt, payload in fallback_formats.items()}
         generation_status = "fallback"
+        ai_failure_reason: str | None = None
 
         if self._gemini is not None and self._prompt_builder is not None:
             try:
@@ -151,13 +152,23 @@ class AppealGenerationService:
                     fallback_formats=fallback_formats,
                     subject=sanitized_subject,
                 )
-            except GeminiError:
+                ai_warnings = payload.get("warnings")
+                if isinstance(ai_warnings, list):
+                    for item in ai_warnings:
+                        text = str(item or "").strip()
+                        if text and text not in warnings:
+                            warnings.append(text)
+            except GeminiError as exc:
+                ai_failure_reason = str(exc)
                 logger.warning("Appeal generation via Gemini failed; using fallback content", exc_info=True)
         elif self._gemini is not None and self._prompt_builder is None:
+            ai_failure_reason = "AI のテンプレートが利用できないため、フォールバックで生成しました。"
             logger.info(
                 "Skipping Gemini appeal generation because the prompt templates could not be loaded: %s",
                 self._prompt_builder_error,
             )
+        elif self._gemini is None:
+            ai_failure_reason = "AI が利用できないため、フォールバックで生成しました。"
 
         record = self._repository.create(
             owner_id=owner.id,
@@ -177,6 +188,8 @@ class AppealGenerationService:
             flow=request.flow,
             warnings=warnings,
             formats=generated_formats,
+            generation_status=generation_status,
+            ai_failure_reason=ai_failure_reason,
         )
 
     @property

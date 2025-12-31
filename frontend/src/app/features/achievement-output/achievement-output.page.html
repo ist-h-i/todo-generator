@@ -102,16 +102,13 @@
           @if (form.controls.subjectType.value() === 'label') {
             <label class="form-field">
               <span class="form-field__label">ラベル</span>
-              <select
-                class="form-control app-select"
-                [value]="form.controls.subjectLabelId.value()"
+              <shared-ui-select
+                name="subject-label"
+                [options]="labelSelectOptions()"
+                [ngModel]="form.controls.subjectLabelId.value()"
+                (ngModelChange)="updateSubjectLabel($event)"
                 [disabled]="!hasLabels()"
-                (change)="updateSubjectLabel($any($event.target).value)"
-              >
-                @for (label of labels(); track label.id) {
-                  <option [value]="label.id">{{ label.name }}</option>
-                }
-              </select>
+              ></shared-ui-select>
               @if (!hasLabels()) {
                 <p class="form-note">ラベルが登録されていません。</p>
               }
@@ -265,10 +262,22 @@
       <section class="page-section achievement-output-page__output" aria-live="polite">
         <header class="page-section__header">
           <div>
-            <p class="achievement-output-page__output-eyebrow">Output</p>
+            <div class="achievement-output-page__output-eyebrow-row">
+              <p class="achievement-output-page__output-eyebrow">Output</p>
+              @if (generationBadge(); as badge) {
+                <span
+                  class="page-badge page-badge--warning achievement-output-page__generation-badge"
+                  tabindex="0"
+                  [attr.title]="badge.message"
+                  [attr.aria-label]="badge.message"
+                >
+                  {{ badge.label }}
+                </span>
+              }
+            </div>
             <h2 class="page-section__title">生成結果</h2>
             <p class="page-section__subtitle">
-              生成結果を編集してコピー・CSV ダウンロードできます。
+              生成結果を編集してコピー・ダウンロードできます。
             </p>
           </div>
           <div class="page-section__actions">
@@ -284,9 +293,9 @@
               type="button"
               class="button button--secondary button--pill"
               [disabled]="!canDownload()"
-              (click)="downloadCsv()"
+              (click)="downloadActiveContent()"
             >
-              CSV をダウンロード
+              {{ downloadButtonLabel() }}
             </button>
             @if (copyStatus() === 'copied') {
               <span class="form-note">コピーしました。</span>

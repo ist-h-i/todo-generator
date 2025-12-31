@@ -48,4 +48,6 @@ export interface AppealGenerationResponse {
   readonly flow: readonly string[];
   readonly warnings: readonly string[];
   readonly formats: Readonly<Record<string, AppealGeneratedFormat>>;
+  readonly generation_status?: 'success' | 'partial' | 'fallback';
+  readonly ai_failure_reason?: string | null;
 }

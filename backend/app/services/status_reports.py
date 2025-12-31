@@ -213,6 +213,7 @@ class StatusReportService:
         analysis_text = self.content_service.compose_analysis_prompt(report, sections)
         proposals: list[schemas.AnalysisCard] = []
         error_message: str | None = None
+        analysis_warnings: list[str] = []
 
         workspace_options = build_workspace_analysis_options(self.db, owner_id=report.owner_id)
 
@@ -226,12 +227,19 @@ class StatusReportService:
         else:
             proposals = list(response.proposals or [])
             report.analysis_model = response.model
+            analysis_warnings = [str(item) for item in (response.warnings or []) if isinstance(item, str) and item]
 
         if error_message:
             report.status = schemas.StatusReportStatus.FAILED.value
             report.analysis_completed_at = datetime.now(timezone.utc)
             report.failure_reason = error_message
-            self._update_processing_meta(report, last_error=error_message)
+            self._update_processing_meta(
+                report,
+                last_error=error_message,
+                ai_warnings=analysis_warnings,
+                ai_requested_model=getattr(self.analyzer, "requested_model", None),
+                ai_used_model=report.analysis_model,
+            )
             self._record_event(
                 report,
                 schemas.StatusReportEventType.ANALYSIS_FAILED,
@@ -247,6 +255,9 @@ class StatusReportService:
             proposals=[proposal.model_dump() for proposal in stored_proposals],
             created_card_ids=[],
             last_error=None,
+            ai_warnings=analysis_warnings,
+            ai_requested_model=getattr(self.analyzer, "requested_model", None),
+            ai_used_model=report.analysis_model,
         )
         report.status = schemas.StatusReportStatus.COMPLETED.value
         report.analysis_completed_at = datetime.now(timezone.utc)

@@ -575,6 +575,7 @@ class AnalysisCard(BaseModel):
 class AnalysisResponse(BaseModel):
     model: str
     proposals: List[AnalysisCard]
+    warnings: List[str] = Field(default_factory=list)
 
 
 class StatusReportStatus(str, Enum):
@@ -833,6 +834,7 @@ class ImmunityMapCandidateResponse(BaseModel):
     used_sources: Dict[str, int] = Field(default_factory=dict)
     model: Optional[str] = None
     token_usage: Dict[str, Any] = Field(default_factory=dict)
+    warnings: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -889,6 +891,7 @@ class ImmunityMapResponse(BaseModel):
     summary: Optional[ImmunityMapSummary] = None
     readout_cards: List[ImmunityMapReadoutCard] = Field(default_factory=list)
     token_usage: Dict[str, Any] = Field(default_factory=dict)
+    warnings: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -1074,6 +1077,7 @@ class CompetencyEvaluationRead(BaseModel):
     updated_at: datetime
     competency: Optional[CompetencySummary] = None
     items: List[CompetencyEvaluationItemRead] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1338,6 +1342,8 @@ class AppealGenerationResponse(BaseModel):
     flow: List[str]
     warnings: List[str] = Field(default_factory=list)
     formats: Dict[str, AppealGeneratedFormat]
+    generation_status: str
+    ai_failure_reason: str | None = None
 
 
 # --------------------------------------------------------------------------------------------

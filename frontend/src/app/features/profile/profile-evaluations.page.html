@@ -173,6 +173,13 @@
                     判定種別: {{ triggeredLabel(evaluation.triggered_by) }} / モデル:
                     {{ evaluation.ai_model || '未設定' }}
                   </p>
+                  @if (evaluation.warnings?.length) {
+                    <div class="app-alert app-alert--notice" role="status">
+                      @for (warning of evaluation.warnings ?? []; track warning) {
+                        <p>{{ warning }}</p>
+                      }
+                    </div>
+                  }
                 </div>
                 <div class="evaluations-page__latest-score" aria-label="評価スコア">
                   <div class="evaluations-page__latest-score-value">
@@ -337,6 +344,13 @@
                             {{ item.created_at | localDateTime: 'yyyy/MM/dd HH:mm' }}</span
                           >
                         </div>
+                        @if (item.warnings?.length) {
+                          <div class="app-alert app-alert--notice" role="status">
+                            @for (warning of item.warnings ?? []; track warning) {
+                              <p>{{ warning }}</p>
+                            }
+                          </div>
+                        }
                         @if (
                           hasActions(item.attitude_actions) || hasActions(item.behavior_actions)
                         ) {

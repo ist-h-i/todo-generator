@@ -129,6 +129,14 @@
             </div>
           }
 
+          @if ($any(active.processing_meta)?.ai_warnings?.length) {
+            <div class="app-alert app-alert--notice" role="status">
+              @for (warning of $any(active.processing_meta).ai_warnings ?? []; track warning) {
+                <p>{{ warning }}</p>
+              }
+            </div>
+          }
+
           <section class="report-assistant-page__group">
             <header class="report-assistant-page__group-header">
               <h3 class="page-section__title">日報・週報本文</h3>

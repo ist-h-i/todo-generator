@@ -17,7 +17,7 @@
   - `warnings` 表示（バナー/インライン）
 - **出力エリア**
   - タブ: `Markdown` / `箇条書き` / `CSV`
-  - 各タブ: テキスト表示（textarea）+「コピー」「ダウンロード（CSVのみ必須）」+ tokens_used の任意表示
+  - 各タブ: テキスト表示（textarea）+「コピー」「ダウンロード（Markdown=.md / 箇条書き=.txt / CSV=.csv）」+ tokens_used の任意表示
 
 ## 3. Navigation
 
@@ -53,7 +53,7 @@
   - `formats`: `string[]`（1〜4）
   - `achievements?`: `{ id, title, summary? }[]`
 - Response
-  - `generation_id`, `subject_echo`, `flow[]`, `warnings[]`
+  - `generation_id`, `subject_echo`, `flow[]`, `warnings[]`, `generation_status`, `ai_failure_reason?`
   - `formats`: `{ [formatId: string]: { content: string, tokens_used?: number } }`
 
 ## 6. API Client (Frontend)
@@ -104,4 +104,3 @@ MVP はページコンポーネント内の signals + forms で完結させる�
 - 残り回数の事前表示（クォータ API 追加）
 - 生成履歴 UI（`GET /appeals/recent` など）
 - 実績検索/選択 UI（カード全件からのピック）
-
