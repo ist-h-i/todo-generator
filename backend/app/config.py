@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,62 +25,8 @@ class Settings(BaseSettings):
         default=False,
         validation_alias=AliasChoices("DEBUG", "debug"),
     )
-    email_verification_delivery: Literal["response", "smtp"] = Field(
-        default="response",
-        validation_alias=AliasChoices(
-            "EMAIL_VERIFICATION_DELIVERY",
-            "email_verification_delivery",
-        ),
-    )
-    smtp_host: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("SMTP_HOST", "smtp_host"),
-    )
-    smtp_port: int = Field(
-        default=587,
-        validation_alias=AliasChoices("SMTP_PORT", "smtp_port"),
-    )
-    smtp_username: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("SMTP_USERNAME", "smtp_username"),
-    )
-    smtp_password: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("SMTP_PASSWORD", "smtp_password"),
-    )
-    smtp_use_tls: bool = Field(
-        default=True,
-        validation_alias=AliasChoices("SMTP_USE_TLS", "smtp_use_tls"),
-    )
-    smtp_use_ssl: bool = Field(
-        default=False,
-        validation_alias=AliasChoices("SMTP_USE_SSL", "smtp_use_ssl"),
-    )
-    email_verification_sender: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices(
-            "EMAIL_VERIFICATION_SENDER",
-            "email_verification_sender",
-            "SMTP_FROM_ADDRESS",
-            "smtp_from_address",
-        ),
-    )
-    email_verification_subject: str = Field(
-        default="Your verification code",
-        validation_alias=AliasChoices(
-            "EMAIL_VERIFICATION_SUBJECT",
-            "email_verification_subject",
-        ),
-    )
-    email_verification_body_template: str = Field(
-        default="Your verification code is {code}. It expires in 30 minutes.",
-        validation_alias=AliasChoices(
-            "EMAIL_VERIFICATION_BODY_TEMPLATE",
-            "email_verification_body_template",
-        ),
-    )
     gemini_model: str = Field(
-        default="models/gemini-2.0-flash",
+        default="models/gemini-2.5-flash",
         validation_alias=AliasChoices(
             "GEMINI_MODEL",
             "gemini_model",
@@ -93,6 +39,14 @@ class Settings(BaseSettings):
             "gemini_api_key",
             "GOOGLE_API_KEY",
             "google_api_key",
+        ),
+    )
+    gemini_request_timeout_seconds: int = Field(
+        default=60,
+        ge=1,
+        validation_alias=AliasChoices(
+            "GEMINI_REQUEST_TIMEOUT_SECONDS",
+            "gemini_request_timeout_seconds",
         ),
     )
     secret_encryption_key: str | None = Field(

@@ -12,6 +12,30 @@ app-admin-page .admin-page {
   gap: var(--page-content-gap);
 }
 
+app-admin-page .admin-tab-layout {
+  display: grid;
+  gap: var(--page-content-gap);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  app-admin-page .admin-tab-layout--competencies {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+
+  app-admin-page .admin-tab-layout--competencies > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  app-admin-page .admin-tab-layout--evaluations {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+
+  app-admin-page .admin-tab-layout--settings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 app-admin-page .admin-criteria {
   display: flex;
   flex-direction: column;

@@ -1,17 +1,17 @@
 <div class="app-page-layout__section app-page-layout__section--header">
-  <app-page-header
-    [eyebrow]="eyebrow"
-    [title]="title"
-    [description]="description"
-    [headingLevel]="headingLevel"
-    [centered]="headerCentered"
+  <shared-page-header
+    [eyebrow]="eyebrow()"
+    [title]="title()"
+    [description]="description()"
+    [headingLevel]="headingLevel()"
+    [centered]="headerCentered()"
   >
     <ng-content select="[pageHeaderMeta]"></ng-content>
     <ng-content select="[appPageHeaderActions]"></ng-content>
-  </app-page-header>
+  </shared-page-header>
 </div>
 
-<div class="app-page-layout__body" [class.app-page-layout__body--bleed]="bleed">
+<div class="app-page-layout__body" [class.app-page-layout__body--bleed]="bleed()">
   <div class="app-page-layout__section">
     <ng-content select="[pageTabs]"></ng-content>
     <ng-content></ng-content>

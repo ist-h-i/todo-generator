@@ -1,6 +1,6 @@
-# Recipe: BoardPageComponent
+# Recipe: BoardPage
 
-Source: `frontend/src/app/features/board/feature/board-page.component.ts`
+Source: `frontend/src/app/features/board/board.page.ts`
 
 ## Purpose & Responsibilities
 - Hosts the board feature page template and delegates all stateful logic to `BoardPageStore`.

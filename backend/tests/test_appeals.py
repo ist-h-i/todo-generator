@@ -7,6 +7,7 @@ from unittest import TestCase
 
 from fastapi.testclient import TestClient
 
+from app.config import settings
 from app.main import app
 from app.services.gemini import GeminiClient, GeminiError, get_optional_gemini_client
 
@@ -186,9 +187,12 @@ def test_generate_appeal_uses_gemini_when_available(monkeypatch, client: TestCli
 
     recorded: dict[str, object] = {}
 
-    def fake_generate_content(prompt: str, *, generation_config: object) -> SimpleNamespace:
+    def fake_generate_content(
+        prompt: str, *, generation_config: object, request_options: object | None = None
+    ) -> SimpleNamespace:
         recorded["prompt"] = prompt
         recorded["generation_config"] = generation_config
+        recorded["request_options"] = request_options
         payload = {
             "formats": {
                 "markdown": {"content": "## 実績\n成果を共有。", "tokens_used": 42},
@@ -227,6 +231,10 @@ def test_generate_appeal_uses_gemini_when_available(monkeypatch, client: TestCli
     response_schema = _extract_response_schema(generation_config)
     assertions.assertTrue(response_schema["type"] == "object")
     assertions.assertTrue(not _contains_key(response_schema, "additionalProperties"))
+    assertions.assertTrue(
+        recorded.get("request_options")
+        == {"retry": None, "timeout": settings.gemini_request_timeout_seconds}
+    )
 
     body = response.json()
     markdown_content = body["formats"]["markdown"]["content"]

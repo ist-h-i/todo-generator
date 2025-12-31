@@ -1,6 +1,6 @@
 # Recipe: LocalDateTimePipe
 
-Source: `frontend/src/app/shared/pipes/local-date-time.pipe.ts`
+Source: `frontend/src/app/shared/pipes/local-date-time.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

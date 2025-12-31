@@ -1,0 +1,578 @@
+<shared-page-layout
+  class="admin-page shared-page-layout--wide"
+  eyebrow="Admin Console"
+  title="管理コンソール"
+  description="コンピテンシー設定・判定・ユーザ権限・API キーをまとめて管理できます。"
+  headingLevel="h1"
+>
+  @if (error(); as message) {
+    <div class="app-alert app-alert--error" role="alert">
+      <span>{{ message }}</span>
+      <button type="button" class="button button--ghost button--pill" (click)="clearError()">
+        閉じる
+      </button>
+    </div>
+  }
+
+  @if (feedback(); as message) {
+    <div class="app-alert app-alert--success" role="status">
+      <span>{{ message }}</span>
+      <button type="button" class="button button--ghost button--pill" (click)="resetFeedback()">
+        閉じる
+      </button>
+    </div>
+  }
+
+  <nav class="page-tabs" aria-label="管理メニュー">
+    <button
+      type="button"
+      class="page-tab"
+      [class.page-tab--active]="activeTab() === 'competencies'"
+      [attr.aria-pressed]="activeTab() === 'competencies'"
+      (click)="setActiveTab('competencies')"
+    >
+      コンピテンシー
+    </button>
+    <button
+      type="button"
+      class="page-tab"
+      [class.page-tab--active]="activeTab() === 'evaluations'"
+      [attr.aria-pressed]="activeTab() === 'evaluations'"
+      (click)="setActiveTab('evaluations')"
+    >
+      判定と履歴
+    </button>
+    <button
+      type="button"
+      class="page-tab"
+      [class.page-tab--active]="activeTab() === 'users'"
+      [attr.aria-pressed]="activeTab() === 'users'"
+      (click)="setActiveTab('users')"
+    >
+      ユーザ管理
+    </button>
+    <button
+      type="button"
+      class="page-tab"
+      [class.page-tab--active]="activeTab() === 'settings'"
+      [attr.aria-pressed]="activeTab() === 'settings'"
+      (click)="setActiveTab('settings')"
+    >
+      API・日次上限
+    </button>
+  </nav>
+
+  @if (activeTab() === 'competencies') {
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">登録済みコンピテンシー</h2>
+      </header>
+
+      @if (competencies().length === 0) {
+        <p class="page-empty">まだコンピテンシーが登録されていません。</p>
+      } @else {
+        <ul class="page-list">
+          @for (competency of competencies(); track competency.id) {
+            <li class="page-list__item">
+              <div class="page-list__heading">
+                <div>
+                  <strong class="page-list__title">{{ competency.name }}</strong>
+                  <span class="page-badge page-badge--accent">{{
+                    competencyLevelBadge(competency)
+                  }}</span>
+                </div>
+                <label class="form-toggle">
+                  <input
+                    type="checkbox"
+                    [checked]="competency.is_active"
+                    (change)="toggleCompetencyActive(competency, $any($event.target).checked)"
+                    aria-label="{{ competency.name }} を有効化"
+                  />
+                  <span>有効</span>
+                </label>
+              </div>
+              <p class="page-list__description">
+                {{ competency.description || '説明は登録されていません。' }}
+              </p>
+              <div class="page-list__meta">
+                <span>評価項目: {{ competency.criteria.length }}件</span>
+                <span>最終更新: {{ competency.updated_at | localDateTime: 'medium' }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">コンピテンシーを登録</h2>
+        <p class="page-section__subtitle">
+          名称・レベル・評価項目を設定して AI 判定対象を作成します。
+        </p>
+      </header>
+
+      <form class="page-form" [formGroup]="competencyForm" (ngSubmit)="createCompetency()">
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label">名称</span>
+            <input
+              type="text"
+              class="form-control"
+              name="competency-name"
+              formControlName="name"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">レベル</span>
+            <shared-ui-select
+              name="competency-level"
+              formControlName="level"
+              [options]="competencyLevelSelectOptions()"
+            ></shared-ui-select>
+          </label>
+          <label class="form-field form-field--full">
+            <span class="form-field__label">説明</span>
+            <textarea
+              class="form-control form-control--textarea"
+              name="competency-description"
+              rows="3"
+              formControlName="description"
+              placeholder="評価の観点や期待する行動を記載できます"
+            ></textarea>
+          </label>
+        </div>
+
+        <label class="form-toggle">
+          <input type="checkbox" formControlName="is_active" />
+          <span>作成後すぐに判定対象として有効にする</span>
+        </label>
+
+        <div class="admin-criteria" formArrayName="criteria">
+          <div class="admin-criteria__header">
+            <h3>評価項目</h3>
+            <button
+              type="button"
+              class="button button--secondary button--pill"
+              (click)="addCriterion()"
+            >
+              + 評価項目を追加
+            </button>
+          </div>
+
+          @for (criterion of competencyForm.controls.criteria.controls; track $index) {
+            <div class="admin-criteria__row" [formGroupName]="$index">
+              <label class="form-field">
+                <span class="form-field__label">項目名</span>
+                <input
+                  type="text"
+                  class="form-control"
+                  [attr.name]="'criterion-' + $index + '-title'"
+                  formControlName="title"
+                  placeholder="例: 問題発見力"
+                />
+              </label>
+              <label class="form-field form-field--full">
+                <span class="form-field__label">説明</span>
+                <textarea
+                  rows="2"
+                  class="form-control form-control--textarea"
+                  [attr.name]="'criterion-' + $index + '-description'"
+                  formControlName="description"
+                  placeholder="評価基準や期待値を記載します"
+                ></textarea>
+              </label>
+              <button
+                type="button"
+                class="button button--ghost button--pill"
+                (click)="removeCriterion($index)"
+                [disabled]="competencyForm.controls.criteria.length === 1"
+                aria-label="評価項目を削除"
+              >
+                削除
+              </button>
+            </div>
+          }
+        </div>
+
+        <button type="submit" class="button button--primary" [disabled]="loading()">
+          コンピテンシーを登録
+        </button>
+      </form>
+    </section>
+
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">コンピテンシーレベル</h2>
+        <p class="page-section__subtitle">
+          評価時に選択できるレベルと段階数を管理します。識別子は英数字とハイフン/アンダースコアが利用できます。
+        </p>
+      </header>
+
+      @if (competencyLevels().length === 0) {
+        <p class="page-empty">まだレベルが登録されていません。下のフォームから追加してください。</p>
+      } @else {
+        <ul class="page-list">
+          @for (level of competencyLevels(); track level.id) {
+            <li class="page-list__item">
+              <div class="page-list__heading">
+                <div>
+                  <strong class="page-list__title">{{ level.label }}</strong>
+                  <span class="page-badge page-badge--accent">{{ level.scale }}段階</span>
+                </div>
+              </div>
+              <div class="page-list__meta">
+                <span>識別子: {{ level.value }}</span>
+                @if (level.description) {
+                  <span>{{ level.description }}</span>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+
+      <form
+        class="page-form"
+        [formGroup]="competencyLevelForm"
+        (ngSubmit)="createCompetencyLevel()"
+      >
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label">表示名</span>
+            <input
+              type="text"
+              class="form-control"
+              name="competency-level-label"
+              formControlName="label"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">識別子</span>
+            <input
+              type="text"
+              class="form-control"
+              name="competency-level-value"
+              formControlName="value"
+              placeholder="例: senior"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">段階数</span>
+            <shared-ui-select
+              name="competency-level-scale"
+              formControlName="scale"
+              [options]="competencyLevelScaleOptions"
+            ></shared-ui-select>
+          </label>
+          <label class="form-field form-field--full">
+            <span class="form-field__label">説明 (任意)</span>
+            <textarea
+              rows="2"
+              class="form-control form-control--textarea"
+              name="competency-level-description"
+              formControlName="description"
+              placeholder="用途や評価対象をメモできます"
+            ></textarea>
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">表示順 (任意)</span>
+            <input
+              type="number"
+              class="form-control"
+              name="competency-level-sort"
+              formControlName="sort_order"
+              placeholder="0"
+            />
+          </label>
+        </div>
+        <p class="form-note">識別子は英数字・ハイフン・アンダースコアのみ利用できます。</p>
+        <button type="submit" class="button button--secondary" [disabled]="loading()">
+          レベルを追加
+        </button>
+      </form>
+    </section>
+  }
+
+  @if (activeTab() === 'evaluations') {
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">手動判定</h2>
+        <p class="page-section__subtitle">
+          対象ユーザとコンピテンシーを選択し、AI 判定を即時実行します。
+        </p>
+      </header>
+
+      <form class="page-form" [formGroup]="evaluationForm" (ngSubmit)="triggerEvaluation()">
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label">対象ユーザ</span>
+            <shared-ui-select
+              formControlName="userId"
+              name="evaluation-user"
+              required
+              [options]="evaluationUserSelectOptions()"
+            ></shared-ui-select>
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">コンピテンシー</span>
+            <shared-ui-select
+              formControlName="competencyId"
+              name="evaluation-competency"
+              required
+              [options]="evaluationCompetencySelectOptions()"
+            ></shared-ui-select>
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">評価開始日</span>
+            <input
+              type="date"
+              class="form-control"
+              formControlName="periodStart"
+              name="evaluation-period-start"
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">評価終了日</span>
+            <input
+              type="date"
+              class="form-control"
+              formControlName="periodEnd"
+              name="evaluation-period-end"
+            />
+          </label>
+        </div>
+
+        <button type="submit" class="button button--primary" [disabled]="loading()">
+          判定を実行
+        </button>
+      </form>
+    </section>
+
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">評価履歴</h2>
+        <p class="page-section__subtitle">最新の評価結果を一覧で確認できます。</p>
+      </header>
+
+      @if (evaluations().length === 0) {
+        <p class="page-empty">
+          まだ評価結果はありません。手動判定を実行するか、月次バッチを待機してください。
+        </p>
+      } @else {
+        <ul class="page-list admin-evaluations">
+          @for (evaluation of evaluations(); track evaluation.id) {
+            <li class="page-list__item admin-evaluations__item">
+              <header class="page-list__heading admin-evaluations__header">
+                <div>
+                  <strong>{{ evaluation.competency?.name || '不明なコンピテンシー' }}</strong>
+                  <span class="page-badge page-badge--accent">{{ evaluation.score_label }}</span>
+                </div>
+                <span class="admin-evaluations__meta">
+                  対象: {{ userEmail(evaluation.user_id) }} ／ 期間:
+                  {{ evaluation.period_start | localDateTime: 'yyyy/MM/dd' }} -
+                  {{ evaluation.period_end | localDateTime: 'yyyy/MM/dd' }}
+                </span>
+              </header>
+              <p class="admin-evaluations__rationale">
+                {{ evaluation.rationale || 'AI からの根拠は取得できませんでした。' }}
+              </p>
+              @if (evaluation.items.length > 0) {
+                <ul class="admin-evaluations__items">
+                  @for (item of evaluation.items; track item.id) {
+                    <li>
+                      <strong>{{ item.score_label }}</strong>
+                      <p>{{ item.rationale || '根拠は未入力です。' }}</p>
+                    </li>
+                  }
+                </ul>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
+  @if (activeTab() === 'users') {
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">ユーザ一覧</h2>
+        <p class="page-section__subtitle">権限や日次上限を調整すると即時に反映されます。</p>
+      </header>
+
+      @if (users().length === 0) {
+        <p class="page-empty">ユーザが登録されていません。</p>
+      } @else {
+        <div class="page-table__wrapper">
+          <table class="page-table">
+            <thead>
+              <tr>
+                <th scope="col">メールアドレス</th>
+                <th scope="col">管理者</th>
+                <th scope="col">有効</th>
+                <th scope="col">カード起票/日</th>
+                <th scope="col">判定回数/日</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of users(); track user.id) {
+                <tr>
+                  <td>{{ user.email }}</td>
+                  <td class="page-table__cell--center">
+                    <input
+                      type="checkbox"
+                      [checked]="user.is_admin"
+                      (change)="toggleAdmin(user, $any($event.target).checked)"
+                      aria-label="{{ user.email }} の管理者権限を切り替え"
+                    />
+                  </td>
+                  <td class="page-table__cell--center">
+                    <input
+                      type="checkbox"
+                      [checked]="user.is_active"
+                      (change)="toggleActive(user, $any($event.target).checked)"
+                      aria-label="{{ user.email }} の有効状態を切り替え"
+                    />
+                  </td>
+                  <td>
+                    @if (quotaForm(user.id); as quota) {
+                      <input
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [attr.name]="'card-limit-' + user.id"
+                        [formControl]="quota.controls.cardDailyLimit"
+                        (blur)="saveUserQuota(user)"
+                        placeholder="デフォルト"
+                      />
+                    }
+                  </td>
+                  <td>
+                    @if (quotaForm(user.id); as quota) {
+                      <input
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [attr.name]="'evaluation-limit-' + user.id"
+                        [formControl]="quota.controls.evaluationDailyLimit"
+                        (blur)="saveUserQuota(user)"
+                        placeholder="デフォルト"
+                      />
+                    }
+                  </td>
+                  <td class="page-table__cell--center">
+                    <button
+                      type="button"
+                      class="button button--danger button--pill"
+                      [disabled]="isCurrentUser(user)"
+                      (click)="deleteUser(user)"
+                      aria-label="{{ user.email }} を削除"
+                    >
+                      削除
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="form-note">空欄の場合はデフォルト日次上限が適用されます。</p>
+      }
+    </section>
+  }
+
+  @if (activeTab() === 'settings') {
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">Gemini API キー</h2>
+        <p class="page-section__subtitle">
+          Google AI Studio で発行した Gemini API キーを安全に保管し、判定処理に利用します。
+        </p>
+      </header>
+
+      @if (apiCredential(); as credential) {
+        <p class="form-note">
+          現在のキー: {{ credential.secret_hint || '****' }} ／ 更新日:
+          {{ credential.updated_at | localDateTime: 'medium' }}
+        </p>
+      } @else {
+        <p class="page-empty">登録済みの API トークンはありません。</p>
+      }
+
+      <form class="page-form" [formGroup]="apiForm" (submit)="updateApiCredential($event)">
+        <label class="form-field">
+          <span class="form-field__label">利用モデル</span>
+          <shared-ui-select
+            name="api-model"
+            formControlName="model"
+            [options]="apiModelSelectOptions()"
+          ></shared-ui-select>
+        </label>
+
+        <label class="form-field form-field--full">
+          <span class="form-field__label">新しい Gemini API キー</span>
+          <input
+            type="text"
+            class="form-control"
+            name="api-secret"
+            autocomplete="off"
+            formControlName="secret"
+            placeholder="例: AIzaSy..."
+            [required]="!apiCredential()"
+          />
+        </label>
+        <p class="form-note">
+          モデルの変更は次回の AI
+          実行から適用されます。高精度モデルは消費トークンが増えるため、チームの運用方針に合わせて選択してください。
+        </p>
+        <button type="submit" class="button button--primary" [disabled]="loading()">保存</button>
+      </form>
+    </section>
+
+    <section class="page-section">
+      <header class="page-section__header">
+        <h2 class="page-section__title">デフォルト日次上限</h2>
+        <p class="page-section__subtitle">
+          ユーザ個別の設定が無い場合に適用される日次上限を変更します。
+        </p>
+      </header>
+
+      <form
+        class="page-form"
+        [formGroup]="quotaDefaultsForm"
+        (submit)="updateQuotaDefaults($event)"
+      >
+        <div class="form-grid form-grid--two">
+          <label class="form-field">
+            <span class="form-field__label">カード起票数</span>
+            <input
+              type="number"
+              min="0"
+              class="form-control"
+              name="default-card-limit"
+              formControlName="cardDailyLimit"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">コンピテンシー判定数</span>
+            <input
+              type="number"
+              min="0"
+              class="form-control"
+              name="default-evaluation-limit"
+              formControlName="evaluationDailyLimit"
+              required
+            />
+          </label>
+        </div>
+        <button type="submit" class="button button--primary" [disabled]="loading()">更新</button>
+      </form>
+    </section>
+  }
+</shared-page-layout>

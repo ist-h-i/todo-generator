@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 type HeadingLevel = 'h1' | 'h2' | 'h3';
@@ -7,8 +7,7 @@ type HeadingLevel = 'h1' | 'h2' | 'h3';
  * Shared page header used to render consistent hero sections across feature pages.
  */
 @Component({
-  selector: 'app-page-header',
-  standalone: true,
+  selector: 'shared-page-header',
   imports: [CommonModule],
   templateUrl: './page-header.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -16,34 +15,29 @@ type HeadingLevel = 'h1' | 'h2' | 'h3';
     class: 'block',
   },
 })
-export class PageHeaderComponent {
+export class PageHeader {
   /**
    * Label displayed above the title as an eyebrow.
    */
-  @Input()
-  public eyebrow?: string;
+  public readonly eyebrow = input<string | undefined>();
 
   /**
    * Main heading for the page.
    */
-  @Input({ required: true })
-  public title!: string;
+  public readonly title = input.required<string>();
 
   /**
    * Optional description rendered under the title.
    */
-  @Input()
-  public description?: string;
+  public readonly description = input<string | undefined>();
 
   /**
    * Controls the semantic level of the heading.
    */
-  @Input()
-  public headingLevel: HeadingLevel = 'h2';
+  public readonly headingLevel = input<HeadingLevel>('h2');
 
   /**
    * When true the header content is centered for hero-style layouts.
    */
-  @Input()
-  public centered = false;
+  public readonly centered = input(false);
 }

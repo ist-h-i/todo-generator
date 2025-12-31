@@ -1,6 +1,6 @@
-# Recipe: AdminApiService
+# Recipe: AdminApi
 
-Source: `frontend/src/app/core/api/admin-api.service.ts`
+Source: `frontend/src/app/core/api/admin-api.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

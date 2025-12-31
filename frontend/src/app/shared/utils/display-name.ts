@@ -16,4 +16,3 @@ export function getDisplayName(user: UserLike): string {
 
   return (user.email ?? '').trim();
 }
-

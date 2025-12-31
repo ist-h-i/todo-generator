@@ -68,7 +68,7 @@ Configuration is managed through environment variables (see `app/config.py`). Ke
 
 - `DATABASE_URL`: SQLAlchemy connection string (defaults to `sqlite:///./todo.db`). Set this to the pooled Neon connection string via environment variables to target PostgreSQL; the service refuses to start when the placeholder value is left in place.
 - `DEBUG`: Enable FastAPI debug mode (default: `False`).
-- `GEMINI_MODEL`: Logical name for the Gemini model (default: `models/gemini-2.0-flash`).
+- `GEMINI_MODEL`: Logical name for the Gemini model (default: `models/gemini-2.5-flash`).
 - `ALLOWED_ORIGINS`: Comma-separated list of origins allowed to call the API with browser credentials (default: `http://localhost:4200`).
 - `SECRET_ENCRYPTION_KEY`: AES key for encrypting stored API credentials. Configure a sufficiently long random value; leaving it unset causes the admin console to return HTTP 503 when managing credentials.
 - `RECOMMENDATION_WEIGHT_LABEL`: Weight applied to label correlation when combining recommendation scores (default: `0.6`).

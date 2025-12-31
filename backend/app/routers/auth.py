@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.requests import Request
 from fastapi.responses import RedirectResponse, Response
@@ -16,15 +18,11 @@ from ..auth import (
 )
 from ..config import settings
 from ..database import get_db
-from ..services.email_verification import (
-    consume_verification_code,
-    deliver_verification_code,
-    issue_verification_code,
-)
 from ..services.profile import build_user_profile, normalize_nickname
 from ..services.status_defaults import ensure_default_statuses
 from ..services.workspace_template_defaults import ensure_default_workspace_template
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _LOCAL_FRONTEND_LOGIN_URL = "http://localhost:4200/login"
@@ -55,37 +53,30 @@ def auth_root_redirect(request: Request) -> Response:
     return RedirectResponse(_resolve_frontend_login_url(request))
 
 
-@router.post(
-    "/register/request-code",
-    response_model=schemas.VerificationCodeResponse,
-    status_code=status.HTTP_202_ACCEPTED,
-)
-def request_registration_code(
-    payload: schemas.VerificationCodeRequest, db: Session = Depends(get_db)
-) -> schemas.VerificationCodeResponse:
-    _, code_value = issue_verification_code(db, payload.email)
-    delivery = deliver_verification_code(payload.email, code_value)
-    share_code = settings.debug or delivery.share_via_response
-    response_message = delivery.message
-    if settings.debug and not delivery.share_via_response:
-        response_message = "Verification code sent. Debug mode returning code in response."
+def _find_admin_contact_email(db: Session) -> str | None:
+    admin = (
+        db.query(models.User)
+        .filter(models.User.is_admin.is_(True))
+        .order_by(models.User.created_at.asc())
+        .first()
+    )
+    return admin.email if admin else None
 
-    response_data: dict[str, str | None] = {
-        "message": response_message,
-        "verification_code": code_value if share_code else None,
-    }
-    return schemas.VerificationCodeResponse(**response_data)
+
+@router.get("/admin-contact", response_model=schemas.AdminContactResponse)
+def get_admin_contact_email(db: Session = Depends(get_db)) -> schemas.AdminContactResponse:
+    return schemas.AdminContactResponse(email=_find_admin_contact_email(db))
 
 
 @router.post(
     "/register",
-    response_model=schemas.TokenResponse,
+    response_model=schemas.RegistrationResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def register(
     payload: schemas.RegistrationRequest,
     db: Session = Depends(get_db),
-) -> schemas.TokenResponse:
+) -> schemas.RegistrationResponse:
     payload_data = (
         payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()  # type: ignore[attr-defined]
     )
@@ -102,25 +93,17 @@ def register(
     password = payload_data.get("password", payload.password)
     normalized_email = normalize_email(raw_email)
     remaining_fields = {
-        key: value
-        for key, value in payload_data.items()
-        if key not in {"email", "password", "verification_code"}
+        key: value for key, value in payload_data.items() if key not in {"email", "password"}
     }
     # Validate and sanitize nickname (required)
     sanitized_nickname = normalize_nickname(remaining_fields.get("nickname"))
     remaining_fields["nickname"] = sanitized_nickname
-    verification_code = payload_data.get("verification_code", payload.verification_code)
-    verification_result = consume_verification_code(db, raw_email, verification_code)
-    if not verification_result.success:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=verification_result.message or "Invalid verification code.",
-        )
     user_values = {
         **remaining_fields,
         "email": normalized_email,
         "password_hash": hash_password(password),
         "is_admin": is_first_user,
+        "is_active": is_first_user,
     }
     user = models.User(**user_values)
     db.add(user)
@@ -133,16 +116,23 @@ def register(
     db.flush()
     member = models.ChannelMember(channel_id=channel.id, user_id=user.id, role="owner")
     db.add(member)
-    token_value = create_session_token(db, user)
     db.commit()
     db.refresh(user)
-    profile = build_user_profile(user)
-    return schemas.TokenResponse(access_token=token_value, user=profile)
+    if user.is_active:
+        message = "Registration completed. You can now sign in."
+    else:
+        message = "Registration completed. Your account is pending administrator approval."
+    return schemas.RegistrationResponse(
+        message=message,
+        requires_approval=not user.is_active,
+        admin_email=_find_admin_contact_email(db),
+    )
 
 
 @router.post("/login", response_model=schemas.TokenResponse)
 def login(
     payload: schemas.AuthCredentials,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> schemas.TokenResponse:
     email_candidates = get_email_lookup_candidates(payload.email)
@@ -154,9 +144,18 @@ def login(
             break
 
     if not user:
+        client_host = request.client.host if request.client else "unknown"
+        normalized_email = normalize_email(payload.email)
+        logger.warning("Login failed for %s from %s", normalized_email, client_host)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is pending administrator approval.",
         )
 
     db.query(models.SessionToken).filter(models.SessionToken.user_id == user.id).delete()

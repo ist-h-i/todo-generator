@@ -1,6 +1,6 @@
-# Recipe: AdminPageComponent
+# Recipe: AdminPage
 
-Source: `frontend/src/app/features/admin/feature/admin-page.component.ts`
+Source: `frontend/src/app/features/admin/admin.page.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

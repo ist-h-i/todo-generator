@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { TimeoutError, throwError } from 'rxjs';
 
 import { errorInterceptor } from './error.interceptor';
-import { HttpErrorNotifierService } from './http-error-notifier.service';
+import { HttpErrorNotifier } from './http-error-notifier';
 
 const API_URL = '/api/example';
 const NETWORK_ERROR_MESSAGE =
@@ -17,14 +17,14 @@ const createHandler =
     throwError(() => error);
 
 describe('errorInterceptor', () => {
-  let notifier: HttpErrorNotifierService;
+  let notifier: HttpErrorNotifier;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [HttpErrorNotifierService],
+      providers: [HttpErrorNotifier],
     });
 
-    notifier = TestBed.inject(HttpErrorNotifierService);
+    notifier = TestBed.inject(HttpErrorNotifier);
   });
 
   it('prefers detail messages over the generic network fallback even for status 0 responses', () => {
@@ -36,6 +36,27 @@ describe('errorInterceptor', () => {
         status: 0,
         statusText: 'Unknown Error',
         error: { detail: DETAIL_MESSAGE },
+      });
+
+      errorInterceptor(new HttpRequest('GET', API_URL), createHandler(error)).subscribe({
+        error: () => {
+          // swallow error for testing purposes
+        },
+      });
+    });
+
+    expect(notifySpy).toHaveBeenCalledWith(DETAIL_MESSAGE);
+  });
+
+  it('extracts detail message fields when detail is an object payload', () => {
+    const notifySpy = spyOn(notifier, 'notify');
+
+    TestBed.runInInjectionContext(() => {
+      const error = new HttpErrorResponse({
+        url: API_URL,
+        status: 502,
+        statusText: 'Bad Gateway',
+        error: { detail: { message: DETAIL_MESSAGE } },
       });
 
       errorInterceptor(new HttpRequest('GET', API_URL), createHandler(error)).subscribe({

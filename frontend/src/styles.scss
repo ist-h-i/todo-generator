@@ -295,62 +295,62 @@ a:hover {
  */
 
 /* Page layout component */
-app-page-layout {
+shared-page-layout {
   display: grid;
   gap: var(--page-content-gap);
   --app-page-layout-max-width: 76rem;
 }
 
-app-page-layout.shell-container {
+shared-page-layout.shell-container {
   padding-inline: 0;
 }
 
-app-page-layout .app-page-layout__header {
+shared-page-layout .app-page-layout__header {
   max-width: var(--app-page-layout-max-width);
   width: 100%;
   margin-inline: auto;
 }
 
-app-page-layout .app-page-layout__body {
+shared-page-layout .app-page-layout__body {
   display: grid;
   margin: 0;
 }
 
-app-page-layout .app-page-layout__section {
+shared-page-layout .app-page-layout__section {
   display: grid;
   gap: var(--page-content-gap);
 }
 
-app-page-layout .app-page-layout__body--bleed {
+shared-page-layout .app-page-layout__body--bleed {
   margin-inline: calc(var(--page-padding-inline) * -1);
 }
 
-app-page-layout.shell-container .app-page-layout__body--bleed {
+shared-page-layout.shell-container .app-page-layout__body--bleed {
   margin-inline: 0;
 }
 
-app-page-layout .app-page-layout__content {
+shared-page-layout .app-page-layout__content {
   display: grid;
   max-width: var(--app-page-layout-max-width);
   width: 100%;
   margin-inline: auto;
 }
 
-app-page-layout.app-page-layout--wide {
+shared-page-layout.app-page-layout--wide {
   --app-page-layout-max-width: none;
 }
 
-app-page-layout.app-page-layout--wide .app-page-layout__header {
+shared-page-layout.app-page-layout--wide .app-page-layout__header {
   margin-inline: 0;
 }
 
-app-page-layout.app-page-layout--wide .app-page-layout__content {
+shared-page-layout.app-page-layout--wide .app-page-layout__content {
   max-width: none;
   margin-inline: 0;
 }
 
 /* Not-found page */
-app-not-found-page {
+shared-not-found-page {
   display: block;
   padding: clamp(2.5rem, 8vw, 5rem) 0;
 }
@@ -359,7 +359,7 @@ app-not-found-page {
 app-shell {
   display: block;
   --shell-inline-padding: clamp(0.75rem, 1.75vw, 2rem);
-  --shell-max-width: min(100%, 120rem);
+  --shell-max-width: 100%;
 }
 
 app-shell .shell-container {

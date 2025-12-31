@@ -1,9 +1,4 @@
-export type HoverMessageSeverity =
-  | 'system'
-  | 'notification'
-  | 'warning'
-  | 'error'
-  | 'loading';
+export type HoverMessageSeverity = 'system' | 'notification' | 'warning' | 'error' | 'loading';
 
 export type HoverMessageView = {
   readonly id: number;

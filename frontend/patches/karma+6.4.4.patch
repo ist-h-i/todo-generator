@@ -35,7 +35,7 @@ index eb05852..5969a55 100644
  
  function complete (env) {
 diff --git a/node_modules/karma/lib/file-list.js b/node_modules/karma/lib/file-list.js
-index b4ec01d..563793b 100644
+index b4ec01d..a03dce8 100644
 --- a/node_modules/karma/lib/file-list.js
 +++ b/node_modules/karma/lib/file-list.js
 @@ -2,7 +2,7 @@
@@ -47,7 +47,7 @@ index b4ec01d..563793b 100644
  const fs = require('graceful-fs')
  const statAsync = promisify(fs.stat.bind(fs))
  const pathLib = require('path')
-@@ -68,21 +68,35 @@ class FileList {
+@@ -68,21 +68,36 @@ class FileList {
            return
          }
  
@@ -74,7 +74,8 @@ index b4ec01d..563793b 100644
 +        }
 +
 +        const files = []
-+        for (const filePath of matches) {
++        for (const matchPath of matches) {
++          const filePath = helper.normalizeWinPath(matchPath)
 +          if (this._findExcluded(filePath)) {
 +            log.debug(`Excluded file "${filePath}"`)
 +            continue
@@ -98,7 +99,7 @@ index b4ec01d..563793b 100644
  
          if (nocache) {
            log.debug(`Not preprocessing "${pattern}" due to nocache`)
-@@ -92,7 +106,7 @@ class FileList {
+@@ -92,7 +107,7 @@ class FileList {
  
          this.buckets.set(pattern, files)
  
@@ -108,7 +109,7 @@ index b4ec01d..563793b 100644
          } else if (_.isEmpty(files)) {
            log.warn(`All files matched by "${pattern}" were excluded or matched by prior matchers.`)
 diff --git a/node_modules/karma/lib/init.js b/node_modules/karma/lib/init.js
-index f55f94e..0bd12df 100755
+index f55f94e..0bd12df 100644
 --- a/node_modules/karma/lib/init.js
 +++ b/node_modules/karma/lib/init.js
 @@ -2,7 +2,7 @@

@@ -1,6 +1,6 @@
-# Recipe: HttpErrorNotifierService
+# Recipe: HttpErrorNotifier
 
-Source: `frontend/src/app/core/api/http-error-notifier.service.ts`
+Source: `frontend/src/app/core/api/http-error-notifier.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

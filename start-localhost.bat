@@ -14,6 +14,9 @@ if not exist "%VENV_PYTHON%" (
     py -m venv "%VENV_DIR%" 2>nul || python -m venv "%VENV_DIR%"
 )
 
+echo [Backend] Ensuring SECRET_ENCRYPTION_KEY exists in .env ...
+"%VENV_PYTHON%" "%PROJECT_DIR%scripts\\ensure_secret_encryption_key.py"
+
 echo [Backend] Installing dependencies from backend\requirements.txt ...
 "%VENV_PYTHON%" -m pip install -r "%BACKEND_DIR%\requirements.txt"
 

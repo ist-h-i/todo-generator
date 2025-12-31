@@ -1,9 +1,10 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, ResourceRef, Signal, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Observable, of } from 'rxjs';
 
 import { buildApiUrl } from '@core/api/api.config';
+import { AI_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS } from '@core/api/timeout.interceptor';
 import {
   ImmunityMapCandidateRequest,
   ImmunityMapCandidateResponse,
@@ -18,9 +19,11 @@ export class ImmunityMapGateway {
   public getCandidates(
     payload: ImmunityMapCandidateRequest,
   ): Observable<ImmunityMapCandidateResponse> {
+    const context = new HttpContext().set(REQUEST_TIMEOUT_MS, AI_REQUEST_TIMEOUT_MS);
     return this.http.post<ImmunityMapCandidateResponse>(
       buildApiUrl('/analysis/immunity-map/candidates'),
       payload,
+      { context },
     );
   }
 
@@ -35,6 +38,7 @@ export class ImmunityMapGateway {
     });
 
   public generate(payload: ImmunityMapRequest): Observable<ImmunityMapResponse> {
-    return this.http.post<ImmunityMapResponse>(buildApiUrl('/analysis/immunity-map'), payload);
+    const context = new HttpContext().set(REQUEST_TIMEOUT_MS, AI_REQUEST_TIMEOUT_MS);
+    return this.http.post<ImmunityMapResponse>(buildApiUrl('/analysis/immunity-map'), payload, { context });
   }
 }

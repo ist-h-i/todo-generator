@@ -1,5 +1,4 @@
 import hashlib
-from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 
 import pytest
@@ -7,12 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.testclient import TestClient
 
 from app import models
-from app.auth import hash_password, normalize_email
+from app.auth import hash_password
 from app.config import Settings, settings
 from app.database import get_db
 from app.main import app
 
-from .utils.auth import register_user, request_verification_code
+from .utils.auth import register_user
 
 assertions = TestCase()
 
@@ -78,133 +77,80 @@ def test_email_login_flow_accepts_user_input_variations(client: TestClient) -> N
     assertions.assertTrue(login_payload["user"]["is_admin"] is True)
 
 
-def test_second_registered_user_is_not_admin(client: TestClient) -> None:
+def test_second_registered_user_is_inactive_until_admin_approval(client: TestClient) -> None:
+    admin_email = "owner@example.com"
+    member_email = "member@example.com"
     password = "SecurePass123!"  # noqa: S105
 
-    first_register_payload = register_user(
-        client, email="owner@example.com", password=password, nickname="Owner"
+    first_register = client.post(
+        "/auth/register",
+        json={"email": admin_email, "password": password, "nickname": "Owner"},
     )
-    assertions.assertTrue(first_register_payload["user"]["is_admin"] is True)
+    assertions.assertTrue(first_register.status_code == 201, first_register.text)
 
-    second_register_payload = register_user(
-        client, email="member@example.com", password=password, nickname="Member"
+    login_admin = client.post("/auth/login", json={"email": admin_email, "password": password})
+    assertions.assertTrue(login_admin.status_code == 200, login_admin.text)
+    admin_token = login_admin.json()["access_token"]
+    admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+    second_register = client.post(
+        "/auth/register",
+        json={"email": member_email, "password": password, "nickname": "Member"},
     )
-    assertions.assertTrue(second_register_payload["user"]["is_admin"] is False)
+    assertions.assertTrue(second_register.status_code == 201, second_register.text)
 
-    login_response = client.post(
-        "/auth/login",
-        json={"email": "member@example.com", "password": password},
-    )
-    assertions.assertTrue(login_response.status_code == 200, login_response.text)
-    assertions.assertTrue(login_response.json()["user"]["is_admin"] is False)
+    login_member = client.post("/auth/login", json={"email": member_email, "password": password})
+    assertions.assertTrue(login_member.status_code == 403, login_member.text)
+
+    users_response = client.get("/admin/users", headers=admin_headers)
+    assertions.assertTrue(users_response.status_code == 200, users_response.text)
+    member_row = next((user for user in users_response.json() if user.get("email") == member_email), None)
+    assertions.assertTrue(member_row is not None, users_response.json())
+    assertions.assertTrue(member_row["is_admin"] is False)
+    assertions.assertTrue(member_row["is_active"] is False)
 
 
-def test_verification_code_enforces_attempt_limits(client: TestClient) -> None:
-    email = "limit@example.com"
+def test_admin_contact_returns_first_admin_email(client: TestClient) -> None:
+    response = client.get("/auth/admin-contact")
+    assertions.assertTrue(response.status_code == 200, response.text)
+    assertions.assertTrue(response.json()["email"] is None)
+
     password = "SecurePass123!"  # noqa: S105
-    nickname = "Limiter"
-
-    real_code = request_verification_code(client, email)
-    invalid_code = "000000" if real_code != "000000" else "999999"
-
-    for _ in range(3):
-        response = client.post(
-            "/auth/register",
-            json={
-                "email": email,
-                "password": password,
-                "nickname": nickname,
-                "verification_code": invalid_code,
-            },
-        )
-        assertions.assertTrue(response.status_code == 400, response.text)
-
-    retry_with_real = client.post(
+    first = client.post(
         "/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "nickname": nickname,
-            "verification_code": real_code,
-        },
+        json={"email": "owner@example.com", "password": password, "nickname": "Owner"},
     )
-    assertions.assertTrue(retry_with_real.status_code == 400, retry_with_real.text)
+    assertions.assertTrue(first.status_code == 201, first.text)
 
-    new_code = request_verification_code(client, email)
-    success = client.post(
+    response = client.get("/auth/admin-contact")
+    assertions.assertTrue(response.status_code == 200, response.text)
+    assertions.assertTrue(response.json()["email"] == "owner@example.com")
+
+    login_admin = client.post("/auth/login", json={"email": "owner@example.com", "password": password})
+    assertions.assertTrue(login_admin.status_code == 200, login_admin.text)
+    admin_headers = {"Authorization": f"Bearer {login_admin.json()['access_token']}"}
+
+    second = client.post(
         "/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "nickname": nickname,
-            "verification_code": new_code,
-        },
+        json={"email": "second@example.com", "password": password, "nickname": "Second"},
     )
-    assertions.assertTrue(success.status_code == 201, success.text)
+    assertions.assertTrue(second.status_code == 201, second.text)
 
+    users_response = client.get("/admin/users", headers=admin_headers)
+    assertions.assertTrue(users_response.status_code == 200, users_response.text)
+    second_row = next((user for user in users_response.json() if user.get("email") == "second@example.com"), None)
+    assertions.assertTrue(second_row is not None, users_response.json())
 
-def test_verification_code_expires_after_timeout(client: TestClient) -> None:
-    email = "expire@example.com"
-    password = "SecurePass123!"  # noqa: S105
-
-    code = request_verification_code(client, email)
-
-    override = client.app.dependency_overrides[get_db]
-    generator = override()
-    session = next(generator)
-    try:
-        normalized = normalize_email(email)
-        record = (
-            session.query(models.EmailVerificationCode)
-            .filter(models.EmailVerificationCode.email == normalized)
-            .first()
-        )
-        assert record is not None, "Verification code record should exist"
-        record.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
-        session.commit()
-    finally:
-        generator.close()
-
-    response = client.post(
-        "/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "nickname": "Expired",
-            "verification_code": code,
-        },
+    promote = client.patch(
+        f"/admin/users/{second_row['id']}",
+        json={"is_admin": True, "is_active": True},
+        headers=admin_headers,
     )
-    assertions.assertTrue(response.status_code == 400, response.text)
+    assertions.assertTrue(promote.status_code == 200, promote.text)
 
-    fresh_code = request_verification_code(client, email)
-    success = client.post(
-        "/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "nickname": "Expired",
-            "verification_code": fresh_code,
-        },
-    )
-    assertions.assertTrue(success.status_code == 201, success.text)
-
-
-def test_request_code_returns_response_when_email_delivery_unavailable(
-    client: TestClient, monkeypatch: pytest.MonkeyPatch, email: str
-) -> None:
-    monkeypatch.setattr("app.config.settings.debug", False)
-    monkeypatch.setattr("app.config.settings.email_verification_delivery", "smtp")
-    monkeypatch.setattr("app.config.settings.smtp_host", None)
-    monkeypatch.setattr("app.config.settings.email_verification_sender", None)
-
-    response = client.post("/auth/register/request-code", json={"email": email})
-    assertions.assertTrue(response.status_code == 202, response.text)
-    payload = response.json()
-    assertions.assertTrue(payload.get("verification_code"))
-    assertions.assertTrue(
-        "returning code" in payload.get("message", "").lower(),
-        payload,
-    )
+    response = client.get("/auth/admin-contact")
+    assertions.assertTrue(response.status_code == 200, response.text)
+    assertions.assertTrue(response.json()["email"] == "owner@example.com")
 
 
 def test_login_allows_legacy_normalized_emails(client: TestClient) -> None:

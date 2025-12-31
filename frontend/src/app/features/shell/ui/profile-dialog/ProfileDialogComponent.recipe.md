@@ -1,6 +1,6 @@
-# Recipe: ProfileDialogComponent
+# Recipe: ProfileDialog
 
-Source: `frontend/src/app/features/shell/ui/profile-dialog/profile-dialog.component.ts`
+Source: `frontend/src/app/features/shell/ui/profile-dialog/profile-dialog.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

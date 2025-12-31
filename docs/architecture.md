@@ -53,7 +53,7 @@ Standalone components are lazy loaded through `app.routes.ts` to minimise bootst
 - **WorkspaceStore (`core/state/workspace-store.ts`)** caches cards, subtasks, comments, workspace settings, filters, and templates. It persists selections to local storage per user while synchronising authoritative data from the backend through `WorkspaceConfigApiService` and `CardsApiService` calls. Optimistic updates roll back on failure and reconcile card responses from the API.
 - **Immunity map generation** lives in the analytics feature UI and calls `/analysis/immunity-map` via the `ImmunityMapGateway` API client.
 - **AuthService (`core/auth/auth.service.ts`)** stores the active session token in memory and browser storage, exposes the active user profile, and coordinates guard redirects.
-- **Signal forms (`lib/forms/signal-forms.ts`)** provide type-safe abstractions for forms backed by Angular signals, reducing template boilerplate for settings and report workflows.
+- **Signal forms (`shared/forms/signal-forms.ts`)** provide type-safe abstractions for forms backed by Angular signals, reducing template boilerplate for settings and report workflows.
 
 ### API layer
 

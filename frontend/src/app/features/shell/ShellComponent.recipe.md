@@ -1,6 +1,6 @@
-# Recipe: ShellComponent
+# Recipe: ShellPage
 
-Source: `frontend/src/app/features/shell/feature/shell.component.ts`
+Source: `frontend/src/app/features/shell/shell.page.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

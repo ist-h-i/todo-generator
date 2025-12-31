@@ -67,7 +67,6 @@ class RegistrationRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     nickname: str
-    verification_code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
 
     @field_validator("email", mode="before")
     @classmethod
@@ -77,22 +76,14 @@ class RegistrationRequest(BaseModel):
 
         return _normalize_email_input(value)
 
-
-class VerificationCodeRequest(BaseModel):
-    email: EmailStr
-
-    @field_validator("email", mode="before")
-    @classmethod
-    def normalize_email_field(cls, value: EmailStr | str | None) -> str | EmailStr | None:
-        if value is None:
-            return value
-
-        return _normalize_email_input(value)
+class RegistrationResponse(BaseModel):
+    message: str
+    requires_approval: bool
+    admin_email: EmailStr | None = None
 
 
-class VerificationCodeResponse(BaseModel):
-    message: str = "Verification code sent."
-    verification_code: str | None = None
+class AdminContactResponse(BaseModel):
+    email: EmailStr | None = None
 
 
 class TokenResponse(BaseModel):

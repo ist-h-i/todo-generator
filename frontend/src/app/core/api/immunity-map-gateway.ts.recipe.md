@@ -14,7 +14,7 @@
 
 ## Interactions & Dependencies
 - `HttpClient` for API calls and `buildApiUrl` for URL resolution.
-- Used by `AnalyticsPageComponent` to load candidates and generate immunity maps.
+- Used by `AnalyticsPage` to load candidates and generate immunity maps.
 
 ## Testing Notes
 - `frontend/src/app/core/api/immunity-map-gateway.spec.ts` covers request wiring.

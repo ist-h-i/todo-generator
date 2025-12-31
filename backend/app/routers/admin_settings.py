@@ -9,7 +9,12 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..config import settings
 from ..database import get_db
-from ..services.gemini import GeminiClient
+from ..services.gemini import (
+    GeminiClient,
+    GeminiConfigurationError,
+    GeminiError,
+    list_gemini_generate_content_models,
+)
 from ..utils.dependencies import require_admin
 from ..utils.quotas import (
     get_quota_defaults,
@@ -80,6 +85,24 @@ def get_api_credential(
             db.commit()
             db.refresh(credential)
     return credential
+
+
+@router.get("/api-credentials/{provider}/models", response_model=list[str])
+def list_api_credential_models(
+    provider: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(require_admin),
+) -> list[str]:
+    normalized_provider = _normalize_provider(provider)
+    if normalized_provider != "gemini":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Provider not supported")
+
+    try:
+        return list_gemini_generate_content_models(db, provider=normalized_provider)
+    except GeminiConfigurationError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except GeminiError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
 
 @router.put("/api-credentials/{provider}", response_model=schemas.ApiCredentialRead)

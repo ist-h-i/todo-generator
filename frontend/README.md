@@ -4,12 +4,12 @@ Angular 20 single-page application that follows the product specification in the
 
 ## Key Features
 
-- **Input Analyzer** – Paste free-form notes and review Gemini proposals before publishing tasks to the board.
-- **Workspace Board** – Accessible CDK drag-and-drop columns grouped by status, label, or assignee with card detail drawers.
-- **Card Detail Management** – Update metadata, progress subtasks, and log comments/activity from a focused drawer UI.
-- **Analytics Dashboard** – Summaries for completion rate, story points, and distribution across statuses and labels.
-- **Workspace Settings** – Maintain custom labels, statuses, and default AI prompt guidance.
-- **Design System** – Minimal, responsive layout powered by CSS design tokens, dark mode, and WCAG-aware interactions.
+- **Input Analyzer**  EPaste free-form notes and review Gemini proposals before publishing tasks to the board.
+- **Workspace Board**  EAccessible CDK drag-and-drop columns grouped by status, label, or assignee with card detail drawers.
+- **Card Detail Management**  EUpdate metadata, progress subtasks, and log comments/activity from a focused drawer UI.
+- **Analytics Dashboard**  ESummaries for completion rate, story points, and distribution across statuses and labels.
+- **Workspace Settings**  EMaintain custom labels, statuses, and default AI prompt guidance.
+- **Design System**  EMinimal, responsive layout powered by CSS design tokens, dark mode, and WCAG-aware interactions.
 
 ## Getting Started
 
@@ -30,17 +30,29 @@ The application is served at `http://localhost:4200/` with hot reload enabled.
 | `npm run lint`        | Check TypeScript sources with ESLint               |
 | `npm run format:check` | Verify that Prettier formatting matches the rules |
 | `npm run format:write` | Apply Prettier formatting updates in place        |
+| `npm run test:e2e`     | Run Playwright end-to-end tests (starts `ng serve`) |
+| `npm run test:e2e:install` | Download the Chromium browser for Playwright |
 
 > **Note:** Both `npm test` and `npm run test:ci` run with the `ChromeHeadlessNoSandbox` launcher so the same configuration works locally and in CI pipelines.
 
+### End-to-End Tests (Playwright)
+
+```bash
+npm run test:e2e:install
+npm run test:e2e
+```
+
+`npm run test:e2e:install` downloads the Chromium browser used by the test runner. Playwright boots the Angular dev server at `http://localhost:4200` (see `playwright.config.ts`). If your scenario needs the API, start the backend on `http://localhost:8000` before running the tests.
+
 ## Project Structure Highlights
 
-- `src/app/core` — Domain models, authenticated API clients, and singleton state stores.
-- `src/app/features/*/feature` — Smart routed components that coordinate each feature flow.
-- `src/app/features/shell` — Navigation chrome, hover message infrastructure, and profile dialog.
-- `src/app/features/*/ui` — Presentational building blocks scoped to their feature.
-- `src/app/features/*/data-access` — Feature-scoped services and facades that call backend APIs.
-- `src/app/lib/forms` — Signal-powered form utilities shared across features.
+- `src/app/core`  Domain models, authenticated API clients, and singleton state stores.
+- `src/app/features/*/*.routes.ts`  Feature route definitions loaded from `app.routes.ts`.
+- `src/app/features/shell`  Navigation chrome, hover message infrastructure, and profile dialog.
+- `src/app/features/*/ui`  Presentational building blocks scoped to their feature.
+- `src/app/features/*/data`  Feature-scoped services and gateways that call backend APIs.
+- `src/app/shared`  Reusable UI primitives, pipes, and utilities shared across features.
+
 ## Design Tokens & Accessibility
 
 Global styles in `src/styles.scss` expose variables for color, spacing, typography, and dark-mode variants. Layout landmarks (`banner`, `main`, `complementary`, `contentinfo`) aid navigation, focus rings remain visible, and dynamic regions use polite announcements.

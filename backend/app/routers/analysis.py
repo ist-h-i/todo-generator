@@ -28,6 +28,7 @@ from ..schemas import (
 from ..services.gemini import (
     GeminiClient,
     GeminiError,
+    GeminiRateLimitError,
     build_workspace_analysis_options,
     get_gemini_client,
 )
@@ -166,6 +167,18 @@ def analyze(
             user_profile=profile,
             workspace_options=workspace_options,
         )
+    except GeminiRateLimitError as exc:
+        record.status = "failed"
+        record.failure_reason = str(exc)
+        db.commit()
+        headers: dict[str, str] | None = None
+        if exc.retry_after_seconds is not None:
+            headers = {"Retry-After": str(exc.retry_after_seconds)}
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(exc),
+            headers=headers,
+        ) from exc
     except GeminiError as exc:
         record.status = "failed"
         record.failure_reason = str(exc)
@@ -589,6 +602,15 @@ def generate_immunity_map_candidates(
             response_schema=response_schema,
             system_prompt=_IMMUNITY_MAP_CANDIDATE_SYSTEM_PROMPT,
         )
+    except GeminiRateLimitError as exc:
+        headers: dict[str, str] | None = None
+        if exc.retry_after_seconds is not None:
+            headers = {"Retry-After": str(exc.retry_after_seconds)}
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(exc),
+            headers=headers,
+        ) from exc
     except GeminiError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
@@ -679,6 +701,15 @@ def generate_immunity_map(
             response_schema=_IMMUNITY_MAP_RESPONSE_SCHEMA,
             system_prompt=_IMMUNITY_MAP_SYSTEM_PROMPT,
         )
+    except GeminiRateLimitError as exc:
+        headers: dict[str, str] | None = None
+        if exc.retry_after_seconds is not None:
+            headers = {"Retry-After": str(exc.retry_after_seconds)}
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(exc),
+            headers=headers,
+        ) from exc
     except GeminiError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 

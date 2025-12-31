@@ -11,7 +11,7 @@ import {
   Status,
   Subtask,
 } from '@core/models';
-import { createSignalForm } from '@lib/forms/signal-forms';
+import { createSignalForm } from '@shared/forms/signal-forms';
 
 const DEFAULT_STATUS_COLOR = 'var(--text-muted)';
 

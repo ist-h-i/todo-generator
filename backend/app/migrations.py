@@ -983,9 +983,9 @@ def _remove_deprecated_gemini_models(engine: Engine) -> None:
 
     fallback_model = settings.gemini_model.strip()
     if not fallback_model:
-        fallback_model = "models/gemini-2.0-flash"
+        fallback_model = "models/gemini-2.5-flash"
     if fallback_model in _DEPRECATED_GEMINI_MODELS:
-        fallback_model = "models/gemini-2.0-flash"
+        fallback_model = "models/gemini-2.5-flash"
 
     with engine.begin() as connection:
         for deprecated in _DEPRECATED_GEMINI_MODELS:
