@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import date, datetime, timezone
 from typing import Any, Mapping, Optional
 
@@ -29,6 +30,7 @@ from ..utils.quotas import (
 )
 
 router = APIRouter(tags=["competencies"])
+logger = logging.getLogger(__name__)
 
 _COMPETENCY_BATCH_SYSTEM_PROMPT = (
     "You are Verbalize Yourself's competency evaluation assistant."
@@ -248,6 +250,7 @@ def my_evaluation_quota(
 @router.post("/users/me/evaluations", response_model=schemas.CompetencyEvaluationRead)
 def create_my_evaluation(
     payload: schemas.SelfEvaluationRequest,
+    gemini: GeminiClient | None = Depends(get_optional_gemini_client),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ) -> models.CompetencyEvaluation:
@@ -285,8 +288,145 @@ def create_my_evaluation(
     db.flush()
 
     evaluator = CompetencyEvaluator(db)
+    used_fallback = False
 
     try:
+        if gemini is None:
+            evaluation = evaluator.evaluate(
+                user=current_user,
+                competency=competency,
+                period_start=period_start,
+                period_end=period_end,
+                triggered_by="manual",
+                job=job,
+            )
+        else:
+            start_dt, end_dt = evaluator._to_datetime_range(period_start, period_end)
+            metrics = evaluator._collect_metrics(user=current_user, start=start_dt, end=end_dt)
+            scale = _resolve_scale(db, competency)
+
+            competency_payload = [
+                {
+                    "id": competency.id,
+                    "name": competency.name,
+                    "level": competency.level,
+                    "scale": scale,
+                    "description": competency.description,
+                    "rubric": competency.rubric or {},
+                    "criteria": [
+                        {
+                            "id": criterion.id,
+                            "title": criterion.title,
+                            "description": criterion.description,
+                            "weight": criterion.weight,
+                        }
+                        for criterion in competency.criteria
+                        if getattr(criterion, "is_active", True)
+                    ],
+                }
+            ]
+
+            prompt_parts = [
+                "Evaluate the user's competencies for the given period.",
+                f"Period: {period_start} to {period_end}",
+                "",
+                "Activity metrics (JSON):",
+                json.dumps(metrics, ensure_ascii=False),
+                "",
+                "Competencies (JSON):",
+                json.dumps(competency_payload, ensure_ascii=False),
+                "",
+                "Output rules:",
+                "- Return exactly one evaluation per competency_id listed in the input.",
+                "- score_value must be an integer between 1 and scale for each competency.",
+                "- score_label should match the score_value and scale (3-scale: 譛ｪ驕・荳驛ｨ驕疲・/驕疲・, 5-scale: 譛ｪ驕・隕∵隼蝟・讓呎ｺ・濶ｯ螂ｽ/蜊楢ｶ・.",
+                "- Provide 2-3 short attitude_actions and 2-3 short behavior_actions in Japanese.",
+            ]
+            prompt = "\n".join(prompt_parts).strip()
+
+            generated = gemini.generate_structured(
+                prompt=prompt,
+                response_schema=_COMPETENCY_BATCH_RESPONSE_SCHEMA,
+                system_prompt=_COMPETENCY_BATCH_SYSTEM_PROMPT,
+            )
+
+            raw_evaluations = _safe_list(generated.get("evaluations"))
+            raw: Mapping[str, Any] | None = None
+            for raw_item in raw_evaluations:
+                item = _to_mapping(raw_item)
+                if not item:
+                    continue
+                competency_id = str(item.get("competency_id") or "").strip()
+                if competency_id == competency.id:
+                    raw = item
+                    break
+
+            ai_model = str(generated.get("model") or "").strip() or None
+
+            if not raw:
+                used_fallback = True
+                evaluation = evaluator.evaluate(
+                    user=current_user,
+                    competency=competency,
+                    period_start=period_start,
+                    period_end=period_end,
+                    triggered_by="manual",
+                    job=job,
+                )
+            else:
+                score_value = _normalize_score_value(
+                    scale=scale,
+                    value=_to_optional_int(raw.get("score_value")),
+                )
+                score_label = str(raw.get("score_label") or "").strip() or _default_score_label(
+                    scale=scale,
+                    score_value=score_value,
+                )
+                rationale = str(raw.get("rationale") or "").strip() or None
+                attitude_actions = _string_list(raw.get("attitude_actions"))[:5]
+                behavior_actions = _string_list(raw.get("behavior_actions"))[:5]
+
+                evaluation = models.CompetencyEvaluation(
+                    competency=competency,
+                    user=current_user,
+                    period_start=period_start,
+                    period_end=period_end,
+                    scale=scale,
+                    score_value=score_value,
+                    score_label=score_label,
+                    rationale=rationale,
+                    attitude_actions=attitude_actions,
+                    behavior_actions=behavior_actions,
+                    ai_model=ai_model or "gemini",
+                    triggered_by="manual",
+                    job=job,
+                    context={"metrics": metrics},
+                )
+
+                db.add(evaluation)
+                db.flush()
+
+                criteria = list(competency.criteria) or [None]
+                for criterion in criteria:
+                    db.add(
+                        models.CompetencyEvaluationItem(
+                            evaluation=evaluation,
+                            criterion=criterion,
+                            score_value=score_value,
+                            score_label=score_label,
+                            rationale=rationale,
+                            attitude_actions=attitude_actions,
+                            behavior_actions=behavior_actions,
+                        )
+                    )
+
+                db.flush()
+    except (GeminiRateLimitError, GeminiError):
+        used_fallback = True
+        logger.warning(
+            "Gemini evaluation failed; falling back to rule-based evaluator.",
+            exc_info=True,
+        )
         evaluation = evaluator.evaluate(
             user=current_user,
             competency=competency,
@@ -308,7 +448,10 @@ def create_my_evaluation(
 
     job.status = "succeeded"
     job.completed_at = datetime.now(timezone.utc)
-    job.summary_stats = {"evaluations": 1}
+    summary_stats: dict[str, Any] = {"evaluations": 1}
+    if used_fallback:
+        summary_stats["gemini_fallback"] = True
+    job.summary_stats = summary_stats
     db.add(job)
     db.commit()
     db.refresh(evaluation)
@@ -358,6 +501,7 @@ def create_my_evaluations_batch(
 
     evaluator = CompetencyEvaluator(db)
     evaluations: list[models.CompetencyEvaluation] = []
+    used_fallback = False
 
     try:
         if gemini is None:
@@ -499,27 +643,25 @@ def create_my_evaluations_batch(
 
                 db.flush()
                 evaluations.append(evaluation)
-    except GeminiRateLimitError as exc:
-        job.status = "failed"
-        job.completed_at = datetime.now(timezone.utc)
-        job.error_message = str(exc)
-        db.add(job)
-        db.rollback()
-        headers: dict[str, str] | None = None
-        if exc.retry_after_seconds is not None:
-            headers = {"Retry-After": str(exc.retry_after_seconds)}
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=str(exc),
-            headers=headers,
-        ) from exc
-    except GeminiError as exc:
-        job.status = "failed"
-        job.completed_at = datetime.now(timezone.utc)
-        job.error_message = str(exc)
-        db.add(job)
-        db.rollback()
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except (GeminiRateLimitError, GeminiError):
+        used_fallback = True
+        logger.warning(
+            "Gemini batch evaluation failed; falling back to rule-based evaluator.",
+            exc_info=True,
+        )
+        existing_ids = {evaluation.competency_id for evaluation in evaluations}
+        for competency in competencies:
+            if competency.id in existing_ids:
+                continue
+            evaluation = evaluator.evaluate(
+                user=current_user,
+                competency=competency,
+                period_start=period_start,
+                period_end=period_end,
+                triggered_by="manual",
+                job=job,
+            )
+            evaluations.append(evaluation)
     except Exception as exc:  # pragma: no cover - defensive handling
         job.status = "failed"
         job.completed_at = datetime.now(timezone.utc)
@@ -533,7 +675,10 @@ def create_my_evaluations_batch(
 
     job.status = "succeeded"
     job.completed_at = datetime.now(timezone.utc)
-    job.summary_stats = {"evaluations": len(evaluations)}
+    summary_stats: dict[str, Any] = {"evaluations": len(evaluations)}
+    if used_fallback:
+        summary_stats["gemini_fallback"] = True
+    job.summary_stats = summary_stats
     db.add(job)
     db.commit()
 

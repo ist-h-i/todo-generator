@@ -213,14 +213,19 @@
               <h2>候補カードを生成できます</h2>
               <p>「候補カード生成」を押すと AI が候補カードを作成します。</p>
             </div>
-          } @else if (candidates().length === 0) {
-            <div class="page-state">
-              <h2>候補カードがありません</h2>
-              <p>参照データが足りない場合はカスタム入力で手入力できます。</p>
-            </div>
-          } @else {
-            <div class="flex flex-col gap-4">
-              @for (candidate of candidates(); track candidate.id; let index = $index) {
+           } @else if (candidates().length === 0) {
+             <div class="page-state">
+               <h2>候補カードがありません</h2>
+               <p>
+                 {{
+                   candidateEmptyStateMessage() ??
+                     '参照データが足りない場合はカスタム入力で手入力できます。'
+                 }}
+               </p>
+             </div>
+           } @else {
+             <div class="flex flex-col gap-4">
+               @for (candidate of candidates(); track candidate.id; let index = $index) {
                 @let isSelected = selectedCandidateIds().includes(candidate.id);
                 <article
                   class="surface-card analytics-immunity-map__candidate flex flex-col gap-4"

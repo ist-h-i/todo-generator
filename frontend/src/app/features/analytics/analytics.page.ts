@@ -126,6 +126,29 @@ export class AnalyticsPage {
   public readonly candidateSourcesLabel = computed(() =>
     this.formatSourcesLabel(this.candidateUsedSources()),
   );
+  public readonly candidateEmptyStateMessage = computed(() => {
+    if (!this.candidatesRequested() || this.candidatesLoading() || this.candidatesError()) {
+      return null;
+    }
+
+    if (this.candidates().length > 0) {
+      return null;
+    }
+
+    const sources = this.candidateUsedSources();
+    const total = sources
+      ? Object.values(sources).reduce(
+          (sum, value) => sum + (typeof value === 'number' ? value : 0),
+          0,
+        )
+      : 0;
+
+    if (total <= 0) {
+      return '参照データが不足しているため候補カードを生成できませんでした。日報・週報を記録するか、未完了のタスクカードを追加して再度お試しください。';
+    }
+
+    return '参照データを見る限りは起点の候補が見当たりませんでした（状況が順調な可能性があります）。必要に応じてカスタム入力で起点を追加してください。';
+  });
   public readonly candidatesLoading = computed(() => {
     const status = this.candidatesResource.status();
     return status === 'loading' || status === 'reloading';
@@ -503,15 +526,15 @@ export class AnalyticsPage {
     const parts: string[] = [];
     const statusReports = sources['status_reports'];
     if (typeof statusReports === 'number') {
-      parts.push(`鬮ｫ・ｴ鬲・ｼ夲ｽｽ・ｽ繝ｻ・･鬮ｯ諛ｶ・ｽ・｣郢晢ｽｻ繝ｻ・ｱ鬯ｯ・ｨ繝ｻ・ｾ郢晢ｽｻ繝ｻ・ｱ鬮ｯ諛ｶ・ｽ・｣郢晢ｽｻ繝ｻ・ｱ ${statusReports}鬮｣豈費ｽｼ螟ｲ・ｽ・ｽ繝ｻ・ｶ`);
+      parts.push(`日報・週報 ${statusReports}件`);
     }
     const cards = sources['cards'];
     if (typeof cards === 'number') {
-      parts.push(`鬩幢ｽ｢繝ｻ・ｧ郢晢ｽｻ繝ｻ・ｫ鬩幢ｽ｢隴趣ｽ｢繝ｻ・ｽ繝ｻ・ｼ鬩幢ｽ｢隴擾ｽｴ郢晢ｽｻ${cards}鬮｣豈費ｽｼ螟ｲ・ｽ・ｽ繝ｻ・ｶ`);
+      parts.push(`カード ${cards}件`);
     }
     const snapshots = sources['snapshots'];
     if (typeof snapshots === 'number' && snapshots > 0) {
-      parts.push(`鬩幢ｽ｢繝ｻ・ｧ郢晢ｽｻ繝ｻ・ｹ鬩幢ｽ｢隴惹ｼ夲ｽｽ・ｿ繝ｻ・ｫ驛｢譎｢・ｽ・｣鬩幢ｽ｢隴惹ｸ橸ｽｹ・ｲ驍ｵ・ｺ陷･謫ｾ・ｽ・ｹ隴趣ｽ｢繝ｻ・ｽ繝ｻ・ｧ鬩幢ｽ｢隴擾ｽｴ郢晢ｽｻ驛｢譎｢・ｽ・ｨ ${snapshots}鬮｣豈費ｽｼ螟ｲ・ｽ・ｽ繝ｻ・ｶ`);
+      parts.push(`スナップショット ${snapshots}件`);
     }
 
     return parts.length > 0 ? parts.join(' / ') : null;

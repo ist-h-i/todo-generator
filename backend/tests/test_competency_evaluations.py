@@ -204,3 +204,57 @@ def test_batch_evaluation_calls_external_ai_once(client: TestClient) -> None:
         assertions.assertTrue(quota_payload["used"] == 1)
     finally:
         app.dependency_overrides.pop(get_optional_gemini_client, None)
+
+
+def test_single_evaluation_calls_external_ai(client: TestClient) -> None:
+    class StubGemini:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.competency_id = ""
+
+        def generate_structured(  # type: ignore[override]
+            self,
+            *,
+            prompt: str,
+            response_schema: dict,
+            system_prompt: str | None = None,
+            model_override: str | None = None,
+        ) -> dict:
+            self.calls += 1
+            return {
+                "model": "stub-gemini",
+                "evaluations": [
+                    {
+                        "competency_id": self.competency_id,
+                        "score_value": 2,
+                        "score_label": "OK",
+                        "rationale": "stub evaluation",
+                        "attitude_actions": ["attitude 1"],
+                        "behavior_actions": ["behavior 1"],
+                    }
+                ],
+            }
+
+    stub = StubGemini()
+    app.dependency_overrides[get_optional_gemini_client] = lambda: stub
+
+    try:
+        admin_headers = _register(client, "admin-single@example.com")
+        competency_id = _create_competency(client, admin_headers)
+        stub.competency_id = competency_id
+
+        user_headers = _register(client, "member-single@example.com")
+
+        response = client.post(
+            "/users/me/evaluations",
+            json={"competency_id": competency_id},
+            headers=user_headers,
+        )
+        assertions.assertTrue(response.status_code == 200, response.text)
+        evaluation = response.json()
+        assertions.assertTrue(evaluation["competency_id"] == competency_id)
+        assertions.assertTrue(evaluation["ai_model"] == "stub-gemini")
+        assertions.assertTrue(evaluation["items"] != [])
+        assertions.assertTrue(stub.calls == 1)
+    finally:
+        app.dependency_overrides.pop(get_optional_gemini_client, None)

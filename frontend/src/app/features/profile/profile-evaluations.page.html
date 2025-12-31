@@ -18,11 +18,11 @@
         <p class="evaluations-page__quota-warning">{{ message }}</p>
       } @else {
         <div class="evaluations-page__quota-values">
-          <span class="evaluations-page__quota-value">{{ limitLabel(quota()) }}</span>
-          <span class="evaluations-page__quota-separator">／</span>
           <span class="evaluations-page__quota-value evaluations-page__quota-value--remaining">
             {{ remainingLabel(quota()) }}
           </span>
+          <span class="evaluations-page__quota-separator">／</span>
+          <span class="evaluations-page__quota-value">{{ limitLabel(quota()) }}</span>
         </div>
         <p class="evaluations-page__quota-meta">実行済み {{ quota()?.used ?? 0 }} 回</p>
 

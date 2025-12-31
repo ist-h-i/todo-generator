@@ -611,17 +611,30 @@ def generate_immunity_map_candidates(
         candidates_schema["maxItems"] = payload.max_candidates
 
     prompt_parts = [
-        "Generate candidate A items for an Immunity Map.",
-        f"Return between 1 and {payload.max_candidates} candidates.",
+        "免疫マップ（Immunity Map）の起点A（レベル1）の候補を生成してください。",
+        f"原則として 1〜{payload.max_candidates} 件の候補を返してください。",
+        "ただし、材料が不足している場合や、遅延/未完了/停滞/葛藤の兆候が見当たらず順調と思われる場合は candidates=[] を返して構いません。",
+        "",
+        "目的:",
+        "- 直近の日報/週報(status_reports)と、未完了/遅延のタスク(notable_cards)を主な根拠として、本人が抱えやすい「すべき/できない/したい」を仮説として提案する。",
+        "",
+        "作り方（重要）:",
+        "- status_reports[].excerpt から、繰り返しの困りごと・停滞・先延ばし・葛藤・プレッシャー・迷いを拾って候補にする。",
+        "- notable_cards[] から is_overdue=true や is_completed=false のカードを優先し、「なぜ進まないのか」を内面の文（仮説）に変換する。",
+        "- card_metrics は全体の状況把握に使う（overdue や remaining の多寡など）。",
+        "",
+        "文章の要件:",
+        "- a_item.text は本人の一人称で短く自然な日本語（20〜40字程度）。",
+        "- 例: 「◯◯を期限までに終えるべきだ」「◯◯に着手できない」「◯◯を落ち着いて進めたい」",
+        "",
+        "出力ルール:",
+        "- a_item.kind は should/cannot/want のいずれか。",
+        "- rationale は仮説として書く（断定・診断しない）。",
+        "- evidence は任意だが、可能な範囲で context の id / created_at / updated_at / due_date / excerpt などを使って根拠を示す。",
+        "- 根拠が弱い場合は confidence を低めにし、questions に確認したいことを書く。",
         "",
         "Context JSON:",
         context_bundle.prompt,
-        "",
-        "Output rules:",
-        "- Provide a_item {kind, text} with short, user-friendly Japanese text.",
-        "- Provide rationale as a hypothesis, not a diagnosis.",
-        "- Use evidence only from the context; avoid fabrication.",
-        "- If evidence is weak, keep confidence low and add questions.",
     ]
     prompt = "\n".join(prompt_parts).strip()
 
