@@ -34,6 +34,10 @@ export class AdminApi {
     return this.http.patch<Competency>(buildApiUrl(`/admin/competencies/${id}`), payload);
   }
 
+  public deleteCompetency(id: string): Observable<void> {
+    return this.http.delete<void>(buildApiUrl(`/admin/competencies/${id}`));
+  }
+
   public triggerEvaluation(
     competencyId: string,
     payload: EvaluationTriggerRequest,

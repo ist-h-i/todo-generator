@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -15,6 +15,11 @@ from .gemini import (
 )
 from .status_report_content import StatusReportContentService
 from .status_report_presenter import StatusReportPresenter
+from ..utils.quotas import (
+    AI_QUOTA_STATUS_REPORT,
+    get_status_report_daily_limit,
+    reserve_ai_quota,
+)
 
 _MAX_GENERATED_CARDS = 5
 
@@ -181,6 +186,21 @@ class StatusReportService:
                 detail=f"Report in status '{report.status}' cannot be submitted.",
             )
 
+        today = date.today()
+        limit = get_status_report_daily_limit(self.db, report.owner_id)
+        quota_reserved = reserve_ai_quota(
+            self.db,
+            owner_id=report.owner_id,
+            quota_day=today,
+            limit=limit,
+            quota_key=AI_QUOTA_STATUS_REPORT,
+        )
+        if not quota_reserved:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Daily status report analysis limit of {limit} reached.",
+            )
+
         report.status = schemas.StatusReportStatus.PROCESSING.value
         report.analysis_started_at = datetime.now(timezone.utc)
         report.analysis_model = None
@@ -193,6 +213,7 @@ class StatusReportService:
         analysis_text = self.content_service.compose_analysis_prompt(report, sections)
         proposals: list[schemas.AnalysisCard] = []
         error_message: str | None = None
+        analysis_warnings: list[str] = []
 
         workspace_options = build_workspace_analysis_options(self.db, owner_id=report.owner_id)
 
@@ -206,12 +227,19 @@ class StatusReportService:
         else:
             proposals = list(response.proposals or [])
             report.analysis_model = response.model
+            analysis_warnings = [str(item) for item in (response.warnings or []) if isinstance(item, str) and item]
 
         if error_message:
             report.status = schemas.StatusReportStatus.FAILED.value
             report.analysis_completed_at = datetime.now(timezone.utc)
             report.failure_reason = error_message
-            self._update_processing_meta(report, last_error=error_message)
+            self._update_processing_meta(
+                report,
+                last_error=error_message,
+                ai_warnings=analysis_warnings,
+                ai_requested_model=getattr(self.analyzer, "requested_model", None),
+                ai_used_model=report.analysis_model,
+            )
             self._record_event(
                 report,
                 schemas.StatusReportEventType.ANALYSIS_FAILED,
@@ -227,6 +255,9 @@ class StatusReportService:
             proposals=[proposal.model_dump() for proposal in stored_proposals],
             created_card_ids=[],
             last_error=None,
+            ai_warnings=analysis_warnings,
+            ai_requested_model=getattr(self.analyzer, "requested_model", None),
+            ai_used_model=report.analysis_model,
         )
         report.status = schemas.StatusReportStatus.COMPLETED.value
         report.analysis_completed_at = datetime.now(timezone.utc)

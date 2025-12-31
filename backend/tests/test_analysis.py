@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from unittest import TestCase
 
 import pytest
@@ -291,6 +292,7 @@ def test_immunity_map_candidates_generates_candidates(client: TestClient) -> Non
             owner_id=user.id,
             title="Review weekly report template",
             summary="Needs a tighter checklist.",
+            due_date=datetime.now() - timedelta(days=1),
         )
         db.add(report)
         db.add(card)
@@ -372,7 +374,10 @@ def test_immunity_map_generates_mermaid(client: TestClient) -> None:
             assertions.assertIn("Immunity Map", prompt)
             return {
                 "model": "gemini-pro-test",
-                "summary": "阻害要因と深層心理は仮説です。",
+                "summary": {
+                    "current_analysis": "締め切りが近い状況では、作業が細切れになり集中が途切れやすい構造が見える。",
+                    "one_line_advice": "まず今週やることを3つに絞り、1つだけを先に終わらせましょう。",
+                },
                 "nodes": [
                     {"id": "B1", "group": "B", "label": "作業が細切れで集中できない"},
                     {"id": "C1", "group": "C", "label": "安定して成果を出したい"},
@@ -429,6 +434,9 @@ def test_immunity_map_generates_mermaid(client: TestClient) -> None:
     assertions.assertTrue(any(node["id"] == "A1" for node in data["payload"]["nodes"]))
     assertions.assertTrue(any(node["id"] == "B1" for node in data["payload"]["nodes"]))
     assertions.assertTrue(all(node["id"] != "X1" for node in data["payload"]["nodes"]))
+    assertions.assertTrue(data["summary"])
+    assertions.assertTrue(data["summary"]["current_analysis"])
+    assertions.assertTrue(data["summary"]["one_line_advice"])
     assertions.assertTrue(data["readout_cards"])
     assertions.assertEqual(data["readout_cards"][0]["kind"], "observation")
 

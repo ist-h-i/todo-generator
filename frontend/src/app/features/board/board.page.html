@@ -553,17 +553,12 @@
                     </label>
                     <label class="subtask-editor__field">
                       <span class="subtask-editor__field-label">ステータス</span>
-                      <select
-                        class="subtask-editor__input app-select"
-                        [value]="task.status"
-                        (change)="
-                          changeSubtaskStatus(active.id, task.id, $any($event.target).value)
-                        "
-                      >
-                        @for (status of subtaskStatusOptions; track status.id) {
-                          <option [value]="status.id">{{ status.title }}</option>
-                        }
-                      </select>
+                      <shared-ui-select
+                        [name]="'subtask-status-' + task.id"
+                        [options]="subtaskStatusSelectOptions"
+                        [ngModel]="task.status"
+                        (ngModelChange)="changeSubtaskStatus(active.id, task.id, $event)"
+                      ></shared-ui-select>
                     </label>
                     <label class="subtask-editor__field">
                       <span class="subtask-editor__field-label">担当者</span>
@@ -718,15 +713,12 @@
             </label>
             <label class="subtask-editor__field">
               <span class="subtask-editor__field-label">ステータス</span>
-              <select
-                class="subtask-editor__input app-select"
-                [value]="newSubtaskForm.controls.status.value()"
-                (change)="newSubtaskForm.controls.status.setValue($any($event.target).value)"
-              >
-                @for (status of subtaskStatusOptions; track status.id) {
-                  <option [value]="status.id">{{ status.title }}</option>
-                }
-              </select>
+              <shared-ui-select
+                name="new-subtask-status"
+                [options]="subtaskStatusSelectOptions"
+                [ngModel]="newSubtaskForm.controls.status.value()"
+                (ngModelChange)="newSubtaskForm.controls.status.setValue($event)"
+              ></shared-ui-select>
             </label>
             <label class="subtask-editor__field">
               <span class="subtask-editor__field-label">期限</span>

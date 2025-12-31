@@ -69,6 +69,7 @@ export interface CardCreateRequest {
   dependencies?: readonly string[];
   ai_confidence?: number | null;
   ai_notes?: string | null;
+  generated_by?: string | null;
   custom_fields?: Readonly<Record<string, unknown>>;
   label_ids?: readonly string[];
   error_category_id?: string | null;

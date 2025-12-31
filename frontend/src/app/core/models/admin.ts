@@ -99,6 +99,7 @@ export interface CompetencyEvaluation {
   attitude_actions: string[];
   behavior_actions: string[];
   ai_model?: string | null;
+  warnings?: string[];
   triggered_by: string;
   created_at: IsoDateString;
   updated_at: IsoDateString;
@@ -120,6 +121,12 @@ export interface SelfEvaluationRequest {
   period_end?: IsoDateString | null;
 }
 
+export interface SelfEvaluationBatchRequest {
+  competency_ids: string[];
+  period_start?: IsoDateString | null;
+  period_end?: IsoDateString | null;
+}
+
 export interface EvaluationQuotaStatus {
   daily_limit: number;
   used: number;
@@ -133,6 +140,12 @@ export interface AdminUser {
   is_active: boolean;
   card_daily_limit: number | null;
   evaluation_daily_limit: number | null;
+  analysis_daily_limit: number | null;
+  status_report_daily_limit: number | null;
+  immunity_map_daily_limit: number | null;
+  immunity_map_candidate_daily_limit: number | null;
+  appeal_daily_limit: number | null;
+  auto_card_daily_limit: number | null;
   created_at: IsoDateString;
   updated_at: IsoDateString;
 }
@@ -142,6 +155,12 @@ export interface AdminUserUpdate {
   is_active?: boolean;
   card_daily_limit?: number | null;
   evaluation_daily_limit?: number | null;
+  analysis_daily_limit?: number | null;
+  status_report_daily_limit?: number | null;
+  immunity_map_daily_limit?: number | null;
+  immunity_map_candidate_daily_limit?: number | null;
+  appeal_daily_limit?: number | null;
+  auto_card_daily_limit?: number | null;
 }
 
 export interface ApiCredential {
@@ -162,9 +181,21 @@ export interface ApiCredentialUpdate {
 export interface QuotaDefaults {
   card_daily_limit: number;
   evaluation_daily_limit: number;
+  analysis_daily_limit: number;
+  status_report_daily_limit: number;
+  immunity_map_daily_limit: number;
+  immunity_map_candidate_daily_limit: number;
+  appeal_daily_limit: number;
+  auto_card_daily_limit: number;
 }
 
 export interface QuotaDefaultsUpdate {
   card_daily_limit: number;
   evaluation_daily_limit: number;
+  analysis_daily_limit: number;
+  status_report_daily_limit: number;
+  immunity_map_daily_limit: number;
+  immunity_map_candidate_daily_limit: number;
+  appeal_daily_limit: number;
+  auto_card_daily_limit: number;
 }

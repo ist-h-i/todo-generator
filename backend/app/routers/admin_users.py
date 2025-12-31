@@ -9,8 +9,14 @@ from .. import models, schemas
 from ..database import get_db
 from ..utils.dependencies import require_admin
 from ..utils.quotas import (
+    get_analysis_daily_limit,
+    get_appeal_daily_limit,
+    get_auto_card_daily_limit,
     get_card_daily_limit,
     get_evaluation_daily_limit,
+    get_immunity_map_candidate_daily_limit,
+    get_immunity_map_daily_limit,
+    get_status_report_daily_limit,
     get_user_quota,
     upsert_user_quota,
 )
@@ -35,6 +41,12 @@ def list_users(
                 is_active=user.is_active,
                 card_daily_limit=get_card_daily_limit(db, user.id),
                 evaluation_daily_limit=get_evaluation_daily_limit(db, user.id),
+                analysis_daily_limit=get_analysis_daily_limit(db, user.id),
+                status_report_daily_limit=get_status_report_daily_limit(db, user.id),
+                immunity_map_daily_limit=get_immunity_map_daily_limit(db, user.id),
+                immunity_map_candidate_daily_limit=get_immunity_map_candidate_daily_limit(db, user.id),
+                appeal_daily_limit=get_appeal_daily_limit(db, user.id),
+                auto_card_daily_limit=get_auto_card_daily_limit(db, user.id),
                 created_at=user.created_at,
                 updated_at=user.updated_at,
             )
@@ -60,23 +72,35 @@ def update_user(
     if "is_active" in data:
         user.is_active = bool(data["is_active"])
 
-    if "card_daily_limit" in data or "evaluation_daily_limit" in data:
+    quota_fields = {
+        "card_daily_limit": "card_limit",
+        "evaluation_daily_limit": "evaluation_limit",
+        "analysis_daily_limit": "analysis_limit",
+        "status_report_daily_limit": "status_report_limit",
+        "immunity_map_daily_limit": "immunity_map_limit",
+        "immunity_map_candidate_daily_limit": "immunity_map_candidate_limit",
+        "appeal_daily_limit": "appeal_limit",
+        "auto_card_daily_limit": "auto_card_limit",
+    }
+    if any(field in data for field in quota_fields):
         override = get_user_quota(db, user.id)
-        card_limit = (
-            data.get("card_daily_limit")
-            if "card_daily_limit" in data
-            else (override.card_daily_limit if override else None)
-        )
-        evaluation_limit = (
-            data.get("evaluation_daily_limit")
-            if "evaluation_daily_limit" in data
-            else (override.evaluation_daily_limit if override else None)
-        )
+        resolved: dict[str, int | None] = {}
+        for field, param in quota_fields.items():
+            if field in data:
+                resolved[param] = data.get(field)
+            else:
+                resolved[param] = getattr(override, field, None) if override else None
         upsert_user_quota(
             db,
             user_id=user.id,
-            card_limit=card_limit,
-            evaluation_limit=evaluation_limit,
+            card_limit=resolved["card_limit"],
+            evaluation_limit=resolved["evaluation_limit"],
+            analysis_limit=resolved["analysis_limit"],
+            status_report_limit=resolved["status_report_limit"],
+            immunity_map_limit=resolved["immunity_map_limit"],
+            immunity_map_candidate_limit=resolved["immunity_map_candidate_limit"],
+            appeal_limit=resolved["appeal_limit"],
+            auto_card_limit=resolved["auto_card_limit"],
             updated_by=admin_user.id,
         )
 
@@ -91,6 +115,12 @@ def update_user(
         is_active=user.is_active,
         card_daily_limit=get_card_daily_limit(db, user.id),
         evaluation_daily_limit=get_evaluation_daily_limit(db, user.id),
+        analysis_daily_limit=get_analysis_daily_limit(db, user.id),
+        status_report_daily_limit=get_status_report_daily_limit(db, user.id),
+        immunity_map_daily_limit=get_immunity_map_daily_limit(db, user.id),
+        immunity_map_candidate_daily_limit=get_immunity_map_candidate_daily_limit(db, user.id),
+        appeal_daily_limit=get_appeal_daily_limit(db, user.id),
+        auto_card_daily_limit=get_auto_card_daily_limit(db, user.id),
         created_at=user.created_at,
         updated_at=user.updated_at,
     )

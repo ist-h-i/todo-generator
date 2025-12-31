@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from logging.handlers import TimedRotatingFileHandler
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -47,28 +48,36 @@ LOG_FILE = LOG_DIR / "backend.log"
 def _configure_logging() -> None:
     logging.basicConfig(level=logging.INFO)
 
+    if os.getenv("VERCEL"):
+        # Vercel captures stdout/stderr automatically; avoid file logging on a read-only filesystem.
+        return
+
     root_logger = logging.getLogger()
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    log_path = LOG_FILE.resolve()
 
-    for handler in root_logger.handlers:
-        if isinstance(handler, TimedRotatingFileHandler):
-            handler_path = Path(getattr(handler, "baseFilename", "")).resolve()
-            if handler_path == log_path:
-                return
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        log_path = LOG_FILE.resolve()
 
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
-    file_handler = TimedRotatingFileHandler(
-        log_path,
-        when="D",
-        interval=1,
-        backupCount=3,
-        encoding="utf-8",
-    )
-    file_handler.setFormatter(formatter)
-    root_logger.addHandler(file_handler)
+        for handler in root_logger.handlers:
+            if isinstance(handler, TimedRotatingFileHandler):
+                handler_path = Path(getattr(handler, "baseFilename", "")).resolve()
+                if handler_path == log_path:
+                    return
+
+        formatter = logging.Formatter(
+            "%(asctime)s %(levelname)s %(name)s %(message)s",
+        )
+        file_handler = TimedRotatingFileHandler(
+            log_path,
+            when="D",
+            interval=1,
+            backupCount=3,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
+    except OSError:
+        root_logger.warning("File logging disabled (cannot write to %s).", LOG_FILE, exc_info=True)
 
 
 _configure_logging()
@@ -107,7 +116,11 @@ def run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    run_migrations()
+    app.state.startup_error = None
+    try:
+        run_migrations()
+    except Exception as exc:
+        app.state.startup_error = str(exc)
     # Log route information for 405 investigation
     try:
         for r in app.routes:
@@ -127,10 +140,12 @@ app = FastAPI(
     swagger_ui_favicon_url="/favicon.svg",
 )
 
+_cors_allow_credentials = "*" not in settings.allowed_origins
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
-    allow_credentials=True,
+    allow_credentials=_cors_allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -139,12 +154,14 @@ app.add_middleware(
 def _apply_cors(response: Response, request: Request) -> Response:
     origin = request.headers.get("origin")
     if "*" in settings.allowed_origins:
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Vary"] = "Origin"
-        response.headers["Access-Control-Allow-Origin"] = origin or "*"
-    elif origin and origin.rstrip("/") in settings.allowed_origins:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+
+    if origin and origin.rstrip("/") in settings.allowed_origins:
         response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
+        if _cors_allow_credentials:
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Vary"] = "Origin"
     return response
 
 
@@ -200,7 +217,14 @@ async def security_headers_middleware(request: Request, call_next):
     if request.method == "OPTIONS":
         return await call_next(request)
 
-    response = await call_next(request)
+    startup_error = getattr(request.app.state, "startup_error", None)
+    if startup_error and request.url.path not in {"/health", "/docs", "/openapi.json", "/redoc", "/favicon.svg", "/favicon.ico"}:
+        resp = JSONResponse(status_code=503, content={"detail": "Service unavailable"})
+        resp = _apply_cors(resp, request)
+        response = resp
+    else:
+        response = await call_next(request)
+
     # Minimal, broadly safe security headers for API responses.
     headers = {
         "Strict-Transport-Security": "max-age=15552000; includeSubDomains",
@@ -266,6 +290,9 @@ app.include_router(workspace_templates.router)
 app.include_router(reports.router)
 
 
-@app.get("/health", tags=["health"])
-def health() -> dict[str, str]:
+@app.get("/health", tags=["health"], response_model=None)
+def health(request: Request):
+    if getattr(request.app.state, "startup_error", None):
+        resp = JSONResponse(status_code=503, content={"status": "degraded"})
+        return _apply_cors(resp, request)
     return {"status": "ok"}

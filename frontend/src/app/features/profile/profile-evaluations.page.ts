@@ -9,11 +9,18 @@ import {
 import { CommonModule } from '@angular/common';
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
+import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CompetencyApi } from '@core/api/competency-api';
-import { CompetencyEvaluation, EvaluationQuotaStatus, SelfEvaluationRequest } from '@core/models';
+import {
+  CompetencyEvaluation,
+  CompetencySummary,
+  EvaluationQuotaStatus,
+  SelfEvaluationBatchRequest,
+  SelfEvaluationRequest,
+} from '@core/models';
 
 type NextActionCategory = 'attitude' | 'behavior';
 
@@ -43,7 +50,7 @@ const DEFAULT_HISTORY_LIMIT = 12;
  */
 @Component({
   selector: 'app-profile-evaluations-page',
-  imports: [CommonModule, PageLayout, LocalDateTimePipe],
+  imports: [CommonModule, PageLayout, LocalDateTimePipe, AiMark],
   templateUrl: './profile-evaluations.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -61,6 +68,10 @@ export class ProfileEvaluationsPage {
   public readonly runningEvaluation = signal<boolean>(false);
   public readonly actionError = signal<string | null>(null);
   public readonly feedback = signal<string | null>(null);
+  public readonly competencies = signal<CompetencySummary[]>([]);
+  public readonly competenciesLoading = signal<boolean>(false);
+  public readonly competenciesError = signal<string | null>(null);
+  public readonly selectedCompetencyIds = signal<string[]>([]);
 
   public readonly latestEvaluation = computed<CompetencyEvaluation | null>(() => {
     const [latest] = this.evaluations();
@@ -121,6 +132,15 @@ export class ProfileEvaluationsPage {
     return remaining <= 0;
   });
 
+  public readonly remainingCount = computed<number | null>(() => {
+    const quota = this.quota();
+    if (!quota || quota.daily_limit <= 0) {
+      return null;
+    }
+
+    return quota.remaining ?? Math.max(quota.daily_limit - quota.used, 0);
+  });
+
   public readonly canRunEvaluation = computed<boolean>(() => {
     if (this.quotaLoading()) {
       return false;
@@ -129,14 +149,32 @@ export class ProfileEvaluationsPage {
     return !this.limitReached();
   });
 
+  public readonly canRunBatchEvaluation = computed<boolean>(() => {
+    if (this.quotaLoading()) {
+      return false;
+    }
+
+    if (this.limitReached()) {
+      return false;
+    }
+
+    if (this.selectedCompetencyIds().length === 0) {
+      return false;
+    }
+
+    return true;
+  });
+
   public constructor() {
     this.loadEvaluations();
     this.loadQuota();
+    this.loadCompetencies();
   }
 
   public refresh(): void {
     this.loadEvaluations();
     this.loadQuota();
+    this.loadCompetencies();
   }
 
   public scorePercent(evaluation: CompetencyEvaluation | null): number {
@@ -225,6 +263,74 @@ export class ProfileEvaluationsPage {
       });
   }
 
+  public runBatchEvaluation(): void {
+    if (this.runningEvaluation() || !this.canRunBatchEvaluation()) {
+      return;
+    }
+
+    this.runningEvaluation.set(true);
+    this.actionError.set(null);
+    this.feedback.set(null);
+
+    const payload: SelfEvaluationBatchRequest = {
+      competency_ids: this.selectedCompetencyIds(),
+    };
+
+    this.api
+      .runMyEvaluationsBatch(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (evaluations) => {
+          this.runningEvaluation.set(false);
+          this.error.set(null);
+          this.evaluations.update((list) => {
+            const byId = new Map<string, CompetencyEvaluation>();
+            [...evaluations, ...list].forEach((item) => byId.set(item.id, item));
+            const merged = Array.from(byId.values()).sort((a, b) =>
+              b.created_at.localeCompare(a.created_at),
+            );
+            return merged.slice(0, DEFAULT_HISTORY_LIMIT);
+          });
+          const count = evaluations.length;
+          this.showFeedback(
+            count === 1 ? '評価を実行しました。' : `評価を実行しました。（${count} 件）`,
+          );
+          this.loadQuota();
+        },
+        error: (error: HttpErrorResponse) => {
+          this.runningEvaluation.set(false);
+          const message =
+            typeof error.error === 'object' && error.error?.detail
+              ? String(error.error.detail)
+              : '評価の実行に失敗しました。時間をおいて再度お試しください。';
+          this.actionError.set(message);
+          if (error.status === 429 || error.status === 401) {
+            this.loadQuota();
+          }
+        },
+      });
+  }
+
+  public toggleCompetencySelection(competencyId: string, checked: boolean): void {
+    this.selectedCompetencyIds.update((selected) => {
+      const next = new Set(selected);
+      if (checked) {
+        next.add(competencyId);
+      } else {
+        next.delete(competencyId);
+      }
+      return Array.from(next);
+    });
+  }
+
+  public selectAllCompetencies(): void {
+    this.selectedCompetencyIds.set(this.competencies().map((competency) => competency.id));
+  }
+
+  public clearCompetencySelection(): void {
+    this.selectedCompetencyIds.set([]);
+  }
+
   public exportLatestAsJson(): void {
     const evaluation = this.latestEvaluation();
     if (!evaluation || typeof document === 'undefined') {
@@ -300,6 +406,35 @@ export class ProfileEvaluationsPage {
       });
   }
 
+  private loadCompetencies(): void {
+    this.competenciesLoading.set(true);
+    this.competenciesError.set(null);
+
+    this.api
+      .getMyCompetencies()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (competencies) => {
+          this.competencies.set(competencies);
+          this.competenciesLoading.set(false);
+
+          const allowed = new Set(competencies.map((competency) => competency.id));
+          this.selectedCompetencyIds.update((selected) =>
+            selected.filter((competencyId) => allowed.has(competencyId)),
+          );
+        },
+        error: (error: HttpErrorResponse) => {
+          this.competenciesLoading.set(false);
+          this.competencies.set([]);
+          const message =
+            typeof error.error === 'object' && error.error?.detail
+              ? String(error.error.detail)
+              : 'コンピテンシー一覧の取得に失敗しました。時間をおいて再度お試しください。';
+          this.competenciesError.set(message);
+        },
+      });
+  }
+
   private showFeedback(message: string): void {
     this.feedback.set(message);
     if (typeof window !== 'undefined') {
@@ -321,4 +456,5 @@ export class ProfileEvaluationsPage {
       .replace(/[\\/:*?"<>|]/g, '-')
       .replace(/\s+/g, '-');
   }
+
 }

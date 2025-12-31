@@ -86,7 +86,7 @@ describe('ImmunityMapGateway', () => {
       model: null,
       payload: { nodes: [], edges: [] },
       mermaid: 'flowchart TD',
-      summary: null,
+      summary: { current_analysis: '現状分析', one_line_advice: 'ひとことアドバイス' },
       readout_cards: [],
       token_usage: { total_tokens: 20 },
     } satisfies ImmunityMapResponse;

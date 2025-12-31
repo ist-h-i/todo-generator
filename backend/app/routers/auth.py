@@ -34,6 +34,8 @@ def _resolve_frontend_login_url(request: Request) -> str:
         return _LOCAL_FRONTEND_LOGIN_URL
 
     for origin in settings.allowed_origins:
+        if origin == "*":
+            continue
         if origin.startswith(("http://localhost", "http://127.")):
             continue
         return f"{origin}/login"

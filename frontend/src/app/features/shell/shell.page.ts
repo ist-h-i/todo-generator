@@ -19,6 +19,7 @@ import { HelpDialog } from '@features/shell/ui/help-dialog/help-dialog';
 import { HoverMessageStack } from '@features/shell/ui/hover-messages/hover-message-stack';
 import { HoverMessages } from '@features/shell/data/hover-messages';
 import { getDisplayName } from '@shared/utils/display-name';
+import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 
 function extractRoleLabel(role: string): string {
   const separator = ' / ';
@@ -49,6 +50,7 @@ type ThemePreference = 'light' | 'dark' | 'system';
     HelpDialog,
     ProfileDialog,
     HoverMessageStack,
+    AiMark,
   ],
   templateUrl: './shell.page.html',
   styleUrl: './shell.page.scss',
@@ -146,15 +148,16 @@ export class ShellPage {
   public readonly navigationLinks = computed(() => {
     const links = [
       { path: '/board', label: 'ボード' },
-      { path: '/input', label: 'タスク起票' },
-      { path: '/reports', label: '日報・週報解析' },
-      { path: '/analytics', label: '分析' },
-      { path: '/profile/evaluations', label: 'コンピテンシー' },
+      { path: '/input', label: 'タスク起票', ai: true },
+      { path: '/reports', label: '日報・週報解析', ai: true },
+      { path: '/analytics', label: '分析', ai: true },
+      { path: '/profile/evaluations', label: 'コンピテンシー', ai: true },
+      { path: '/achievement-output', label: '実績出力', ai: true },
       { path: '/settings', label: '設定' },
     ];
 
     if (this.isAdmin()) {
-      links.push({ path: '/admin', label: '管理' });
+      links.push({ path: '/admin', label: '管理', ai: true });
     }
 
     return links;

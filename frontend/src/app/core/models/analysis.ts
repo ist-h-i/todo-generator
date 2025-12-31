@@ -26,5 +26,6 @@ export interface AnalysisProposal {
  */
 export interface AnalysisResult {
   readonly model: string | null;
+  readonly warnings: readonly string[];
   readonly proposals: readonly AnalysisProposal[];
 }

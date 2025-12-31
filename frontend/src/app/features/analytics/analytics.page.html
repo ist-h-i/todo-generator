@@ -5,12 +5,16 @@
   description="進捗・ステータス・ラベルの内訳をまとめて確認できます。"
   headingLevel="h1"
 >
-  <section class="page-section analytics-page__intro">
-    <div class="analytics-page__intro-content">
-      <p>日々のタスク実行状況を俯瞰して、次の一手を決めやすくします。</p>
-    </div>
-    <div class="analytics-page__intro-actions">
-      <a routerLink="/profile/evaluations" class="button button--secondary button--pill">
+  <section class="page-section analytics-overview">
+    <div class="analytics-overview__intro">
+      <p class="analytics-overview__hint">
+        日々のタスク実行状況を俯瞰して、次の一手を決めやすくします。
+      </p>
+      <a
+        appPageHeaderActions
+        routerLink="/profile/evaluations"
+        class="analytics-overview__action button button--secondary button--pill focus-ring"
+      >
         最新の評価を確認
         <svg
           aria-hidden="true"
@@ -24,109 +28,130 @@
         </svg>
       </a>
     </div>
+
+    <div
+      class="analytics-overview__layout"
+      [attr.data-has-summary]="summarySignal() ? 'true' : 'false'"
+    >
+      @if (summarySignal(); as summary) {
+        <dl class="analytics-overview__stats" aria-label="サマリーメトリクス">
+          <div class="analytics-overview__stat">
+            <dt class="analytics-overview__stat-label">進捗率</dt>
+            <dd class="analytics-overview__stat-body">
+              <span class="analytics-overview__stat-value">{{ summary.progressRatio }}%</span>
+              <div
+                class="analytics-overview__progress"
+                role="progressbar"
+                [attr.aria-valuenow]="summary.progressRatio"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div
+                  class="analytics-overview__progress-fill"
+                  [style.width.%]="summary.progressRatio"
+                ></div>
+              </div>
+              <span class="analytics-overview__stat-note">
+                完了カード {{ summary.doneCards }}/{{ summary.totalCards }}
+              </span>
+            </dd>
+          </div>
+
+          <div class="analytics-overview__stat">
+            <dt class="analytics-overview__stat-label">カード総数</dt>
+            <dd class="analytics-overview__stat-body">
+              <span class="analytics-overview__stat-value">{{ summary.totalCards }}</span>
+              <span class="analytics-overview__stat-note">
+                利用中のラベル {{ summary.activeLabels }}
+              </span>
+            </dd>
+          </div>
+
+          <div class="analytics-overview__stat">
+            <dt class="analytics-overview__stat-label">完了ポイント</dt>
+            <dd class="analytics-overview__stat-body">
+              <span class="analytics-overview__stat-value">{{ pointSummary().done }}</span>
+              <span class="analytics-overview__stat-note">残り {{ pointSummary().remaining }}</span>
+            </dd>
+          </div>
+
+          <div class="analytics-overview__stat">
+            <dt class="analytics-overview__stat-label">総ポイント</dt>
+            <dd class="analytics-overview__stat-body">
+              <span class="analytics-overview__stat-value">{{ pointSummary().total }}</span>
+              <span class="analytics-overview__stat-note">負荷の目安として活用できます</span>
+            </dd>
+          </div>
+        </dl>
+      }
+
+      <div class="analytics-overview__breakdowns">
+        <section class="analytics-overview__breakdown">
+          <header class="analytics-overview__breakdown-header">
+            <h3 class="analytics-overview__breakdown-title">ステータス</h3>
+            <p class="analytics-overview__breakdown-meta">
+              {{ statusBreakdown().length }} ステージ
+            </p>
+          </header>
+          <ul class="analytics-breakdown__list" aria-label="ステータス別の件数">
+            @for (item of statusBreakdown(); track item.id) {
+              <li class="analytics-breakdown__item">
+                <span
+                  class="analytics-breakdown__swatch"
+                  [style.backgroundColor]="item.color"
+                ></span>
+                <span class="analytics-breakdown__label">{{ item.name }}</span>
+                <span class="analytics-breakdown__value">{{ item.total }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <section class="analytics-overview__breakdown">
+          <header class="analytics-overview__breakdown-header">
+            <h3 class="analytics-overview__breakdown-title">ラベル</h3>
+            <p class="analytics-overview__breakdown-meta">{{ labelBreakdown().length }} ラベル</p>
+          </header>
+          <ul class="analytics-breakdown__list" aria-label="ラベル別の件数">
+            @for (item of labelBreakdown(); track item.id) {
+              <li class="analytics-breakdown__item">
+                <span
+                  class="analytics-breakdown__swatch"
+                  [style.backgroundColor]="item.color"
+                ></span>
+                <span class="analytics-breakdown__label">{{ item.name }}</span>
+                <span class="analytics-breakdown__value">{{ item.total }}</span>
+              </li>
+            }
+          </ul>
+        </section>
+      </div>
+    </div>
   </section>
-
-  @if (summarySignal(); as summary) {
-    <section class="page-section analytics-summary">
-      <ul class="page-list analytics-summary__metrics">
-        <li class="page-list__item analytics-summary__metric">
-          <p class="analytics-summary__eyebrow">進捗率</p>
-          <p class="analytics-summary__value">{{ summary.progressRatio }}%</p>
-          <p class="analytics-summary__note">
-            完了カード {{ summary.doneCards }}/{{ summary.totalCards }}
-          </p>
-        </li>
-        <li class="page-list__item analytics-summary__metric">
-          <p class="analytics-summary__eyebrow">カード総数</p>
-          <p class="analytics-summary__value">{{ summary.totalCards }}</p>
-          <p class="analytics-summary__note">利用中のラベル {{ summary.activeLabels }}</p>
-        </li>
-        <li class="page-list__item analytics-summary__metric">
-          <p class="analytics-summary__eyebrow">完了ポイント</p>
-          <p class="analytics-summary__value">{{ pointSummary().done }}</p>
-          <p class="analytics-summary__note">残り {{ pointSummary().remaining }}</p>
-        </li>
-        <li class="page-list__item analytics-summary__metric">
-          <p class="analytics-summary__eyebrow">総ポイント</p>
-          <p class="analytics-summary__value">{{ pointSummary().total }}</p>
-          <p class="analytics-summary__note">負荷の目安として活用できます</p>
-        </li>
-      </ul>
-    </section>
-  }
-
-  <div class="grid gap-4 lg:grid-cols-2">
-    <section class="page-section analytics-breakdown">
-      <header class="page-section__header">
-        <h3 class="page-section__title">ステータス別の件数</h3>
-        <span class="page-section__subtitle">{{ statusBreakdown().length }} ステージ</span>
-      </header>
-      <ul class="page-list analytics-breakdown__list">
-        @for (item of statusBreakdown(); track item.id) {
-          <li class="page-list__item analytics-breakdown__item">
-            <span class="analytics-breakdown__swatch" [style.backgroundColor]="item.color"></span>
-            <span class="analytics-breakdown__label">{{ item.name }}</span>
-            <span class="analytics-breakdown__value">{{ item.total }}</span>
-          </li>
-        }
-      </ul>
-    </section>
-
-    <section class="page-section analytics-breakdown">
-      <header class="page-section__header">
-        <h3 class="page-section__title">ラベル別の件数</h3>
-        <span class="page-section__subtitle">{{ labelBreakdown().length }} ラベル</span>
-      </header>
-      <ul class="page-list analytics-breakdown__list">
-        @for (item of labelBreakdown(); track item.id) {
-          <li class="page-list__item analytics-breakdown__item">
-            <span class="analytics-breakdown__swatch" [style.backgroundColor]="item.color"></span>
-            <span class="analytics-breakdown__label">{{ item.name }}</span>
-            <span class="analytics-breakdown__value">{{ item.total }}</span>
-          </li>
-        }
-      </ul>
-    </section>
-  </div>
 
   <section class="page-section analytics-immunity-map">
     <header class="page-section__header">
       <div>
         <h3 class="page-section__title">免疫マップ生成</h3>
         <p class="page-section__subtitle">
-          日報週報・カード履歴から A 候補を作成し、選択内容で免疫マップを生成します。
+          日報週報・カード履歴から起点候補を作成し、選択内容で免疫マップを生成します。
         </p>
-      </div>
-      <div class="page-section__actions">
-        <button
-          type="button"
-          class="button button--secondary button--pill"
-          (click)="refreshCandidates()"
-          [disabled]="candidatesLoading()"
-          [attr.aria-busy]="candidatesLoading()"
-        >
-          候補を更新
-        </button>
       </div>
     </header>
 
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+    <div
+      class="grid gap-4 analytics-immunity-map__layout lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]"
+    >
       <section class="surface-panel page-panel analytics-immunity-map__composer">
-        <div class="flex flex-col gap-4">
+        <div class="analytics-immunity-map__panel-content flex flex-col gap-4">
           <div class="form-grid form-grid--two">
             <label class="form-field">
               <span class="form-field__label">参照期間</span>
-              <select
-                class="form-control app-select"
-                [value]="windowDays()"
-                (change)="updateWindowDays($any($event.target).value)"
-              >
-                <option value="7">直近 7 日</option>
-                <option value="14">直近 14 日</option>
-                <option value="28">直近 28 日</option>
-                <option value="56">直近 56 日</option>
-                <option value="84">直近 84 日</option>
-              </select>
+              <shared-ui-select
+                name="immunity-map-window-days"
+                [formControl]="windowDaysControl"
+                [options]="windowDaysOptions"
+              ></shared-ui-select>
               <p class="form-note">日報週報・カード履歴をもとに候補を作成します。</p>
             </label>
             <div class="form-field">
@@ -143,7 +168,7 @@
               (click)="toggleAdvancedMode()"
               [attr.aria-pressed]="advancedMode()"
             >
-              上級モード
+              カスタム入力
             </button>
             @if (candidateSourcesLabel()) {
               <span class="page-badge">{{ candidateSourcesLabel() }}</span>
@@ -156,10 +181,29 @@
               <p>{{ candidateContextSummary() }}</p>
             </div>
           }
+          @if (candidateWarnings().length) {
+            <div class="app-alert app-alert--notice" role="status">
+              @for (warning of candidateWarnings(); track warning) {
+                <p>{{ warning }}</p>
+              }
+            </div>
+          }
 
-          <div class="flex items-center justify-between">
-            <h4 class="page-section__title">A 候補カード</h4>
-            <span class="page-section__subtitle">候補を選択・編集して生成します。</span>
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h4 class="page-section__title">起点候補カード</h4>
+              <span class="page-section__subtitle">候補を選択・編集して生成します。</span>
+            </div>
+            <button
+              type="button"
+              class="button button--secondary button--pill"
+              (click)="refreshCandidates()"
+              [disabled]="candidatesLoading()"
+              [attr.aria-busy]="candidatesLoading()"
+            >
+              <shared-ai-mark />
+              候補カード生成
+            </button>
           </div>
 
           @if (candidatesLoading()) {
@@ -171,16 +215,29 @@
             <p class="app-alert app-alert--error" role="alert">
               候補カードの取得に失敗しました。時間をおいて再度お試しください。
             </p>
+          } @else if (!candidatesRequested()) {
+            <div class="page-state">
+              <h2>候補カードを生成できます</h2>
+              <p>「候補カード生成」を押すと AI が候補カードを作成します。</p>
+            </div>
           } @else if (candidates().length === 0) {
             <div class="page-state">
               <h2>候補カードがありません</h2>
-              <p>参照データが足りない場合は上級モードで手入力できます。</p>
+              <p>
+                {{
+                  candidateEmptyStateMessage() ??
+                    '参照データが足りない場合はカスタム入力で手入力できます。'
+                }}
+              </p>
             </div>
           } @else {
             <div class="flex flex-col gap-4">
               @for (candidate of candidates(); track candidate.id; let index = $index) {
                 @let isSelected = selectedCandidateIds().includes(candidate.id);
-                <article class="surface-card flex flex-col gap-4" [attr.data-selected]="isSelected">
+                <article
+                  class="surface-card analytics-immunity-map__candidate flex flex-col gap-4"
+                  [attr.data-selected]="isSelected"
+                >
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <div class="flex flex-wrap items-center gap-2">
                       <span class="page-badge page-badge--accent">候補 {{ index + 1 }}</span>
@@ -203,13 +260,13 @@
                   </div>
 
                   <label class="form-field">
-                    <span class="form-field__label">A の文言</span>
+                    <span class="form-field__label">起点の内容</span>
                     <input
                       type="text"
                       class="form-control"
                       [value]="candidateText(candidate)"
                       (input)="updateCandidateText(candidate.id, $any($event.target).value)"
-                      placeholder="A の文言を調整できます"
+                      placeholder="起点の内容を調整できます"
                     />
                   </label>
 
@@ -259,7 +316,7 @@
           @if (advancedMode()) {
             <div class="surface-card flex flex-col gap-4">
               <div>
-                <h4 class="page-section__title">手入力で A を追加</h4>
+                <h4 class="page-section__title">手入力で起点を追加</h4>
                 <p class="page-section__subtitle">1 行に 1 件ずつ入力してください。</p>
               </div>
               <div class="form-grid form-grid--two">
@@ -281,7 +338,7 @@
                     (input)="updateCannotText($any($event.target).value)"
                   ></textarea>
                 </label>
-                <label class="form-field">
+                <label class="form-field form-field--full">
                   <span class="form-field__label">やりたい</span>
                   <textarea
                     class="form-control form-control--textarea"
@@ -317,6 +374,7 @@
                 aria-hidden="true"
                 [class.button__spinner--visible]="isGenerating()"
               ></span>
+              <shared-ai-mark />
               <span class="button__label">{{
                 isGenerating() ? '生成中…' : '免疫マップを生成'
               }}</span>
@@ -332,7 +390,7 @@
       </section>
 
       <section class="surface-panel page-panel analytics-immunity-map__results">
-        <div class="flex flex-col gap-4">
+        <div class="analytics-immunity-map__panel-content flex flex-col gap-4">
           <header class="page-section__header">
             <div>
               <h3 class="page-section__title">生成結果</h3>
@@ -347,6 +405,27 @@
               >
                 Mermaid Live Editor
               </a>
+              <button
+                type="button"
+                class="button button--secondary button--pill"
+                (click)="copyMermaid()"
+                [disabled]="isGenerating() || !generatedMap()?.mermaid"
+              >
+                Mermaid をコピー
+              </button>
+              <button
+                type="button"
+                class="button button--secondary button--pill"
+                (click)="downloadMarkdown()"
+                [disabled]="isGenerating() || !generatedMap()"
+              >
+                Markdown をダウンロード
+              </button>
+              @if (copyStatus() === 'copied') {
+                <span class="form-note">コピーしました。</span>
+              } @else if (copyStatus() === 'failed') {
+                <span class="form-note">コピーに失敗しました。</span>
+              }
             </div>
           </header>
 
@@ -356,10 +435,25 @@
               <p>AI がマップと読み解きを準備しています...</p>
             </div>
           } @else if (generatedMap(); as generated) {
+            @if (generated.warnings?.length) {
+              <div class="app-alert app-alert--notice" role="status">
+                @for (warning of generated.warnings ?? []; track warning) {
+                  <p>{{ warning }}</p>
+                }
+              </div>
+            }
+
             @if (generated.summary) {
-              <div class="surface-card flex flex-col gap-2">
+              <div class="surface-card flex flex-col gap-3">
                 <p class="form-field__label">サマリー</p>
-                <p>{{ generated.summary }}</p>
+                <div class="flex flex-col gap-1">
+                  <p class="form-field__label">現状分析</p>
+                  <p>{{ generated.summary.current_analysis }}</p>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <p class="form-field__label">ひとことアドバイス</p>
+                  <p>{{ generated.summary.one_line_advice }}</p>
+                </div>
               </div>
             }
 
@@ -403,34 +497,104 @@
                 </div>
               </div>
             }
-
-            <label class="form-field">
-              <span class="form-field__label">Mermaid</span>
-              <textarea
-                class="form-control form-control--textarea"
-                [value]="generated.mermaid"
-                readonly
-                rows="12"
-              ></textarea>
-            </label>
-            <div class="form-actions">
-              <button type="button" class="button button--secondary" (click)="copyMermaid()">
-                Mermaid をコピー
-              </button>
-              @if (copyStatus() === 'copied') {
-                <span class="form-note">コピーしました。</span>
-              } @else if (copyStatus() === 'failed') {
-                <span class="form-note">コピーに失敗しました。</span>
-              }
-            </div>
           } @else {
             <div class="page-state">
               <h2>まだ生成されていません</h2>
-              <p>A 候補を選択して免疫マップを生成してください。</p>
+              <p>起点候補を選択して免疫マップを生成してください。</p>
             </div>
           }
         </div>
       </section>
+
+      @if (isGenerating() || generatedMap()) {
+        <section
+          #immunityMapMermaidViewer
+          class="surface-panel page-panel analytics-immunity-map__viewer lg:col-span-2"
+        >
+          <div class="analytics-immunity-map__panel-content flex flex-col gap-4">
+            <header class="page-section__header">
+              <div>
+                <h3 class="page-section__title">Mermaid</h3>
+                <p class="page-section__subtitle">
+                  図をスクロールして全体像を確認できます。必要に応じて全画面表示も利用してください。
+                </p>
+              </div>
+              <div class="page-section__actions">
+                <button
+                  type="button"
+                  class="button button--ghost button--pill"
+                  (click)="openMermaidDialog()"
+                  [disabled]="isGenerating() || !generatedMap()?.mermaid"
+                >
+                  全画面で見る
+                </button>
+              </div>
+            </header>
+
+            @if (isGenerating()) {
+              <div class="page-state" role="status" aria-live="polite">
+                <h2>Mermaid を準備しています</h2>
+                <p>図が生成されるまで少しお待ちください。</p>
+              </div>
+            } @else if (generatedMap(); as generated) {
+              <shared-mermaid-viewer [code]="generated.mermaid"></shared-mermaid-viewer>
+            }
+          </div>
+        </section>
+      }
     </div>
   </section>
+
+  @if (isMermaidDialogOpen()) {
+    <div class="analytics-immunity-map__mermaid-dialog" (click)="closeMermaidDialog()">
+      <div class="analytics-immunity-map__mermaid-dialog-backdrop" aria-hidden="true"></div>
+      <article
+        #immunityMapMermaidDialogPanel
+        class="analytics-immunity-map__mermaid-dialog-panel focus-ring"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="immunity-map-mermaid-dialog-title"
+        tabindex="-1"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="page-section__header">
+          <div>
+            <h2 class="page-section__title" id="immunity-map-mermaid-dialog-title">Mermaid</h2>
+            <p class="page-section__subtitle">免疫マップの Mermaid 図を大きく表示します。</p>
+          </div>
+          <div class="page-section__actions">
+            <a
+              class="button button--ghost button--pill"
+              href="https://mermaid.live/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Mermaid Live Editor
+            </a>
+            <button
+              type="button"
+              class="button button--secondary button--pill"
+              (click)="copyMermaid()"
+              [disabled]="!generatedMap()?.mermaid"
+            >
+              Mermaid をコピー
+            </button>
+            @if (copyStatus() === 'copied') {
+              <span class="form-note">コピーしました。</span>
+            } @else if (copyStatus() === 'failed') {
+              <span class="form-note">コピーに失敗しました。</span>
+            }
+            <button
+              type="button"
+              class="button button--secondary button--pill"
+              (click)="closeMermaidDialog()"
+            >
+              閉じる
+            </button>
+          </div>
+        </header>
+        <shared-mermaid-viewer [code]="generatedMap()?.mermaid ?? ''"></shared-mermaid-viewer>
+      </article>
+    </div>
+  }
 </shared-page-layout>

@@ -3,6 +3,7 @@
 @use './styles/pages/analytics';
 @use './styles/pages/analyze';
 @use './styles/pages/report-assistant';
+@use './styles/pages/achievement-output';
 @use './styles/pages/auth';
 @use './styles/pages/admin';
 @use './styles/pages/settings';
@@ -952,9 +953,37 @@ app-help-dialog .help-dialog__usecase-steps {
 
 app-help-dialog .help-dialog__usecase-steps li {
   position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
   padding-left: 1.2rem;
   color: var(--text-secondary);
   line-height: 1.7;
+}
+
+app-help-dialog .help-dialog__usecase-step-text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+app-help-dialog .help-dialog__ai-marker {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-top: 0.1rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent-secondary-strong));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--on-surface-inverse);
+  box-shadow: 0 10px 18px color-mix(in srgb, var(--accent-strong) 20%, transparent);
+}
+
+app-help-dialog .help-dialog__ai-marker-icon {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 app-help-dialog .help-dialog__usecase-steps li::before {

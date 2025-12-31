@@ -154,14 +154,45 @@ def _collect_card_context(
     cutoff: datetime | None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     status_index = _load_status_index(db, owner_id)
-    query = db.query(models.Card).filter(models.Card.owner_id == owner_id)
+    base_query = db.query(models.Card).filter(models.Card.owner_id == owner_id)
+    now = datetime.now(timezone.utc)
+
+    overdue_cards = (
+        base_query.filter(
+            models.Card.completed_at.is_(None),
+            models.Card.due_date.is_not(None),
+            models.Card.due_date < now,
+        )
+        .order_by(models.Card.due_date.asc())
+        .limit(_MAX_CARD_EXCERPTS)
+        .all()
+    )
+    open_cards = (
+        base_query.filter(models.Card.completed_at.is_(None))
+        .order_by(models.Card.updated_at.desc())
+        .limit(_MAX_CARD_EXCERPTS)
+        .all()
+    )
+
+    recent_query = base_query
     if cutoff is not None:
-        query = query.filter(
+        recent_query = recent_query.filter(
             or_(models.Card.updated_at >= cutoff, models.Card.completed_at >= cutoff)
         )
-    cards = query.order_by(models.Card.updated_at.desc()).limit(_MAX_CARD_EXCERPTS).all()
+    recent_cards = recent_query.order_by(models.Card.updated_at.desc()).limit(_MAX_CARD_EXCERPTS).all()
+
+    cards: list[models.Card] = []
+    seen_ids: set[str] = set()
+    for card in [*overdue_cards, *open_cards, *recent_cards]:
+        if card.id in seen_ids:
+            continue
+        cards.append(card)
+        seen_ids.add(card.id)
+        if len(cards) >= _MAX_CARD_EXCERPTS:
+            break
+
     metrics = _build_card_metrics(cards, status_index)
-    entries = [_serialize_card(card, status_index) for card in cards]
+    entries = [_serialize_card(card, status_index, now=now) for card in cards]
     return entries, metrics
 
 
@@ -193,7 +224,8 @@ def _build_card_metrics(cards: Iterable[models.Card], status_index: dict[str, st
         elif category == "todo":
             todo += 1
 
-        if card.due_date and card.due_date < now and not completed:
+        due_date = _to_utc_datetime(card.due_date)
+        if due_date and due_date < now and not completed:
             overdue += 1
 
     return {
@@ -205,16 +237,31 @@ def _build_card_metrics(cards: Iterable[models.Card], status_index: dict[str, st
     }
 
 
-def _serialize_card(card: models.Card, status_index: dict[str, str]) -> dict[str, Any]:
+def _to_utc_datetime(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _serialize_card(card: models.Card, status_index: dict[str, str], *, now: datetime) -> dict[str, Any]:
     label_names = [label.name for label in card.labels or [] if label.name]
+    category = (status_index.get(card.status_id or "") or "").strip().lower()
+    completed = card.completed_at is not None or category == "done"
+    due_date = _to_utc_datetime(card.due_date)
+    is_overdue = bool(due_date and due_date < now and not completed)
     return {
         "id": card.id,
         "title": _truncate(card.title, _MAX_CARD_CHARS),
         "summary": _truncate(card.summary or card.description or "", _MAX_CARD_CHARS) or None,
         "status": status_index.get(card.status_id or "") or None,
         "labels": label_names,
+        "updated_at": _to_iso(getattr(card, "updated_at", None)),
         "due_date": _to_iso(card.due_date),
         "completed_at": _to_iso(card.completed_at),
+        "is_completed": completed,
+        "is_overdue": is_overdue,
     }
 
 

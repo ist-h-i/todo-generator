@@ -36,6 +36,7 @@ import {
 } from '@core/models';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
 import { UiSelect } from '@shared/ui/select/ui-select';
+import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 
 type AdminTab = 'competencies' | 'evaluations' | 'users' | 'settings';
 type CriterionFormGroup = FormGroup<{
@@ -45,6 +46,12 @@ type CriterionFormGroup = FormGroup<{
 type UserQuotaForm = FormGroup<{
   cardDailyLimit: FormControl<number | null>;
   evaluationDailyLimit: FormControl<number | null>;
+  analysisDailyLimit: FormControl<number | null>;
+  statusReportDailyLimit: FormControl<number | null>;
+  immunityMapDailyLimit: FormControl<number | null>;
+  immunityMapCandidateDailyLimit: FormControl<number | null>;
+  appealDailyLimit: FormControl<number | null>;
+  autoCardDailyLimit: FormControl<number | null>;
 }>;
 type CompetencyFormControls = {
   name: FormControl<string>;
@@ -63,7 +70,7 @@ type CompetencyLevelFormControls = {
 
 @Component({
   selector: 'app-admin-page',
-  imports: [CommonModule, ReactiveFormsModule, PageLayout, LocalDateTimePipe, UiSelect],
+  imports: [CommonModule, ReactiveFormsModule, PageLayout, LocalDateTimePipe, UiSelect, AiMark],
   templateUrl: './admin.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -75,6 +82,14 @@ export class AdminPage {
 
   public readonly activeTab = signal<AdminTab>('competencies');
   public readonly competencies = signal<Competency[]>([]);
+  public readonly editingCompetencyId = signal<string | null>(null);
+  public readonly editingCompetency = computed(() => {
+    const id = this.editingCompetencyId();
+    if (!id) {
+      return null;
+    }
+    return this.competencies().find((competency) => competency.id === id) ?? null;
+  });
   public readonly competencyLevels = signal<CompetencyLevelDefinition[]>([]);
   public readonly users = signal<AdminUser[]>([]);
   public readonly evaluations = signal<CompetencyEvaluation[]>([]);
@@ -188,11 +203,35 @@ export class AdminPage {
   public readonly quotaDefaultsForm: FormGroup<{
     cardDailyLimit: FormControl<number | null>;
     evaluationDailyLimit: FormControl<number | null>;
+    analysisDailyLimit: FormControl<number | null>;
+    statusReportDailyLimit: FormControl<number | null>;
+    immunityMapDailyLimit: FormControl<number | null>;
+    immunityMapCandidateDailyLimit: FormControl<number | null>;
+    appealDailyLimit: FormControl<number | null>;
+    autoCardDailyLimit: FormControl<number | null>;
   }> = new FormGroup({
     cardDailyLimit: new FormControl<number | null>(null, {
       validators: [Validators.required],
     }),
     evaluationDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    analysisDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    statusReportDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    immunityMapDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    immunityMapCandidateDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    appealDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    autoCardDailyLimit: new FormControl<number | null>(null, {
       validators: [Validators.required],
     }),
   });
@@ -268,6 +307,42 @@ export class AdminPage {
     this.competencyCriteria.removeAt(index);
   }
 
+  public editCompetency(competency: Competency): void {
+    this.clearError();
+    this.editingCompetencyId.set(competency.id);
+
+    this.competencyForm.patchValue({
+      name: competency.name,
+      level: competency.level,
+      description: competency.description ?? '',
+      is_active: competency.is_active,
+    });
+
+    while (this.competencyCriteria.length > 0) {
+      this.competencyCriteria.removeAt(this.competencyCriteria.length - 1);
+    }
+
+    if (competency.criteria.length === 0) {
+      this.competencyCriteria.push(this.createCriterionGroup());
+    } else {
+      for (const criterion of competency.criteria) {
+        this.competencyCriteria.push(
+          this.createCriterionGroup({
+            title: criterion.title,
+            description: criterion.description ?? '',
+          }),
+        );
+      }
+    }
+
+    this.ensureCompetencyLevelSelection();
+  }
+
+  public cancelCompetencyEdit(): void {
+    this.clearError();
+    this.resetCompetencyForm();
+  }
+
   public createCompetency(): void {
     this.clearError();
 
@@ -293,7 +368,6 @@ export class AdminPage {
       level,
       description: value.description.trim(),
       is_active: value.is_active,
-      rubric: {},
       criteria: value.criteria
         .map((criterion, index) => ({
           title: criterion.title.trim(),
@@ -307,20 +381,34 @@ export class AdminPage {
         .filter((criterion) => criterion.title.length > 0),
     };
 
+    const editingId = this.editingCompetencyId();
+    const isEditing = Boolean(editingId);
+    const request$ = editingId
+      ? this.api.updateCompetency(editingId, payload)
+      : this.api.createCompetency(payload);
+
     this.loading.set(true);
-    this.api
-      .createCompetency(payload)
+    request$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (competency) => {
           this.loading.set(false);
-          this.competencies.update((list) => [...list, competency]);
+          if (isEditing) {
+            this.replaceCompetency(competency);
+          } else {
+            this.competencies.update((list) => [...list, competency]);
+          }
           this.resetCompetencyForm();
-          this.notify('コンピテンシーを登録しました。');
+          this.notify(isEditing ? 'コンピテンシーを更新しました。' : 'コンピテンシーを登録しました。');
         },
         error: (err) => {
           this.loading.set(false);
-          this.handleError(err, 'コンピテンシーの登録に失敗しました。');
+          this.handleError(
+            err,
+            isEditing
+              ? 'コンピテンシーの更新に失敗しました。'
+              : 'コンピテンシーの登録に失敗しました。',
+          );
         },
       });
   }
@@ -377,6 +465,7 @@ export class AdminPage {
   }
 
   public resetCompetencyForm(): void {
+    this.editingCompetencyId.set(null);
     while (this.competencyCriteria.length > 1) {
       this.competencyCriteria.removeAt(this.competencyCriteria.length - 1);
     }
@@ -401,6 +490,33 @@ export class AdminPage {
           this.notify('コンピテンシーの状態を更新しました。');
         },
         error: (err) => this.handleError(err, 'コンピテンシーの更新に失敗しました。'),
+      });
+  }
+
+  public deleteCompetency(competency: Competency): void {
+    this.clearError();
+
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm(
+        `${competency.name} を削除しますか？この操作は取り消せません。`,
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    this.api
+      .deleteCompetency(competency.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.competencies.update((list) => list.filter((item) => item.id !== competency.id));
+          if (this.editingCompetencyId() === competency.id) {
+            this.resetCompetencyForm();
+          }
+          this.notify('コンピテンシーを削除しました。');
+        },
+        error: (err) => this.handleError(err, 'コンピテンシーの削除に失敗しました。'),
       });
   }
 
@@ -454,10 +570,25 @@ export class AdminPage {
     if (!form) {
       return;
     }
-    const { cardDailyLimit, evaluationDailyLimit } = form.getRawValue();
+    const {
+      cardDailyLimit,
+      evaluationDailyLimit,
+      analysisDailyLimit,
+      statusReportDailyLimit,
+      immunityMapDailyLimit,
+      immunityMapCandidateDailyLimit,
+      appealDailyLimit,
+      autoCardDailyLimit,
+    } = form.getRawValue();
     this.updateUser(user, {
       card_daily_limit: cardDailyLimit ?? null,
       evaluation_daily_limit: evaluationDailyLimit ?? null,
+      analysis_daily_limit: analysisDailyLimit ?? null,
+      status_report_daily_limit: statusReportDailyLimit ?? null,
+      immunity_map_daily_limit: immunityMapDailyLimit ?? null,
+      immunity_map_candidate_daily_limit: immunityMapCandidateDailyLimit ?? null,
+      appeal_daily_limit: appealDailyLimit ?? null,
+      auto_card_daily_limit: autoCardDailyLimit ?? null,
     });
   }
 
@@ -549,8 +680,26 @@ export class AdminPage {
     }
 
     const formValue = this.quotaDefaultsForm.getRawValue();
-    const { cardDailyLimit, evaluationDailyLimit } = formValue;
-    if (cardDailyLimit === null || evaluationDailyLimit === null) {
+    const {
+      cardDailyLimit,
+      evaluationDailyLimit,
+      analysisDailyLimit,
+      statusReportDailyLimit,
+      immunityMapDailyLimit,
+      immunityMapCandidateDailyLimit,
+      appealDailyLimit,
+      autoCardDailyLimit,
+    } = formValue;
+    if (
+      cardDailyLimit === null ||
+      evaluationDailyLimit === null ||
+      analysisDailyLimit === null ||
+      statusReportDailyLimit === null ||
+      immunityMapDailyLimit === null ||
+      immunityMapCandidateDailyLimit === null ||
+      appealDailyLimit === null ||
+      autoCardDailyLimit === null
+    ) {
       this.error.set('日次上限を入力してください。');
       return;
     }
@@ -558,6 +707,12 @@ export class AdminPage {
     const payload = {
       card_daily_limit: cardDailyLimit,
       evaluation_daily_limit: evaluationDailyLimit,
+      analysis_daily_limit: analysisDailyLimit,
+      status_report_daily_limit: statusReportDailyLimit,
+      immunity_map_daily_limit: immunityMapDailyLimit,
+      immunity_map_candidate_daily_limit: immunityMapCandidateDailyLimit,
+      appeal_daily_limit: appealDailyLimit,
+      auto_card_daily_limit: autoCardDailyLimit,
     };
 
     this.loading.set(true);
@@ -571,6 +726,12 @@ export class AdminPage {
           this.quotaDefaultsForm.setValue({
             cardDailyLimit: defaults.card_daily_limit,
             evaluationDailyLimit: defaults.evaluation_daily_limit,
+            analysisDailyLimit: defaults.analysis_daily_limit,
+            statusReportDailyLimit: defaults.status_report_daily_limit,
+            immunityMapDailyLimit: defaults.immunity_map_daily_limit,
+            immunityMapCandidateDailyLimit: defaults.immunity_map_candidate_daily_limit,
+            appealDailyLimit: defaults.appeal_daily_limit,
+            autoCardDailyLimit: defaults.auto_card_daily_limit,
           });
           this.notify('デフォルト日次上限を更新しました。');
         },
@@ -657,6 +818,12 @@ export class AdminPage {
           this.quotaDefaultsForm.setValue({
             cardDailyLimit: defaults.card_daily_limit,
             evaluationDailyLimit: defaults.evaluation_daily_limit,
+            analysisDailyLimit: defaults.analysis_daily_limit,
+            statusReportDailyLimit: defaults.status_report_daily_limit,
+            immunityMapDailyLimit: defaults.immunity_map_daily_limit,
+            immunityMapCandidateDailyLimit: defaults.immunity_map_candidate_daily_limit,
+            appealDailyLimit: defaults.appeal_daily_limit,
+            autoCardDailyLimit: defaults.auto_card_daily_limit,
           });
         },
         error: (err) => this.handleError(err, '日次上限の取得に失敗しました。'),
@@ -754,6 +921,18 @@ export class AdminPage {
       evaluationDailyLimit: this.formBuilder.control<number | null>(
         user.evaluation_daily_limit ?? null,
       ),
+      analysisDailyLimit: this.formBuilder.control<number | null>(user.analysis_daily_limit ?? null),
+      statusReportDailyLimit: this.formBuilder.control<number | null>(
+        user.status_report_daily_limit ?? null,
+      ),
+      immunityMapDailyLimit: this.formBuilder.control<number | null>(
+        user.immunity_map_daily_limit ?? null,
+      ),
+      immunityMapCandidateDailyLimit: this.formBuilder.control<number | null>(
+        user.immunity_map_candidate_daily_limit ?? null,
+      ),
+      appealDailyLimit: this.formBuilder.control<number | null>(user.appeal_daily_limit ?? null),
+      autoCardDailyLimit: this.formBuilder.control<number | null>(user.auto_card_daily_limit ?? null),
     });
   }
 
@@ -766,6 +945,12 @@ export class AdminPage {
         {
           cardDailyLimit: user.card_daily_limit ?? null,
           evaluationDailyLimit: user.evaluation_daily_limit ?? null,
+          analysisDailyLimit: user.analysis_daily_limit ?? null,
+          statusReportDailyLimit: user.status_report_daily_limit ?? null,
+          immunityMapDailyLimit: user.immunity_map_daily_limit ?? null,
+          immunityMapCandidateDailyLimit: user.immunity_map_candidate_daily_limit ?? null,
+          appealDailyLimit: user.appeal_daily_limit ?? null,
+          autoCardDailyLimit: user.auto_card_daily_limit ?? null,
         },
         { emitEvent: false },
       );

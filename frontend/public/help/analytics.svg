@@ -1,40 +1,150 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" role="img" aria-labelledby="title desc">
-  <title id="title">Analytics dashboard illustration</title>
-  <desc id="desc">Charts and KPI cards</desc>
+  <title id="title">分析ダッシュボード</title>
+  <desc id="desc">進捗指標・分布グラフと、免疫マップ（Mermaid）生成をまとめて扱う画面イメージ</desc>
   <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0" stop-color="#fdf4ff" />
-      <stop offset="1" stop-color="#e0e7ff" />
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e9efff" />
+      <stop offset="1" stop-color="#f6f8ff" />
     </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#7c3aed" flood-opacity="0.18" />
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#10203a" flood-opacity="0.16" />
     </filter>
+    <clipPath id="windowClip">
+      <rect x="28" y="28" width="304" height="184" rx="22" />
+    </clipPath>
   </defs>
+
   <rect width="360" height="240" rx="26" fill="url(#bg)" />
-  <g transform="translate(32 32)" filter="url(#shadow)">
-    <rect width="296" height="176" rx="22" fill="#ffffff" opacity="0.92" />
-    <rect x="24" y="26" width="96" height="54" rx="14" fill="#ede9fe" />
-    <rect x="132" y="26" width="96" height="54" rx="14" fill="#d8b4fe" opacity="0.9" />
-    <rect x="240" y="26" width="56" height="54" rx="14" fill="#c4b5fd" opacity="0.85" />
-    <path
-      d="M48 118c18-32 42-48 66-14s50 18 74-10 46-18 66 12"
+  <circle cx="296" cy="54" r="118" fill="#9333ea" opacity="0.12" />
+  <circle cx="70" cy="214" r="90" fill="#2563eb" opacity="0.06" />
+
+  <g filter="url(#shadow)">
+    <rect x="28" y="28" width="304" height="184" rx="22" fill="#ffffff" opacity="0.96" />
+    <rect
+      x="28"
+      y="28"
+      width="304"
+      height="184"
+      rx="22"
       fill="none"
-      stroke="#7c3aed"
-      stroke-width="6"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      opacity="0.65"
+      stroke="#93c5fd"
+      stroke-opacity="0.35"
+      stroke-width="1.2"
     />
-    <path
-      d="M50 146h196"
-      stroke="#c4b5fd"
-      stroke-width="10"
-      stroke-linecap="round"
-      opacity="0.45"
-    />
-    <rect x="210" y="110" width="58" height="34" rx="12" fill="#a855f7" opacity="0.85" />
-    <rect x="210" y="154" width="86" height="14" rx="7" fill="#c4b5fd" opacity="0.6" />
+
+    <g clip-path="url(#windowClip)">
+      <!-- Header -->
+      <rect x="28" y="28" width="304" height="32" fill="#f8fafc" />
+      <rect x="28" y="59.5" width="304" height="1" fill="#e2e8f0" />
+
+      <!-- Brand -->
+      <rect x="42" y="38" width="18" height="18" rx="6" fill="#2563eb" opacity="0.92" />
+      <rect x="66" y="40" width="50" height="6" rx="3" fill="#94a3b8" opacity="0.55" />
+      <rect x="66" y="50" width="34" height="4" rx="2" fill="#94a3b8" opacity="0.38" />
+
+      <!-- Nav -->
+      <rect x="140" y="40" width="36" height="12" rx="6" fill="#2563eb" opacity="0.18" />
+      <rect x="180" y="40" width="36" height="12" rx="6" fill="#94a3b8" opacity="0.28" />
+      <rect x="220" y="40" width="36" height="12" rx="6" fill="#94a3b8" opacity="0.28" />
+      <rect x="260" y="40" width="36" height="12" rx="6" fill="#94a3b8" opacity="0.28" />
+
+      <!-- KPI cards -->
+      <rect x="42" y="72" width="84" height="32" rx="14" fill="#f1f5f9" stroke="#e2e8f0" />
+      <rect x="54" y="84" width="44" height="5" rx="2.5" fill="#94a3b8" opacity="0.38" />
+      <rect x="54" y="92" width="60" height="4" rx="2" fill="#9333ea" opacity="0.35" />
+
+      <rect x="138" y="72" width="84" height="32" rx="14" fill="#f1f5f9" stroke="#e2e8f0" />
+      <rect x="150" y="84" width="38" height="5" rx="2.5" fill="#94a3b8" opacity="0.38" />
+      <rect x="150" y="92" width="50" height="4" rx="2" fill="#2563eb" opacity="0.3" />
+
+      <rect x="234" y="72" width="84" height="32" rx="14" fill="#f1f5f9" stroke="#e2e8f0" />
+      <rect x="246" y="84" width="34" height="5" rx="2.5" fill="#94a3b8" opacity="0.38" />
+      <rect x="246" y="92" width="56" height="4" rx="2" fill="#22c55e" opacity="0.3" />
+
+      <!-- Left: breakdown charts -->
+      <rect x="42" y="112" width="172" height="88" rx="14" fill="#f1f5f9" stroke="#e2e8f0" />
+      <rect x="56" y="124" width="56" height="5" rx="2.5" fill="#94a3b8" opacity="0.32" />
+
+      <!-- Bars -->
+      <rect x="60" y="168" width="14" height="24" rx="5" fill="#93c5fd" opacity="0.85" />
+      <rect x="80" y="156" width="14" height="36" rx="5" fill="#fdba74" opacity="0.85" />
+      <rect x="100" y="162" width="14" height="30" rx="5" fill="#86efac" opacity="0.85" />
+      <rect x="120" y="150" width="14" height="42" rx="5" fill="#c4b5fd" opacity="0.85" />
+      <path
+        d="M60 170c18-18 36-22 60-8s38 10 64-6"
+        fill="none"
+        stroke="#9333ea"
+        stroke-width="3"
+        stroke-linecap="round"
+        opacity="0.45"
+      />
+
+      <!-- Donut (labels) -->
+      <circle cx="184" cy="156" r="18" fill="#ffffff" stroke="#e2e8f0" />
+      <path
+        d="M184 138a18 18 0 0 1 0 36"
+        fill="none"
+        stroke="#9333ea"
+        stroke-width="5"
+        stroke-linecap="round"
+        opacity="0.55"
+      />
+      <path
+        d="M184 138a18 18 0 0 0-17 13"
+        fill="none"
+        stroke="#2563eb"
+        stroke-width="5"
+        stroke-linecap="round"
+        opacity="0.45"
+      />
+
+      <!-- Right: immunity map -->
+      <rect x="226" y="112" width="92" height="88" rx="14" fill="#f1f5f9" stroke="#e2e8f0" />
+      <rect x="238" y="124" width="44" height="5" rx="2.5" fill="#94a3b8" opacity="0.32" />
+
+      <!-- Candidates list -->
+      <rect x="238" y="136" width="8" height="8" rx="2" fill="#ffffff" stroke="#cbd5e1" />
+      <rect x="252" y="138" width="52" height="4" rx="2" fill="#94a3b8" opacity="0.26" />
+      <rect x="238" y="148" width="8" height="8" rx="2" fill="#9333ea" opacity="0.18" stroke="#9333ea" />
+      <path
+        d="M240.3 152l1.4 1.6 3.2-3.6"
+        fill="none"
+        stroke="#9333ea"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.7"
+      />
+      <rect x="252" y="150" width="46" height="4" rx="2" fill="#94a3b8" opacity="0.26" />
+      <rect x="238" y="160" width="8" height="8" rx="2" fill="#ffffff" stroke="#cbd5e1" />
+      <rect x="252" y="162" width="40" height="4" rx="2" fill="#94a3b8" opacity="0.24" />
+
+      <!-- Generate button -->
+      <rect x="238" y="174" width="68" height="12" rx="6" fill="#9333ea" opacity="0.18" />
+      <path
+        d="M296 180l3 3 6-6"
+        fill="none"
+        stroke="#9333ea"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.7"
+      />
+
+      <!-- Mermaid preview -->
+      <rect x="238" y="190" width="68" height="20" rx="10" fill="#ffffff" stroke="#e2e8f0" opacity="0.95" />
+      <circle cx="252" cy="200" r="4" fill="#93c5fd" opacity="0.9" />
+      <circle cx="272" cy="196" r="4" fill="#fdba74" opacity="0.9" />
+      <circle cx="288" cy="204" r="4" fill="#86efac" opacity="0.9" />
+      <path
+        d="M256 200l12-4 12 8"
+        fill="none"
+        stroke="#9333ea"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.45"
+      />
+    </g>
   </g>
-  <circle cx="96" cy="40" r="10" fill="#c4b5fd" opacity="0.6" />
-  <circle cx="120" cy="40" r="6" fill="#f472b6" opacity="0.6" />
 </svg>

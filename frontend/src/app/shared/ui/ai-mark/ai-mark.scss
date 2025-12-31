@@ -1,0 +1,19 @@
+:host {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent-secondary-strong));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--on-surface-inverse);
+  box-shadow: 0 12px 20px -16px color-mix(in srgb, var(--accent-strong) 35%, transparent);
+}
+
+.ai-mark__icon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+

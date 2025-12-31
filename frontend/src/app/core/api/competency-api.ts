@@ -2,7 +2,13 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-import { CompetencyEvaluation, EvaluationQuotaStatus, SelfEvaluationRequest } from '@core/models';
+import {
+  CompetencyEvaluation,
+  CompetencySummary,
+  EvaluationQuotaStatus,
+  SelfEvaluationBatchRequest,
+  SelfEvaluationRequest,
+} from '@core/models';
 
 import { buildApiUrl } from './api.config';
 
@@ -29,7 +35,18 @@ export class CompetencyApi {
     return this.http.get<EvaluationQuotaStatus>(buildApiUrl('/users/me/evaluations/quota'));
   }
 
+  public getMyCompetencies(): Observable<CompetencySummary[]> {
+    return this.http.get<CompetencySummary[]>(buildApiUrl('/users/me/competencies'));
+  }
+
   public runMyEvaluation(payload: SelfEvaluationRequest): Observable<CompetencyEvaluation> {
     return this.http.post<CompetencyEvaluation>(buildApiUrl('/users/me/evaluations'), payload);
+  }
+
+  public runMyEvaluationsBatch(payload: SelfEvaluationBatchRequest): Observable<CompetencyEvaluation[]> {
+    return this.http.post<CompetencyEvaluation[]>(
+      buildApiUrl('/users/me/evaluations/batch'),
+      payload,
+    );
   }
 }

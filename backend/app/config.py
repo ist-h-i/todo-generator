@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from pydantic import AliasChoices, Field, field_validator
@@ -101,10 +102,28 @@ class Settings(BaseSettings):
             parsed: list[str] = []
         elif isinstance(value, str):
             parsed = []
-            for origin in value.split(","):
-                normalized = cls._normalize_origin(origin)
-                if normalized:
-                    parsed.append(normalized)
+            raw = value.strip()
+            candidates: list[Any]
+            if raw.startswith("[") and raw.endswith("]"):
+                try:
+                    loaded = json.loads(raw)
+                except json.JSONDecodeError:
+                    loaded = None
+
+                if isinstance(loaded, list):
+                    candidates = loaded
+                else:
+                    candidates = raw.split(",")
+            else:
+                candidates = value.split(",")
+
+            for origin in candidates:
+                if isinstance(origin, str):
+                    normalized = cls._normalize_origin(origin)
+                    if normalized:
+                        parsed.append(normalized)
+                elif origin:
+                    parsed.append(origin)
         else:
             parsed = []
             for origin in value:
@@ -115,8 +134,8 @@ class Settings(BaseSettings):
                 elif origin:
                     parsed.append(origin)
 
-        if parsed and any(origin == "*" for origin in parsed):
-            raise ValueError("Wildcard origins are not permitted when credentials are allowed.")
+        if any(origin == "*" for origin in parsed):
+            return ["*"]
 
         return parsed
 
