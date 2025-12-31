@@ -44,6 +44,13 @@ export const shellRoutes: Routes = [
           import('@features/profile/profile.routes').then((mod) => mod.profileRoutes),
       },
       {
+        path: 'achievement-output',
+        loadChildren: () =>
+          import('@features/achievement-output/achievement-output.routes').then(
+            (mod) => mod.achievementOutputRoutes,
+          ),
+      },
+      {
         path: 'settings',
         loadChildren: () =>
           import('@features/settings/settings.routes').then((mod) => mod.settingsRoutes),

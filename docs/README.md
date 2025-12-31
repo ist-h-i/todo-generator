@@ -35,6 +35,7 @@ Welcome to the Verbalize Yourself knowledge base. Use this index to navigate arc
 - **Analytics**: [Analytics insights requirements](features/analytics-insights/requirements.md) and [Analysis intake detail design](features/analysis-intake/detail-design.md).
 - **Immunity map**: [Immunity map requirements](features/immunity-map/requirements.md) and [Immunity map detail design](features/immunity-map/detail-design.md).
 - **Appeals**: [Appeal generation requirements](features/appeal-generation/requirements.md) and [Appeal detail design](features/appeal-generation/detail-design.md).
+- **Achievement output（実績出力）**: [Achievement output requirements](features/achievement-output/requirements.md) and [Achievement output detail design](features/achievement-output/detail-design.md).
 
 ## UI & Experience Design
 

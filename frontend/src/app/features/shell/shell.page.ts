@@ -152,6 +152,7 @@ export class ShellPage {
       { path: '/reports', label: '日報・週報解析', ai: true },
       { path: '/analytics', label: '分析', ai: true },
       { path: '/profile/evaluations', label: 'コンピテンシー', ai: true },
+      { path: '/achievement-output', label: '実績出力', ai: true },
       { path: '/settings', label: '設定' },
     ];
 

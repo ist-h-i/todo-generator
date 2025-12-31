@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -15,6 +15,11 @@ from .gemini import (
 )
 from .status_report_content import StatusReportContentService
 from .status_report_presenter import StatusReportPresenter
+from ..utils.quotas import (
+    AI_QUOTA_STATUS_REPORT,
+    get_status_report_daily_limit,
+    reserve_ai_quota,
+)
 
 _MAX_GENERATED_CARDS = 5
 
@@ -179,6 +184,21 @@ class StatusReportService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Report in status '{report.status}' cannot be submitted.",
+            )
+
+        today = date.today()
+        limit = get_status_report_daily_limit(self.db, report.owner_id)
+        quota_reserved = reserve_ai_quota(
+            self.db,
+            owner_id=report.owner_id,
+            quota_day=today,
+            limit=limit,
+            quota_key=AI_QUOTA_STATUS_REPORT,
+        )
+        if not quota_reserved:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Daily status report analysis limit of {limit} reached.",
             )
 
         report.status = schemas.StatusReportStatus.PROCESSING.value

@@ -213,19 +213,19 @@
               <h2>候補カードを生成できます</h2>
               <p>「候補カード生成」を押すと AI が候補カードを作成します。</p>
             </div>
-           } @else if (candidates().length === 0) {
-             <div class="page-state">
-               <h2>候補カードがありません</h2>
-               <p>
-                 {{
-                   candidateEmptyStateMessage() ??
-                     '参照データが足りない場合はカスタム入力で手入力できます。'
-                 }}
-               </p>
-             </div>
-           } @else {
-             <div class="flex flex-col gap-4">
-               @for (candidate of candidates(); track candidate.id; let index = $index) {
+          } @else if (candidates().length === 0) {
+            <div class="page-state">
+              <h2>候補カードがありません</h2>
+              <p>
+                {{
+                  candidateEmptyStateMessage() ??
+                    '参照データが足りない場合はカスタム入力で手入力できます。'
+                }}
+              </p>
+            </div>
+          } @else {
+            <div class="flex flex-col gap-4">
+              @for (candidate of candidates(); track candidate.id; let index = $index) {
                 @let isSelected = selectedCandidateIds().includes(candidate.id);
                 <article
                   class="surface-card analytics-immunity-map__candidate flex flex-col gap-4"
@@ -482,11 +482,6 @@
                 </div>
               </div>
             }
-
-            <figure class="surface-card flex flex-col gap-2">
-              <figcaption class="form-field__label">Mermaid</figcaption>
-              <shared-mermaid-viewer [code]="generated.mermaid"></shared-mermaid-viewer>
-            </figure>
           } @else {
             <div class="page-state">
               <h2>まだ生成されていません</h2>
@@ -495,6 +490,96 @@
           }
         </div>
       </section>
+
+      @if (isGenerating() || generatedMap()) {
+        <section
+          #immunityMapMermaidViewer
+          class="surface-panel page-panel analytics-immunity-map__viewer lg:col-span-2"
+        >
+          <div class="analytics-immunity-map__panel-content flex flex-col gap-4">
+            <header class="page-section__header">
+              <div>
+                <h3 class="page-section__title">Mermaid</h3>
+                <p class="page-section__subtitle">
+                  図をスクロールして全体像を確認できます。必要に応じて全画面表示も利用してください。
+                </p>
+              </div>
+              <div class="page-section__actions">
+                <button
+                  type="button"
+                  class="button button--ghost button--pill"
+                  (click)="openMermaidDialog()"
+                  [disabled]="isGenerating() || !generatedMap()?.mermaid"
+                >
+                  全画面で見る
+                </button>
+              </div>
+            </header>
+
+            @if (isGenerating()) {
+              <div class="page-state" role="status" aria-live="polite">
+                <h2>Mermaid を準備しています</h2>
+                <p>図が生成されるまで少しお待ちください。</p>
+              </div>
+            } @else if (generatedMap(); as generated) {
+              <shared-mermaid-viewer [code]="generated.mermaid"></shared-mermaid-viewer>
+            }
+          </div>
+        </section>
+      }
     </div>
   </section>
+
+  @if (isMermaidDialogOpen()) {
+    <div class="analytics-immunity-map__mermaid-dialog" (click)="closeMermaidDialog()">
+      <div class="analytics-immunity-map__mermaid-dialog-backdrop" aria-hidden="true"></div>
+      <article
+        #immunityMapMermaidDialogPanel
+        class="analytics-immunity-map__mermaid-dialog-panel focus-ring"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="immunity-map-mermaid-dialog-title"
+        tabindex="-1"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="page-section__header">
+          <div>
+            <h2 class="page-section__title" id="immunity-map-mermaid-dialog-title">Mermaid</h2>
+            <p class="page-section__subtitle">免疫マップの Mermaid 図を大きく表示します。</p>
+          </div>
+          <div class="page-section__actions">
+            <a
+              class="button button--ghost button--pill"
+              href="https://mermaid.live/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Mermaid Live Editor
+            </a>
+            <button
+              type="button"
+              class="button button--secondary button--pill"
+              (click)="copyMermaid()"
+              [disabled]="!generatedMap()?.mermaid"
+            >
+              Mermaid をコピー
+            </button>
+            @if (copyStatus() === 'copied') {
+              <span class="form-note">コピーしました。</span>
+            } @else if (copyStatus() === 'failed') {
+              <span class="form-note">コピーに失敗しました。</span>
+            }
+            <button
+              type="button"
+              class="button button--secondary button--pill"
+              (click)="closeMermaidDialog()"
+            >
+              閉じる
+            </button>
+          </div>
+        </header>
+        <shared-mermaid-viewer [code]="generatedMap()?.mermaid ?? ''"></shared-mermaid-viewer>
+      </article>
+    </div>
+  }
 </shared-page-layout>

@@ -38,6 +38,12 @@ class MockAdminApiService {
   public quotaDefaults: QuotaDefaults = {
     card_daily_limit: 3,
     evaluation_daily_limit: 3,
+    analysis_daily_limit: 10,
+    status_report_daily_limit: 5,
+    immunity_map_daily_limit: 5,
+    immunity_map_candidate_daily_limit: 10,
+    appeal_daily_limit: 5,
+    auto_card_daily_limit: 25,
   };
   public credential: ApiCredential = {
     provider: 'gemini',
@@ -125,6 +131,12 @@ describe('AdminPage', () => {
       is_active: true,
       card_daily_limit: null,
       evaluation_daily_limit: null,
+      analysis_daily_limit: null,
+      status_report_daily_limit: null,
+      immunity_map_daily_limit: null,
+      immunity_map_candidate_daily_limit: null,
+      appeal_daily_limit: null,
+      auto_card_daily_limit: null,
       created_at: '2024-01-01T00:00:00.000Z',
       updated_at: '2024-01-01T00:00:00.000Z',
     };

@@ -462,6 +462,12 @@
                 <th scope="col">有効</th>
                 <th scope="col">カード起票/日</th>
                 <th scope="col">判定回数/日</th>
+                <th scope="col">AI分析/日</th>
+                <th scope="col">日報AI/日</th>
+                <th scope="col">免疫マップ候補/日</th>
+                <th scope="col">免疫マップ/日</th>
+                <th scope="col">アピール/日</th>
+                <th scope="col">自動起票/日</th>
                 <th scope="col">操作</th>
               </tr>
             </thead>
@@ -506,6 +512,84 @@
                         class="form-control"
                         [attr.name]="'evaluation-limit-' + user.id"
                         [formControl]="quota.controls.evaluationDailyLimit"
+                        (blur)="saveUserQuota(user)"
+                        placeholder="デフォルト"
+                      />
+                    }
+                  </td>
+                  <td>
+                    @if (quotaForm(user.id); as quota) {
+                      <input
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [attr.name]="'analysis-limit-' + user.id"
+                        [formControl]="quota.controls.analysisDailyLimit"
+                        (blur)="saveUserQuota(user)"
+                        placeholder="デフォルト"
+                      />
+                    }
+                  </td>
+                  <td>
+                    @if (quotaForm(user.id); as quota) {
+                      <input
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [attr.name]="'status-report-limit-' + user.id"
+                        [formControl]="quota.controls.statusReportDailyLimit"
+                        (blur)="saveUserQuota(user)"
+                        placeholder="デフォルト"
+                      />
+                    }
+                  </td>
+                  <td>
+                    @if (quotaForm(user.id); as quota) {
+                      <input
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [attr.name]="'immunity-map-candidate-limit-' + user.id"
+                        [formControl]="quota.controls.immunityMapCandidateDailyLimit"
+                        (blur)="saveUserQuota(user)"
+                        placeholder="デフォルト"
+                      />
+                    }
+                  </td>
+                  <td>
+                    @if (quotaForm(user.id); as quota) {
+                      <input
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [attr.name]="'immunity-map-limit-' + user.id"
+                        [formControl]="quota.controls.immunityMapDailyLimit"
+                        (blur)="saveUserQuota(user)"
+                        placeholder="デフォルト"
+                      />
+                    }
+                  </td>
+                  <td>
+                    @if (quotaForm(user.id); as quota) {
+                      <input
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [attr.name]="'appeal-limit-' + user.id"
+                        [formControl]="quota.controls.appealDailyLimit"
+                        (blur)="saveUserQuota(user)"
+                        placeholder="デフォルト"
+                      />
+                    }
+                  </td>
+                  <td>
+                    @if (quotaForm(user.id); as quota) {
+                      <input
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [attr.name]="'auto-card-limit-' + user.id"
+                        [formControl]="quota.controls.autoCardDailyLimit"
                         (blur)="saveUserQuota(user)"
                         placeholder="デフォルト"
                       />
@@ -613,6 +697,72 @@
               class="form-control"
               name="default-evaluation-limit"
               formControlName="evaluationDailyLimit"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">AI分析（カード提案）</span>
+            <input
+              type="number"
+              min="0"
+              class="form-control"
+              name="default-analysis-limit"
+              formControlName="analysisDailyLimit"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">日報AI分析</span>
+            <input
+              type="number"
+              min="0"
+              class="form-control"
+              name="default-status-report-limit"
+              formControlName="statusReportDailyLimit"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">免疫マップ候補生成</span>
+            <input
+              type="number"
+              min="0"
+              class="form-control"
+              name="default-immunity-map-candidate-limit"
+              formControlName="immunityMapCandidateDailyLimit"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">免疫マップ生成</span>
+            <input
+              type="number"
+              min="0"
+              class="form-control"
+              name="default-immunity-map-limit"
+              formControlName="immunityMapDailyLimit"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">アピール生成</span>
+            <input
+              type="number"
+              min="0"
+              class="form-control"
+              name="default-appeal-limit"
+              formControlName="appealDailyLimit"
+              required
+            />
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">自動カード起票</span>
+            <input
+              type="number"
+              min="0"
+              class="form-control"
+              name="default-auto-card-limit"
+              formControlName="autoCardDailyLimit"
               required
             />
           </label>

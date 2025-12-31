@@ -4,6 +4,7 @@ import html
 import logging
 import re
 from collections import defaultdict
+from datetime import date
 from typing import ClassVar, Iterable
 
 from fastapi import Depends, HTTPException, status
@@ -22,6 +23,7 @@ from ..services.gemini import (
     GeminiError,
     get_optional_gemini_client,
 )
+from ..utils.quotas import AI_QUOTA_APPEAL, get_appeal_daily_limit, reserve_ai_quota
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +83,21 @@ class AppealGenerationService:
         owner: models.User,
         request: schemas.AppealGenerationRequest,
     ) -> schemas.AppealGenerationResponse:
+        today = date.today()
+        limit = get_appeal_daily_limit(self._db, owner.id)
+        quota_reserved = reserve_ai_quota(
+            self._db,
+            owner_id=owner.id,
+            quota_day=today,
+            limit=limit,
+            quota_key=AI_QUOTA_APPEAL,
+        )
+        if not quota_reserved:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Daily appeal generation limit of {limit} reached.",
+            )
+
         subject_label_id: str | None = None
         if request.subject.type == "label":
             subject_label_id = request.subject.value

@@ -18,7 +18,7 @@ from ..services.recommendation_scoring import (
     RecommendationScoringService,
 )
 from ..utils.activity import record_activity
-from ..utils.quotas import get_card_daily_limit
+from ..utils.quotas import AI_QUOTA_AUTO_CARD, get_auto_card_daily_limit, get_card_daily_limit, reserve_ai_quota
 from ..utils.repository import (
     apply_updates,
     delete_model,
@@ -559,6 +559,22 @@ def create_card(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Daily card creation limit of {card_limit} reached.",
         )
+
+    generated_by = (payload.generated_by or "").strip()
+    if generated_by:
+        auto_limit = get_auto_card_daily_limit(db, current_user.id)
+        quota_reserved = reserve_ai_quota(
+            db,
+            owner_id=current_user.id,
+            quota_day=now.date(),
+            limit=auto_limit,
+            quota_key=AI_QUOTA_AUTO_CARD,
+        )
+        if not quota_reserved:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Daily auto card creation limit of {auto_limit} reached.",
+            )
 
     reserve_daily_card_quota(
         db=db,

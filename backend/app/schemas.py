@@ -307,6 +307,7 @@ class CardBase(BaseModel):
 
 
 class CardCreate(CardBase):
+    generated_by: Optional[str] = None
     subtasks: List[SubtaskCreate] = Field(default_factory=list)
 
 

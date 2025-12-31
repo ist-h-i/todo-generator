@@ -3,6 +3,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  ViewChild,
   computed,
   effect,
   inject,
@@ -46,11 +48,19 @@ import { AiMark } from '@shared/ui/ai-mark/ai-mark';
   ],
   templateUrl: './analytics.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown)': 'onKeydown($event)',
+  },
 })
 export class AnalyticsPage {
   private readonly workspace = inject(WorkspaceStore);
   private readonly immunityMapGateway = inject(ImmunityMapGateway);
   private readonly destroyRef = inject(DestroyRef);
+
+  @ViewChild('immunityMapMermaidViewer')
+  private readonly immunityMapMermaidViewer?: ElementRef<HTMLElement>;
+  @ViewChild('immunityMapMermaidDialogPanel')
+  private readonly immunityMapMermaidDialogPanel?: ElementRef<HTMLElement>;
 
   public readonly windowDaysOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: '7', label: '直近7日' },
@@ -191,11 +201,36 @@ export class AnalyticsPage {
   public readonly generationError = signal<string | null>(null);
   public readonly generatedMap = signal<ImmunityMapResponse | null>(null);
   public readonly copyStatus = signal<'idle' | 'copied' | 'failed'>('idle');
+  public readonly isMermaidDialogOpen = signal(false);
 
   public readonly updateShouldText = (value: string): void => this.shouldText.set(value);
   public readonly updateCannotText = (value: string): void => this.cannotText.set(value);
   public readonly updateWantText = (value: string): void => this.wantText.set(value);
   public readonly updateContextText = (value: string): void => this.contextText.set(value);
+
+  public readonly openMermaidDialog = (): void => {
+    if (!this.generatedMap()?.mermaid) {
+      return;
+    }
+
+    this.isMermaidDialogOpen.set(true);
+    setTimeout(() => {
+      this.immunityMapMermaidDialogPanel?.nativeElement.focus();
+    }, 0);
+  };
+
+  public readonly closeMermaidDialog = (): void => {
+    this.isMermaidDialogOpen.set(false);
+  };
+
+  public onKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Escape' || !this.isMermaidDialogOpen()) {
+      return;
+    }
+
+    event.preventDefault();
+    this.closeMermaidDialog();
+  }
 
   public readonly toggleAdvancedMode = (): void => {
     this.advancedMode.update((value) => !value);
@@ -282,6 +317,8 @@ export class AnalyticsPage {
       return;
     }
 
+    this.closeMermaidDialog();
+
     const candidateItems = this.buildCandidateAItems();
     const manualItems = this.advancedMode() ? this.buildManualAItems() : [];
     const aItems = [...candidateItems, ...manualItems];
@@ -315,8 +352,27 @@ export class AnalyticsPage {
       this.generatedMap.set(null);
     } finally {
       this.isGenerating.set(false);
+      if (this.generatedMap()) {
+        this.scrollMermaidViewerIntoView();
+      }
     }
   };
+
+  private scrollMermaidViewerIntoView(attempt: number = 0): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const element = this.immunityMapMermaidViewer?.nativeElement;
+    if (!element) {
+      if (attempt < 5) {
+        setTimeout(() => this.scrollMermaidViewerIntoView(attempt + 1), 0);
+      }
+      return;
+    }
+
+    element.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+  }
 
   public readonly copyMermaid = async (): Promise<void> => {
     const mermaid = this.generatedMap()?.mermaid;
@@ -423,9 +479,7 @@ export class AnalyticsPage {
               ? ` ${this.sanitizeInlineMarkdownText(evidence.timestamp)}`
               : '';
             const snippet = evidence.snippet ?? evidence.id ?? '参照あり';
-            lines.push(
-              `- ${typeLabel}${timestamp}: ${this.sanitizeInlineMarkdownText(snippet)}`,
-            );
+            lines.push(`- ${typeLabel}${timestamp}: ${this.sanitizeInlineMarkdownText(snippet)}`);
           }
           lines.push('');
         }
@@ -448,18 +502,12 @@ export class AnalyticsPage {
       return '';
     }
 
-    const fenced = trimmed.match(
-      /^```(?:mermaid)?\s*(?:\r?\n)([\s\S]*?)(?:\r?\n)```\s*$/i,
-    );
+    const fenced = trimmed.match(/^```(?:mermaid)?\s*(?:\r?\n)([\s\S]*?)(?:\r?\n)```\s*$/i);
     return (fenced?.[1] ?? trimmed).trim();
   };
 
   private readonly sanitizeInlineMarkdownText = (value: string | null | undefined): string =>
-    (value ?? '')
-      .toString()
-      .replace(/\r?\n/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    (value ?? '').toString().replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
 
   private readonly buildCandidateRequest = (): ImmunityMapCandidateRequest => ({
     window_days: this.windowDays(),
@@ -767,7 +815,9 @@ export class AnalyticsPage {
     }
   };
 
-  private readonly coerceCandidatesFromArray = (items: readonly unknown[]): ImmunityMapCandidate[] => {
+  private readonly coerceCandidatesFromArray = (
+    items: readonly unknown[],
+  ): ImmunityMapCandidate[] => {
     const candidates: ImmunityMapCandidate[] = [];
 
     for (const [index, raw] of items.entries()) {
@@ -805,7 +855,10 @@ export class AnalyticsPage {
     return this.coerceCandidate(nested, index);
   };
 
-  private readonly coerceCandidate = (value: unknown, index: number): ImmunityMapCandidate | null => {
+  private readonly coerceCandidate = (
+    value: unknown,
+    index: number,
+  ): ImmunityMapCandidate | null => {
     if (!value || typeof value !== 'object') {
       return null;
     }
@@ -843,10 +896,13 @@ export class AnalyticsPage {
           confidence: typeof item['confidence'] === 'number' ? item['confidence'] : undefined,
           questions: Array.isArray(item['questions'])
             ? item['questions'].filter(
-                (question): question is string => typeof question === 'string' && question.trim().length > 0,
+                (question): question is string =>
+                  typeof question === 'string' && question.trim().length > 0,
               )
             : undefined,
-          evidence: Array.isArray(item['evidence']) ? (item['evidence'] as ImmunityMapCandidate['evidence']) : undefined,
+          evidence: Array.isArray(item['evidence'])
+            ? (item['evidence'] as ImmunityMapCandidate['evidence'])
+            : undefined,
         };
       }
     }
@@ -858,8 +914,10 @@ export class AnalyticsPage {
         typeof item['analytics_notes'] === 'string' ? item['analytics_notes'] : '';
       const description = typeof item['description'] === 'string' ? item['description'] : '';
       const rationale =
-        (summary || aiNotes || analyticsNotes || description).trim() || '\u5019\u88dc\u30ab\u30fc\u30c9\u304c\u8fd4\u5374\u3055\u308c\u307e\u3057\u305f\u3002';
-      const confidence = typeof item['ai_confidence'] === 'number' ? item['ai_confidence'] : undefined;
+        (summary || aiNotes || analyticsNotes || description).trim() ||
+        '\u5019\u88dc\u30ab\u30fc\u30c9\u304c\u8fd4\u5374\u3055\u308c\u307e\u3057\u305f\u3002';
+      const confidence =
+        typeof item['ai_confidence'] === 'number' ? item['ai_confidence'] : undefined;
 
       return {
         id: resolvedId,
@@ -871,9 +929,3 @@ export class AnalyticsPage {
     return null;
   };
 }
-
-
-
-
-
-

@@ -297,6 +297,7 @@ export class ReportAssistantPage {
       priority,
       dueDate,
       subtasks,
+      generatedBy: 'status_report',
     };
   }
 

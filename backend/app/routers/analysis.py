@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import date
 import re
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -38,6 +39,15 @@ from ..services.immunity_map import (
     build_immunity_map_context,
 )
 from ..services.profile import build_user_profile
+from ..utils.quotas import (
+    AI_QUOTA_ANALYSIS,
+    AI_QUOTA_IMMUNITY_MAP,
+    AI_QUOTA_IMMUNITY_MAP_CANDIDATES,
+    get_analysis_daily_limit,
+    get_immunity_map_candidate_daily_limit,
+    get_immunity_map_daily_limit,
+    reserve_ai_quota,
+)
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -146,6 +156,21 @@ def analyze(
     db: Session = Depends(get_db),
 ) -> AnalysisResponse:
     """Analyze free-form text and return structured card proposals."""
+
+    today = date.today()
+    limit = get_analysis_daily_limit(db, current_user.id)
+    quota_reserved = reserve_ai_quota(
+        db,
+        owner_id=current_user.id,
+        quota_day=today,
+        limit=limit,
+        quota_key=AI_QUOTA_ANALYSIS,
+    )
+    if not quota_reserved:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily analysis limit of {limit} reached.",
+        )
 
     profile = build_user_profile(current_user)
     workspace_options = build_workspace_analysis_options(db, owner_id=current_user.id)
@@ -595,6 +620,22 @@ def generate_immunity_map_candidates(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ImmunityMapCandidateResponse:
+    today = date.today()
+    limit = get_immunity_map_candidate_daily_limit(db, current_user.id)
+    quota_reserved = reserve_ai_quota(
+        db,
+        owner_id=current_user.id,
+        quota_day=today,
+        limit=limit,
+        quota_key=AI_QUOTA_IMMUNITY_MAP_CANDIDATES,
+    )
+    if not quota_reserved:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily immunity map candidate limit of {limit} reached.",
+        )
+    db.commit()
+
     include = payload.include
     context_bundle = build_immunity_map_context(
         db,
@@ -679,6 +720,22 @@ def generate_immunity_map(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ImmunityMapResponse:
+    today = date.today()
+    limit = get_immunity_map_daily_limit(db, current_user.id)
+    quota_reserved = reserve_ai_quota(
+        db,
+        owner_id=current_user.id,
+        quota_day=today,
+        limit=limit,
+        quota_key=AI_QUOTA_IMMUNITY_MAP,
+    )
+    if not quota_reserved:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily immunity map generation limit of {limit} reached.",
+        )
+    db.commit()
+
     policy = _resolve_context_policy(payload)
     include_auto = policy in {"auto", "auto+manual"}
     include_manual = policy in {"manual", "auto+manual"}

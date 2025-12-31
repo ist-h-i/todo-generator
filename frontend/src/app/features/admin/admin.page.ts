@@ -46,6 +46,12 @@ type CriterionFormGroup = FormGroup<{
 type UserQuotaForm = FormGroup<{
   cardDailyLimit: FormControl<number | null>;
   evaluationDailyLimit: FormControl<number | null>;
+  analysisDailyLimit: FormControl<number | null>;
+  statusReportDailyLimit: FormControl<number | null>;
+  immunityMapDailyLimit: FormControl<number | null>;
+  immunityMapCandidateDailyLimit: FormControl<number | null>;
+  appealDailyLimit: FormControl<number | null>;
+  autoCardDailyLimit: FormControl<number | null>;
 }>;
 type CompetencyFormControls = {
   name: FormControl<string>;
@@ -197,11 +203,35 @@ export class AdminPage {
   public readonly quotaDefaultsForm: FormGroup<{
     cardDailyLimit: FormControl<number | null>;
     evaluationDailyLimit: FormControl<number | null>;
+    analysisDailyLimit: FormControl<number | null>;
+    statusReportDailyLimit: FormControl<number | null>;
+    immunityMapDailyLimit: FormControl<number | null>;
+    immunityMapCandidateDailyLimit: FormControl<number | null>;
+    appealDailyLimit: FormControl<number | null>;
+    autoCardDailyLimit: FormControl<number | null>;
   }> = new FormGroup({
     cardDailyLimit: new FormControl<number | null>(null, {
       validators: [Validators.required],
     }),
     evaluationDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    analysisDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    statusReportDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    immunityMapDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    immunityMapCandidateDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    appealDailyLimit: new FormControl<number | null>(null, {
+      validators: [Validators.required],
+    }),
+    autoCardDailyLimit: new FormControl<number | null>(null, {
       validators: [Validators.required],
     }),
   });
@@ -540,10 +570,25 @@ export class AdminPage {
     if (!form) {
       return;
     }
-    const { cardDailyLimit, evaluationDailyLimit } = form.getRawValue();
+    const {
+      cardDailyLimit,
+      evaluationDailyLimit,
+      analysisDailyLimit,
+      statusReportDailyLimit,
+      immunityMapDailyLimit,
+      immunityMapCandidateDailyLimit,
+      appealDailyLimit,
+      autoCardDailyLimit,
+    } = form.getRawValue();
     this.updateUser(user, {
       card_daily_limit: cardDailyLimit ?? null,
       evaluation_daily_limit: evaluationDailyLimit ?? null,
+      analysis_daily_limit: analysisDailyLimit ?? null,
+      status_report_daily_limit: statusReportDailyLimit ?? null,
+      immunity_map_daily_limit: immunityMapDailyLimit ?? null,
+      immunity_map_candidate_daily_limit: immunityMapCandidateDailyLimit ?? null,
+      appeal_daily_limit: appealDailyLimit ?? null,
+      auto_card_daily_limit: autoCardDailyLimit ?? null,
     });
   }
 
@@ -635,8 +680,26 @@ export class AdminPage {
     }
 
     const formValue = this.quotaDefaultsForm.getRawValue();
-    const { cardDailyLimit, evaluationDailyLimit } = formValue;
-    if (cardDailyLimit === null || evaluationDailyLimit === null) {
+    const {
+      cardDailyLimit,
+      evaluationDailyLimit,
+      analysisDailyLimit,
+      statusReportDailyLimit,
+      immunityMapDailyLimit,
+      immunityMapCandidateDailyLimit,
+      appealDailyLimit,
+      autoCardDailyLimit,
+    } = formValue;
+    if (
+      cardDailyLimit === null ||
+      evaluationDailyLimit === null ||
+      analysisDailyLimit === null ||
+      statusReportDailyLimit === null ||
+      immunityMapDailyLimit === null ||
+      immunityMapCandidateDailyLimit === null ||
+      appealDailyLimit === null ||
+      autoCardDailyLimit === null
+    ) {
       this.error.set('日次上限を入力してください。');
       return;
     }
@@ -644,6 +707,12 @@ export class AdminPage {
     const payload = {
       card_daily_limit: cardDailyLimit,
       evaluation_daily_limit: evaluationDailyLimit,
+      analysis_daily_limit: analysisDailyLimit,
+      status_report_daily_limit: statusReportDailyLimit,
+      immunity_map_daily_limit: immunityMapDailyLimit,
+      immunity_map_candidate_daily_limit: immunityMapCandidateDailyLimit,
+      appeal_daily_limit: appealDailyLimit,
+      auto_card_daily_limit: autoCardDailyLimit,
     };
 
     this.loading.set(true);
@@ -657,6 +726,12 @@ export class AdminPage {
           this.quotaDefaultsForm.setValue({
             cardDailyLimit: defaults.card_daily_limit,
             evaluationDailyLimit: defaults.evaluation_daily_limit,
+            analysisDailyLimit: defaults.analysis_daily_limit,
+            statusReportDailyLimit: defaults.status_report_daily_limit,
+            immunityMapDailyLimit: defaults.immunity_map_daily_limit,
+            immunityMapCandidateDailyLimit: defaults.immunity_map_candidate_daily_limit,
+            appealDailyLimit: defaults.appeal_daily_limit,
+            autoCardDailyLimit: defaults.auto_card_daily_limit,
           });
           this.notify('デフォルト日次上限を更新しました。');
         },
@@ -743,6 +818,12 @@ export class AdminPage {
           this.quotaDefaultsForm.setValue({
             cardDailyLimit: defaults.card_daily_limit,
             evaluationDailyLimit: defaults.evaluation_daily_limit,
+            analysisDailyLimit: defaults.analysis_daily_limit,
+            statusReportDailyLimit: defaults.status_report_daily_limit,
+            immunityMapDailyLimit: defaults.immunity_map_daily_limit,
+            immunityMapCandidateDailyLimit: defaults.immunity_map_candidate_daily_limit,
+            appealDailyLimit: defaults.appeal_daily_limit,
+            autoCardDailyLimit: defaults.auto_card_daily_limit,
           });
         },
         error: (err) => this.handleError(err, '日次上限の取得に失敗しました。'),
@@ -840,6 +921,18 @@ export class AdminPage {
       evaluationDailyLimit: this.formBuilder.control<number | null>(
         user.evaluation_daily_limit ?? null,
       ),
+      analysisDailyLimit: this.formBuilder.control<number | null>(user.analysis_daily_limit ?? null),
+      statusReportDailyLimit: this.formBuilder.control<number | null>(
+        user.status_report_daily_limit ?? null,
+      ),
+      immunityMapDailyLimit: this.formBuilder.control<number | null>(
+        user.immunity_map_daily_limit ?? null,
+      ),
+      immunityMapCandidateDailyLimit: this.formBuilder.control<number | null>(
+        user.immunity_map_candidate_daily_limit ?? null,
+      ),
+      appealDailyLimit: this.formBuilder.control<number | null>(user.appeal_daily_limit ?? null),
+      autoCardDailyLimit: this.formBuilder.control<number | null>(user.auto_card_daily_limit ?? null),
     });
   }
 
@@ -852,6 +945,12 @@ export class AdminPage {
         {
           cardDailyLimit: user.card_daily_limit ?? null,
           evaluationDailyLimit: user.evaluation_daily_limit ?? null,
+          analysisDailyLimit: user.analysis_daily_limit ?? null,
+          statusReportDailyLimit: user.status_report_daily_limit ?? null,
+          immunityMapDailyLimit: user.immunity_map_daily_limit ?? null,
+          immunityMapCandidateDailyLimit: user.immunity_map_candidate_daily_limit ?? null,
+          appealDailyLimit: user.appeal_daily_limit ?? null,
+          autoCardDailyLimit: user.auto_card_daily_limit ?? null,
         },
         { emitEvent: false },
       );
