@@ -1130,6 +1130,12 @@ class AdminUserRead(BaseModel):
     is_active: bool
     card_daily_limit: Optional[int] = None
     evaluation_daily_limit: Optional[int] = None
+    analysis_daily_limit: Optional[int] = None
+    status_report_daily_limit: Optional[int] = None
+    immunity_map_daily_limit: Optional[int] = None
+    immunity_map_candidate_daily_limit: Optional[int] = None
+    appeal_daily_limit: Optional[int] = None
+    auto_card_daily_limit: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -1141,6 +1147,12 @@ class AdminUserUpdate(BaseModel):
     is_active: Optional[bool] = None
     card_daily_limit: Optional[int] = Field(default=None, ge=0)
     evaluation_daily_limit: Optional[int] = Field(default=None, ge=0)
+    analysis_daily_limit: Optional[int] = Field(default=None, ge=0)
+    status_report_daily_limit: Optional[int] = Field(default=None, ge=0)
+    immunity_map_daily_limit: Optional[int] = Field(default=None, ge=0)
+    immunity_map_candidate_daily_limit: Optional[int] = Field(default=None, ge=0)
+    appeal_daily_limit: Optional[int] = Field(default=None, ge=0)
+    auto_card_daily_limit: Optional[int] = Field(default=None, ge=0)
 
 
 class ApiCredentialRead(BaseModel):
@@ -1173,6 +1185,12 @@ class ApiCredentialUpdate(BaseModel):
 class QuotaDefaultsRead(BaseModel):
     card_daily_limit: int
     evaluation_daily_limit: int
+    analysis_daily_limit: int
+    status_report_daily_limit: int
+    immunity_map_daily_limit: int
+    immunity_map_candidate_daily_limit: int
+    appeal_daily_limit: int
+    auto_card_daily_limit: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1180,12 +1198,24 @@ class QuotaDefaultsRead(BaseModel):
 class QuotaDefaultsUpdate(BaseModel):
     card_daily_limit: int = Field(ge=0)
     evaluation_daily_limit: int = Field(ge=0)
+    analysis_daily_limit: int = Field(ge=0)
+    status_report_daily_limit: int = Field(ge=0)
+    immunity_map_daily_limit: int = Field(ge=0)
+    immunity_map_candidate_daily_limit: int = Field(ge=0)
+    appeal_daily_limit: int = Field(ge=0)
+    auto_card_daily_limit: int = Field(ge=0)
 
 
 class UserQuotaRead(BaseModel):
     user_id: str
     card_daily_limit: Optional[int] = None
     evaluation_daily_limit: Optional[int] = None
+    analysis_daily_limit: Optional[int] = None
+    status_report_daily_limit: Optional[int] = None
+    immunity_map_daily_limit: Optional[int] = None
+    immunity_map_candidate_daily_limit: Optional[int] = None
+    appeal_daily_limit: Optional[int] = None
+    auto_card_daily_limit: Optional[int] = None
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -1194,6 +1224,12 @@ class UserQuotaRead(BaseModel):
 class UserQuotaUpdate(BaseModel):
     card_daily_limit: Optional[int] = Field(default=None, ge=0)
     evaluation_daily_limit: Optional[int] = Field(default=None, ge=0)
+    analysis_daily_limit: Optional[int] = Field(default=None, ge=0)
+    status_report_daily_limit: Optional[int] = Field(default=None, ge=0)
+    immunity_map_daily_limit: Optional[int] = Field(default=None, ge=0)
+    immunity_map_candidate_daily_limit: Optional[int] = Field(default=None, ge=0)
+    appeal_daily_limit: Optional[int] = Field(default=None, ge=0)
+    auto_card_daily_limit: Optional[int] = Field(default=None, ge=0)
 
 
 # --------------------------------------------------------------------------------------------
