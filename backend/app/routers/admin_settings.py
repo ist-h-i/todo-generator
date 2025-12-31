@@ -252,6 +252,12 @@ def update_defaults(
         db,
         card_limit=payload.card_daily_limit,
         evaluation_limit=payload.evaluation_daily_limit,
+        analysis_limit=payload.analysis_daily_limit,
+        status_report_limit=payload.status_report_daily_limit,
+        immunity_map_limit=payload.immunity_map_daily_limit,
+        immunity_map_candidate_limit=payload.immunity_map_candidate_daily_limit,
+        appeal_limit=payload.appeal_daily_limit,
+        auto_card_limit=payload.auto_card_daily_limit,
     )
     db.add(defaults)
     db.commit()
@@ -283,6 +289,12 @@ def update_user_quota_override(
         user_id=user_id,
         card_limit=payload.card_daily_limit,
         evaluation_limit=payload.evaluation_daily_limit,
+        analysis_limit=payload.analysis_daily_limit,
+        status_report_limit=payload.status_report_daily_limit,
+        immunity_map_limit=payload.immunity_map_daily_limit,
+        immunity_map_candidate_limit=payload.immunity_map_candidate_daily_limit,
+        appeal_limit=payload.appeal_daily_limit,
+        auto_card_limit=payload.auto_card_daily_limit,
         updated_by=admin_user.id,
     )
     db.add(override)
