@@ -1,0 +1,9 @@
+{
+    "chat.mcp.serverSampling": {
+        "todo-generator/.vscode/mcp.json: angular-cli": {
+            "allowedModels": [
+                "copilot/auto"
+            ]
+        }
+    }
+}

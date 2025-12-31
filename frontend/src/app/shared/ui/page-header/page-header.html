@@ -52,7 +52,7 @@
       class="mt-1 flex flex-wrap gap-3 empty:hidden"
       [ngClass]="centered() ? 'justify-center' : ''"
     >
-      <ng-content></ng-content>
+      <ng-content />
     </div>
   </div>
 
@@ -60,6 +60,6 @@
     class="flex flex-wrap gap-3 empty:hidden"
     [ngClass]="centered() ? 'justify-center' : 'justify-start md:justify-end'"
   >
-    <ng-content select="[appPageHeaderActions]"></ng-content>
+    <ng-content select="[appPageHeaderActions]" />
   </div>
 </header>

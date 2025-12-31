@@ -553,12 +553,11 @@
                     </label>
                     <label class="subtask-editor__field">
                       <span class="subtask-editor__field-label">ステータス</span>
-                      <shared-ui-select
-                        [name]="'subtask-status-' + task.id"
+                      <shared-ui-select [name]="'subtask-status-' + task.id"
                         [options]="subtaskStatusSelectOptions"
-                        [ngModel]="task.status"
-                        (ngModelChange)="changeSubtaskStatus(active.id, task.id, $event)"
-                      ></shared-ui-select>
+                        [value]="task.status"
+                        (valueChange)="changeSubtaskStatus(active.id, task.id, $event)"
+                       />
                     </label>
                     <label class="subtask-editor__field">
                       <span class="subtask-editor__field-label">担当者</span>
@@ -713,12 +712,11 @@
             </label>
             <label class="subtask-editor__field">
               <span class="subtask-editor__field-label">ステータス</span>
-              <shared-ui-select
-                name="new-subtask-status"
+              <shared-ui-select name="new-subtask-status"
                 [options]="subtaskStatusSelectOptions"
-                [ngModel]="newSubtaskForm.controls.status.value()"
-                (ngModelChange)="newSubtaskForm.controls.status.setValue($event)"
-              ></shared-ui-select>
+                [value]="newSubtaskForm.controls.status.value()"
+                (valueChange)="updateNewSubtaskStatus($event)"
+               />
             </label>
             <label class="subtask-editor__field">
               <span class="subtask-editor__field-label">期限</span>

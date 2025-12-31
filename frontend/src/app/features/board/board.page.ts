@@ -1,7 +1,6 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DecimalPipe, NgClass } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { FormsModule } from '@angular/forms';
 
 import { PageHeader } from '@shared/ui/page-header/page-header';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
@@ -13,7 +12,7 @@ type ColumnAccentSource = { readonly accent: string };
 
 @Component({
   selector: 'app-board-page',
-  imports: [CommonModule, FormsModule, DragDropModule, PageHeader, LocalDateTimePipe, UiSelect],
+  imports: [NgClass, DecimalPipe, DragDropModule, PageHeader, LocalDateTimePipe, UiSelect],
   templateUrl: './board.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [BoardPageStore],
@@ -76,6 +75,7 @@ export class BoardPage {
   public readonly updateSubtaskEstimate = this.store.updateSubtaskEstimate;
   public readonly updateSubtaskDueDate = this.store.updateSubtaskDueDate;
   public readonly changeSubtaskStatus = this.store.changeSubtaskStatus;
+  public readonly updateNewSubtaskStatus = this.store.updateNewSubtaskStatus;
   public readonly deleteSubtask = this.store.deleteSubtask;
   public readonly addSubtask = this.store.addSubtask;
   public readonly isActiveCard = this.store.isActiveCard;

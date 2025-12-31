@@ -244,13 +244,12 @@
                   <span class="form-field__label" [attr.for]="'template-edit-status-' + template.id"
                     >初期ステータス</span
                   >
-                  <shared-ui-select
-                    [id]="'template-edit-status-' + template.id"
+                  <shared-ui-select [id]="'template-edit-status-' + template.id"
                     [name]="'template-edit-status-' + template.id"
                     [options]="statusSelectOptions()"
-                    [ngModel]="templateEditForm.controls.defaultStatusId.value()"
-                    (ngModelChange)="templateEditForm.controls.defaultStatusId.setValue($event)"
-                  ></shared-ui-select>
+                    [value]="templateEditForm.controls.defaultStatusId.value()"
+                    (valueChange)="setTemplateEditDefaultStatus($event)"
+                   />
                 </label>
 
                 <label class="form-field">
@@ -418,13 +417,12 @@
 
         <label class="form-field">
           <span class="form-field__label" for="template-status">初期ステータス</span>
-          <shared-ui-select
-            id="template-status"
+          <shared-ui-select id="template-status"
             name="template-status"
             [options]="statusSelectOptions()"
-            [ngModel]="templateForm.controls.defaultStatusId.value()"
-            (ngModelChange)="templateForm.controls.defaultStatusId.setValue($event)"
-          ></shared-ui-select>
+            [value]="templateForm.controls.defaultStatusId.value()"
+            (valueChange)="setTemplateDefaultStatus($event)"
+           />
         </label>
 
         <label class="form-field">

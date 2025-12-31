@@ -1,0 +1,116 @@
+<div class="ui-select" [class.ui-select--disabled]="isDisabled()">
+  <!-- Single-select: custom trigger + panel -->
+  @if (isSingleMode()) {
+    <button
+      #trigger
+      type="button"
+      class="form-control app-select ui-select__trigger"
+      [id]="id() || null"
+      [attr.aria-haspopup]="'listbox'"
+      [attr.aria-expanded]="panelOpen()"
+      [attr.aria-controls]="panelId"
+      [disabled]="isDisabled()"
+      (click)="togglePanel($event)"
+      (blur)="onTouched()"
+    >
+      <span class="ui-select__value">{{ selectedLabel() || placeholder() || '' }}</span>
+      <span class="ui-select__icon" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </span>
+    </button>
+
+    <!-- Native select kept for projected <option>; visually hidden in single mode -->
+    <select
+      #nativeSelect
+      class="ui-select__native ui-select__native--hidden"
+      tabindex="-1"
+      aria-hidden="true"
+      inert
+      [name]="name() || null"
+      [disabled]="isDisabled()"
+      [multiple]="multiple() || null"
+      [attr.size]="size() ?? null"
+      [value]="!multiple() ? (selection() ?? '') : null"
+      (change)="onSelectChange($event)"
+    >
+      @if (providedOptions()?.length) {
+        @for (opt of providedOptions(); track opt.value) {
+          <option [value]="opt.value" [disabled]="opt.disabled ? true : null">
+            {{ opt.label }}
+          </option>
+        }
+      } @else {
+        <ng-content />
+      }
+    </select>
+
+    @if (panelOpen()) {
+      <div class="ui-select__panel" role="listbox" [id]="panelId">
+        @for (opt of displayOptions(); track opt.value; let i = $index) {
+          <div
+            class="ui-select__option"
+            [class.is-selected]="isSelected(opt.value)"
+            [class.is-disabled]="opt.disabled"
+            [class.is-active]="i === activeIndex()"
+            role="option"
+            [attr.aria-selected]="isSelected(opt.value)"
+            (click)="onOptionClick(opt, $event)"
+            (mouseenter)="setActiveIndex(i)"
+          >
+            @if (isSelected(opt.value)) {
+              <span class="ui-select__check" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </span>
+            }
+            <span class="ui-select__label">{{ opt.label }}</span>
+          </div>
+        }
+      </div>
+    }
+  } @else {
+    <select
+      #nativeSelect
+      class="form-control app-select"
+      [id]="id() || null"
+      [name]="name() || null"
+      [disabled]="isDisabled()"
+      [multiple]="multiple() || null"
+      [attr.size]="size() ?? null"
+      [value]="!multiple() ? (selection() ?? '') : null"
+      (change)="onSelectChange($event)"
+      (blur)="onTouched()"
+    >
+      @if (providedOptions()?.length) {
+        @for (opt of providedOptions(); track opt.value) {
+          <option [value]="opt.value" [disabled]="opt.disabled ? true : null">
+            {{ opt.label }}
+          </option>
+        }
+      } @else {
+        <ng-content />
+      }
+    </select>
+  }
+</div>

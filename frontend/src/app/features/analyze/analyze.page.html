@@ -268,12 +268,11 @@
                 <div class="analyze-page__proposal-metadata">
                   <label class="form-field">
                     <span class="form-field__label">ステータス</span>
-                    <shared-ui-select
-                      [name]="'proposal-status-' + proposal.id"
+                    <shared-ui-select [name]="'proposal-status-' + proposal.id"
                       [options]="statusSelectOptions()"
-                      [ngModel]="proposal.statusId"
-                      (ngModelChange)="updateProposalStatus(proposal.id, $event)"
-                    ></shared-ui-select>
+                      [value]="proposal.statusId"
+                      (valueChange)="updateProposalStatus(proposal.id, $event)"
+                     />
                   </label>
                   <div class="form-field analyze-page__label-field">
                     <span class="form-field__label">ラベル</span>

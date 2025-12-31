@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
 import { AiMark } from '@shared/ui/ai-mark/ai-mark';
@@ -50,7 +50,7 @@ const DEFAULT_HISTORY_LIMIT = 12;
  */
 @Component({
   selector: 'app-profile-evaluations-page',
-  imports: [CommonModule, PageLayout, LocalDateTimePipe, AiMark],
+  imports: [PageLayout, LocalDateTimePipe, AiMark],
   templateUrl: './profile-evaluations.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

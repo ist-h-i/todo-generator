@@ -193,10 +193,9 @@
               @if (category.children.length) {
                 <div class="profile-dialog__role-children">
                   @for (child of category.children; track child.id) {
-                    <ng-container
-                      [ngTemplateOutlet]="roleCategory"
+                    <ng-container [ngTemplateOutlet]="roleCategory"
                       [ngTemplateOutletContext]="{ $implicit: child, depth: depth + 1 }"
-                    ></ng-container>
+                     />
                   }
                 </div>
               }
@@ -251,10 +250,9 @@
                       role="group"
                       [attr.aria-labelledby]="category.id + '-label'"
                     >
-                      <ng-container
-                        [ngTemplateOutlet]="roleCategoryContent"
+                      <ng-container [ngTemplateOutlet]="roleCategoryContent"
                         [ngTemplateOutletContext]="{ $implicit: category, depth: depth }"
-                      ></ng-container>
+                       />
                     </div>
                   }
                 </section>
@@ -301,10 +299,9 @@
                       role="group"
                       [attr.aria-labelledby]="category.id + '-label'"
                     >
-                      <ng-container
-                        [ngTemplateOutlet]="roleCategoryContent"
+                      <ng-container [ngTemplateOutlet]="roleCategoryContent"
                         [ngTemplateOutletContext]="{ $implicit: category, depth: depth }"
-                      ></ng-container>
+                       />
                     </div>
                   }
                 </div>
@@ -312,10 +309,9 @@
             </ng-template>
 
             @for (category of roleCategories; track category.id) {
-              <ng-container
-                [ngTemplateOutlet]="roleCategory"
+              <ng-container [ngTemplateOutlet]="roleCategory"
                 [ngTemplateOutletContext]="{ $implicit: category, depth: 0 }"
-              ></ng-container>
+               />
             }
           </div>
 

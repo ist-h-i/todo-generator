@@ -1,14 +1,14 @@
-import { CommonModule } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
   ElementRef,
-  ViewChild,
   computed,
   effect,
   inject,
   signal,
+  viewChild
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -38,7 +38,7 @@ import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 @Component({
   selector: 'app-analytics-page',
   imports: [
-    CommonModule,
+    DecimalPipe,
     RouterLink,
     ReactiveFormsModule,
     MermaidViewer,
@@ -57,10 +57,8 @@ export class AnalyticsPage {
   private readonly immunityMapGateway = inject(ImmunityMapGateway);
   private readonly destroyRef = inject(DestroyRef);
 
-  @ViewChild('immunityMapMermaidViewer')
-  private readonly immunityMapMermaidViewer?: ElementRef<HTMLElement>;
-  @ViewChild('immunityMapMermaidDialogPanel')
-  private readonly immunityMapMermaidDialogPanel?: ElementRef<HTMLElement>;
+  private readonly immunityMapMermaidViewer = viewChild<ElementRef<HTMLElement>>('immunityMapMermaidViewer');
+  private readonly immunityMapMermaidDialogPanel = viewChild<ElementRef<HTMLElement>>('immunityMapMermaidDialogPanel');
 
   public readonly windowDaysOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: '7', label: '直近7日' },
@@ -217,7 +215,7 @@ export class AnalyticsPage {
 
     this.isMermaidDialogOpen.set(true);
     setTimeout(() => {
-      this.immunityMapMermaidDialogPanel?.nativeElement.focus();
+      this.immunityMapMermaidDialogPanel()?.nativeElement.focus();
     }, 0);
   };
 
@@ -365,7 +363,7 @@ export class AnalyticsPage {
       return;
     }
 
-    const element = this.immunityMapMermaidViewer?.nativeElement;
+    const element = this.immunityMapMermaidViewer()?.nativeElement;
     if (!element) {
       if (attempt < 5) {
         setTimeout(() => this.scrollMermaidViewerIntoView(attempt + 1), 0);

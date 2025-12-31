@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -32,14 +32,13 @@ import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 @Component({
   selector: 'app-report-assistant-page',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterLink,
     PageLayout,
     LocalDateTimePipe,
     UiSelect,
-    AiMark,
-  ],
+    AiMark
+],
   templateUrl: './reports.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

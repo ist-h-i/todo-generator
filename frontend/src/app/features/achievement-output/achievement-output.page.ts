@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -9,7 +9,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
 import { AppealsApi } from '@core/api/appeals-api';
@@ -48,7 +47,7 @@ interface AchievementOutputForm {
 
 @Component({
   selector: 'app-achievement-output-page',
-  imports: [CommonModule, FormsModule, PageLayout, UiSelect, AiMark],
+  imports: [PageLayout, UiSelect, AiMark],
   templateUrl: './achievement-output.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -265,7 +264,10 @@ export class AchievementOutputPage {
     this.form.controls.subjectType.setValue(type);
   }
 
-  public updateSubjectLabel(value: string): void {
+  public updateSubjectLabel(value: string | string[] | null): void {
+    if (typeof value !== 'string') {
+      return;
+    }
     this.form.controls.subjectLabelId.setValue(value);
   }
 

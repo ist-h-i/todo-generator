@@ -3,13 +3,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  ViewChild,
   computed,
   inject,
   signal,
   output,
+  viewChild
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
 
 import { createSignalForm } from '@shared/forms/signal-forms';
@@ -312,7 +312,7 @@ const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
 @Component({
   selector: 'app-profile-dialog',
-  imports: [CommonModule],
+  imports: [NgTemplateOutlet],
   templateUrl: './profile-dialog.html',
   styleUrl: './profile-dialog.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -324,8 +324,8 @@ export class ProfileDialog implements AfterViewInit {
   public readonly dismiss = output<void>();
   public readonly profileSaved = output<UserProfile>();
 
-  @ViewChild('panel', { static: true }) private readonly panel?: ElementRef<HTMLDivElement>;
-  @ViewChild('fileInput') private readonly fileInput?: ElementRef<HTMLInputElement>;
+  private readonly panel = viewChild<ElementRef<HTMLDivElement>>('panel');
+  private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
   private readonly profileService = inject(Profile);
 
@@ -501,7 +501,7 @@ export class ProfileDialog implements AfterViewInit {
 
   public ngAfterViewInit(): void {
     queueMicrotask(() => {
-      this.panel?.nativeElement.focus();
+      this.panel()?.nativeElement.focus();
     });
   }
 
@@ -696,7 +696,7 @@ export class ProfileDialog implements AfterViewInit {
 
   public triggerAvatarPicker(): void {
     this.errorStore.set(null);
-    this.fileInput?.nativeElement.click();
+    this.fileInput()?.nativeElement.click();
   }
 
   public async onAvatarChange(event: Event): Promise<void> {
@@ -797,11 +797,12 @@ export class ProfileDialog implements AfterViewInit {
   }
 
   private resetFileInput(): void {
-    if (!this.fileInput) {
+    const fileInput = this.fileInput();
+    if (!fileInput) {
       return;
     }
 
-    this.fileInput.nativeElement.value = '';
+    fileInput.nativeElement.value = '';
   }
 
   private async readFile(file: File): Promise<string> {

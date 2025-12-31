@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {
   FormArray,
   FormBuilder,
@@ -70,7 +70,7 @@ type CompetencyLevelFormControls = {
 
 @Component({
   selector: 'app-admin-page',
-  imports: [CommonModule, ReactiveFormsModule, PageLayout, LocalDateTimePipe, UiSelect, AiMark],
+  imports: [ReactiveFormsModule, PageLayout, LocalDateTimePipe, UiSelect, AiMark],
   templateUrl: './admin.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

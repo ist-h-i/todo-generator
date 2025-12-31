@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 
 type HeadingLevel = 'h1' | 'h2' | 'h3';
 
@@ -8,7 +8,7 @@ type HeadingLevel = 'h1' | 'h2' | 'h3';
  */
 @Component({
   selector: 'shared-page-header',
-  imports: [CommonModule],
+  imports: [NgClass],
   templateUrl: './page-header.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {

@@ -1,14 +1,14 @@
-import { CommonModule } from '@angular/common';
+
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  ViewChild,
   computed,
   effect,
   input,
   signal,
+  viewChild
 } from '@angular/core';
 
 import type mermaidType from 'mermaid';
@@ -26,7 +26,7 @@ const loadMermaid = async (): Promise<MermaidAPI> => {
 
 @Component({
   selector: 'shared-mermaid-viewer',
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './mermaid-viewer.html',
   styleUrl: './mermaid-viewer.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,7 +43,7 @@ export class MermaidViewer implements AfterViewInit {
   public readonly canZoomOut = computed(() => this.zoom() > MermaidViewer.MIN_ZOOM);
   public readonly canResetZoom = computed(() => this.zoom() !== 1);
 
-  @ViewChild('canvas', { static: true }) private readonly canvas?: ElementRef<HTMLDivElement>;
+  private readonly canvas = viewChild<ElementRef<HTMLDivElement>>('canvas');
 
   private readonly viewReady = signal(false);
   private renderRequestId = 0;
@@ -99,7 +99,7 @@ export class MermaidViewer implements AfterViewInit {
     document.documentElement.classList.contains('dark') ? 'dark' : 'default';
 
   private readonly render = async (code: string, requestId: number): Promise<void> => {
-    const host = this.canvas?.nativeElement;
+    const host = this.canvas()?.nativeElement;
     if (!host) {
       return;
     }

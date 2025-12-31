@@ -275,12 +275,15 @@ export function resolveSuggestedLabelIds(
  */
 @Injectable({ providedIn: 'root' })
 export class AnalysisGateway {
+  private readonly logger = inject(Logger);
+  private readonly workspace = inject(WorkspaceStore);
+
   private readonly http = inject(HttpClient);
 
-  public constructor(
-    private readonly logger: Logger,
-    private readonly workspace: WorkspaceStore,
-  ) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  public constructor() {}
 
   /**
    * Creates a resource bound to the given request signal.

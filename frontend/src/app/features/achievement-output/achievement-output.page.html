@@ -102,13 +102,12 @@
           @if (form.controls.subjectType.value() === 'label') {
             <label class="form-field">
               <span class="form-field__label">ラベル</span>
-              <shared-ui-select
-                name="subject-label"
+              <shared-ui-select name="subject-label"
                 [options]="labelSelectOptions()"
-                [ngModel]="form.controls.subjectLabelId.value()"
-                (ngModelChange)="updateSubjectLabel($event)"
+                [value]="form.controls.subjectLabelId.value()"
+                (valueChange)="updateSubjectLabel($event)"
                 [disabled]="!hasLabels()"
-              ></shared-ui-select>
+               />
               @if (!hasLabels()) {
                 <p class="form-note">ラベルが登録されていません。</p>
               }

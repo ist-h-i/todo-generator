@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 import { PageHeader } from '@shared/ui/page-header/page-header';
 
@@ -10,7 +10,7 @@ type HeadingLevel = 'h1' | 'h2' | 'h3';
  */
 @Component({
   selector: 'shared-page-layout',
-  imports: [CommonModule, PageHeader],
+  imports: [PageHeader],
   templateUrl: './page-layout.html',
   styleUrl: './page-layout.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
