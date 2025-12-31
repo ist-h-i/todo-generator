@@ -21,6 +21,7 @@ from app.services.gemini import (
     GeminiClient,
     GeminiConfigurationError,
     GeminiError,
+    ResourceExhausted,
     _load_gemini_configuration,
     build_workspace_analysis_options,
 )
@@ -216,9 +217,12 @@ def test_request_analysis_enriches_model_from_response() -> None:
 
     recorded: dict[str, object] = {}
 
-    def fake_generate(prompt: str, *, generation_config: object) -> SimpleNamespace:
+    def fake_generate(
+        prompt: str, *, generation_config: object, request_options: object | None = None
+    ) -> SimpleNamespace:
         recorded["prompt"] = prompt
         recorded["generation_config"] = generation_config
+        recorded["request_options"] = request_options
         return SimpleNamespace(
             model="gemini-test",
             text='{"proposals": []}',
@@ -236,6 +240,48 @@ def test_request_analysis_enriches_model_from_response() -> None:
     assertions.assertTrue(not _contains_key(schema, "additionalProperties"))
     assertions.assertTrue(not _contains_key(schema, "default"))
     assertions.assertTrue(schema["properties"]["proposals"]["max_items"] == 2)
+    assertions.assertTrue(
+        recorded["request_options"] == {"retry": None, "timeout": settings.gemini_request_timeout_seconds}
+    )
+
+
+def test_request_analysis_falls_back_when_model_has_zero_quota() -> None:
+    client = _make_client()
+    client.model = "models/gemini-2.0-flash-lite"
+
+    calls: dict[str, int] = {"primary": 0, "fallback": 0}
+
+    def primary_generate(
+        prompt: str, *, generation_config: object, request_options: object | None = None
+    ) -> SimpleNamespace:
+        calls["primary"] += 1
+        raise ResourceExhausted(
+            "Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, "
+            "limit: 0, model: gemini-2.0-flash-lite"
+        )
+
+    def fallback_generate(
+        prompt: str, *, generation_config: object, request_options: object | None = None
+    ) -> SimpleNamespace:
+        calls["fallback"] += 1
+        return SimpleNamespace(model="models/gemini-2.0-flash", text='{"proposals": []}')
+
+    primary_client = SimpleNamespace(generate_content=primary_generate)
+    fallback_client = SimpleNamespace(generate_content=fallback_generate)
+    client._client = primary_client  # type: ignore[attr-defined]
+
+    def fake_get_model_client(model_override: str | None) -> tuple[object, str]:
+        if model_override is None:
+            return primary_client, client.model
+        return fallback_client, model_override
+
+    client._get_model_client = fake_get_model_client  # type: ignore[method-assign]
+
+    data = GeminiClient._request_analysis(client, "Analyse Notes", 2)
+
+    assertions.assertTrue(data == {"model": "models/gemini-2.0-flash", "proposals": []})
+    assertions.assertTrue(calls["primary"] == 1)
+    assertions.assertTrue(calls["fallback"] == 1)
 
 
 def test_generate_appeal_sanitizes_schema_before_request() -> None:
@@ -243,9 +289,12 @@ def test_generate_appeal_sanitizes_schema_before_request() -> None:
 
     recorded: dict[str, object] = {}
 
-    def fake_generate(prompt: str, *, generation_config: object) -> SimpleNamespace:
+    def fake_generate(
+        prompt: str, *, generation_config: object, request_options: object | None = None
+    ) -> SimpleNamespace:
         recorded["prompt"] = prompt
         recorded["generation_config"] = generation_config
+        recorded["request_options"] = request_options
         return SimpleNamespace(text='{"appeal": ""}')
 
     client._client = SimpleNamespace(generate_content=fake_generate)  # type: ignore[attr-defined]
@@ -272,6 +321,9 @@ def test_generate_appeal_sanitizes_schema_before_request() -> None:
     assertions.assertTrue(schema["properties"]["appeal"]["max_items"] == 3)
     assertions.assertTrue(not _contains_key(schema, "minLength"))
     assertions.assertTrue(not _contains_key(schema, "default"))
+    assertions.assertTrue(
+        recorded["request_options"] == {"retry": None, "timeout": settings.gemini_request_timeout_seconds}
+    )
 
 
 def test_build_user_prompt_includes_profile_metadata() -> None:
@@ -530,7 +582,7 @@ def test_sanitize_model_name_uses_supported_default_when_all_fallbacks_deprecate
 
     sanitized = GeminiClient.sanitize_model_name("models/gemini-1.0-pro", fallback=default_model)
 
-    assertions.assertTrue(sanitized == "models/gemini-2.0-flash")
+    assertions.assertTrue(sanitized == "models/gemini-2.5-flash")
 
 
 def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch) -> None:

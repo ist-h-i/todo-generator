@@ -1,0 +1,7 @@
+@if (messages().length > 0) {
+  <ul class="hover-message-stack__list">
+    @for (message of messages(); track message.id) {
+      <li app-hover-message [message]="message"></li>
+    }
+  </ul>
+}

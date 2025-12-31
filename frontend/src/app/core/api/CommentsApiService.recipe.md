@@ -1,6 +1,6 @@
-# Recipe: CommentsApiService
+# Recipe: CommentsApi
 
-Source: `frontend/src/app/core/api/comments-api.service.ts`
+Source: `frontend/src/app/core/api/comments-api.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

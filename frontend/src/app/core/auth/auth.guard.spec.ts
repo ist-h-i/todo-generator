@@ -3,7 +3,7 @@ import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@a
 
 import { adminGuard } from './admin.guard';
 import { authChildGuard, authGuard } from './auth.guard';
-import { AuthService } from './auth.service';
+import { Auth } from './auth';
 
 type AuthServiceDouble = {
   ensureInitialized: jasmine.Spy<() => Promise<void>>;
@@ -26,7 +26,7 @@ describe('auth guards', () => {
 
     TestBed.configureTestingModule({
       providers: [
-        { provide: AuthService, useValue: auth as unknown as AuthService },
+        { provide: Auth, useValue: auth as unknown as Auth },
         { provide: Router, useValue: jasmine.createSpyObj<Router>('Router', ['parseUrl']) },
       ],
     });

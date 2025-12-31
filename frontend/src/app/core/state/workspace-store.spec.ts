@@ -2,11 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { computed, signal } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
 
-import { AuthService } from '@core/auth/auth.service';
-import { BoardLayoutsApiService, BoardLayoutResponse } from '@core/api/board-layouts-api.service';
-import { CardCreateRequest, CardResponse, CardsApiService } from '@core/api/cards-api.service';
-import { CommentsApiService } from '@core/api/comments-api.service';
-import { WorkspaceConfigApiService } from '@core/api/workspace-config-api.service';
+import { Auth } from '@core/auth/auth';
+import { BoardLayoutsApi, BoardLayoutResponse } from '@core/api/board-layouts-api';
+import { CardCreateRequest, CardResponse, CardsApi } from '@core/api/cards-api';
+import { CommentsApi } from '@core/api/comments-api';
+import { WorkspaceConfigApi } from '@core/api/workspace-config-api';
 import { Logger } from '@core/logger/logger';
 import {
   AnalysisProposal,
@@ -133,11 +133,11 @@ describe('WorkspaceStore', () => {
     await TestBed.configureTestingModule({
       providers: [
         WorkspaceStore,
-        { provide: AuthService, useClass: MockAuthService },
-        { provide: BoardLayoutsApiService, useClass: MockBoardLayoutsApiService },
-        { provide: CardsApiService, useClass: MockCardsApiService },
-        { provide: CommentsApiService, useClass: MockCommentsApiService },
-        { provide: WorkspaceConfigApiService, useClass: MockWorkspaceConfigApiService },
+        { provide: Auth, useClass: MockAuthService },
+        { provide: BoardLayoutsApi, useClass: MockBoardLayoutsApiService },
+        { provide: CardsApi, useClass: MockCardsApiService },
+        { provide: CommentsApi, useClass: MockCommentsApiService },
+        { provide: WorkspaceConfigApi, useClass: MockWorkspaceConfigApiService },
         { provide: Logger, useClass: MockLogger },
       ],
     }).compileComponents();
@@ -145,16 +145,14 @@ describe('WorkspaceStore', () => {
     localStorage.clear();
 
     store = TestBed.inject(WorkspaceStore);
-    cardsApi = TestBed.inject(CardsApiService) as unknown as MockCardsApiService;
-    boardLayoutsApi = TestBed.inject(
-      BoardLayoutsApiService,
-    ) as unknown as MockBoardLayoutsApiService;
+    cardsApi = TestBed.inject(CardsApi) as unknown as MockCardsApiService;
+    boardLayoutsApi = TestBed.inject(BoardLayoutsApi) as unknown as MockBoardLayoutsApiService;
     workspaceConfigApi = TestBed.inject(
-      WorkspaceConfigApiService,
+      WorkspaceConfigApi,
     ) as unknown as MockWorkspaceConfigApiService;
-    auth = TestBed.inject(AuthService) as unknown as MockAuthService;
+    auth = TestBed.inject(Auth) as unknown as MockAuthService;
     logger = TestBed.inject(Logger) as unknown as MockLogger;
-    commentsApi = TestBed.inject(CommentsApiService) as unknown as MockCommentsApiService;
+    commentsApi = TestBed.inject(CommentsApi) as unknown as MockCommentsApiService;
 
     boardLayoutsApi.getBoardLayout.and.returnValue(of(createBoardLayoutResponse()));
     boardLayoutsApi.updateBoardLayout.and.returnValue(of(createBoardLayoutResponse()));

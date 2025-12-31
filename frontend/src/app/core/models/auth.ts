@@ -16,3 +16,13 @@ export interface TokenResponse {
   readonly token_type: 'bearer';
   readonly user: AuthenticatedUser;
 }
+
+export interface RegistrationResponse {
+  readonly message: string;
+  readonly requires_approval: boolean;
+  readonly admin_email: string | null;
+}
+
+export interface AdminContactResponse {
+  readonly email: string | null;
+}

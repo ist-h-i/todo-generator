@@ -1,6 +1,6 @@
-﻿# Recipe: AnalyticsPageComponent
+# Recipe: AnalyticsPage
 
-Source: `frontend/src/app/features/analytics/feature/analytics-page.component.ts`
+Source: `frontend/src/app/features/analytics/analytics.page.ts`
 
 ## Purpose & Responsibilities
 - Render the analytics dashboard summary (progress, status and label breakdowns).
@@ -14,7 +14,7 @@ Source: `frontend/src/app/features/analytics/feature/analytics-page.component.ts
 ## Notable Dependencies
 - `WorkspaceStore` for workspace metrics and card data.
 - `ImmunityMapGateway` for candidate and map generation calls.
-- `PageLayoutComponent` and `RouterLink` for layout and navigation.
+- `PageLayout` and `RouterLink` for layout and navigation.
 
 ## Usage Notes
 - Candidate requests default to a 28-day window and include reports, cards, and profile data.

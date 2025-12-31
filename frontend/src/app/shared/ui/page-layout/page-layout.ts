@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { PageHeaderComponent } from '@shared/ui/page-header/page-header';
+import { PageHeader } from '@shared/ui/page-header/page-header';
 
 type HeadingLevel = 'h1' | 'h2' | 'h3';
 
@@ -9,9 +9,8 @@ type HeadingLevel = 'h1' | 'h2' | 'h3';
  * Shell layout that provides consistent page headers and content spacing.
  */
 @Component({
-  selector: 'app-page-layout',
-  standalone: true,
-  imports: [CommonModule, PageHeaderComponent],
+  selector: 'shared-page-layout',
+  imports: [CommonModule, PageHeader],
   templateUrl: './page-layout.html',
   styleUrl: './page-layout.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,40 +18,34 @@ type HeadingLevel = 'h1' | 'h2' | 'h3';
     class: 'app-page app-page-layout',
   },
 })
-export class PageLayoutComponent {
+export class PageLayout {
   /**
    * Eyebrow label displayed above the title.
    */
-  @Input()
-  public eyebrow?: string;
+  public readonly eyebrow = input<string | undefined>();
 
   /**
    * Main title for the page.
    */
-  @Input({ required: true })
-  public title!: string;
+  public readonly title = input.required<string>();
 
   /**
    * Optional description rendered under the title.
    */
-  @Input()
-  public description?: string;
+  public readonly description = input<string | undefined>();
 
   /**
    * Heading level passed to the shared page header.
    */
-  @Input()
-  public headingLevel: HeadingLevel = 'h1';
+  public readonly headingLevel = input<HeadingLevel>('h1');
 
   /**
    * When true the content section spans the full width of the viewport.
    */
-  @Input()
-  public bleed = false;
+  public readonly bleed = input(false);
 
   /**
    * When true the shared page header centers its content.
    */
-  @Input()
-  public headerCentered = false;
+  public readonly headerCentered = input(false);
 }

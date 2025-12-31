@@ -1,6 +1,6 @@
-# Recipe: BoardLayoutsApiService
+# Recipe: BoardLayoutsApi
 
-Source: `frontend/src/app/core/api/board-layouts-api.service.ts`
+Source: `frontend/src/app/core/api/board-layouts-api.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

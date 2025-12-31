@@ -1,4 +1,4 @@
-# Recipe: UiSelectComponent
+# Recipe: UiSelect
 
 Source: `frontend/src/app/shared/ui/select/ui-select.ts`
 

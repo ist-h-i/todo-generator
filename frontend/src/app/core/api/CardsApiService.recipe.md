@@ -1,6 +1,6 @@
-# Recipe: CardsApiService
+# Recipe: CardsApi
 
-Source: `frontend/src/app/core/api/cards-api.service.ts`
+Source: `frontend/src/app/core/api/cards-api.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

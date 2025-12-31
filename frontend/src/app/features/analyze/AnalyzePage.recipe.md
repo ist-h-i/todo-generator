@@ -1,64 +1,64 @@
-# Recipe: AnalyzePageComponent
+# Recipe: AnalyzePage
 
-Source: `frontend/src/app/features/analyze/feature/analyze-page.component.ts`
+Source: `frontend/src/app/features/analyze/analyze.page.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.
 
 ## Public API
 - Methods:
-  - `if()` – TODO: description
-  - `queueMicrotask()` – TODO: description
+  - `if()`  ETODO: description
+  - `queueMicrotask()`  ETODO: description
 - Properties:
-  - `analyzeForm` – TODO: description
-  - `notes` – TODO: description
-  - `objective` – TODO: description
-  - `autoObjective` – TODO: description
-  - `status` – TODO: description
-  - `message` – TODO: description
-  - `canPublishAll` – TODO: description
-  - `analysisResource` – TODO: description
-  - `eligibleProposals` – TODO: description
-  - `hasEligibleProposals` – TODO: description
-  - `hasResult` – TODO: description
-  - `isAutoObjectiveEnabled` – TODO: description
-  - `autoObjectivePreview` – TODO: description
-  - `isAnalyzing` – TODO: description
-  - `canSubmit` – TODO: description
-  - `isSubmitDisabled` – TODO: description
-  - `generationToast` – TODO: description
-  - `shouldHighlightResults` – TODO: description
-  - `generationToastMessage` – TODO: description
-  - `proposalPublishFeedback` – TODO: description
-  - `isProposalPublishable` – TODO: description
-  - `isLabelSelected` – TODO: description
-  - `publishProposals` – TODO: description
-  - `proposals` – TODO: description
-  - `id` – TODO: description
-  - `templateId` – TODO: description
-  - `confidence` – TODO: description
-  - `title` – TODO: description
-  - `summary` – TODO: description
-  - `labelIds` – TODO: description
-  - `updateProposalTitle` – TODO: description
-  - `updateProposalSummary` – TODO: description
-  - `updateProposalStatus` – TODO: description
-  - `statusId` – TODO: description
-  - `toggleProposalLabel` – TODO: description
-  - `addSubtask` – TODO: description
-  - `updateSubtaskTitle` – TODO: description
-  - `proposalId` – TODO: description
-  - `subtaskId` – TODO: description
-  - `value` – TODO: description
-  - `removeSubtask` – TODO: description
-  - `suggestedStatusId` – TODO: description
-  - `suggestedLabelIds` – TODO: description
-  - `subtasks` – TODO: description
-  - `proposal` – TODO: description
-  - `original` – TODO: description
-  - `type` – TODO: description
-  - `state` – TODO: description
-  - `options` – TODO: description
+  - `analyzeForm`  ETODO: description
+  - `notes`  ETODO: description
+  - `objective`  ETODO: description
+  - `autoObjective`  ETODO: description
+  - `status`  ETODO: description
+  - `message`  ETODO: description
+  - `canPublishAll`  ETODO: description
+  - `analysisResource`  ETODO: description
+  - `eligibleProposals`  ETODO: description
+  - `hasEligibleProposals`  ETODO: description
+  - `hasResult`  ETODO: description
+  - `isAutoObjectiveEnabled`  ETODO: description
+  - `autoObjectivePreview`  ETODO: description
+  - `isAnalyzing`  ETODO: description
+  - `canSubmit`  ETODO: description
+  - `isSubmitDisabled`  ETODO: description
+  - `generationToast`  ETODO: description
+  - `shouldHighlightResults`  ETODO: description
+  - `generationToastMessage`  ETODO: description
+  - `proposalPublishFeedback`  ETODO: description
+  - `isProposalPublishable`  ETODO: description
+  - `isLabelSelected`  ETODO: description
+  - `publishProposals`  ETODO: description
+  - `proposals`  ETODO: description
+  - `id`  ETODO: description
+  - `templateId`  ETODO: description
+  - `confidence`  ETODO: description
+  - `title`  ETODO: description
+  - `summary`  ETODO: description
+  - `labelIds`  ETODO: description
+  - `updateProposalTitle`  ETODO: description
+  - `updateProposalSummary`  ETODO: description
+  - `updateProposalStatus`  ETODO: description
+  - `statusId`  ETODO: description
+  - `toggleProposalLabel`  ETODO: description
+  - `addSubtask`  ETODO: description
+  - `updateSubtaskTitle`  ETODO: description
+  - `proposalId`  ETODO: description
+  - `subtaskId`  ETODO: description
+  - `value`  ETODO: description
+  - `removeSubtask`  ETODO: description
+  - `suggestedStatusId`  ETODO: description
+  - `suggestedLabelIds`  ETODO: description
+  - `subtasks`  ETODO: description
+  - `proposal`  ETODO: description
+  - `original`  ETODO: description
+  - `type`  ETODO: description
+  - `state`  ETODO: description
+  - `options`  ETODO: description
 
 ## Notable Dependencies
 List injected services, inputs/outputs, and important collaborators.

@@ -1,6 +1,6 @@
-# Recipe: AuthService
+# Recipe: Auth
 
-Source: `frontend/src/app/core/auth/auth.service.ts`
+Source: `frontend/src/app/core/auth/auth.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

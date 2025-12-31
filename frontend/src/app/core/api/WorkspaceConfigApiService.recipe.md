@@ -1,6 +1,6 @@
-# Recipe: WorkspaceConfigApiService
+# Recipe: WorkspaceConfigApi
 
-Source: `frontend/src/app/core/api/workspace-config-api.service.ts`
+Source: `frontend/src/app/core/api/workspace-config-api.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

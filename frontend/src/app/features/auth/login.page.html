@@ -1,0 +1,261 @@
+<shared-page-layout
+  class="auth-page shared-page-layout--wide"
+  eyebrow="Workspace Access"
+  title="サインインまたは新規登録"
+  description="ワークスペースに参加するには既存のアカウントでログインするか、新しいアカウントを作成してください。"
+  headingLevel="h1"
+  [headerCentered]="true"
+>
+  <div class="auth-page__container">
+    <div class="auth-page__grid">
+      @if (isLoginView()) {
+        <div class="auth-page__panel">
+          <section
+            class="surface-panel page-panel auth-card auth-card--login"
+            aria-labelledby="login-heading"
+          >
+            <div class="auth-card__header">
+              <span class="auth-card__badge">ログイン</span>
+              <h2 id="login-heading" class="auth-card__title">登録済みの方はこちら</h2>
+            </div>
+            <p class="auth-card__subtitle">
+              既にワークスペースへ招待されている場合は、メールアドレスとパスワードを入力してサインインしてください。
+            </p>
+
+            @if (loginNotice(); as notice) {
+              <div class="app-alert app-alert--error" role="alert" aria-live="polite">
+                {{ notice }}
+              </div>
+            }
+
+            <form class="auth-form" (submit)="onLoginSubmit($event)">
+              <div class="form-field">
+                <label class="form-field__label" for="login-email">メールアドレス</label>
+                <input
+                  id="login-email"
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  class="form-control"
+                  [class.form-control--invalid]="loginEmailError()"
+                  [value]="loginForm.controls.email.value()"
+                  (input)="onLoginEmailInput($event)"
+                  [attr.aria-invalid]="loginEmailError() ? 'true' : null"
+                  [attr.aria-describedby]="loginEmailError() ? 'login-email-error' : null"
+                  placeholder="you@example.com"
+                />
+                @if (loginEmailError(); as emailError) {
+                  <p
+                    id="login-email-error"
+                    class="form-feedback form-feedback--error"
+                    aria-live="polite"
+                  >
+                    {{ emailError }}
+                  </p>
+                }
+              </div>
+
+              <div class="form-field">
+                <label class="form-field__label" for="login-password">パスワード</label>
+                <input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  class="form-control"
+                  [class.form-control--invalid]="loginPasswordError()"
+                  [value]="loginForm.controls.password.value()"
+                  (input)="onLoginPasswordInput($event)"
+                  [attr.aria-invalid]="loginPasswordError() ? 'true' : null"
+                  [attr.aria-describedby]="loginPasswordError() ? 'login-password-error' : null"
+                  placeholder="パスワード"
+                />
+                @if (loginPasswordError(); as passwordError) {
+                  <p
+                    id="login-password-error"
+                    class="form-feedback form-feedback--error"
+                    aria-live="polite"
+                  >
+                    {{ passwordError }}
+                  </p>
+                }
+              </div>
+
+              <button
+                type="submit"
+                class="auth-button focus-ring bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-slate-400"
+                [disabled]="!canSubmitLogin()"
+              >
+                サインイン
+              </button>
+            </form>
+          </section>
+          <button
+            type="button"
+            class="auth-toggle-button focus-ring text-sm font-semibold text-accent hover:text-accent-strong"
+            (click)="showRegisterView()"
+          >
+            新規登録はこちら
+          </button>
+        </div>
+      } @else {
+        <div class="auth-page__panel">
+          <section
+            class="surface-panel page-panel auth-card auth-card--register"
+            aria-labelledby="register-heading"
+          >
+            <div class="auth-card__header">
+              <span class="auth-card__badge auth-card__badge--accent">新規登録</span>
+              <h3 id="register-heading" class="auth-card__title">アカウントを作成</h3>
+            </div>
+            <p class="auth-card__subtitle">
+              初めて利用する方は、メールアドレスと希望のパスワードを入力してアカウントを作成してください。登録後は自動的にホーム画面へ移動します。
+            </p>
+            <ul class="auth-card__hints">
+              <li>パスワードは8文字以上で設定してください。</li>
+              <li>確認用パスワードも同じ内容を入力してください。</li>
+            </ul>
+
+            @if (registerNotice(); as registerMessage) {
+              <div class="app-alert app-alert--error" role="alert" aria-live="polite">
+                {{ registerMessage }}
+              </div>
+            }
+
+            <form class="auth-form" (submit)="onRegisterSubmit($event)">
+              <div class="form-field">
+                <label class="form-field__label" for="register-nickname">ニックネーム</label>
+                <input
+                  id="register-nickname"
+                  name="register-nickname"
+                  type="text"
+                  autocomplete="nickname"
+                  class="form-control"
+                  [class.form-control--invalid]="registerNicknameError()"
+                  [value]="registerForm.controls.nickname.value()"
+                  (input)="onRegisterNicknameInput($event)"
+                  [attr.aria-invalid]="registerNicknameError() ? 'true' : null"
+                  [attr.aria-describedby]="
+                    registerNicknameError() ? 'register-nickname-error' : null
+                  "
+                  placeholder="表示名（例：山田 太郎）"
+                />
+                @if (registerNicknameError(); as nicknameError) {
+                  <p
+                    id="register-nickname-error"
+                    class="form-feedback form-feedback--error"
+                    aria-live="polite"
+                  >
+                    {{ nicknameError }}
+                  </p>
+                }
+              </div>
+              <div class="form-field">
+                <label class="form-field__label" for="register-email">メールアドレス</label>
+                <input
+                  id="register-email"
+                  name="register-email"
+                  type="email"
+                  autocomplete="email"
+                  class="form-control"
+                  [class.form-control--invalid]="registerEmailError()"
+                  [value]="registerForm.controls.email.value()"
+                  (input)="onRegisterEmailInput($event)"
+                  [attr.aria-invalid]="registerEmailError() ? 'true' : null"
+                  [attr.aria-describedby]="registerEmailError() ? 'register-email-error' : null"
+                  placeholder="you@example.com"
+                />
+                @if (registerEmailError(); as emailError) {
+                  <p
+                    id="register-email-error"
+                    class="form-feedback form-feedback--error"
+                    aria-live="polite"
+                  >
+                    {{ emailError }}
+                  </p>
+                }
+              </div>
+
+              <div class="form-field">
+                <label class="form-field__label" for="register-password">パスワード</label>
+                <input
+                  id="register-password"
+                  name="new-password"
+                  type="password"
+                  autocomplete="new-password"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  class="form-control"
+                  [class.form-control--invalid]="registerPasswordError()"
+                  [value]="registerForm.controls.password.value()"
+                  (input)="onRegisterPasswordInput($event)"
+                  [attr.aria-invalid]="registerPasswordError() ? 'true' : null"
+                  [attr.aria-describedby]="
+                    registerPasswordError() ? 'register-password-error' : null
+                  "
+                  placeholder="8文字以上で入力"
+                />
+                @if (registerPasswordError(); as passwordError) {
+                  <p
+                    id="register-password-error"
+                    class="form-feedback form-feedback--error"
+                    aria-live="polite"
+                  >
+                    {{ passwordError }}
+                  </p>
+                }
+              </div>
+
+              <div class="form-field">
+                <label class="form-field__label" for="register-confirm-password"
+                  >パスワード（確認）</label
+                >
+                <input
+                  id="register-confirm-password"
+                  name="confirm-password"
+                  type="password"
+                  autocomplete="new-password"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  class="form-control"
+                  [class.form-control--invalid]="registerConfirmError()"
+                  [value]="registerForm.controls.confirmPassword.value()"
+                  (input)="onRegisterConfirmInput($event)"
+                  [attr.aria-invalid]="registerConfirmError() ? 'true' : null"
+                  [attr.aria-describedby]="registerConfirmError() ? 'register-confirm-error' : null"
+                  placeholder="確認のため再入力"
+                />
+                @if (registerConfirmError(); as confirmError) {
+                  <p
+                    id="register-confirm-error"
+                    class="form-feedback form-feedback--error"
+                    aria-live="polite"
+                  >
+                    {{ confirmError }}
+                  </p>
+                }
+              </div>
+
+              <button
+                type="submit"
+                class="auth-button focus-ring bg-emerald-500 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-slate-400"
+                [disabled]="!canSubmitRegistration()"
+              >
+                アカウントを作成
+              </button>
+            </form>
+          </section>
+          <button
+            type="button"
+            class="auth-toggle-button focus-ring text-sm font-semibold text-accent hover:text-accent-strong"
+            (click)="showLoginView()"
+          >
+            ログインはこちら
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</shared-page-layout>

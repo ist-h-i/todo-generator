@@ -20,7 +20,6 @@
       "@app/*": ["app/*"],
       "@core/*": ["app/core/*"],
       "@features/*": ["app/features/*"],
-      "@lib/*": ["app/lib/*"],
       "@shared/*": ["app/shared/*"]
     }
   },

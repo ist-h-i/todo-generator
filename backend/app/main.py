@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from logging.handlers import TimedRotatingFileHandler
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -39,8 +40,39 @@ from .routers import (
     workspace_templates,
 )
 
+LOG_DIR = Path(__file__).resolve().parents[1] / "logs"
+LOG_FILE = LOG_DIR / "backend.log"
+
+
+def _configure_logging() -> None:
+    logging.basicConfig(level=logging.INFO)
+
+    root_logger = logging.getLogger()
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    log_path = LOG_FILE.resolve()
+
+    for handler in root_logger.handlers:
+        if isinstance(handler, TimedRotatingFileHandler):
+            handler_path = Path(getattr(handler, "baseFilename", "")).resolve()
+            if handler_path == log_path:
+                return
+
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    file_handler = TimedRotatingFileHandler(
+        log_path,
+        when="D",
+        interval=1,
+        backupCount=3,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
+
+
+_configure_logging()
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 def _find_favicon() -> Optional[Path]:
@@ -118,12 +150,22 @@ def _apply_cors(response: Response, request: Request) -> Response:
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    resp = JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    resp = JSONResponse(status_code=exc.status_code, content={"detail": exc.detail}, headers=exc.headers)
     return _apply_cors(resp, request)
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith("/auth/login"):
+        sanitized_errors = [
+            {
+                "loc": err.get("loc"),
+                "msg": err.get("msg"),
+                "type": err.get("type"),
+            }
+            for err in exc.errors()
+        ]
+        logger.warning("Login validation failed: %s", sanitized_errors)
     resp = JSONResponse(status_code=422, content={"detail": exc.errors()})
     return _apply_cors(resp, request)
 

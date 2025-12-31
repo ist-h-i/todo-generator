@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 
 import { ImmunityMapGateway } from './immunity-map-gateway';
 import { buildApiUrl } from './api.config';
+import { AI_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS } from './timeout.interceptor';
 import {
   ImmunityMapCandidateRequest,
   ImmunityMapCandidateResponse,
@@ -50,6 +51,7 @@ describe('ImmunityMapGateway', () => {
     const request = httpMock.expectOne(`${baseUrl}analysis/immunity-map/candidates`);
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toBe(payload);
+    expect(request.request.context.get(REQUEST_TIMEOUT_MS)).toBe(AI_REQUEST_TIMEOUT_MS);
 
     const expected = {
       candidates: [],
@@ -78,6 +80,7 @@ describe('ImmunityMapGateway', () => {
     const request = httpMock.expectOne(`${baseUrl}analysis/immunity-map`);
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toBe(payload);
+    expect(request.request.context.get(REQUEST_TIMEOUT_MS)).toBe(AI_REQUEST_TIMEOUT_MS);
 
     const expected = {
       model: null,

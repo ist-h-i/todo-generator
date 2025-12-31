@@ -1,8 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { buildApiUrl } from '@core/api/api.config';
+import { AI_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS } from '@core/api/timeout.interceptor';
 import {
   StatusReportCreateRequest,
   StatusReportDetail,
@@ -46,10 +47,12 @@ export class StatusReportsGateway {
   }
 
   public submitReport(id: string): Observable<StatusReportDetail> {
-    return this.http.post<StatusReportDetail>(buildApiUrl(`/status-reports/${id}/submit`), {});
+    const context = new HttpContext().set(REQUEST_TIMEOUT_MS, AI_REQUEST_TIMEOUT_MS);
+    return this.http.post<StatusReportDetail>(buildApiUrl(`/status-reports/${id}/submit`), {}, { context });
   }
 
   public retryReport(id: string): Observable<StatusReportDetail> {
-    return this.http.post<StatusReportDetail>(buildApiUrl(`/status-reports/${id}/retry`), {});
+    const context = new HttpContext().set(REQUEST_TIMEOUT_MS, AI_REQUEST_TIMEOUT_MS);
+    return this.http.post<StatusReportDetail>(buildApiUrl(`/status-reports/${id}/retry`), {}, { context });
   }
 }

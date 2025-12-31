@@ -10,6 +10,7 @@ import {
   StatusReportUpdateRequest,
 } from '@core/models';
 import { buildApiUrl } from './api.config';
+import { AI_REQUEST_TIMEOUT_MS, API_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS } from './timeout.interceptor';
 
 const baseTimestamp = '2025-02-01T00:00:00.000Z';
 
@@ -99,29 +100,34 @@ describe('StatusReportsGateway', () => {
     const createRequest = httpMock.expectOne(`${baseUrl}status-reports`);
     expect(createRequest.request.method).toBe('POST');
     expect(createRequest.request.body).toBe(createPayload);
+    expect(createRequest.request.context.get(REQUEST_TIMEOUT_MS)).toBe(API_REQUEST_TIMEOUT_MS);
     createRequest.flush(buildRead());
 
     gateway.updateReport('report-1', updatePayload).subscribe();
     const updateRequest = httpMock.expectOne(`${baseUrl}status-reports/report-1`);
     expect(updateRequest.request.method).toBe('PUT');
     expect(updateRequest.request.body).toBe(updatePayload);
+    expect(updateRequest.request.context.get(REQUEST_TIMEOUT_MS)).toBe(API_REQUEST_TIMEOUT_MS);
     updateRequest.flush(buildRead({ auto_ticket_enabled: false }));
 
     gateway.getReport('report-1').subscribe();
     const getRequest = httpMock.expectOne(`${baseUrl}status-reports/report-1`);
     expect(getRequest.request.method).toBe('GET');
+    expect(getRequest.request.context.get(REQUEST_TIMEOUT_MS)).toBe(API_REQUEST_TIMEOUT_MS);
     getRequest.flush(buildDetail());
 
     gateway.submitReport('report-1').subscribe();
     const submitRequest = httpMock.expectOne(`${baseUrl}status-reports/report-1/submit`);
     expect(submitRequest.request.method).toBe('POST');
     expect(submitRequest.request.body).toEqual({});
+    expect(submitRequest.request.context.get(REQUEST_TIMEOUT_MS)).toBe(AI_REQUEST_TIMEOUT_MS);
     submitRequest.flush(buildDetail({ status: 'completed' }));
 
     gateway.retryReport('report-1').subscribe();
     const retryRequest = httpMock.expectOne(`${baseUrl}status-reports/report-1/retry`);
     expect(retryRequest.request.method).toBe('POST');
     expect(retryRequest.request.body).toEqual({});
+    expect(retryRequest.request.context.get(REQUEST_TIMEOUT_MS)).toBe(AI_REQUEST_TIMEOUT_MS);
     retryRequest.flush(buildDetail({ status: 'completed' }));
   });
 });

@@ -1,6 +1,6 @@
-# Recipe: CompetencyApiService
+# Recipe: CompetencyApi
 
-Source: `frontend/src/app/core/api/competency-api.service.ts`
+Source: `frontend/src/app/core/api/competency-api.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

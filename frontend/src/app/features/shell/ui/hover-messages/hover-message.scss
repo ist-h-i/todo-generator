@@ -1,0 +1,160 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 1.2rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay) 94%, transparent);
+  box-shadow: 0 18px 36px color-mix(in srgb, var(--accent) 14%, transparent);
+  color: color-mix(in srgb, var(--text-primary) 90%, var(--text-muted));
+  font-size: 0.82rem;
+  font-weight: 600;
+  max-inline-size: min(92vw, 420px);
+  min-inline-size: 0;
+  backdrop-filter: blur(18px);
+  pointer-events: none;
+  animation: hover-message-drop-in 260ms ease forwards;
+}
+
+.hover-message__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
+.hover-message__icon svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.hover-message__spinner {
+  display: inline-flex;
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  border-radius: 999px;
+  border: 0.18rem solid currentColor;
+  border-inline-start-color: transparent;
+  border-block-end-color: transparent;
+  animation: hover-message-spinner 760ms linear infinite;
+}
+
+.hover-message__text {
+  display: inline-flex;
+  align-items: center;
+  min-inline-size: 0;
+  word-break: break-word;
+}
+
+.hover-message__close {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.7rem;
+  block-size: 1.7rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  background: transparent;
+  color: inherit;
+  opacity: 0.78;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+.hover-message__close svg {
+  inline-size: 0.95rem;
+  block-size: 0.95rem;
+}
+
+.hover-message__close:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.hover-message__close:active {
+  transform: translateY(1px);
+}
+
+:host([data-dismissing='true']) {
+  animation: hover-message-slide-out 220ms ease forwards;
+}
+
+:host([data-severity='notification']) {
+  border-color: color-mix(in srgb, var(--success) 42%, transparent);
+  background: color-mix(in srgb, var(--success-muted) 32%, var(--surface-overlay));
+  box-shadow: 0 20px 42px color-mix(in srgb, var(--success) 24%, transparent);
+  color: color-mix(in srgb, var(--success-strong) 90%, var(--text-primary));
+}
+
+:host([data-severity='system']),
+:host([data-severity='loading']) {
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  background: color-mix(in srgb, var(--accent-muted) 26%, var(--surface-overlay));
+  box-shadow: 0 20px 42px color-mix(in srgb, var(--accent) 22%, transparent);
+  color: color-mix(in srgb, var(--accent-strong) 88%, var(--text-primary));
+}
+
+:host([data-severity='loading']) .hover-message__spinner {
+  border-block-end-color: color-mix(in srgb, currentColor 18%, transparent);
+  border-inline-start-color: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+:host([data-severity='warning']) {
+  border-color: color-mix(in srgb, var(--warning) 46%, transparent);
+  background: color-mix(in srgb, var(--warning-muted) 32%, var(--surface-overlay));
+  box-shadow: 0 22px 48px color-mix(in srgb, var(--warning) 26%, transparent);
+  color: color-mix(in srgb, var(--warning-strong) 86%, var(--text-primary));
+}
+
+:host([data-severity='error']) {
+  border-color: color-mix(in srgb, var(--danger) 52%, transparent);
+  background: color-mix(in srgb, var(--danger-muted) 36%, var(--surface-overlay));
+  box-shadow: 0 24px 52px color-mix(in srgb, var(--danger) 30%, transparent);
+  color: color-mix(in srgb, var(--danger-strong) 88%, var(--text-primary));
+}
+
+@media (min-width: 64rem) {
+  :host {
+    padding: 0.95rem 1.35rem;
+  }
+}
+
+@keyframes hover-message-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) translateZ(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+@keyframes hover-message-slide-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) translateZ(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(26px) translateZ(0);
+  }
+}
+
+@keyframes hover-message-spinner {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}

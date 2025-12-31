@@ -1,10 +1,10 @@
 import { inject } from '@angular/core';
 import { CanActivateChildFn, CanActivateFn, Router, UrlTree } from '@angular/router';
 
-import { AuthService } from './auth.service';
+import { Auth } from './auth';
 
 const resolveAuthState = async (): Promise<boolean | UrlTree> => {
-  const auth = inject(AuthService);
+  const auth = inject(Auth);
   const router = inject(Router);
 
   await auth.ensureInitialized();

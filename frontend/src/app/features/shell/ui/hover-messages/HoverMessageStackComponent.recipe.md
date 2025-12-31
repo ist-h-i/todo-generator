@@ -1,6 +1,6 @@
-# Recipe: HoverMessageStackComponent
+# Recipe: HoverMessageStack
 
-Source: `frontend/src/app/features/shell/ui/hover-messages/hover-message-stack.component.ts`
+Source: `frontend/src/app/features/shell/ui/hover-messages/hover-message-stack.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

@@ -4,7 +4,7 @@ import { TimeoutError, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { isApiRequestUrl } from './api.config';
-import { HttpErrorNotifierService } from './http-error-notifier.service';
+import { HttpErrorNotifier } from './http-error-notifier';
 
 const NETWORK_ERROR_MESSAGE =
   '\u30b5\u30fc\u30d0\u30fc\u306b\u63a5\u7d9a\u3067\u304d\u307e\u305b\u3093\u3067\u3057\u305f\u3002\u6642\u9593\u3092\u304a\u3044\u3066\u518d\u5ea6\u304a\u8a66\u3057\u304f\u3060\u3055\u3044\u3002';
@@ -20,12 +20,20 @@ const extractDetail = (payload: unknown): string | null => {
   }
 
   const detail = (payload as { detail?: unknown }).detail;
-  if (typeof detail !== 'string') {
-    return null;
+  if (typeof detail === 'string') {
+    const trimmed = detail.trim();
+    return trimmed.length > 0 ? trimmed : null;
   }
 
-  const trimmed = detail.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  if (detail && typeof detail === 'object') {
+    const message = (detail as { message?: unknown }).message;
+    if (typeof message === 'string') {
+      const trimmed = message.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    }
+  }
+
+  return null;
 };
 
 const hasCancellationKeyword = (value: unknown): boolean => {
@@ -112,7 +120,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  const notifier = inject(HttpErrorNotifierService);
+  const notifier = inject(HttpErrorNotifier);
 
   return next(req).pipe(
     catchError((error: unknown) => {

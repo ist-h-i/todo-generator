@@ -2,29 +2,29 @@ import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { getDisplayName } from '@shared/utils/display-name';
 import { firstValueFrom } from 'rxjs';
 
-import { AuthService } from '@core/auth/auth.service';
+import { Auth } from '@core/auth/auth';
 import {
   CardCreateRequest,
   CardResponse,
   CardUpdateRequest,
-  CardsApiService,
+  CardsApi,
   SubtaskCreateRequest,
   SubtaskResponse,
   SubtaskUpdateRequest,
-} from '@core/api/cards-api.service';
-import { BoardLayoutsApiService, BoardLayoutResponse } from '@core/api/board-layouts-api.service';
+} from '@core/api/cards-api';
+import { BoardLayoutsApi, BoardLayoutResponse } from '@core/api/board-layouts-api';
 import {
   CommentCreateRequest,
   CommentResponse,
   CommentUpdateRequest,
-  CommentsApiService,
-} from '@core/api/comments-api.service';
+  CommentsApi,
+} from '@core/api/comments-api';
 import {
-  WorkspaceConfigApiService,
+  WorkspaceConfigApi,
   WorkspaceTemplateResponse,
   LabelResponse,
   StatusResponse,
-} from '@core/api/workspace-config-api.service';
+} from '@core/api/workspace-config-api';
 import { createId } from '@core/utils/create-id';
 import { Logger } from '@core/logger/logger';
 import {
@@ -724,11 +724,11 @@ type CardSuggestionPayload = {
  */
 @Injectable({ providedIn: 'root' })
 export class WorkspaceStore {
-  private readonly auth = inject(AuthService);
-  private readonly cardsApi = inject(CardsApiService);
-  private readonly commentsApi = inject(CommentsApiService);
-  private readonly boardLayoutsApi = inject(BoardLayoutsApiService);
-  private readonly workspaceConfigApi = inject(WorkspaceConfigApiService);
+  private readonly auth = inject(Auth);
+  private readonly cardsApi = inject(CardsApi);
+  private readonly commentsApi = inject(CommentsApi);
+  private readonly boardLayoutsApi = inject(BoardLayoutsApi);
+  private readonly workspaceConfigApi = inject(WorkspaceConfigApi);
   private readonly logger = inject(Logger);
   private readonly storage = this.resolveStorage();
   private readonly activeUserId = computed(() => this.auth.user()?.id ?? null);
@@ -828,7 +828,9 @@ export class WorkspaceStore {
     const lastSynced = this.lastSyncedAssigneeName?.trim() ?? null;
 
     const canUpdateDefault =
-      previousDefault.length === 0 || previousDefault === '匿名ユーザー' || (lastSynced !== null && previousDefault === lastSynced);
+      previousDefault.length === 0 ||
+      previousDefault === '匿名ユーザー' ||
+      (lastSynced !== null && previousDefault === lastSynced);
 
     if (canUpdateDefault && previousDefault !== preferredName) {
       const nextSettings: WorkspaceSettings = { ...settings, defaultAssignee: preferredName };

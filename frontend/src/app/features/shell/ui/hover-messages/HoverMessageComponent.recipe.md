@@ -1,6 +1,6 @@
-# Recipe: HoverMessageComponent
+# Recipe: HoverMessage
 
-Source: `frontend/src/app/features/shell/ui/hover-messages/hover-message.component.ts`
+Source: `frontend/src/app/features/shell/ui/hover-messages/hover-message.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

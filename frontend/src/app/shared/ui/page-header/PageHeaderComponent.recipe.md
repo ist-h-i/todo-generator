@@ -1,6 +1,6 @@
-# Recipe: PageHeaderComponent
+# Recipe: PageHeader
 
-Source: `frontend/src/app/shared/ui/page-header/page-header.component.ts`
+Source: `frontend/src/app/shared/ui/page-header/page-header.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

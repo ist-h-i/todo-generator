@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from app import models, schemas
 from app.main import app
-from app.services.gemini import GeminiError, get_gemini_client
+from app.services.gemini import GeminiError, GeminiRateLimitError, get_gemini_client
 
 from .conftest import TestingSessionLocal
 from .utils.auth import register_user
@@ -204,6 +204,37 @@ def test_analysis_records_failure(client: TestClient) -> None:
         assertions.assertEqual(session.proposals, [])
 
 
+def test_analysis_rate_limit_returns_retry_after(client: TestClient) -> None:
+    headers = _register_and_login(client, "analysis-rate-limit@example.com")
+
+    class RateLimitedGemini:
+        def analyze(
+            self,
+            request: schemas.AnalysisRequest,
+            *,
+            user_profile=None,
+            workspace_options=None,
+        ) -> schemas.AnalysisResponse:
+            raise GeminiRateLimitError("Rate limited", retry_after_seconds=12)
+
+    app.dependency_overrides[get_gemini_client] = lambda: RateLimitedGemini()
+    payload = {
+        "text": "Notes: Prepare release",
+        "max_cards": 2,
+        "notes": "Prepare release",
+        "objective": "Ship v1",
+        "auto_objective": True,
+    }
+    try:
+        response = client.post("/analysis", json=payload, headers=headers)
+    finally:
+        app.dependency_overrides.pop(get_gemini_client, None)
+
+    assertions.assertEqual(response.status_code, 429, response.text)
+    assertions.assertEqual(response.headers.get("Retry-After"), "12")
+    assertions.assertIn("Rate limited", response.json()["detail"])
+
+
 def test_immunity_map_requires_api_key(client: TestClient) -> None:
     headers = _register_and_login(client, "immunity-map-user@example.com")
     response = client.post(
@@ -338,7 +369,7 @@ def test_immunity_map_generates_mermaid(client: TestClient) -> None:
             system_prompt: str | None = None,
             model_override: str | None = None,
         ) -> dict[str, Any]:
-            assertions.assertIn("免疫マップ", prompt)
+            assertions.assertIn("Immunity Map", prompt)
             return {
                 "model": "gemini-pro-test",
                 "summary": "阻害要因と深層心理は仮説です。",

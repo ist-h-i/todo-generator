@@ -1,10 +1,11 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, ResourceRef, Signal, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
 import { buildApiUrl } from '@core/api/api.config';
+import { AI_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS } from '@core/api/timeout.interceptor';
 import {
   AnalysisProposal,
   AnalysisRequest,
@@ -300,7 +301,8 @@ export class AnalysisGateway {
         const settings = this.workspace.settings();
         const payload = this.buildPayload(params, settings);
 
-        return this.http.post<ApiAnalysisResponse>(buildApiUrl('/analysis'), payload).pipe(
+        const context = new HttpContext().set(REQUEST_TIMEOUT_MS, AI_REQUEST_TIMEOUT_MS);
+        return this.http.post<ApiAnalysisResponse>(buildApiUrl('/analysis'), payload, { context }).pipe(
           map((response) => this.mapResponse(response, settings)),
           catchError((error) => {
             this.logger.error('analysis-gateway', error);

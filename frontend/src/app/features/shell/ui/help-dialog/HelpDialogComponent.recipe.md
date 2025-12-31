@@ -1,6 +1,6 @@
-# Recipe: HelpDialogComponent
+# Recipe: HelpDialog
 
-Source: `frontend/src/app/features/shell/ui/help-dialog/help-dialog.component.ts`
+Source: `frontend/src/app/features/shell/ui/help-dialog/help-dialog.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

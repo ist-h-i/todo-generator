@@ -3,10 +3,10 @@ import { inject } from '@angular/core';
 
 import { isApiRequestUrl } from '@core/api/api.config';
 
-import { AuthService } from './auth.service';
+import { Auth } from './auth';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const auth = inject(AuthService);
+  const auth = inject(Auth);
   const token = auth.token();
 
   if (!token || !isApiRequestUrl(req.url)) {

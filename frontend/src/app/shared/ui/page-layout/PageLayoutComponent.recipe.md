@@ -1,6 +1,6 @@
-# Recipe: PageLayoutComponent
+# Recipe: PageLayout
 
-Source: `frontend/src/app/shared/ui/page-layout/page-layout.component.ts`
+Source: `frontend/src/app/shared/ui/page-layout/page-layout.ts`
 
 ## Purpose & Responsibilities
 Briefly describe what this class/component does and when it is used.

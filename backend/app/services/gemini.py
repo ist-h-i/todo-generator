@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
+import threading
+import time
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, ClassVar, List, Optional, Sequence
@@ -12,11 +15,14 @@ from sqlalchemy.orm import Session
 
 try:  # pragma: no cover - optional dependency wrapper
     import google.generativeai as genai
-    from google.api_core.exceptions import GoogleAPIError
+    from google.api_core.exceptions import GoogleAPIError, ResourceExhausted
 except ModuleNotFoundError:  # pragma: no cover - executed when SDK missing
     genai = None  # type: ignore[misc, assignment]
 
     class GoogleAPIError(Exception):
+        """Fallback error raised when the Gemini SDK is unavailable."""
+
+    class ResourceExhausted(GoogleAPIError):
         """Fallback error raised when the Gemini SDK is unavailable."""
 
 
@@ -36,6 +42,9 @@ from .status_defaults import ensure_default_statuses
 
 logger = logging.getLogger(__name__)
 
+_RATE_LIMIT_LOCK = threading.Lock()
+_RATE_LIMIT_UNTIL = 0.0
+
 
 class GeminiError(RuntimeError):
     """Base exception for Gemini integration errors."""
@@ -43,6 +52,64 @@ class GeminiError(RuntimeError):
 
 class GeminiConfigurationError(GeminiError):
     """Raised when required configuration for Gemini is missing."""
+
+
+class GeminiRateLimitError(GeminiError):
+    """Raised when Gemini returns a 429 / ResourceExhausted error."""
+
+    def __init__(self, message: str, *, retry_after_seconds: int | None = None) -> None:
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
+
+
+def _extract_retry_after_seconds(message: str) -> int | None:
+    match = re.search(r"Please retry in ([0-9]+(?:\.[0-9]+)?)s\.", message)
+    if match:
+        try:
+            return max(1, int(math.ceil(float(match.group(1)))))
+        except ValueError:
+            return None
+
+    match = re.search(r"retry_delay\s*\{[^}]*seconds:\s*(\d+)", message, flags=re.DOTALL)
+    if match:
+        try:
+            return max(1, int(match.group(1)))
+        except ValueError:
+            return None
+
+    return None
+
+
+def _is_daily_quota_exhausted(message: str) -> bool:
+    return "RequestsPerDay" in message or "PerDay" in message or "requests per day" in message.lower()
+
+
+def _is_zero_quota(message: str) -> bool:
+    return re.search(r"limit:\s*0\b", message) is not None
+
+
+def _extract_quota_model(message: str) -> str | None:
+    match = re.search(r"model:\s*([A-Za-z0-9_.-]+)", message)
+    if match:
+        return match.group(1)
+    return None
+
+
+def _rate_limit_remaining_seconds() -> int | None:
+    remaining = _RATE_LIMIT_UNTIL - time.monotonic()
+    if remaining <= 0:
+        return None
+    return max(1, int(math.ceil(remaining)))
+
+
+def _record_rate_limit(retry_after_seconds: int | None) -> int | None:
+    if retry_after_seconds is None:
+        return None
+
+    global _RATE_LIMIT_UNTIL
+    with _RATE_LIMIT_LOCK:
+        _RATE_LIMIT_UNTIL = max(_RATE_LIMIT_UNTIL, time.monotonic() + retry_after_seconds)
+    return retry_after_seconds
 
 
 class GeminiClient:
@@ -182,9 +249,23 @@ class GeminiClient:
     _LEGACY_MODEL_ALIASES: ClassVar[dict[str, str]] = {
         "gemini-1.5-flash": "models/gemini-1.5-flash",
         "gemini-2.0-flash": "models/gemini-2.0-flash",
+        "gemini-2.5-flash": "models/gemini-2.5-flash",
+        "gemini-2.5-flash-lite": "models/gemini-2.5-flash-lite",
+        "gemini-2.5-pro": "models/gemini-2.5-pro",
+        "gemini-3-flash": "models/gemini-3-flash",
+        "gemini-3-pro": "models/gemini-3-pro",
     }
+    _ZERO_QUOTA_FALLBACK_MODELS: ClassVar[tuple[str, ...]] = (
+        "models/gemini-2.5-flash",
+        "models/gemini-2.5-flash-lite",
+        "models/gemini-2.5-pro",
+        "models/gemini-2.0-flash",
+        "models/gemini-2.0-flash-lite",
+        "models/gemini-1.5-flash",
+        "models/gemini-1.5-flash-latest",
+    )
     _DEFAULT_SUPPORTED_MODEL: ClassVar[str] = (
-        settings.__class__.model_fields["gemini_model"].default or "models/gemini-2.0-flash"
+        settings.__class__.model_fields["gemini_model"].default or "models/gemini-2.5-flash"
     )
     _DEPRECATED_MODEL_NAMES: ClassVar[frozenset[str]] = frozenset(
         {
@@ -342,7 +423,11 @@ class GeminiClient:
             return normalized
         if normalized.startswith("gemini-1.5-flash"):
             return f"models/{normalized}"
-        if normalized.startswith("gemini-2.0-flash"):
+        if normalized.startswith("gemini-2.0-"):
+            return f"models/{normalized}"
+        if normalized.startswith("gemini-2.5-"):
+            return f"models/{normalized}"
+        if normalized.startswith("gemini-3-"):
             return f"models/{normalized}"
         return normalized
 
@@ -400,8 +485,7 @@ class GeminiClient:
                 workspace_options,
             )
         except GoogleAPIError as exc:
-            logger.exception("Gemini request failed")
-            raise GeminiError("Gemini request failed.") from exc
+            self._raise_for_google_api_error(exc, context="analysis")
         except json.JSONDecodeError as exc:
             logger.exception("Unable to decode Gemini response")
             raise GeminiError("Gemini returned an invalid response.") from exc
@@ -447,16 +531,43 @@ class GeminiClient:
         generation_config = self._build_generation_config(sanitized_schema)
         combined_prompt = f"{system_prompt}\n\n{prompt}" if system_prompt else prompt
 
-        client, used_model = self._get_model_client(model_override)
-
-        try:
-            response = client.generate_content(
-                combined_prompt,
-                generation_config=generation_config,
+        remaining = _rate_limit_remaining_seconds()
+        if remaining is not None:
+            raise GeminiRateLimitError(
+                f"Gemini API のレート制限に達しました。{remaining} 秒後に再試行してください。",
+                retry_after_seconds=remaining,
             )
-        except GoogleAPIError as exc:
-            logger.exception("Gemini structured generation failed")
-            raise GeminiError("Gemini request failed.") from exc
+
+        response = None
+        used_model: str | None = None
+        last_zero_quota_error: ResourceExhausted | None = None
+
+        for candidate_override in self._zero_quota_fallback_overrides(primary_override=model_override):
+            try:
+                client, candidate_model = self._get_model_client(candidate_override)
+            except GeminiConfigurationError:
+                continue
+
+            try:
+                response = client.generate_content(
+                    combined_prompt,
+                    generation_config=generation_config,
+                    request_options={"retry": None, "timeout": settings.gemini_request_timeout_seconds},
+                )
+                used_model = candidate_model
+                break
+            except ResourceExhausted as exc:
+                if _is_zero_quota(str(exc)):
+                    last_zero_quota_error = exc
+                    continue
+                self._raise_for_google_api_error(exc, context="structured generation")
+            except GoogleAPIError as exc:
+                self._raise_for_google_api_error(exc, context="structured generation")
+
+        if response is None:
+            if last_zero_quota_error is not None:
+                self._raise_for_google_api_error(last_zero_quota_error, context="structured generation")
+            raise GeminiError("Gemini request failed.")
 
         content = self._extract_content(response)
         data = self._parse_json_payload(content)
@@ -464,8 +575,11 @@ class GeminiClient:
             raise GeminiError("Gemini response must be a JSON object.")
 
         payload = dict(data)
-        if not payload.get("model") and getattr(response, "model", None):
-            payload["model"] = response.model
+        if not payload.get("model"):
+            if getattr(response, "model", None):
+                payload["model"] = response.model
+            elif used_model and used_model != self.model:
+                payload["model"] = used_model
 
         usage = self._extract_usage(response)
         if usage:
@@ -486,6 +600,13 @@ class GeminiClient:
         user_profile: UserProfile | None = None,
         workspace_options: AnalysisWorkspaceOptions | None = None,
     ) -> dict[str, Any]:
+        remaining = _rate_limit_remaining_seconds()
+        if remaining is not None:
+            raise GeminiRateLimitError(
+                f"Gemini API のレート制限に達しました。{remaining} 秒後に再試行してください。",
+                retry_after_seconds=remaining,
+            )
+
         response_format = self._build_response_format(max_cards)
         user_prompt = self._build_user_prompt(
             text,
@@ -496,10 +617,32 @@ class GeminiClient:
         generation_config = self._build_generation_config(response_format["json_schema"]["schema"])
         combined_prompt = f"{self._SYSTEM_PROMPT}\n\n{user_prompt}"
 
-        response = self._client.generate_content(
-            combined_prompt,
-            generation_config=generation_config,
-        )
+        response = None
+        last_zero_quota_error: ResourceExhausted | None = None
+
+        for model_override in self._zero_quota_fallback_overrides(primary_override=None):
+            try:
+                client, _ = self._get_model_client(model_override)
+            except GeminiConfigurationError:
+                continue
+
+            try:
+                response = client.generate_content(
+                    combined_prompt,
+                    generation_config=generation_config,
+                    request_options={"retry": None, "timeout": settings.gemini_request_timeout_seconds},
+                )
+                break
+            except ResourceExhausted as exc:
+                if _is_zero_quota(str(exc)):
+                    last_zero_quota_error = exc
+                    continue
+                raise
+
+        if response is None:
+            if last_zero_quota_error is not None:
+                raise last_zero_quota_error
+            raise GeminiError("Gemini request failed.")
 
         content = self._extract_content(response)
         data = self._parse_json_payload(content)
@@ -510,6 +653,77 @@ class GeminiClient:
             enriched["model"] = response.model
             return enriched
         return data
+
+    def _raise_for_google_api_error(self, exc: GoogleAPIError, *, context: str) -> None:
+        message = str(exc)
+
+        if isinstance(exc, ResourceExhausted):
+            if _is_zero_quota(message):
+                model = _extract_quota_model(message)
+                suffix = f" (model: {model})" if model else ""
+                detail = (
+                    "Gemini API のクォータが 0 のため、このモデルでは呼び出しできません。"
+                    f"{suffix} 管理画面で別のモデルに変更するか、請求設定とクォータをご確認ください。"
+                )
+                logger.warning("Gemini %s returned zero quota.", context, exc_info=True)
+                raise GeminiRateLimitError(detail, retry_after_seconds=None) from exc
+
+            retry_after = _extract_retry_after_seconds(message)
+            retry_after = _record_rate_limit(retry_after)
+            if _is_daily_quota_exhausted(message):
+                detail = (
+                    "Gemini API の無料枠（1日あたり）の上限に達しました。翌日以降に再試行するか、"
+                    "課金/プランと使用量をご確認ください。"
+                )
+            else:
+                detail = "Gemini API のレート制限に達しました。しばらく待ってから再試行してください。"
+                if retry_after is not None:
+                    detail = f"Gemini API のレート制限に達しました。{retry_after} 秒後に再試行してください。"
+
+            logger.warning("Gemini %s was rate-limited (retry_after=%s).", context, retry_after, exc_info=True)
+            raise GeminiRateLimitError(detail, retry_after_seconds=retry_after) from exc
+
+        logger.exception("Gemini %s failed", context)
+        raise GeminiError("Gemini request failed.") from exc
+
+    def _zero_quota_fallback_overrides(self, *, primary_override: str | None) -> list[str | None]:
+        overrides: list[str | None] = []
+        seen_models: set[str] = set()
+
+        def _add(candidate: str | None) -> None:
+            if candidate is None:
+                model = self.model
+                if model in seen_models:
+                    return
+                overrides.append(None)
+                seen_models.add(model)
+                return
+
+            normalized = self.normalize_model_name(candidate)
+            sanitized = self.sanitize_model_name(normalized, fallback=self.model)
+            if not sanitized:
+                return
+
+            if sanitized == self.model:
+                _add(None)
+                return
+
+            if sanitized in seen_models:
+                return
+
+            overrides.append(sanitized)
+            seen_models.add(sanitized)
+
+        _add(primary_override if primary_override is not None else None)
+        _add(settings.gemini_model)
+
+        if self.model.endswith("-lite"):
+            _add(self.model[: -len("-lite")])
+
+        for candidate in self._ZERO_QUOTA_FALLBACK_MODELS:
+            _add(candidate)
+
+        return overrides
 
     def _build_response_format(self, max_cards: int) -> dict[str, Any]:
         schema = deepcopy(self._BASE_RESPONSE_SCHEMA)
@@ -948,6 +1162,37 @@ def _load_gemini_configuration(db: Session, provider: str = "gemini") -> tuple[s
 def _load_gemini_api_key(db: Session, provider: str = "gemini") -> str:
     secret, _ = _load_gemini_configuration(db, provider)
     return secret
+
+
+def list_gemini_generate_content_models(db: Session, provider: str = "gemini") -> list[str]:
+    """Return Gemini model names that support generateContent for the configured API key."""
+
+    api_key = _load_gemini_api_key(db, provider)
+    if genai is None:
+        raise GeminiConfigurationError(
+            "Gemini SDK is not installed. Install the 'google-generativeai' package to enable analysis."
+        )
+
+    genai.configure(api_key=api_key)
+    list_models = getattr(genai, "list_models", None)
+    if not callable(list_models):
+        raise GeminiConfigurationError(
+            "Gemini SDK does not support model discovery. Upgrade the 'google-generativeai' package."
+        )
+
+    try:
+        catalog = list(list_models())
+    except GoogleAPIError as exc:
+        logger.exception("Unable to list Gemini models")
+        raise GeminiError("Gemini model discovery failed.") from exc
+    except Exception as exc:  # pragma: no cover - defensive path
+        logger.exception("Unable to list Gemini models")
+        raise GeminiError("Gemini model discovery failed.") from exc
+
+    supported = GeminiClient._supported_generate_content_models(catalog)
+    deprecated = GeminiClient._DEPRECATED_MODEL_NAMES
+    filtered = sorted({name for name in supported if name not in deprecated})
+    return filtered
 
 
 def get_gemini_client(db: Session = Depends(get_db)) -> GeminiClient:

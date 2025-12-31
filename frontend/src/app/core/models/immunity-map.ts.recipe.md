@@ -11,7 +11,7 @@
 
 ## Interactions & Dependencies
 - Used by `frontend/src/app/core/api/immunity-map-gateway.ts` for API typing.
-- Consumed by `AnalyticsPageComponent` for candidate selection and map rendering.
+- Consumed by `AnalyticsPage` for candidate selection and map rendering.
 
 ## Testing Notes
 - `frontend/src/app/core/api/immunity-map-gateway.spec.ts` exercises request/response typing.
