@@ -712,6 +712,7 @@ type CardSuggestionPayload = {
   readonly dueDate?: string;
   readonly createdAt?: string;
   readonly originSuggestionId?: string;
+  readonly generatedBy?: string;
   readonly initiativeId?: string;
   readonly confidence?: number;
   readonly confidenceDisplay?: number;
@@ -1693,6 +1694,9 @@ export class WorkspaceStore {
     const storyPoints = sanitizeStoryPoints(payload.storyPoints ?? 3);
     const dueDate = sanitizeDateString(payload.dueDate);
     const confidence = sanitizeConfidence(payload.confidence);
+    const generatedBy =
+      sanitizeString(payload.generatedBy) ??
+      (payload.originSuggestionId ? 'analysis' : undefined);
 
     return {
       title: payload.title,
@@ -1704,6 +1708,7 @@ export class WorkspaceStore {
       assignees: fallbackAssignee ? [fallbackAssignee] : [],
       due_date: dueDate,
       ai_confidence: confidence,
+      generated_by: generatedBy,
       initiative_id: payload.initiativeId,
       subtasks:
         payload.subtasks?.map((subtask) => ({

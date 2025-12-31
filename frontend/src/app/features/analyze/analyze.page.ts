@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 import { AnalysisGateway } from '@core/api/analysis-gateway';
 import { WorkspaceStore } from '@core/state/workspace-store';
@@ -15,6 +16,8 @@ import { AnalysisProposal, AnalysisRequest } from '@core/models';
 import { createId } from '@core/utils/create-id';
 import { createSignalForm } from '@shared/forms/signal-forms';
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
+import { AiMark } from '@shared/ui/ai-mark/ai-mark';
+import { UiSelect } from '@shared/ui/select/ui-select';
 
 type AnalyzerToastState = 'loading' | 'success' | 'notice' | 'error';
 
@@ -38,7 +41,7 @@ interface EditableProposalDraft {
  */
 @Component({
   selector: 'app-analyze-page',
-  imports: [CommonModule, PageLayout],
+  imports: [CommonModule, FormsModule, PageLayout, UiSelect, AiMark],
   templateUrl: './analyze.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -69,6 +72,9 @@ export class AnalyzePage {
   public readonly editableProposals = computed(() => this.editableProposalsSignal());
   public readonly hasEditableProposals = computed(() => this.editableProposalsSignal().length > 0);
   public readonly workspaceStatuses = computed(() => this.workspace.settings().statuses);
+  public readonly statusSelectOptions = computed(() =>
+    this.workspaceStatuses().map((status) => ({ value: status.id, label: status.name })),
+  );
   public readonly workspaceLabels = computed(() => this.workspace.settings().labels);
   public readonly canPublishAll = computed(
     () =>
@@ -100,6 +106,8 @@ export class AnalyzePage {
   public readonly hasEligibleProposals = computed(() => this.eligibleProposals().length > 0);
 
   public readonly hasResult = computed(() => this.analysisResource.value() !== null);
+
+  public readonly analysisWarnings = computed(() => this.analysisResource.value()?.warnings ?? []);
 
   public readonly isAutoObjectiveEnabled = computed(() =>
     this.analyzeForm.controls.autoObjective.value(),

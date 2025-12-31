@@ -1,4 +1,4 @@
-<div class="flex min-h-screen flex-col bg-surface">
+<div class="flex h-screen flex-col overflow-hidden bg-surface">
   <header class="shell-header">
     <app-hover-message-stack [messages]="hoverMessageList()" />
     <div class="shell-header__content shell-container">
@@ -8,7 +8,7 @@
             <span class="shell-brand__mark">VY</span>
             <div class="shell-brand__info">
               <p class="shell-brand__name">Verbalize Yourself</p>
-              <p class="shell-brand__tagline">AIガイドのリフレクションワークスペース</p>
+              <p class="shell-brand__tagline">AIガイドで日常タスクをリフレクション</p>
             </div>
           </div>
 
@@ -21,7 +21,10 @@
                   [routerLinkActiveOptions]="{ exact: true }"
                   class="shell-nav__link focus-ring"
                 >
-                  {{ link.label }}
+                  <span>{{ link.label }}</span>
+                  @if (link.ai) {
+                    <shared-ai-mark />
+                  }
                 </a>
               }
             </nav>
@@ -185,7 +188,7 @@
     </div>
   </header>
 
-  <main class="shell-container flex flex-1 flex-col gap-6 px-0 py-0">
+  <main class="shell-container flex flex-1 min-h-0 flex-col gap-6 px-0 py-0 overflow-auto">
     <section class="flex-1">
       <router-outlet />
     </section>

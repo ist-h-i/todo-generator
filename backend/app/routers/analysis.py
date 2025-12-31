@@ -1,4 +1,5 @@
 from copy import deepcopy
+from datetime import date
 import re
 from typing import Any, Iterable, Mapping, Sequence
 
@@ -24,6 +25,7 @@ from ..schemas import (
     ImmunityMapReadoutCard,
     ImmunityMapRequest,
     ImmunityMapResponse,
+    ImmunityMapSummary,
 )
 from ..services.gemini import (
     GeminiClient,
@@ -37,6 +39,15 @@ from ..services.immunity_map import (
     build_immunity_map_context,
 )
 from ..services.profile import build_user_profile
+from ..utils.quotas import (
+    AI_QUOTA_ANALYSIS,
+    AI_QUOTA_IMMUNITY_MAP,
+    AI_QUOTA_IMMUNITY_MAP_CANDIDATES,
+    get_analysis_daily_limit,
+    get_immunity_map_candidate_daily_limit,
+    get_immunity_map_daily_limit,
+    reserve_ai_quota,
+)
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -146,6 +157,21 @@ def analyze(
 ) -> AnalysisResponse:
     """Analyze free-form text and return structured card proposals."""
 
+    today = date.today()
+    limit = get_analysis_daily_limit(db, current_user.id)
+    quota_reserved = reserve_ai_quota(
+        db,
+        owner_id=current_user.id,
+        quota_day=today,
+        limit=limit,
+        quota_key=AI_QUOTA_ANALYSIS,
+    )
+    if not quota_reserved:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily analysis limit of {limit} reached.",
+        )
+
     profile = build_user_profile(current_user)
     workspace_options = build_workspace_analysis_options(db, owner_id=current_user.id)
     raw_notes = payload.notes if payload.notes is not None else payload.text
@@ -206,6 +232,7 @@ _IMMUNITY_MAP_SYSTEM_PROMPT = (
     " You infer an Immunity Map from user-provided statements."
     " Your output must be a JSON object that matches the provided schema."
     " Write labels in natural Japanese."
+    " Provide a summary with current_analysis and one_line_advice in natural Japanese."
     " Provide optional readout_cards that distinguish observation vs hypothesis and include evidence when possible."
     " Treat deep psychology as hypotheses; avoid clinical or diagnostic language."
     " Do not include any extra keys or any prose outside JSON."
@@ -307,7 +334,15 @@ _IMMUNITY_MAP_RESPONSE_SCHEMA: dict[str, Any] = {
                 },
             },
         },
-        "summary": {"type": "string"},
+        "summary": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["current_analysis", "one_line_advice"],
+            "properties": {
+                "current_analysis": {"type": "string", "minLength": 1},
+                "one_line_advice": {"type": "string", "minLength": 1},
+            },
+        },
         "readout_cards": {
             "type": "array",
             "default": [],
@@ -559,6 +594,25 @@ def _parse_readout_cards(raw_value: Any) -> list[ImmunityMapReadoutCard]:
     return cards
 
 
+def _parse_immunity_map_summary(raw_value: Any) -> ImmunityMapSummary | None:
+    item = _to_mapping(raw_value)
+    if not item:
+        return None
+
+    current_analysis = str(item.get("current_analysis") or "").strip()
+    one_line_advice = str(item.get("one_line_advice") or "").strip()
+    if not current_analysis or not one_line_advice:
+        return None
+
+    try:
+        return ImmunityMapSummary(
+            current_analysis=current_analysis,
+            one_line_advice=one_line_advice,
+        )
+    except ValidationError:
+        return None
+
+
 @router.post("/immunity-map/candidates", response_model=ImmunityMapCandidateResponse)
 def generate_immunity_map_candidates(
     payload: ImmunityMapCandidateRequest,
@@ -566,6 +620,22 @@ def generate_immunity_map_candidates(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ImmunityMapCandidateResponse:
+    today = date.today()
+    limit = get_immunity_map_candidate_daily_limit(db, current_user.id)
+    quota_reserved = reserve_ai_quota(
+        db,
+        owner_id=current_user.id,
+        quota_day=today,
+        limit=limit,
+        quota_key=AI_QUOTA_IMMUNITY_MAP_CANDIDATES,
+    )
+    if not quota_reserved:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily immunity map candidate limit of {limit} reached.",
+        )
+    db.commit()
+
     include = payload.include
     context_bundle = build_immunity_map_context(
         db,
@@ -582,17 +652,30 @@ def generate_immunity_map_candidates(
         candidates_schema["maxItems"] = payload.max_candidates
 
     prompt_parts = [
-        "Generate candidate A items for an Immunity Map.",
-        f"Return between 1 and {payload.max_candidates} candidates.",
+        "免疫マップ（Immunity Map）の起点A（レベル1）の候補を生成してください。",
+        f"原則として 1〜{payload.max_candidates} 件の候補を返してください。",
+        "ただし、材料が不足している場合や、遅延/未完了/停滞/葛藤の兆候が見当たらず順調と思われる場合は candidates=[] を返して構いません。",
+        "",
+        "目的:",
+        "- 直近の日報/週報(status_reports)と、未完了/遅延のタスク(notable_cards)を主な根拠として、本人が抱えやすい「すべき/できない/したい」を仮説として提案する。",
+        "",
+        "作り方（重要）:",
+        "- status_reports[].excerpt から、繰り返しの困りごと・停滞・先延ばし・葛藤・プレッシャー・迷いを拾って候補にする。",
+        "- notable_cards[] から is_overdue=true や is_completed=false のカードを優先し、「なぜ進まないのか」を内面の文（仮説）に変換する。",
+        "- card_metrics は全体の状況把握に使う（overdue や remaining の多寡など）。",
+        "",
+        "文章の要件:",
+        "- a_item.text は本人の一人称で短く自然な日本語（20〜40字程度）。",
+        "- 例: 「◯◯を期限までに終えるべきだ」「◯◯に着手できない」「◯◯を落ち着いて進めたい」",
+        "",
+        "出力ルール:",
+        "- a_item.kind は should/cannot/want のいずれか。",
+        "- rationale は仮説として書く（断定・診断しない）。",
+        "- evidence は任意だが、可能な範囲で context の id / created_at / updated_at / due_date / excerpt などを使って根拠を示す。",
+        "- 根拠が弱い場合は confidence を低めにし、questions に確認したいことを書く。",
         "",
         "Context JSON:",
         context_bundle.prompt,
-        "",
-        "Output rules:",
-        "- Provide a_item {kind, text} with short, user-friendly Japanese text.",
-        "- Provide rationale as a hypothesis, not a diagnosis.",
-        "- Use evidence only from the context; avoid fabrication.",
-        "- If evidence is weak, keep confidence low and add questions.",
     ]
     prompt = "\n".join(prompt_parts).strip()
 
@@ -620,6 +703,11 @@ def generate_immunity_map_candidates(
     )
     model = generated.get("model")
     token_usage = generated.get("token_usage")
+    warnings = [
+        text
+        for text in (str(item or "").strip() for item in _safe_list(generated.get("warnings")))
+        if text
+    ]
 
     return ImmunityMapCandidateResponse(
         candidates=candidates,
@@ -627,6 +715,7 @@ def generate_immunity_map_candidates(
         used_sources=context_bundle.used_sources,
         model=str(model) if model else None,
         token_usage=token_usage if isinstance(token_usage, Mapping) else {},
+        warnings=warnings,
     )
 
 
@@ -637,6 +726,22 @@ def generate_immunity_map(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ImmunityMapResponse:
+    today = date.today()
+    limit = get_immunity_map_daily_limit(db, current_user.id)
+    quota_reserved = reserve_ai_quota(
+        db,
+        owner_id=current_user.id,
+        quota_day=today,
+        limit=limit,
+        quota_key=AI_QUOTA_IMMUNITY_MAP,
+    )
+    if not quota_reserved:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily immunity map generation limit of {limit} reached.",
+        )
+    db.commit()
+
     policy = _resolve_context_policy(payload)
     include_auto = policy in {"auto", "auto+manual"}
     include_manual = policy in {"manual", "auto+manual"}
@@ -690,6 +795,8 @@ def generate_immunity_map(
             "- Omit empty nodes, edges, and empty groups.",
             "- Allowed connections: A->B, A->C, B->D, B->E, C->E, C->F.",
             "- Keep labels short in natural Japanese and avoid clinical language.",
+            "- summary.current_analysis should concisely describe the current situation in Japanese.",
+            "- summary.one_line_advice should be a single short actionable sentence in Japanese.",
             "- readout_cards should distinguish observations vs hypotheses and include evidence.",
         ]
     )
@@ -779,8 +886,13 @@ def generate_immunity_map(
     response_payload = ImmunityMapPayload(nodes=list(nodes), edges=list(edges))
     model = generated.get("model")
     token_usage = generated.get("token_usage")
-    summary = generated.get("summary") if isinstance(generated.get("summary"), str) else None
+    summary = _parse_immunity_map_summary(generated.get("summary"))
     readout_cards = _parse_readout_cards(generated.get("readout_cards"))
+    warnings = [
+        text
+        for text in (str(item or "").strip() for item in _safe_list(generated.get("warnings")))
+        if text
+    ]
 
     return ImmunityMapResponse(
         model=str(model) if model else None,
@@ -789,4 +901,5 @@ def generate_immunity_map(
         summary=summary,
         readout_cards=readout_cards,
         token_usage=token_usage if isinstance(token_usage, Mapping) else {},
+        warnings=warnings,
     )

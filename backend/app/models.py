@@ -62,6 +62,9 @@ class User(Base, TimestampMixin):
     daily_card_quotas: Mapped[list["DailyCardQuota"]] = relationship(
         "DailyCardQuota", back_populates="owner", cascade="all, delete-orphan"
     )
+    daily_ai_quotas: Mapped[list["DailyAiQuota"]] = relationship(
+        "DailyAiQuota", back_populates="owner", cascade="all, delete-orphan"
+    )
     labels: Mapped[list["Label"]] = relationship("Label", back_populates="owner", cascade="all, delete-orphan")
     statuses: Mapped[list["Status"]] = relationship("Status", back_populates="owner", cascade="all, delete-orphan")
     error_categories: Mapped[list["ErrorCategory"]] = relationship(
@@ -177,6 +180,22 @@ class DailyCardQuota(Base):
     owner: Mapped[User] = relationship("User", back_populates="daily_card_quotas")
 
     __table_args__ = (UniqueConstraint("owner_id", "quota_date", name="uq_daily_card_quota_owner_date"),)
+
+
+class DailyAiQuota(Base):
+    __tablename__ = "daily_ai_quotas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    owner_id: Mapped[str] = mapped_column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    quota_date: Mapped[date] = mapped_column(Date, nullable=False)
+    quota_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    used_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    owner: Mapped[User] = relationship("User", back_populates="daily_ai_quotas")
+
+    __table_args__ = (
+        UniqueConstraint("owner_id", "quota_date", "quota_key", name="uq_daily_ai_quota_owner_date_key"),
+    )
 
 
 class WorkspaceTemplate(Base, TimestampMixin):
@@ -684,6 +703,12 @@ class QuotaDefaults(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     card_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=25)
     evaluation_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    analysis_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    status_report_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    immunity_map_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    immunity_map_candidate_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    appeal_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    auto_card_daily_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=25)
 
 
 class UserQuotaOverride(Base, TimestampMixin):
@@ -695,6 +720,12 @@ class UserQuotaOverride(Base, TimestampMixin):
     )
     card_daily_limit: Mapped[int | None] = mapped_column(Integer)
     evaluation_daily_limit: Mapped[int | None] = mapped_column(Integer)
+    analysis_daily_limit: Mapped[int | None] = mapped_column(Integer)
+    status_report_daily_limit: Mapped[int | None] = mapped_column(Integer)
+    immunity_map_daily_limit: Mapped[int | None] = mapped_column(Integer)
+    immunity_map_candidate_daily_limit: Mapped[int | None] = mapped_column(Integer)
+    appeal_daily_limit: Mapped[int | None] = mapped_column(Integer)
+    auto_card_daily_limit: Mapped[int | None] = mapped_column(Integer)
     updated_by: Mapped[str | None] = mapped_column(String)
 
     user: Mapped[User] = relationship("User", back_populates="quota_override")

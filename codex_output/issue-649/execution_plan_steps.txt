@@ -1,5 +1,0 @@
-requirements_analyst
-coder
-implementation_reviewer
-uiux_reviewer
-release_manager

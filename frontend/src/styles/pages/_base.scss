@@ -502,6 +502,14 @@ select.form-control::-ms-expand {
   gap: 0.75rem;
 }
 
+.page-list__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
 .page-list__heading > div {
   display: inline-flex;
   align-items: center;

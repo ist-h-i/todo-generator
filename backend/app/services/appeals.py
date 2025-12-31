@@ -4,6 +4,7 @@ import html
 import logging
 import re
 from collections import defaultdict
+from datetime import date
 from typing import ClassVar, Iterable
 
 from fastapi import Depends, HTTPException, status
@@ -22,6 +23,7 @@ from ..services.gemini import (
     GeminiError,
     get_optional_gemini_client,
 )
+from ..utils.quotas import AI_QUOTA_APPEAL, get_appeal_daily_limit, reserve_ai_quota
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +83,21 @@ class AppealGenerationService:
         owner: models.User,
         request: schemas.AppealGenerationRequest,
     ) -> schemas.AppealGenerationResponse:
+        today = date.today()
+        limit = get_appeal_daily_limit(self._db, owner.id)
+        quota_reserved = reserve_ai_quota(
+            self._db,
+            owner_id=owner.id,
+            quota_day=today,
+            limit=limit,
+            quota_key=AI_QUOTA_APPEAL,
+        )
+        if not quota_reserved:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Daily appeal generation limit of {limit} reached.",
+            )
+
         subject_label_id: str | None = None
         if request.subject.type == "label":
             subject_label_id = request.subject.value
@@ -113,6 +130,7 @@ class AppealGenerationService:
         generated_formats = dict(fallback_formats)
         token_usage = {fmt: payload.tokens_used or 0 for fmt, payload in fallback_formats.items()}
         generation_status = "fallback"
+        ai_failure_reason: str | None = None
 
         if self._gemini is not None and self._prompt_builder is not None:
             try:
@@ -134,13 +152,23 @@ class AppealGenerationService:
                     fallback_formats=fallback_formats,
                     subject=sanitized_subject,
                 )
-            except GeminiError:
+                ai_warnings = payload.get("warnings")
+                if isinstance(ai_warnings, list):
+                    for item in ai_warnings:
+                        text = str(item or "").strip()
+                        if text and text not in warnings:
+                            warnings.append(text)
+            except GeminiError as exc:
+                ai_failure_reason = str(exc)
                 logger.warning("Appeal generation via Gemini failed; using fallback content", exc_info=True)
         elif self._gemini is not None and self._prompt_builder is None:
+            ai_failure_reason = "AI のテンプレートが利用できないため、フォールバックで生成しました。"
             logger.info(
                 "Skipping Gemini appeal generation because the prompt templates could not be loaded: %s",
                 self._prompt_builder_error,
             )
+        elif self._gemini is None:
+            ai_failure_reason = "AI が利用できないため、フォールバックで生成しました。"
 
         record = self._repository.create(
             owner_id=owner.id,
@@ -160,6 +188,8 @@ class AppealGenerationService:
             flow=request.flow,
             warnings=warnings,
             formats=generated_formats,
+            generation_status=generation_status,
+            ai_failure_reason=ai_failure_reason,
         )
 
     @property

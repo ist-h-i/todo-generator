@@ -995,6 +995,77 @@ def _remove_deprecated_gemini_models(engine: Engine) -> None:
             )
 
 
+_AI_QUOTA_DEFAULTS: dict[str, int] = {
+    "analysis_daily_limit": 10,
+    "status_report_daily_limit": 5,
+    "immunity_map_daily_limit": 5,
+    "immunity_map_candidate_daily_limit": 10,
+    "appeal_daily_limit": 5,
+    "auto_card_daily_limit": 25,
+}
+
+
+def _ensure_quota_defaults_ai_columns(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "quota_defaults"):
+            return
+        existing_columns = _column_names(inspector, "quota_defaults")
+
+    for column_name, default_value in _AI_QUOTA_DEFAULTS.items():
+        if column_name in existing_columns:
+            continue
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "ALTER TABLE quota_defaults "
+                        f"ADD COLUMN {column_name} INTEGER NOT NULL DEFAULT {default_value}"
+                    )
+                )
+        except SQLAlchemyError as exc:
+            if not _is_duplicate_column_error(exc):
+                raise
+
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "quota_defaults"):
+            return
+        existing_columns = _column_names(inspector, "quota_defaults")
+
+    with engine.begin() as connection:
+        for column_name, default_value in _AI_QUOTA_DEFAULTS.items():
+            if column_name not in existing_columns:
+                continue
+            connection.execute(
+                text(f"UPDATE quota_defaults SET {column_name} = :value WHERE {column_name} IS NULL"),
+                {"value": default_value},
+            )
+
+
+def _ensure_user_quota_override_ai_columns(engine: Engine) -> None:
+    with engine.connect() as connection:
+        inspector = inspect(connection)
+        if not _table_exists(inspector, "user_quota_overrides"):
+            return
+        existing_columns = _column_names(inspector, "user_quota_overrides")
+
+    for column_name in _AI_QUOTA_DEFAULTS.keys():
+        if column_name in existing_columns:
+            continue
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "ALTER TABLE user_quota_overrides "
+                        f"ADD COLUMN {column_name} INTEGER"
+                    )
+                )
+        except SQLAlchemyError as exc:
+            if not _is_duplicate_column_error(exc):
+                raise
+
+
 def _normalize_assignees_to_user_ids(engine: Engine) -> None:
     """Backfill cards.assignees (JSON) and subtasks.assignee (TEXT) to user IDs.
 
@@ -1101,6 +1172,8 @@ def run_startup_migrations(engine: Engine) -> None:
     _ensure_workspace_default_templates(engine)
     _ensure_api_credentials_model_column(engine)
     _remove_deprecated_gemini_models(engine)
+    _ensure_quota_defaults_ai_columns(engine)
+    _ensure_user_quota_override_ai_columns(engine)
     _ensure_channel_tables(engine)
     _ensure_card_channel_column(engine)
     _ensure_private_channels_and_backfill(engine)

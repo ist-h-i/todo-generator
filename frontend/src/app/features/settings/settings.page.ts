@@ -1,17 +1,19 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 import { WorkspaceStore } from '@core/state/workspace-store';
 import { TemplatePreset } from '@core/models';
 import { SignalControl, createSignalForm } from '@shared/forms/signal-forms';
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
+import { UiSelect } from '@shared/ui/select/ui-select';
 
 /**
  * Settings page exposing workspace configuration controls.
  */
 @Component({
   selector: 'app-settings-page',
-  imports: [CommonModule, PageLayout],
+  imports: [CommonModule, FormsModule, PageLayout, UiSelect],
   templateUrl: './settings.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -37,6 +39,12 @@ export class SettingsPage {
     }
     return map;
   });
+  public readonly statusSelectOptions = computed(() =>
+    this.settingsSignal().statuses.map((status) => ({
+      value: status.id,
+      label: status.name,
+    })),
+  );
   public readonly statusCount = computed(() => this.settingsSignal().statuses.length);
 
   public readonly labelForm = createSignalForm({ name: '', color: '#38bdf8' });

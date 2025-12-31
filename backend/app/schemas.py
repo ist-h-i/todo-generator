@@ -307,6 +307,7 @@ class CardBase(BaseModel):
 
 
 class CardCreate(CardBase):
+    generated_by: Optional[str] = None
     subtasks: List[SubtaskCreate] = Field(default_factory=list)
 
 
@@ -574,6 +575,7 @@ class AnalysisCard(BaseModel):
 class AnalysisResponse(BaseModel):
     model: str
     proposals: List[AnalysisCard]
+    warnings: List[str] = Field(default_factory=list)
 
 
 class StatusReportStatus(str, Enum):
@@ -832,6 +834,7 @@ class ImmunityMapCandidateResponse(BaseModel):
     used_sources: Dict[str, int] = Field(default_factory=dict)
     model: Optional[str] = None
     token_usage: Dict[str, Any] = Field(default_factory=dict)
+    warnings: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -874,13 +877,21 @@ class ImmunityMapPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ImmunityMapSummary(BaseModel):
+    current_analysis: str
+    one_line_advice: str
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class ImmunityMapResponse(BaseModel):
     model: Optional[str] = None
     payload: ImmunityMapPayload
     mermaid: str
-    summary: Optional[str] = None
+    summary: Optional[ImmunityMapSummary] = None
     readout_cards: List[ImmunityMapReadoutCard] = Field(default_factory=list)
     token_usage: Dict[str, Any] = Field(default_factory=dict)
+    warnings: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -1066,6 +1077,7 @@ class CompetencyEvaluationRead(BaseModel):
     updated_at: datetime
     competency: Optional[CompetencySummary] = None
     items: List[CompetencyEvaluationItemRead] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1097,6 +1109,19 @@ class SelfEvaluationRequest(BaseModel):
         return self
 
 
+class SelfEvaluationBatchRequest(BaseModel):
+    competency_ids: List[str] = Field(default_factory=list, min_length=1)
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+
+    @model_validator(mode="after")
+    def ensure_period(self) -> "SelfEvaluationBatchRequest":
+        if self.period_start and self.period_end:
+            if self.period_start > self.period_end:
+                raise ValueError("period_start must be on or before period_end")
+        return self
+
+
 class EvaluationQuotaStatus(BaseModel):
     daily_limit: int
     used: int
@@ -1110,6 +1135,12 @@ class AdminUserRead(BaseModel):
     is_active: bool
     card_daily_limit: Optional[int] = None
     evaluation_daily_limit: Optional[int] = None
+    analysis_daily_limit: Optional[int] = None
+    status_report_daily_limit: Optional[int] = None
+    immunity_map_daily_limit: Optional[int] = None
+    immunity_map_candidate_daily_limit: Optional[int] = None
+    appeal_daily_limit: Optional[int] = None
+    auto_card_daily_limit: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -1121,6 +1152,12 @@ class AdminUserUpdate(BaseModel):
     is_active: Optional[bool] = None
     card_daily_limit: Optional[int] = Field(default=None, ge=0)
     evaluation_daily_limit: Optional[int] = Field(default=None, ge=0)
+    analysis_daily_limit: Optional[int] = Field(default=None, ge=0)
+    status_report_daily_limit: Optional[int] = Field(default=None, ge=0)
+    immunity_map_daily_limit: Optional[int] = Field(default=None, ge=0)
+    immunity_map_candidate_daily_limit: Optional[int] = Field(default=None, ge=0)
+    appeal_daily_limit: Optional[int] = Field(default=None, ge=0)
+    auto_card_daily_limit: Optional[int] = Field(default=None, ge=0)
 
 
 class ApiCredentialRead(BaseModel):
@@ -1153,6 +1190,12 @@ class ApiCredentialUpdate(BaseModel):
 class QuotaDefaultsRead(BaseModel):
     card_daily_limit: int
     evaluation_daily_limit: int
+    analysis_daily_limit: int
+    status_report_daily_limit: int
+    immunity_map_daily_limit: int
+    immunity_map_candidate_daily_limit: int
+    appeal_daily_limit: int
+    auto_card_daily_limit: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1160,12 +1203,24 @@ class QuotaDefaultsRead(BaseModel):
 class QuotaDefaultsUpdate(BaseModel):
     card_daily_limit: int = Field(ge=0)
     evaluation_daily_limit: int = Field(ge=0)
+    analysis_daily_limit: int = Field(ge=0)
+    status_report_daily_limit: int = Field(ge=0)
+    immunity_map_daily_limit: int = Field(ge=0)
+    immunity_map_candidate_daily_limit: int = Field(ge=0)
+    appeal_daily_limit: int = Field(ge=0)
+    auto_card_daily_limit: int = Field(ge=0)
 
 
 class UserQuotaRead(BaseModel):
     user_id: str
     card_daily_limit: Optional[int] = None
     evaluation_daily_limit: Optional[int] = None
+    analysis_daily_limit: Optional[int] = None
+    status_report_daily_limit: Optional[int] = None
+    immunity_map_daily_limit: Optional[int] = None
+    immunity_map_candidate_daily_limit: Optional[int] = None
+    appeal_daily_limit: Optional[int] = None
+    auto_card_daily_limit: Optional[int] = None
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -1174,6 +1229,12 @@ class UserQuotaRead(BaseModel):
 class UserQuotaUpdate(BaseModel):
     card_daily_limit: Optional[int] = Field(default=None, ge=0)
     evaluation_daily_limit: Optional[int] = Field(default=None, ge=0)
+    analysis_daily_limit: Optional[int] = Field(default=None, ge=0)
+    status_report_daily_limit: Optional[int] = Field(default=None, ge=0)
+    immunity_map_daily_limit: Optional[int] = Field(default=None, ge=0)
+    immunity_map_candidate_daily_limit: Optional[int] = Field(default=None, ge=0)
+    appeal_daily_limit: Optional[int] = Field(default=None, ge=0)
+    auto_card_daily_limit: Optional[int] = Field(default=None, ge=0)
 
 
 # --------------------------------------------------------------------------------------------
@@ -1281,6 +1342,8 @@ class AppealGenerationResponse(BaseModel):
     flow: List[str]
     warnings: List[str] = Field(default_factory=list)
     formats: Dict[str, AppealGeneratedFormat]
+    generation_status: str
+    ai_failure_reason: str | None = None
 
 
 # --------------------------------------------------------------------------------------------

@@ -1,0 +1,374 @@
+<shared-page-layout
+  class="achievement-output-page"
+  eyebrow="Achievement Output"
+  title="実績出力"
+  description="実績カードをもとに、因果関係が伝わる文章を複数形式で生成します。"
+  headingLevel="h1"
+>
+  @if (configLoading()) {
+    <section class="page-section">
+      <div class="page-state achievement-output-page__state achievement-output-page__state--loading" role="status">
+        <span class="achievement-output-page__spinner" aria-hidden="true"></span>
+        <div>
+          <h2>設定を読み込んでいます</h2>
+          <p>実績出力に必要な情報を準備しています。</p>
+        </div>
+      </div>
+    </section>
+  } @else if (configError(); as message) {
+    <section class="page-section">
+      <div class="page-state page-state--error" role="alert">
+        <h2>取得に失敗しました</h2>
+        <p>{{ message }}</p>
+        <button type="button" class="button button--secondary focus-ring" (click)="reloadConfig()">
+          再試行する
+        </button>
+      </div>
+    </section>
+  } @else {
+    <div class="page-grid page-grid--two achievement-output-page__layout">
+      <form class="page-section achievement-output-page__composer" (submit)="submit($event)">
+        <header class="page-section__header">
+          <h2 class="page-section__title">入力</h2>
+          <p class="page-section__subtitle">
+            テーマ、フロー、出力形式を整えて実績出力を生成します。
+          </p>
+        </header>
+
+        @if (limitReached()) {
+          <div class="app-alert app-alert--error" role="alert">
+            本日の実績出力の上限に達しました。時間をおいて再度お試しください。
+          </div>
+        }
+
+        @if (validationError(); as message) {
+          <div class="app-alert app-alert--error" role="alert">{{ message }}</div>
+        }
+
+        @if (generationError(); as message) {
+          <div class="app-alert app-alert--error" role="alert">{{ message }}</div>
+        }
+
+        <section class="achievement-output-page__group">
+          <div class="achievement-output-page__group-header">
+            <h3 class="achievement-output-page__group-title">テーマ</h3>
+            <p class="achievement-output-page__group-subtitle">
+              ラベルまたは自由入力でテーマを指定します。
+            </p>
+          </div>
+
+          <div class="achievement-output-page__subject-options" role="radiogroup" aria-label="テーマの選択方法">
+            <label
+              class="achievement-output-page__subject-option"
+              [class.is-active]="form.controls.subjectType.value() === 'label'"
+              [class.is-disabled]="!hasLabels()"
+            >
+              <input
+                type="radio"
+                name="subjectType"
+                class="achievement-output-page__subject-input focus-ring"
+                [checked]="form.controls.subjectType.value() === 'label'"
+                [disabled]="!hasLabels()"
+                (change)="setSubjectType('label')"
+              />
+              <span class="achievement-output-page__subject-body">
+                <span class="achievement-output-page__subject-title">ラベルから選択</span>
+                <span class="achievement-output-page__subject-description">
+                  登録済みラベルの実績を自動で参照します。
+                </span>
+              </span>
+            </label>
+
+            <label
+              class="achievement-output-page__subject-option"
+              [class.is-active]="form.controls.subjectType.value() === 'custom'"
+            >
+              <input
+                type="radio"
+                name="subjectType"
+                class="achievement-output-page__subject-input focus-ring"
+                [checked]="form.controls.subjectType.value() === 'custom'"
+                (change)="setSubjectType('custom')"
+              />
+              <span class="achievement-output-page__subject-body">
+                <span class="achievement-output-page__subject-title">自由入力</span>
+                <span class="achievement-output-page__subject-description">
+                  具体的なテーマや成果をテキストで入力します。
+                </span>
+              </span>
+            </label>
+          </div>
+
+          @if (form.controls.subjectType.value() === 'label') {
+            <label class="form-field">
+              <span class="form-field__label">ラベル</span>
+              <shared-ui-select
+                name="subject-label"
+                [options]="labelSelectOptions()"
+                [ngModel]="form.controls.subjectLabelId.value()"
+                (ngModelChange)="updateSubjectLabel($event)"
+                [disabled]="!hasLabels()"
+              ></shared-ui-select>
+              @if (!hasLabels()) {
+                <p class="form-note">ラベルが登録されていません。</p>
+              }
+            </label>
+
+            @if (selectedLabel(); as label) {
+              @if (label.description) {
+                <p class="form-note achievement-output-page__label-description">{{ label.description }}</p>
+              }
+              <div class="surface-card achievement-output-page__achievements">
+                <div class="achievement-output-page__achievements-header">
+                  <p class="form-field__label">実績プレビュー</p>
+                  <span class="form-note">{{ label.achievements.length }} 件</span>
+                </div>
+                @if (label.achievements.length > 0) {
+                  <ul class="achievement-output-page__achievement-list">
+                    @for (achievement of label.achievements; track achievement.id) {
+                      <li class="achievement-output-page__achievement-item">
+                        <span class="achievement-output-page__achievement-title">
+                          {{ achievement.title }}
+                        </span>
+                        @if (achievement.summary) {
+                          <span class="achievement-output-page__achievement-summary">
+                            {{ achievement.summary }}
+                          </span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="form-note">紐づく実績がまだ登録されていません。</p>
+                }
+              </div>
+            }
+          } @else {
+            <label class="form-field">
+              <span class="form-field__label">テーマ</span>
+              <input
+                type="text"
+                class="form-control"
+                maxlength="120"
+                placeholder="例: 新規オンボーディングの成果"
+                [value]="form.controls.subjectCustom.value()"
+                (input)="updateCustomSubject($any($event.target).value)"
+              />
+              <p class="form-note">120 文字以内で入力してください。</p>
+            </label>
+          }
+        </section>
+
+        <section class="achievement-output-page__group">
+          <div class="achievement-output-page__group-header">
+            <h3 class="achievement-output-page__group-title">フロー</h3>
+            <p class="achievement-output-page__group-subtitle">
+              推奨フローを起点に、最大 5 ステップまで編集できます。
+            </p>
+          </div>
+
+          <div class="form-collection achievement-output-page__flow-list">
+            @for (step of flowSteps(); track $index; let index = $index) {
+              <div class="form-collection__item">
+                <div class="form-collection__header">
+                  <p class="form-collection__title">{{ 'ステップ ' + (index + 1) }}</p>
+                  <button
+                    type="button"
+                    class="form-collection__remove"
+                    [disabled]="flowSteps().length <= 1"
+                    (click)="removeFlowStep(index)"
+                  >
+                    削除
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="例: 課題"
+                  [value]="step"
+                  (input)="updateFlowStep(index, $any($event.target).value)"
+                />
+              </div>
+            }
+          </div>
+
+          <button
+            type="button"
+            class="form-collection__add"
+            [disabled]="flowSteps().length >= 5"
+            (click)="addFlowStep()"
+          >
+            ステップを追加
+          </button>
+        </section>
+
+        <section class="achievement-output-page__group">
+          <div class="achievement-output-page__group-header">
+            <h3 class="achievement-output-page__group-title">出力形式</h3>
+            <p class="achievement-output-page__group-subtitle">
+              用途に合わせて複数の形式を同時に生成します。
+            </p>
+          </div>
+
+          <div class="achievement-output-page__format-list">
+            @for (format of formats(); track format.id) {
+              <label
+                class="achievement-output-page__format-option"
+                [class.is-selected]="form.controls.formats.value().includes(format.id)"
+              >
+                <input
+                  type="checkbox"
+                  class="achievement-output-page__format-input focus-ring"
+                  [checked]="form.controls.formats.value().includes(format.id)"
+                  (change)="toggleFormat(format.id)"
+                />
+                <span class="achievement-output-page__format-body">
+                  <span class="achievement-output-page__format-title">{{ format.name }}</span>
+                  <span class="achievement-output-page__format-description">
+                    {{ format.description }}
+                  </span>
+                </span>
+                <span class="page-badge">{{
+                  format.editor_mode === 'csv' ? 'CSV' : 'Markdown'
+                }}</span>
+              </label>
+            }
+          </div>
+        </section>
+
+        <div class="form-actions achievement-output-page__actions">
+          <button
+            type="submit"
+            class="button button--primary"
+            [disabled]="!canGenerate()"
+            [attr.aria-busy]="generating()"
+          >
+            <span
+              class="button__spinner"
+              aria-hidden="true"
+              [class.button__spinner--visible]="generating()"
+            ></span>
+            <shared-ai-mark />
+            <span class="button__label">{{
+              generating() ? '生成中…' : '実績出力を生成'
+            }}</span>
+          </button>
+          <button type="button" class="button button--ghost" (click)="reloadConfig()">
+            設定を再読込
+          </button>
+        </div>
+      </form>
+
+      <section class="page-section achievement-output-page__output" aria-live="polite">
+        <header class="page-section__header">
+          <div>
+            <div class="achievement-output-page__output-eyebrow-row">
+              <p class="achievement-output-page__output-eyebrow">Output</p>
+              @if (generationBadge(); as badge) {
+                <span
+                  class="page-badge page-badge--warning achievement-output-page__generation-badge"
+                  tabindex="0"
+                  [attr.title]="badge.message"
+                  [attr.aria-label]="badge.message"
+                >
+                  {{ badge.label }}
+                </span>
+              }
+            </div>
+            <h2 class="page-section__title">生成結果</h2>
+            <p class="page-section__subtitle">
+              生成結果を編集してコピー・ダウンロードできます。
+            </p>
+          </div>
+          <div class="page-section__actions">
+            <button
+              type="button"
+              class="button button--secondary button--pill"
+              [disabled]="!canCopy()"
+              (click)="copyActiveContent()"
+            >
+              コピー
+            </button>
+            <button
+              type="button"
+              class="button button--secondary button--pill"
+              [disabled]="!canDownload()"
+              (click)="downloadActiveContent()"
+            >
+              {{ downloadButtonLabel() }}
+            </button>
+            @if (copyStatus() === 'copied') {
+              <span class="form-note">コピーしました。</span>
+            } @else if (copyStatus() === 'failed') {
+              <span class="form-note">コピーに失敗しました。</span>
+            }
+          </div>
+        </header>
+
+        @if (result()?.warnings?.length) {
+          <div class="app-alert app-alert--notice" role="status">
+            <p class="achievement-output-page__warning-title">注意</p>
+            <ul class="achievement-output-page__warning-list">
+              @for (warning of result()?.warnings ?? []; track warning) {
+                <li>{{ warning }}</li>
+              }
+            </ul>
+          </div>
+        }
+
+        @if (generating()) {
+          <div class="page-state achievement-output-page__state achievement-output-page__state--loading" role="status">
+            <span class="achievement-output-page__spinner" aria-hidden="true"></span>
+            <div>
+              <h2>実績出力を生成しています</h2>
+              <p>AI が出力結果を準備しています。</p>
+            </div>
+          </div>
+        } @else if (result(); as output) {
+          @if (selectedFormats().length === 0) {
+            <div class="page-state achievement-output-page__state">
+              <h2>出力形式を選択してください</h2>
+              <p>左の出力形式を 1 つ以上選択してください。</p>
+            </div>
+          } @else {
+            <nav class="page-tabs achievement-output-page__tabs" aria-label="出力形式">
+              @for (format of selectedFormats(); track format.id) {
+                <button
+                  type="button"
+                  class="page-tab"
+                  [class.page-tab--active]="activeFormatId() === format.id"
+                  [attr.aria-pressed]="activeFormatId() === format.id"
+                  (click)="setActiveTab(format.id)"
+                >
+                  {{ format.name }}
+                </button>
+              }
+            </nav>
+
+            <div class="achievement-output-page__editor">
+              <textarea
+                class="form-control form-control--textarea achievement-output-page__output-text"
+                [attr.data-editor]="activeFormat()?.editor_mode ?? null"
+                placeholder="生成結果がここに表示されます"
+                [value]="activeContent()"
+                (input)="updateFormatContent(activeFormatId(), $any($event.target).value)"
+              ></textarea>
+            </div>
+
+            <div class="achievement-output-page__output-meta">
+              @if (activeTokens() !== null) {
+                <span class="form-note">Tokens: {{ activeTokens() }}</span>
+              }
+              <span class="form-note">生成ID: {{ output.generation_id }}</span>
+            </div>
+          }
+        } @else {
+          <div class="page-state achievement-output-page__state">
+            <h2>まだ生成されていません</h2>
+            <p>入力を整えて「実績出力を生成」をクリックしてください。</p>
+          </div>
+        }
+      </section>
+    </div>
+  }
+</shared-page-layout>

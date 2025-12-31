@@ -1,9 +1,11 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { FormsModule } from '@angular/forms';
 
 import { PageHeader } from '@shared/ui/page-header/page-header';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
+import { UiSelect } from '@shared/ui/select/ui-select';
 
 import { BoardPageStore } from './state/board-page.store';
 
@@ -11,7 +13,7 @@ type ColumnAccentSource = { readonly accent: string };
 
 @Component({
   selector: 'app-board-page',
-  imports: [CommonModule, DragDropModule, PageHeader, LocalDateTimePipe],
+  imports: [CommonModule, FormsModule, DragDropModule, PageHeader, LocalDateTimePipe, UiSelect],
   templateUrl: './board.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [BoardPageStore],
@@ -20,6 +22,10 @@ export class BoardPage {
   private readonly store = inject(BoardPageStore);
 
   public readonly subtaskStatusOptions = this.store.subtaskStatusOptions;
+  public readonly subtaskStatusSelectOptions = this.subtaskStatusOptions.map((status) => ({
+    value: status.id,
+    label: status.title,
+  }));
   public readonly groupingSignal = this.store.groupingSignal;
   public readonly groupingLabelSignal = this.store.groupingLabelSignal;
   public readonly columnsSignal = this.store.columnsSignal;

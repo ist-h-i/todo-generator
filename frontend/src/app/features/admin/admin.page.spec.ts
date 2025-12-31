@@ -9,6 +9,7 @@ import {
   ApiCredential,
   AuthenticatedUser,
   Competency,
+  CompetencyInput,
   CompetencyEvaluation,
   CompetencyLevelDefinition,
   QuotaDefaults,
@@ -17,6 +18,19 @@ import {
 import { AdminPage } from './admin.page';
 
 class MockAdminApiService {
+  private readonly emptyCompetency: Competency = {
+    id: 'competency-001',
+    name: 'Communication',
+    level: 'junior',
+    description: '',
+    rubric: {},
+    sort_order: 0,
+    is_active: true,
+    criteria: [],
+    created_at: '2024-01-01T00:00:00.000Z',
+    updated_at: '2024-01-01T00:00:00.000Z',
+    level_definition: null,
+  };
   public competencies: Competency[] = [];
   public users: AdminUser[] = [];
   public evaluations: CompetencyEvaluation[] = [];
@@ -24,6 +38,12 @@ class MockAdminApiService {
   public quotaDefaults: QuotaDefaults = {
     card_daily_limit: 3,
     evaluation_daily_limit: 3,
+    analysis_daily_limit: 10,
+    status_report_daily_limit: 5,
+    immunity_map_daily_limit: 5,
+    immunity_map_candidate_daily_limit: 10,
+    appeal_daily_limit: 5,
+    auto_card_daily_limit: 25,
   };
   public credential: ApiCredential = {
     provider: 'gemini',
@@ -60,6 +80,18 @@ class MockAdminApiService {
   public readonly listApiCredentialModels = jasmine
     .createSpy('listApiCredentialModels')
     .and.callFake(() => of(this.models));
+
+  public readonly createCompetency = jasmine
+    .createSpy('createCompetency')
+    .and.callFake((_payload: CompetencyInput) => of(this.emptyCompetency));
+
+  public readonly updateCompetency = jasmine
+    .createSpy('updateCompetency')
+    .and.callFake((_id: string, _payload: Partial<CompetencyInput>) => of(this.emptyCompetency));
+
+  public readonly deleteCompetency = jasmine
+    .createSpy('deleteCompetency')
+    .and.callFake((_id: string) => of(undefined));
 
   public readonly deleteUser = jasmine.createSpy('deleteUser').and.callFake(() => of(undefined));
 }
@@ -99,6 +131,12 @@ describe('AdminPage', () => {
       is_active: true,
       card_daily_limit: null,
       evaluation_daily_limit: null,
+      analysis_daily_limit: null,
+      status_report_daily_limit: null,
+      immunity_map_daily_limit: null,
+      immunity_map_candidate_daily_limit: null,
+      appeal_daily_limit: null,
+      auto_card_daily_limit: null,
       created_at: '2024-01-01T00:00:00.000Z',
       updated_at: '2024-01-01T00:00:00.000Z',
     };
@@ -155,5 +193,89 @@ describe('AdminPage', () => {
     expect(values).toContain('junior');
     expect(values).toContain('intermediate');
     expect(values).toContain('senior');
+  });
+
+  it('updates an existing competency when editing', () => {
+    const competency: Competency = {
+      id: 'competency-123',
+      name: 'Communication',
+      level: 'junior',
+      description: 'Old description',
+      rubric: {},
+      sort_order: 0,
+      is_active: true,
+      criteria: [
+        {
+          id: 'criterion-001',
+          title: 'Clarity',
+          description: 'Old',
+          is_active: true,
+          order_index: 0,
+          created_at: '2024-01-01T00:00:00.000Z',
+          updated_at: '2024-01-01T00:00:00.000Z',
+        },
+      ],
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+      level_definition: null,
+    };
+    api.competencies = [competency];
+
+    const updated: Competency = {
+      ...competency,
+      name: 'Updated communication',
+      description: 'New description',
+      updated_at: '2024-01-02T00:00:00.000Z',
+    };
+    api.updateCompetency.and.returnValue(of(updated));
+
+    const fixture = TestBed.createComponent(AdminPage);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+
+    component.editCompetency(competency);
+    expect(component.editingCompetencyId()).toBe(competency.id);
+
+    component.competencyForm.controls.name.setValue(updated.name);
+    component.competencyForm.controls.description.setValue(updated.description ?? '');
+
+    component.createCompetency();
+
+    expect(api.updateCompetency).toHaveBeenCalled();
+    expect(component.editingCompetencyId()).toBeNull();
+    expect(component.competencies().find((item) => item.id === competency.id)?.name).toBe(updated.name);
+  });
+
+  it('deletes a competency and cancels editing', () => {
+    const competency: Competency = {
+      id: 'competency-123',
+      name: 'Communication',
+      level: 'junior',
+      description: 'Old description',
+      rubric: {},
+      sort_order: 0,
+      is_active: true,
+      criteria: [],
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+      level_definition: null,
+    };
+    api.competencies = [competency];
+
+    const fixture = TestBed.createComponent(AdminPage);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+
+    component.editCompetency(competency);
+    expect(component.editingCompetencyId()).toBe(competency.id);
+
+    spyOn(window, 'confirm').and.returnValue(true);
+    api.deleteCompetency.and.returnValue(of(undefined));
+
+    component.deleteCompetency(competency);
+
+    expect(api.deleteCompetency).toHaveBeenCalledWith(competency.id);
+    expect(component.competencies()).toEqual([]);
+    expect(component.editingCompetencyId()).toBeNull();
   });
 });

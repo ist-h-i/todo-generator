@@ -1,6 +1,0 @@
-requirements_analyst
-detail_designer
-coder
-uiux_reviewer
-a11y_reviewer
-implementation_reviewer

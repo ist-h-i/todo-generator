@@ -119,7 +119,6 @@ class GeminiClient:
         "type": "object",
         "additionalProperties": False,
         "properties": {
-            "model": {"type": "string"},
             "proposals": {
                 "type": "array",
                 "minItems": 0,
@@ -284,8 +283,12 @@ class GeminiClient:
         api_key: str | None = None,
     ) -> None:
         resolved_model = model or settings.gemini_model
-        self.model = self.normalize_model_name(resolved_model)
+        normalized_model = self.normalize_model_name(resolved_model)
+        sanitized_model = self.sanitize_model_name(normalized_model, fallback=settings.gemini_model)
+        self.requested_model = sanitized_model
+        self.model = sanitized_model
         self.api_key = api_key
+        self._initial_warnings: list[str] = []
 
         if not self.api_key:
             raise GeminiConfigurationError("Gemini API key is not configured. Update it from the admin settings.")
@@ -298,6 +301,10 @@ class GeminiClient:
         genai.configure(api_key=self.api_key)
         self.model = self._ensure_supported_model(self.model)
         self._client = genai.GenerativeModel(self.model)
+        if self.requested_model and self.model and self.requested_model != self.model:
+            self._initial_warnings.append(
+                f"Gemini モデル '{self.requested_model}' は利用可能なバリアント '{self.model}' に解決されました。"
+            )
 
     def _get_model_client(self, model_override: str | None) -> tuple[Any, str]:
         if not model_override:
@@ -307,6 +314,21 @@ class GeminiClient:
         sanitized = self.sanitize_model_name(normalized, fallback=self.model)
         resolved = self._ensure_supported_model(sanitized)
         return genai.GenerativeModel(resolved), resolved
+
+    def _base_warnings(self) -> list[str]:
+        warnings = getattr(self, "_initial_warnings", None)
+        if isinstance(warnings, list):
+            return [str(item) for item in warnings if isinstance(item, str)]
+        return []
+
+    @staticmethod
+    def _resolve_effective_model(response: Any, used_model: str | None) -> str:
+        model = getattr(response, "model", None)
+        if isinstance(model, str) and model.strip():
+            return model.strip()
+        if used_model:
+            return used_model
+        return ""
 
     def _ensure_supported_model(self, model: str) -> str:
         """Return a model that is supported by the configured Gemini account."""
@@ -475,7 +497,7 @@ class GeminiClient:
     ) -> AnalysisResponse:
         text = request.text.strip()
         if not text:
-            return AnalysisResponse(model=self.model, proposals=[])
+            return AnalysisResponse(model=self.model, proposals=[], warnings=[])
 
         try:
             payload = self._request_analysis(
@@ -490,6 +512,11 @@ class GeminiClient:
             logger.exception("Unable to decode Gemini response")
             raise GeminiError("Gemini returned an invalid response.") from exc
 
+        warnings = payload.get("warnings", [])
+        if not isinstance(warnings, list):
+            warnings = []
+        warnings = [str(item) for item in warnings if isinstance(item, str) and item.strip()]
+
         raw_proposals = payload.get("proposals", [])
         if not isinstance(raw_proposals, Sequence) or isinstance(raw_proposals, (str, bytes)):
             raw_proposals = []
@@ -498,9 +525,14 @@ class GeminiClient:
 
         if not proposals:
             proposals.append(self._fallback_card(text))
+            warnings.append(
+                "Gemini の提案が空だったため、入力内容から 1 件のタスク案をフォールバック生成しました。"
+            )
+            logger.info("Gemini analysis returned no proposals; emitted fallback card.")
 
         model_name = payload.get("model") if isinstance(payload, dict) else None
-        return AnalysisResponse(model=model_name or self.model, proposals=proposals[: request.max_cards])
+        resolved_model = str(model_name).strip() if isinstance(model_name, str) and model_name.strip() else self.model
+        return AnalysisResponse(model=resolved_model, proposals=proposals[: request.max_cards], warnings=warnings)
 
     def generate_appeal(
         self,
@@ -540,13 +572,20 @@ class GeminiClient:
 
         response = None
         used_model: str | None = None
+        used_override: str | None = None
+        primary_model: str | None = None
         last_zero_quota_error: ResourceExhausted | None = None
+        zero_quota_models: list[str] = []
+        warnings = self._base_warnings()
 
         for candidate_override in self._zero_quota_fallback_overrides(primary_override=model_override):
             try:
                 client, candidate_model = self._get_model_client(candidate_override)
             except GeminiConfigurationError:
                 continue
+
+            if primary_model is None:
+                primary_model = candidate_model
 
             try:
                 response = client.generate_content(
@@ -555,10 +594,12 @@ class GeminiClient:
                     request_options={"retry": None, "timeout": settings.gemini_request_timeout_seconds},
                 )
                 used_model = candidate_model
+                used_override = candidate_override
                 break
             except ResourceExhausted as exc:
                 if _is_zero_quota(str(exc)):
                     last_zero_quota_error = exc
+                    zero_quota_models.append(candidate_model)
                     continue
                 self._raise_for_google_api_error(exc, context="structured generation")
             except GoogleAPIError as exc:
@@ -575,11 +616,31 @@ class GeminiClient:
             raise GeminiError("Gemini response must be a JSON object.")
 
         payload = dict(data)
-        if not payload.get("model"):
-            if getattr(response, "model", None):
-                payload["model"] = response.model
-            elif used_model and used_model != self.model:
-                payload["model"] = used_model
+        reported_model = self._resolve_effective_model(response, used_model)
+        if reported_model:
+            payload["model"] = reported_model
+
+        if used_override is not None and used_model and used_model != used_override:
+            warnings.append(
+                f"Gemini モデル '{used_override}' は利用可能なバリアント '{used_model}' に解決されました。"
+            )
+
+        if primary_model and used_model and used_model != primary_model:
+            if primary_model in zero_quota_models and reported_model:
+                warnings.append(
+                    f"Gemini モデル '{primary_model}' のクォータが 0 のため '{reported_model}' にフォールバックしました。"
+                )
+            elif reported_model:
+                warnings.append(f"Gemini モデル '{primary_model}' から '{reported_model}' にフォールバックしました。")
+            logger.warning(
+                "Gemini model fallback (structured): primary=%s used=%s reported=%s",
+                primary_model,
+                used_model,
+                reported_model,
+            )
+
+        if warnings:
+            payload["warnings"] = warnings
 
         usage = self._extract_usage(response)
         if usage:
@@ -618,13 +679,21 @@ class GeminiClient:
         combined_prompt = f"{self._SYSTEM_PROMPT}\n\n{user_prompt}"
 
         response = None
+        used_model: str | None = None
+        used_override: str | None = None
+        primary_model: str | None = None
         last_zero_quota_error: ResourceExhausted | None = None
+        zero_quota_models: list[str] = []
+        warnings = self._base_warnings()
 
         for model_override in self._zero_quota_fallback_overrides(primary_override=None):
             try:
-                client, _ = self._get_model_client(model_override)
+                client, candidate_model = self._get_model_client(model_override)
             except GeminiConfigurationError:
                 continue
+
+            if primary_model is None:
+                primary_model = candidate_model
 
             try:
                 response = client.generate_content(
@@ -632,10 +701,13 @@ class GeminiClient:
                     generation_config=generation_config,
                     request_options={"retry": None, "timeout": settings.gemini_request_timeout_seconds},
                 )
+                used_model = candidate_model
+                used_override = model_override
                 break
             except ResourceExhausted as exc:
                 if _is_zero_quota(str(exc)):
                     last_zero_quota_error = exc
+                    zero_quota_models.append(candidate_model)
                     continue
                 raise
 
@@ -648,11 +720,35 @@ class GeminiClient:
         data = self._parse_json_payload(content)
         if not isinstance(data, dict):
             raise GeminiError("Gemini response must be a JSON object.")
-        if (not data.get("model")) and getattr(response, "model", None):
-            enriched = dict(data)
-            enriched["model"] = response.model
-            return enriched
-        return data
+
+        reported_model = self._resolve_effective_model(response, used_model)
+        enriched = dict(data)
+        if reported_model:
+            enriched["model"] = reported_model
+
+        if used_override is not None and used_model and used_model != used_override:
+            warnings.append(
+                f"Gemini モデル '{used_override}' は利用可能なバリアント '{used_model}' に解決されました。"
+            )
+
+        if primary_model and used_model and used_model != primary_model:
+            if primary_model in zero_quota_models and reported_model:
+                warnings.append(
+                    f"Gemini モデル '{primary_model}' のクォータが 0 のため '{reported_model}' にフォールバックしました。"
+                )
+            elif reported_model:
+                warnings.append(f"Gemini モデル '{primary_model}' から '{reported_model}' にフォールバックしました。")
+            logger.warning(
+                "Gemini model fallback (analysis): primary=%s used=%s reported=%s",
+                primary_model,
+                used_model,
+                reported_model,
+            )
+
+        if warnings:
+            enriched["warnings"] = warnings
+
+        return enriched
 
     def _raise_for_google_api_error(self, exc: GoogleAPIError, *, context: str) -> None:
         message = str(exc)

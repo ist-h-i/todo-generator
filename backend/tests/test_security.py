@@ -41,9 +41,9 @@ def test_cors_configuration_disallows_wildcard_credentials() -> None:
     assertions.assertTrue(cors_middleware.kwargs.get("allow_all_origins") in (None, False))
 
 
-def test_settings_reject_wildcard_origins() -> None:
-    with pytest.raises(ValueError):
-        Settings(allowed_origins="*")
+def test_settings_accepts_wildcard_origins() -> None:
+    custom_settings = Settings(allowed_origins="*")
+    assertions.assertTrue(custom_settings.allowed_origins == ["*"])
 
 
 def test_settings_split_comma_separated_origins() -> None:

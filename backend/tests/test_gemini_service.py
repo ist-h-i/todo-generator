@@ -279,7 +279,11 @@ def test_request_analysis_falls_back_when_model_has_zero_quota() -> None:
 
     data = GeminiClient._request_analysis(client, "Analyse Notes", 2)
 
-    assertions.assertTrue(data == {"model": "models/gemini-2.0-flash", "proposals": []})
+    assertions.assertTrue(data["model"] == "models/gemini-2.0-flash")
+    assertions.assertTrue(data["proposals"] == [])
+    warnings = data.get("warnings") or []
+    assertions.assertTrue(isinstance(warnings, list))
+    assertions.assertTrue(any("フォールバック" in str(item) for item in warnings))
     assertions.assertTrue(calls["primary"] == 1)
     assertions.assertTrue(calls["fallback"] == 1)
 
@@ -315,7 +319,7 @@ def test_generate_appeal_sanitizes_schema_before_request() -> None:
         },
     )
 
-    assertions.assertTrue(payload == {"appeal": ""})
+    assertions.assertTrue(payload == {"appeal": "", "model": "test-model"})
     assertions.assertTrue(GeminiClient._APPEAL_SYSTEM_PROMPT in recorded["prompt"])
     schema = _extract_response_schema(recorded["generation_config"])
     assertions.assertTrue(schema["properties"]["appeal"]["max_items"] == 3)
@@ -324,6 +328,25 @@ def test_generate_appeal_sanitizes_schema_before_request() -> None:
     assertions.assertTrue(
         recorded["request_options"] == {"retry": None, "timeout": settings.gemini_request_timeout_seconds}
     )
+
+
+def test_request_analysis_overrides_untrusted_model_field() -> None:
+    client = _make_client()
+
+    def fake_generate(
+        prompt: str, *, generation_config: object, request_options: object | None = None
+    ) -> SimpleNamespace:
+        return SimpleNamespace(
+            model="gemini-real",
+            text='{"model": "gemini-fake", "proposals": []}',
+        )
+
+    client._client = SimpleNamespace(generate_content=fake_generate)  # type: ignore[attr-defined]
+
+    data = GeminiClient._request_analysis(client, "Analyse Notes", 2)
+
+    assertions.assertTrue(data["model"] == "gemini-real")
+    assertions.assertTrue(data["proposals"] == [])
 
 
 def test_build_user_prompt_includes_profile_metadata() -> None:

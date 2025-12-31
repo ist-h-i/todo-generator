@@ -1,43 +1,167 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" role="img" aria-labelledby="title desc">
-  <title id="title">Board overview illustration</title>
-  <desc id="desc">Kanban board with multiple columns and cards</desc>
+  <title id="title">ワークスペースボード</title>
+  <desc id="desc">カンバンの列と、カード詳細（サブタスク・コメント）を確認できる画面イメージ</desc>
   <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0" stop-color="#e0e7ff" />
-      <stop offset="1" stop-color="#ede9fe" />
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e9efff" />
+      <stop offset="1" stop-color="#f6f8ff" />
     </linearGradient>
-    <linearGradient id="column" x1="0" x2="0" y1="0" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95" />
-      <stop offset="1" stop-color="#e2e8f0" stop-opacity="0.9" />
-    </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#312e81" flood-opacity="0.18" />
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#10203a" flood-opacity="0.16" />
     </filter>
+    <clipPath id="windowClip">
+      <rect x="28" y="28" width="304" height="184" rx="22" />
+    </clipPath>
   </defs>
+
   <rect width="360" height="240" rx="26" fill="url(#bg)" />
-  <g transform="translate(26 36)" filter="url(#shadow)">
-    <rect width="96" height="168" rx="18" fill="url(#column)" />
-    <rect x="12" y="20" width="72" height="28" rx="8" fill="#c7d2fe" opacity="0.9" />
-    <rect x="12" y="60" width="72" height="52" rx="10" fill="#e0e7ff" opacity="0.9" />
-    <rect x="12" y="122" width="72" height="24" rx="8" fill="#c4b5fd" opacity="0.95" />
+  <circle cx="296" cy="54" r="118" fill="#2563eb" opacity="0.12" />
+  <circle cx="70" cy="214" r="90" fill="#9333ea" opacity="0.06" />
+
+  <g filter="url(#shadow)">
+    <rect x="28" y="28" width="304" height="184" rx="22" fill="#ffffff" opacity="0.96" />
+    <rect
+      x="28"
+      y="28"
+      width="304"
+      height="184"
+      rx="22"
+      fill="none"
+      stroke="#93c5fd"
+      stroke-opacity="0.35"
+      stroke-width="1.2"
+    />
+
+    <g clip-path="url(#windowClip)">
+      <!-- Header -->
+      <rect x="28" y="28" width="304" height="32" fill="#f8fafc" />
+      <rect x="28" y="59.5" width="304" height="1" fill="#e2e8f0" />
+
+      <!-- Brand -->
+      <rect x="42" y="38" width="18" height="18" rx="6" fill="#2563eb" opacity="0.92" />
+      <rect x="66" y="40" width="50" height="6" rx="3" fill="#94a3b8" opacity="0.55" />
+      <rect x="66" y="50" width="34" height="4" rx="2" fill="#94a3b8" opacity="0.38" />
+
+      <!-- Nav -->
+      <rect x="140" y="40" width="36" height="12" rx="6" fill="#2563eb" opacity="0.18" />
+      <rect x="180" y="40" width="36" height="12" rx="6" fill="#94a3b8" opacity="0.28" />
+      <rect x="220" y="40" width="36" height="12" rx="6" fill="#94a3b8" opacity="0.28" />
+      <rect x="260" y="40" width="36" height="12" rx="6" fill="#94a3b8" opacity="0.28" />
+
+      <!-- User -->
+      <circle cx="318" cy="46" r="8" fill="#e2e8f0" />
+      <circle cx="318" cy="44" r="3" fill="#64748b" opacity="0.65" />
+      <path
+        d="M312 52c2-3 4-4 6-4s4 1 6 4"
+        fill="none"
+        stroke="#64748b"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        opacity="0.55"
+      />
+
+      <!-- Board columns -->
+      <rect x="42" y="72" width="56" height="128" rx="12" fill="#f1f5f9" stroke="#e2e8f0" />
+      <rect x="106" y="72" width="56" height="128" rx="12" fill="#f1f5f9" stroke="#e2e8f0" />
+      <rect x="170" y="72" width="56" height="128" rx="12" fill="#f1f5f9" stroke="#e2e8f0" />
+
+      <!-- Column headers -->
+      <rect x="48" y="78" width="44" height="10" rx="5" fill="#93c5fd" opacity="0.85" />
+      <rect x="112" y="78" width="44" height="10" rx="5" fill="#fdba74" opacity="0.85" />
+      <rect x="176" y="78" width="44" height="10" rx="5" fill="#86efac" opacity="0.85" />
+
+      <!-- Cards: TODO -->
+      <rect x="48" y="92" width="44" height="28" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <rect x="54" y="100" width="28" height="5" rx="2.5" fill="#94a3b8" opacity="0.55" />
+      <rect x="54" y="110" width="18" height="4" rx="2" fill="#94a3b8" opacity="0.35" />
+
+      <rect x="48" y="126" width="44" height="40" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <rect x="54" y="134" width="26" height="5" rx="2.5" fill="#94a3b8" opacity="0.55" />
+      <rect x="54" y="144" width="6" height="6" rx="2" fill="#22c55e" opacity="0.9" />
+      <path
+        d="M55.5 147l1.4 1.6 2.9-3.2"
+        fill="none"
+        stroke="#0f172a"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.65"
+      />
+      <rect x="62" y="145" width="24" height="4" rx="2" fill="#94a3b8" opacity="0.38" />
+      <rect x="54" y="154" width="6" height="6" rx="2" fill="#e2e8f0" />
+      <rect x="62" y="155" width="20" height="4" rx="2" fill="#94a3b8" opacity="0.3" />
+
+      <!-- Cards: DOING -->
+      <rect x="112" y="92" width="44" height="34" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <rect x="118" y="100" width="26" height="5" rx="2.5" fill="#94a3b8" opacity="0.55" />
+      <rect x="118" y="110" width="18" height="4" rx="2" fill="#94a3b8" opacity="0.35" />
+      <rect x="118" y="118" width="12" height="4" rx="2" fill="#93c5fd" opacity="0.7" />
+
+      <rect x="112" y="134" width="44" height="22" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <rect x="118" y="142" width="20" height="4" rx="2" fill="#94a3b8" opacity="0.38" />
+
+      <!-- Cards: DONE -->
+      <rect x="176" y="92" width="44" height="22" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <rect x="182" y="100" width="18" height="4" rx="2" fill="#94a3b8" opacity="0.38" />
+      <rect x="176" y="120" width="44" height="34" rx="8" fill="#ffffff" stroke="#e2e8f0" />
+      <circle cx="184" cy="137" r="6" fill="#86efac" opacity="0.9" />
+      <path
+        d="M181.8 137.2l1.8 2 4-4.5"
+        fill="none"
+        stroke="#0f172a"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.6"
+      />
+      <rect x="192" y="134" width="24" height="5" rx="2.5" fill="#94a3b8" opacity="0.4" />
+      <rect x="192" y="144" width="16" height="4" rx="2" fill="#94a3b8" opacity="0.28" />
+
+      <!-- Drag & drop cue -->
+      <path
+        d="M134 156c18-10 34-10 52 0"
+        fill="none"
+        stroke="#2563eb"
+        stroke-width="2.4"
+        stroke-linecap="round"
+        opacity="0.55"
+      />
+      <path
+        d="M182 152l6 4-6 4"
+        fill="none"
+        stroke="#2563eb"
+        stroke-width="2.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.55"
+      />
+
+      <!-- Card details panel -->
+      <rect x="238" y="72" width="80" height="128" rx="14" fill="#f8fafc" stroke="#e2e8f0" />
+      <rect x="248" y="86" width="60" height="10" rx="5" fill="#93c5fd" opacity="0.75" />
+      <rect x="248" y="102" width="44" height="4" rx="2" fill="#94a3b8" opacity="0.38" />
+      <rect x="248" y="112" width="52" height="4" rx="2" fill="#94a3b8" opacity="0.28" />
+
+      <rect x="248" y="126" width="6" height="6" rx="2" fill="#22c55e" opacity="0.9" />
+      <path
+        d="M249.5 129l1.4 1.6 2.9-3.2"
+        fill="none"
+        stroke="#0f172a"
+        stroke-width="1.4"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.6"
+      />
+      <rect x="256" y="127" width="48" height="4" rx="2" fill="#94a3b8" opacity="0.34" />
+
+      <rect x="248" y="138" width="6" height="6" rx="2" fill="#e2e8f0" />
+      <rect x="256" y="139" width="40" height="4" rx="2" fill="#94a3b8" opacity="0.28" />
+
+      <rect x="248" y="152" width="60" height="24" rx="12" fill="#ffffff" stroke="#e2e8f0" />
+      <rect x="256" y="160" width="40" height="4" rx="2" fill="#94a3b8" opacity="0.33" />
+      <path d="M258 176l-8 6v-6z" fill="#ffffff" stroke="#e2e8f0" />
+      <circle cx="306" cy="164" r="3" fill="#93c5fd" opacity="0.8" />
+      <circle cx="314" cy="164" r="3" fill="#fdba74" opacity="0.75" />
+    </g>
   </g>
-  <g transform="translate(140 28)" filter="url(#shadow)">
-    <rect width="104" height="184" rx="20" fill="url(#column)" />
-    <rect x="16" y="22" width="72" height="40" rx="12" fill="#bfdbfe" opacity="0.95" />
-    <rect x="16" y="78" width="72" height="32" rx="10" fill="#c4b5fd" opacity="0.9" />
-    <rect x="16" y="122" width="72" height="24" rx="8" fill="#f9a8d4" opacity="0.9" />
-  </g>
-  <g transform="translate(254 44)" filter="url(#shadow)">
-    <rect width="96" height="152" rx="18" fill="url(#column)" />
-    <rect x="12" y="20" width="72" height="28" rx="8" fill="#bbf7d0" opacity="0.9" />
-    <rect x="12" y="64" width="72" height="28" rx="8" fill="#fef08a" opacity="0.9" />
-    <rect x="12" y="108" width="72" height="20" rx="8" fill="#bae6fd" opacity="0.95" />
-  </g>
-  <path
-    d="M90 26h72"
-    stroke="#4f46e5"
-    stroke-width="4"
-    stroke-linecap="round"
-    opacity="0.6"
-  />
 </svg>

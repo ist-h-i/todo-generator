@@ -2,11 +2,16 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  ElementRef,
+  ViewChild,
   computed,
   effect,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
@@ -22,24 +27,55 @@ import {
   ImmunityMapResponse,
 } from '@core/models';
 import { WorkspaceStore } from '@core/state/workspace-store';
+import { MermaidViewer } from '@shared/ui/mermaid-viewer/mermaid-viewer';
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
+import { UiSelect } from '@shared/ui/select/ui-select';
+import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 
 /**
  * Analytics dashboard summarizing board metrics for the workspace.
  */
 @Component({
   selector: 'app-analytics-page',
-  imports: [CommonModule, RouterLink, PageLayout],
+  imports: [
+    CommonModule,
+    RouterLink,
+    ReactiveFormsModule,
+    MermaidViewer,
+    PageLayout,
+    UiSelect,
+    AiMark,
+  ],
   templateUrl: './analytics.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '(document:keydown)': 'onKeydown($event)',
+  },
 })
 export class AnalyticsPage {
   private readonly workspace = inject(WorkspaceStore);
   private readonly immunityMapGateway = inject(ImmunityMapGateway);
+  private readonly destroyRef = inject(DestroyRef);
+
+  @ViewChild('immunityMapMermaidViewer')
+  private readonly immunityMapMermaidViewer?: ElementRef<HTMLElement>;
+  @ViewChild('immunityMapMermaidDialogPanel')
+  private readonly immunityMapMermaidDialogPanel?: ElementRef<HTMLElement>;
+
+  public readonly windowDaysOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: '7', label: '直近7日' },
+    { value: '14', label: '直近14日' },
+    { value: '28', label: '直近28日' },
+    { value: '56', label: '直近56日' },
+    { value: '84', label: '直近84日' },
+  ];
 
   public constructor() {
     void this.workspace.refreshWorkspaceData();
-    this.refreshCandidates();
+
+    this.windowDaysControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => this.updateWindowDays(value));
   }
 
   public readonly summarySignal = this.workspace.summary;
@@ -87,16 +123,43 @@ export class AnalyticsPage {
   public readonly candidatesResource = this.immunityMapGateway.createCandidatesResource(
     this.candidateRequest,
   );
-  public readonly candidates = computed(() => this.candidatesResource.value()?.candidates ?? []);
+  public readonly candidatesRequested = computed(() => this.candidateRequest() !== null);
+  public readonly candidates = computed(() =>
+    this.coerceCandidates(this.candidatesResource.value() as unknown),
+  );
   public readonly candidateContextSummary = computed(
     () => this.candidatesResource.value()?.context_summary ?? null,
   );
   public readonly candidateUsedSources = computed(
     () => this.candidatesResource.value()?.used_sources ?? null,
   );
+  public readonly candidateWarnings = computed(() => this.candidatesResource.value()?.warnings ?? []);
   public readonly candidateSourcesLabel = computed(() =>
     this.formatSourcesLabel(this.candidateUsedSources()),
   );
+  public readonly candidateEmptyStateMessage = computed(() => {
+    if (!this.candidatesRequested() || this.candidatesLoading() || this.candidatesError()) {
+      return null;
+    }
+
+    if (this.candidates().length > 0) {
+      return null;
+    }
+
+    const sources = this.candidateUsedSources();
+    const total = sources
+      ? Object.values(sources).reduce(
+          (sum, value) => sum + (typeof value === 'number' ? value : 0),
+          0,
+        )
+      : 0;
+
+    if (total <= 0) {
+      return '参照データが不足しているため候補カードを生成できませんでした。日報・週報を記録するか、未完了のタスクカードを追加して再度お試しください。';
+    }
+
+    return '参照データを見る限りは起点の候補が見当たりませんでした（状況が順調な可能性があります）。必要に応じてカスタム入力で起点を追加してください。';
+  });
   public readonly candidatesLoading = computed(() => {
     const status = this.candidatesResource.status();
     return status === 'loading' || status === 'reloading';
@@ -105,8 +168,18 @@ export class AnalyticsPage {
 
   public readonly advancedMode = signal(false);
   public readonly windowDays = signal(28);
+  public readonly windowDaysControl = new FormControl<string>(String(this.windowDays()), {
+    nonNullable: true,
+  });
   public readonly selectedCandidateIds = signal<readonly string[]>([]);
   private readonly candidateDrafts = signal<Record<string, string>>({});
+
+  private readonly syncWindowDaysControlEffect = effect(() => {
+    const nextValue = String(this.windowDays());
+    if (this.windowDaysControl.value !== nextValue) {
+      this.windowDaysControl.setValue(nextValue, { emitEvent: false });
+    }
+  });
 
   private readonly syncCandidatesEffect = effect(() => {
     const candidates = this.candidates();
@@ -128,12 +201,38 @@ export class AnalyticsPage {
   public readonly isGenerating = signal(false);
   public readonly generationError = signal<string | null>(null);
   public readonly generatedMap = signal<ImmunityMapResponse | null>(null);
+  public readonly immunityMapWarnings = computed(() => this.generatedMap()?.warnings ?? []);
   public readonly copyStatus = signal<'idle' | 'copied' | 'failed'>('idle');
+  public readonly isMermaidDialogOpen = signal(false);
 
   public readonly updateShouldText = (value: string): void => this.shouldText.set(value);
   public readonly updateCannotText = (value: string): void => this.cannotText.set(value);
   public readonly updateWantText = (value: string): void => this.wantText.set(value);
   public readonly updateContextText = (value: string): void => this.contextText.set(value);
+
+  public readonly openMermaidDialog = (): void => {
+    if (!this.generatedMap()?.mermaid) {
+      return;
+    }
+
+    this.isMermaidDialogOpen.set(true);
+    setTimeout(() => {
+      this.immunityMapMermaidDialogPanel?.nativeElement.focus();
+    }, 0);
+  };
+
+  public readonly closeMermaidDialog = (): void => {
+    this.isMermaidDialogOpen.set(false);
+  };
+
+  public onKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Escape' || !this.isMermaidDialogOpen()) {
+      return;
+    }
+
+    event.preventDefault();
+    this.closeMermaidDialog();
+  }
 
   public readonly toggleAdvancedMode = (): void => {
     this.advancedMode.update((value) => !value);
@@ -153,7 +252,6 @@ export class AnalyticsPage {
       return;
     }
     this.windowDays.set(clamped);
-    this.refreshCandidates();
   };
 
   public readonly toggleCandidateSelection = (candidateId: string): void => {
@@ -174,13 +272,13 @@ export class AnalyticsPage {
   public readonly formatKindLabel = (kind: ImmunityMapAItemKind): string => {
     switch (kind) {
       case 'should':
-        return 'やるべき';
+        return 'すべき';
       case 'cannot':
-        return 'やれない';
+        return 'できない';
       case 'want':
-        return 'やりたい';
+        return 'したい';
       default:
-        return 'A';
+        return '起点';
     }
   };
 
@@ -221,12 +319,16 @@ export class AnalyticsPage {
       return;
     }
 
+    this.closeMermaidDialog();
+
     const candidateItems = this.buildCandidateAItems();
     const manualItems = this.advancedMode() ? this.buildManualAItems() : [];
     const aItems = [...candidateItems, ...manualItems];
 
     if (aItems.length === 0) {
-      this.generationError.set('A 候補を1件以上選択するか、手入力で追加してください。');
+      this.generationError.set(
+        '起点候補がありません。候補を選択するか、手入力で起点を追加してください。',
+      );
       this.generatedMap.set(null);
       return;
     }
@@ -246,12 +348,33 @@ export class AnalyticsPage {
       );
       this.generatedMap.set(response);
     } catch {
-      this.generationError.set('免疫マップの生成に失敗しました。時間をおいて再度お試しください。');
+      this.generationError.set(
+        '免疫マップの生成に失敗しました。しばらくしてから再度お試しください。',
+      );
       this.generatedMap.set(null);
     } finally {
       this.isGenerating.set(false);
+      if (this.generatedMap()) {
+        this.scrollMermaidViewerIntoView();
+      }
     }
   };
+
+  private scrollMermaidViewerIntoView(attempt: number = 0): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const element = this.immunityMapMermaidViewer?.nativeElement;
+    if (!element) {
+      if (attempt < 5) {
+        setTimeout(() => this.scrollMermaidViewerIntoView(attempt + 1), 0);
+      }
+      return;
+    }
+
+    element.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+  }
 
   public readonly copyMermaid = async (): Promise<void> => {
     const mermaid = this.generatedMap()?.mermaid;
@@ -284,6 +407,118 @@ export class AnalyticsPage {
       this.copyStatus.set('failed');
     }
   };
+
+  public readonly downloadMarkdown = (): void => {
+    const generated = this.generatedMap();
+    if (!generated || typeof document === 'undefined') {
+      return;
+    }
+
+    try {
+      const markdown = this.buildImmunityMapMarkdown(generated);
+      const timestamp = new Date().toISOString().split('.')[0].replaceAll(':', '-');
+      const fileName = `immunity-map-${timestamp}.md`;
+      const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    }
+  };
+
+  private readonly buildImmunityMapMarkdown = (generated: ImmunityMapResponse): string => {
+    const lines: string[] = [];
+
+    lines.push('# 免疫マップ生成結果');
+    lines.push('');
+    lines.push(`- Generated: ${new Date().toISOString()}`);
+    if (generated.model) {
+      lines.push(`- Model: ${generated.model}`);
+    }
+    if (generated.warnings?.length) {
+      lines.push(`- Warnings:`);
+      for (const warning of generated.warnings) {
+        const text = `${warning}`.trim();
+        if (text) {
+          lines.push(`  - ${text}`);
+        }
+      }
+    }
+    lines.push('');
+
+    if (generated.summary) {
+      lines.push('## サマリー');
+      lines.push('');
+      lines.push('### 現状分析');
+      lines.push('');
+      lines.push(generated.summary.current_analysis.trim());
+      lines.push('');
+      lines.push('### ひとことアドバイス');
+      lines.push('');
+      lines.push(generated.summary.one_line_advice.trim());
+      lines.push('');
+    }
+
+    if (generated.readout_cards?.length) {
+      lines.push('## 読み解きカード');
+      lines.push('');
+
+      for (const [index, card] of generated.readout_cards.entries()) {
+        const kindLabel = this.formatReadoutKind(card.kind);
+        const title = card.title.trim() || `読み解きカード ${index + 1}`;
+        lines.push(`### ${kindLabel}: ${title}`);
+        lines.push('');
+
+        const body = card.body.trim();
+        if (body) {
+          lines.push(body);
+          lines.push('');
+        }
+
+        if (card.evidence?.length) {
+          lines.push('**根拠**');
+          lines.push('');
+          for (const evidence of card.evidence) {
+            const typeLabel = this.formatEvidenceType(evidence.type);
+            const timestamp = evidence.timestamp
+              ? ` ${this.sanitizeInlineMarkdownText(evidence.timestamp)}`
+              : '';
+            const snippet = evidence.snippet ?? evidence.id ?? '参照あり';
+            lines.push(`- ${typeLabel}${timestamp}: ${this.sanitizeInlineMarkdownText(snippet)}`);
+          }
+          lines.push('');
+        }
+      }
+    }
+
+    lines.push('## Mermaid');
+    lines.push('');
+    lines.push('```mermaid');
+    lines.push(this.normalizeMermaidForMarkdown(generated.mermaid));
+    lines.push('```');
+    lines.push('');
+
+    return lines.join('\n');
+  };
+
+  private readonly normalizeMermaidForMarkdown = (value: string): string => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return '';
+    }
+
+    const fenced = trimmed.match(/^```(?:mermaid)?\s*(?:\r?\n)([\s\S]*?)(?:\r?\n)```\s*$/i);
+    return (fenced?.[1] ?? trimmed).trim();
+  };
+
+  private readonly sanitizeInlineMarkdownText = (value: string | null | undefined): string =>
+    (value ?? '').toString().replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
 
   private readonly buildCandidateRequest = (): ImmunityMapCandidateRequest => ({
     window_days: this.windowDays(),
@@ -350,7 +585,7 @@ export class AnalyticsPage {
     const parts: string[] = [];
     const statusReports = sources['status_reports'];
     if (typeof statusReports === 'number') {
-      parts.push(`日報週報 ${statusReports}件`);
+      parts.push(`日報・週報 ${statusReports}件`);
     }
     const cards = sources['cards'];
     if (typeof cards === 'number') {
@@ -402,4 +637,306 @@ export class AnalyticsPage {
     kind,
     text,
   });
+
+  private readonly coerceCandidates = (value: unknown): ImmunityMapCandidate[] => {
+    const items = this.resolveCandidateItems(value);
+    if (!items) {
+      return [];
+    }
+    return this.coerceCandidatesFromArray(items);
+  };
+
+  private readonly resolveCandidateItems = (value: unknown): readonly unknown[] | null => {
+    if (!value) {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      if (value.some((item) => this.looksLikeCandidateItem(item))) {
+        return value;
+      }
+      for (const item of value) {
+        const resolved = this.resolveCandidateItems(item);
+        if (resolved) {
+          return resolved;
+        }
+      }
+      return null;
+    }
+
+    if (typeof value === 'string') {
+      return this.parseCandidateJson(value);
+    }
+
+    if (typeof value !== 'object') {
+      return null;
+    }
+
+    const container = value as Record<string, unknown>;
+
+    if (this.isCandidatePayload(container)) {
+      return [container];
+    }
+
+    const embedded = container['card'] ?? container['candidate'];
+    if (embedded && typeof embedded === 'object') {
+      if (this.isCandidatePayload(embedded as Record<string, unknown>)) {
+        return [embedded as Record<string, unknown>];
+      }
+    }
+
+    return (
+      this.resolveCandidateItems(container['candidates']) ??
+      this.resolveCandidateItems(container['cards']) ??
+      this.resolveCandidateItems(container['candidate_cards']) ??
+      this.resolveCandidateItems(container['candidateCards']) ??
+      this.resolveCandidateItems(container['data']) ??
+      this.resolveCandidateItems(container['items']) ??
+      this.resolveCandidateItems(container['results']) ??
+      this.resolveCandidateArrayFromRecord(container) ??
+      this.resolveCandidateItemsFromRecord(container)
+    );
+  };
+
+  private readonly looksLikeCandidateItem = (value: unknown): boolean => {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+    const item = value as Record<string, unknown>;
+    if (this.isCandidatePayload(item)) {
+      return true;
+    }
+    const nested =
+      item['card'] ??
+      item['candidate'] ??
+      item['payload'] ??
+      item['data'] ??
+      item['item'] ??
+      item['value'];
+    if (!nested || typeof nested !== 'object') {
+      return false;
+    }
+    return this.isCandidatePayload(nested as Record<string, unknown>);
+  };
+
+  private readonly isCandidatePayload = (value: Record<string, unknown>): boolean => {
+    const rawAItem = value['a_item'];
+    if (rawAItem && typeof rawAItem === 'object') {
+      const aItem = rawAItem as Record<string, unknown>;
+      const kind = aItem['kind'];
+      const text = aItem['text'];
+      if (
+        (kind === 'should' || kind === 'cannot' || kind === 'want') &&
+        typeof text === 'string' &&
+        text.trim().length > 0
+      ) {
+        return true;
+      }
+    }
+
+    return this.extractFallbackTitle(value) !== null;
+  };
+
+  private readonly extractFallbackTitle = (value: Record<string, unknown>): string | null => {
+    const title = value['title'];
+    if (typeof title === 'string') {
+      const trimmed = title.trim();
+      if (trimmed.length > 0) {
+        return trimmed;
+      }
+    }
+
+    const rawText = value['name'] ?? value['subject'] ?? value['text'];
+    if (typeof rawText !== 'string') {
+      return null;
+    }
+
+    const trimmed = rawText.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    if (!this.hasCandidateMetadata(value)) {
+      return null;
+    }
+
+    return trimmed;
+  };
+
+  private readonly hasCandidateMetadata = (value: Record<string, unknown>): boolean => {
+    const keys = [
+      'summary',
+      'description',
+      'ai_notes',
+      'ai_confidence',
+      'status_id',
+      'label_ids',
+      'story_points',
+      'assignees',
+      'priority',
+      'due_date',
+      'completed_at',
+      'created_at',
+    ];
+
+    return keys.some((key) => value[key] !== null && value[key] !== undefined);
+  };
+
+  private readonly resolveCandidateItemsFromRecord = (
+    value: Record<string, unknown>,
+  ): readonly unknown[] | null => {
+    for (const nested of Object.values(value)) {
+      const resolved = this.resolveCandidateItems(nested);
+      if (resolved) {
+        return resolved;
+      }
+    }
+    return null;
+  };
+
+  private readonly resolveCandidateArrayFromRecord = (
+    value: Record<string, unknown>,
+  ): readonly unknown[] | null => {
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      return null;
+    }
+    if (!keys.every((key) => /^\d+$/.test(key))) {
+      return null;
+    }
+    const values = Object.values(value);
+    if (!values.some((item) => this.looksLikeCandidateItem(item))) {
+      return null;
+    }
+    return values;
+  };
+
+  private readonly parseCandidateJson = (value: string): readonly unknown[] | null => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    if (!trimmed.startsWith('[') && !trimmed.startsWith('{')) {
+      return null;
+    }
+    try {
+      return this.resolveCandidateItems(JSON.parse(trimmed));
+    } catch {
+      return null;
+    }
+  };
+
+  private readonly coerceCandidatesFromArray = (
+    items: readonly unknown[],
+  ): ImmunityMapCandidate[] => {
+    const candidates: ImmunityMapCandidate[] = [];
+
+    for (const [index, raw] of items.entries()) {
+      const candidate = this.resolveCandidateFromItem(raw, index);
+      if (candidate) {
+        candidates.push(candidate);
+      }
+    }
+
+    return candidates;
+  };
+
+  private readonly resolveCandidateFromItem = (
+    value: unknown,
+    index: number,
+  ): ImmunityMapCandidate | null => {
+    const direct = this.coerceCandidate(value, index);
+    if (direct) {
+      return direct;
+    }
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    const record = value as Record<string, unknown>;
+    const nested =
+      record['card'] ??
+      record['candidate'] ??
+      record['payload'] ??
+      record['data'] ??
+      record['item'] ??
+      record['value'];
+    if (!nested) {
+      return null;
+    }
+    return this.coerceCandidate(nested, index);
+  };
+
+  private readonly coerceCandidate = (
+    value: unknown,
+    index: number,
+  ): ImmunityMapCandidate | null => {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const item = value as Record<string, unknown>;
+
+    const resolvedId = (() => {
+      const rawId = item['id'];
+      if (typeof rawId === 'string') {
+        const trimmed = rawId.trim();
+        if (trimmed.length > 0) {
+          return trimmed;
+        }
+      }
+      return `cand_${index + 1}`;
+    })();
+
+    const rawAItem = item['a_item'];
+    if (rawAItem && typeof rawAItem === 'object') {
+      const aItem = rawAItem as Record<string, unknown>;
+      const kind = aItem['kind'];
+      const text = aItem['text'];
+      const rationale = item['rationale'];
+      if (
+        (kind === 'should' || kind === 'cannot' || kind === 'want') &&
+        typeof text === 'string' &&
+        text.trim().length > 0 &&
+        typeof rationale === 'string' &&
+        rationale.trim().length > 0
+      ) {
+        return {
+          id: resolvedId,
+          a_item: { kind, text: text.trim() },
+          rationale: rationale.trim(),
+          confidence: typeof item['confidence'] === 'number' ? item['confidence'] : undefined,
+          questions: Array.isArray(item['questions'])
+            ? item['questions'].filter(
+                (question): question is string =>
+                  typeof question === 'string' && question.trim().length > 0,
+              )
+            : undefined,
+          evidence: Array.isArray(item['evidence'])
+            ? (item['evidence'] as ImmunityMapCandidate['evidence'])
+            : undefined,
+        };
+      }
+    }
+    const title = this.extractFallbackTitle(item);
+    if (title) {
+      const summary = typeof item['summary'] === 'string' ? item['summary'] : '';
+      const aiNotes = typeof item['ai_notes'] === 'string' ? item['ai_notes'] : '';
+      const analyticsNotes =
+        typeof item['analytics_notes'] === 'string' ? item['analytics_notes'] : '';
+      const description = typeof item['description'] === 'string' ? item['description'] : '';
+      const rationale =
+        (summary || aiNotes || analyticsNotes || description).trim() ||
+        '\u5019\u88dc\u30ab\u30fc\u30c9\u304c\u8fd4\u5374\u3055\u308c\u307e\u3057\u305f\u3002';
+      const confidence =
+        typeof item['ai_confidence'] === 'number' ? item['ai_confidence'] : undefined;
+
+      return {
+        id: resolvedId,
+        a_item: { kind: 'should', text: title },
+        rationale,
+        confidence,
+      };
+    }
+    return null;
+  };
 }
