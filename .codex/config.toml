@@ -2,7 +2,7 @@
 #  Codex / MCP configuration (cross-platform)
 #  - Node 20+ が必須（npx 使用）
 #  - uv (Astral) を導入済み（Python 系 MCP サーバで使用）
-#  - Secrets: BRAVE_API_KEY, MAGIC_API_KEY を GitHub Actions に登録
+#  - Secrets: MAGIC_API_KEY を GitHub Actions に登録
 # ===================================================================
 
 # -------------------------------------------------------------------
@@ -25,15 +25,13 @@ args = ["-y", "@modelcontextprotocol/server-puppeteer"]
 command = "npx"
 args = ["-y", "@playwright/mcp@latest"]
 
+[mcp_servers.angular-cli]
+command = "npx"
+args = ["-y", "@angular/cli@next", "mcp"]
+
 [mcp_servers.sequential-thinking]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-
-[mcp_servers.brave-search]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-brave-search"]
-# BRAVE_API_KEY は環境変数または Secrets から注入
-env = { BRAVE_API_KEY = "$BRAVE_API_KEY" }
 
 # サーバ名は正規表現 ^[a-zA-Z0-9_-]+$ に適合させる
 [mcp_servers.magic_21st]
@@ -58,15 +56,3 @@ args = []
 [mcp_servers.serena]
 command = "serena"
 args = ["start-mcp-server", "--context", "codex", "--project", "${workspaceFolder}"]
-
-# -------------------------------------------------------------------
-# パイプライン設定（Codex Auto Dev）
-# -------------------------------------------------------------------
-
-[pipelines.auto-dev]
-description = "Translator -> Requirements Analyst -> Detail Designer -> Planner pipeline"
-steps = ["translator", "requirements_analyst", "detail_designer", "planner"]
-
-# ===================================================================
-# End of file
-# ===================================================================

@@ -34,4 +34,3 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   },
 })
 export class AiMark {}
-

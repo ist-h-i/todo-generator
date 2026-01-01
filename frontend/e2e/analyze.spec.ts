@@ -6,6 +6,7 @@ import { setLocalStorage } from './support/storage';
 import {
   AUTH_TOKEN_STORAGE_KEY,
   BOARD_LABELS,
+  BOARD_LAYOUT,
   BOARD_STATUSES,
   BOARD_TEMPLATES,
   TEST_TOKEN,
@@ -21,6 +22,7 @@ const setupAnalyzeSession = async (page: Page): Promise<void> => {
     'GET /statuses': { json: BOARD_STATUSES },
     'GET /labels': { json: BOARD_LABELS },
     'GET /workspace/templates': { json: BOARD_TEMPLATES },
+    'GET /board-layouts': { json: BOARD_LAYOUT },
     'GET /cards': { json: [] },
     'POST /analysis': {
       json: {
@@ -54,12 +56,12 @@ test.describe('Analyze', () => {
   test('creates proposals from notes and publishes a card', async ({ page }) => {
     await setupAnalyzeSession(page);
 
-    await page.goto('/analyze');
+    await page.goto('/input');
 
-    await page.getByLabel('ノート').fill('ユーザーからのフィードバックを整理');
+    await page.getByLabel(/^ノート/).fill('ユーザーからのフィードバックを整理');
     await page.getByRole('button', { name: 'タスク案を作成' }).click();
 
-    await expect(page.getByText('提案1')).toBeVisible();
+    await expect(page.getByText(/提案\s*1/)).toBeVisible();
     await expect(page.getByPlaceholder('カードのタイトルを入力').first()).toHaveValue(
       'Improve login',
     );

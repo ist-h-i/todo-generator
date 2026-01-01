@@ -93,7 +93,9 @@ export class AnalyticsPageStore {
   public readonly candidateUsedSources = computed(
     () => this.candidatesResource.value()?.used_sources ?? null,
   );
-  public readonly candidateWarnings = computed(() => this.candidatesResource.value()?.warnings ?? []);
+  public readonly candidateWarnings = computed(
+    () => this.candidatesResource.value()?.warnings ?? [],
+  );
   public readonly candidateSourcesLabel = computed(() =>
     this.formatSourcesLabel(this.candidateUsedSources()),
   );

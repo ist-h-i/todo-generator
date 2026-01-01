@@ -1,11 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  inject,
-  viewChild
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, viewChild } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
@@ -40,8 +34,12 @@ import { AnalyticsPageStore } from './state/analytics-page.store';
 export class AnalyticsPage {
   private readonly store = inject(AnalyticsPageStore);
 
-  private readonly immunityMapMermaidViewer = viewChild<ElementRef<HTMLElement>>('immunityMapMermaidViewer');
-  private readonly immunityMapMermaidDialogPanel = viewChild<ElementRef<HTMLElement>>('immunityMapMermaidDialogPanel');
+  private readonly immunityMapMermaidViewer = viewChild<ElementRef<HTMLElement>>(
+    'immunityMapMermaidViewer',
+  );
+  private readonly immunityMapMermaidDialogPanel = viewChild<ElementRef<HTMLElement>>(
+    'immunityMapMermaidDialogPanel',
+  );
 
   public readonly windowDaysOptions = this.store.windowDaysOptions;
   public readonly windowDaysControl = this.store.windowDaysControl;

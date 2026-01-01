@@ -45,5 +45,4 @@ export class SettingsPage {
   public readonly removeTemplate = this.store.removeTemplate;
   public readonly removeStatus = this.store.removeStatus;
   public readonly removeLabel = this.store.removeLabel;
-
 }

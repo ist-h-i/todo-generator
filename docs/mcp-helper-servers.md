@@ -9,7 +9,7 @@ Launch the Model Context Protocol helper servers when you need Codex or other MC
 - Sequential thinking (`@modelcontextprotocol/server-sequential-thinking`)
 - Time (`mcp-server-time`)
 - Serena (`serena start-mcp-server`)
-- Optional adapters: Brave Search (when `BRAVE_API_KEY` is defined), Magic (`@21st-dev/magic`) when `MAGIC_API_KEY` is available, and Playwright (`@playwright/mcp`).
+- Optional adapters: Magic (`@21st-dev/magic`) when `MAGIC_API_KEY` is available, and Playwright (`@playwright/mcp`).
 
 ## Prerequisites
 

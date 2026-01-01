@@ -24,7 +24,9 @@
           <span class="evaluations-page__quota-separator">／</span>
           <span class="evaluations-page__quota-value">{{ limitLabel(quota()) }}</span>
         </div>
-        <p class="evaluations-page__quota-meta">判定リクエスト実行済み {{ quota()?.used ?? 0 }} 回</p>
+        <p class="evaluations-page__quota-meta">
+          判定リクエスト実行済み {{ quota()?.used ?? 0 }} 回
+        </p>
 
         @if (limitReached()) {
           <p class="evaluations-page__quota-warning">本日の上限に達しました。</p>

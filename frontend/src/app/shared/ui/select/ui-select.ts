@@ -11,7 +11,7 @@ import {
   input,
   output,
   signal,
-  viewChild
+  viewChild,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
@@ -95,7 +95,10 @@ export class UiSelect implements ControlValueAccessor, AfterContentInit, OnDestr
     return String(value);
   }
 
-  private selectionsEqual(left: string | string[] | null, right: string | string[] | null): boolean {
+  private selectionsEqual(
+    left: string | string[] | null,
+    right: string | string[] | null,
+  ): boolean {
     if (left === right) {
       return true;
     }

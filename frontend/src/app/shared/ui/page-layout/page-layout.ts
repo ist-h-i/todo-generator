@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-
 import { PageHeader } from '@shared/ui/page-header/page-header';
 
 type HeadingLevel = 'h1' | 'h2' | 'h3';

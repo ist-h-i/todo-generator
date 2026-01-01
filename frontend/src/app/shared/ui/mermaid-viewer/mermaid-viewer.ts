@@ -1,4 +1,3 @@
-
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -8,7 +7,7 @@ import {
   effect,
   input,
   signal,
-  viewChild
+  viewChild,
 } from '@angular/core';
 
 import type mermaidType from 'mermaid';

@@ -4,7 +4,7 @@ import {
   Component,
   ElementRef,
   output,
-  viewChild
+  viewChild,
 } from '@angular/core';
 
 interface GuideItem {

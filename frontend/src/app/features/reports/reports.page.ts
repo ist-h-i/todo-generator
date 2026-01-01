@@ -1,4 +1,3 @@
-
 import {
   ChangeDetectionStrategy,
   Component,
@@ -31,14 +30,7 @@ import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 
 @Component({
   selector: 'app-report-assistant-page',
-  imports: [
-    ReactiveFormsModule,
-    RouterLink,
-    PageLayout,
-    LocalDateTimePipe,
-    UiSelect,
-    AiMark
-],
+  imports: [ReactiveFormsModule, RouterLink, PageLayout, LocalDateTimePipe, UiSelect, AiMark],
   templateUrl: './reports.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

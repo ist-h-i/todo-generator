@@ -261,7 +261,9 @@ export class AdminPage {
     const rawValue = this.apiForm.controls.model.value ?? '';
     const current = rawValue.trim();
 
-    const knownLabels = new Map(this.geminiModelOptions.map((option) => [option.value, option.label]));
+    const knownLabels = new Map(
+      this.geminiModelOptions.map((option) => [option.value, option.label]),
+    );
     const catalog = this.geminiModelCatalog();
     const base = (
       catalog.length > 0
@@ -388,29 +390,29 @@ export class AdminPage {
       : this.api.createCompetency(payload);
 
     this.loading.set(true);
-    request$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (competency) => {
-          this.loading.set(false);
-          if (isEditing) {
-            this.replaceCompetency(competency);
-          } else {
-            this.competencies.update((list) => [...list, competency]);
-          }
-          this.resetCompetencyForm();
-          this.notify(isEditing ? 'コンピテンシーを更新しました。' : 'コンピテンシーを登録しました。');
-        },
-        error: (err) => {
-          this.loading.set(false);
-          this.handleError(
-            err,
-            isEditing
-              ? 'コンピテンシーの更新に失敗しました。'
-              : 'コンピテンシーの登録に失敗しました。',
-          );
-        },
-      });
+    request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (competency) => {
+        this.loading.set(false);
+        if (isEditing) {
+          this.replaceCompetency(competency);
+        } else {
+          this.competencies.update((list) => [...list, competency]);
+        }
+        this.resetCompetencyForm();
+        this.notify(
+          isEditing ? 'コンピテンシーを更新しました。' : 'コンピテンシーを登録しました。',
+        );
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.handleError(
+          err,
+          isEditing
+            ? 'コンピテンシーの更新に失敗しました。'
+            : 'コンピテンシーの登録に失敗しました。',
+        );
+      },
+    });
   }
 
   public createCompetencyLevel(): void {
@@ -921,7 +923,9 @@ export class AdminPage {
       evaluationDailyLimit: this.formBuilder.control<number | null>(
         user.evaluation_daily_limit ?? null,
       ),
-      analysisDailyLimit: this.formBuilder.control<number | null>(user.analysis_daily_limit ?? null),
+      analysisDailyLimit: this.formBuilder.control<number | null>(
+        user.analysis_daily_limit ?? null,
+      ),
       statusReportDailyLimit: this.formBuilder.control<number | null>(
         user.status_report_daily_limit ?? null,
       ),
@@ -932,7 +936,9 @@ export class AdminPage {
         user.immunity_map_candidate_daily_limit ?? null,
       ),
       appealDailyLimit: this.formBuilder.control<number | null>(user.appeal_daily_limit ?? null),
-      autoCardDailyLimit: this.formBuilder.control<number | null>(user.auto_card_daily_limit ?? null),
+      autoCardDailyLimit: this.formBuilder.control<number | null>(
+        user.auto_card_daily_limit ?? null,
+      ),
     });
   }
 

@@ -6,6 +6,7 @@ import { setLocalStorage } from './support/storage';
 import {
   AUTH_TOKEN_STORAGE_KEY,
   BOARD_LABELS,
+  BOARD_LAYOUT,
   BOARD_STATUSES,
   BOARD_TEMPLATES,
   TEST_TOKEN,
@@ -22,6 +23,7 @@ const setupSettingsSession = async (page: Page): Promise<void> => {
     'GET /statuses': { json: BOARD_STATUSES },
     'GET /labels': () => ({ json: labels }),
     'GET /workspace/templates': { json: BOARD_TEMPLATES },
+    'GET /board-layouts': { json: BOARD_LAYOUT },
     'GET /cards': { json: [] },
     'POST /labels': ({ postData }) => {
       const payload = postData ? (JSON.parse(postData) as { name?: string; color?: string }) : {};
@@ -47,6 +49,8 @@ test.describe('Settings', () => {
     await page.locator('#label-color').fill('#ff0000');
     await page.getByRole('button', { name: 'ラベルを追加' }).click();
 
-    await expect(page.getByText('Customer')).toBeVisible();
+    await expect(
+      page.locator('.settings-label-list .page-list__title', { hasText: 'Customer' }),
+    ).toBeVisible();
   });
 });

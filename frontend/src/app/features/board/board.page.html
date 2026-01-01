@@ -546,18 +546,17 @@
                         type="date"
                         class="subtask-editor__input"
                         [value]="dateInputValue(task.dueDate)"
-                        (change)="
-                          updateSubtaskDueDate(active.id, task.id, readInputValue($event))
-                        "
+                        (change)="updateSubtaskDueDate(active.id, task.id, readInputValue($event))"
                       />
                     </label>
                     <label class="subtask-editor__field">
                       <span class="subtask-editor__field-label">ステータス</span>
-                      <shared-ui-select [name]="'subtask-status-' + task.id"
+                      <shared-ui-select
+                        [name]="'subtask-status-' + task.id"
                         [options]="subtaskStatusSelectOptions"
                         [value]="task.status"
                         (valueChange)="changeSubtaskStatus(active.id, task.id, $event)"
-                       />
+                      />
                     </label>
                     <label class="subtask-editor__field">
                       <span class="subtask-editor__field-label">担当者</span>
@@ -565,9 +564,7 @@
                         type="text"
                         class="subtask-editor__input"
                         [value]="task.assignee ?? ''"
-                        (change)="
-                          updateSubtaskAssignee(active.id, task.id, readInputValue($event))
-                        "
+                        (change)="updateSubtaskAssignee(active.id, task.id, readInputValue($event))"
                       />
                     </label>
                     <label class="subtask-editor__field">
@@ -578,9 +575,7 @@
                         step="0.5"
                         class="subtask-editor__input"
                         [value]="task.estimateHours ?? ''"
-                        (change)="
-                          updateSubtaskEstimate(active.id, task.id, readInputValue($event))
-                        "
+                        (change)="updateSubtaskEstimate(active.id, task.id, readInputValue($event))"
                       />
                     </label>
                   </div>
@@ -712,11 +707,12 @@
             </label>
             <label class="subtask-editor__field">
               <span class="subtask-editor__field-label">ステータス</span>
-              <shared-ui-select name="new-subtask-status"
+              <shared-ui-select
+                name="new-subtask-status"
                 [options]="subtaskStatusSelectOptions"
                 [value]="newSubtaskForm.controls.status.value()"
                 (valueChange)="updateNewSubtaskStatus($event)"
-               />
+              />
             </label>
             <label class="subtask-editor__field">
               <span class="subtask-editor__field-label">期限</span>

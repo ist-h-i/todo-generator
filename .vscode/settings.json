@@ -5,5 +5,8 @@
                 "copilot/auto"
             ]
         }
+    },
+    "terminal.integrated.env.windows": {
+        "CODEX_HOME": "${workspaceFolder}\\.codex"
     }
 }

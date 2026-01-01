@@ -73,7 +73,12 @@ describe('AchievementOutputPage', () => {
   it('initializes form defaults from config', () => {
     expect(component.form.controls.subjectType.value()).toBe('label');
     expect(component.form.controls.subjectLabelId.value()).toBe('label-1');
-    expect(component.form.controls.flow.value()).toEqual(['challenge', 'action', 'result', 'reflection']);
+    expect(component.form.controls.flow.value()).toEqual([
+      'challenge',
+      'action',
+      'result',
+      'reflection',
+    ]);
     expect(component.form.controls.formats.value()).toEqual(['markdown', 'table', 'bullet_list']);
   });
 

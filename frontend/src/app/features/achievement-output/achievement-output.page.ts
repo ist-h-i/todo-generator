@@ -1,4 +1,3 @@
-
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -435,7 +434,7 @@ export class AchievementOutputPage {
 
     this.form.patchValue({
       subjectType: hasLabels ? 'label' : 'custom',
-      subjectLabelId: hasLabels ? labels[0]?.id ?? '' : '',
+      subjectLabelId: hasLabels ? (labels[0]?.id ?? '') : '',
       subjectCustom: '',
       flow,
       formats: formats.map((format) => format.id),
@@ -548,9 +547,7 @@ export class AchievementOutputPage {
       return;
     }
 
-    this.generationErrorState.set(
-      '実績出力の生成に失敗しました。時間をおいて再度お試しください。',
-    );
+    this.generationErrorState.set('実績出力の生成に失敗しました。時間をおいて再度お試しください。');
   }
 
   private extractErrorMessage(error: unknown): string | null {

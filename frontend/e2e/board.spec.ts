@@ -31,11 +31,20 @@ const setupBoardSession = async (page: Page, cards: readonly CardResponse[]): Pr
   });
 };
 
+const gotoBoard = async (page: Page): Promise<void> => {
+  await Promise.all([
+    page.waitForResponse(
+      (response) => response.request().method() === 'GET' && response.url().includes('/cards'),
+    ),
+    page.goto('/board'),
+  ]);
+};
+
 test.describe('Board', () => {
   test('renders empty state when there are no cards', async ({ page }) => {
     await setupBoardSession(page, []);
 
-    await page.goto('/board');
+    await gotoBoard(page);
 
     await expect(page.getByRole('heading', { name: 'カード管理ボード' })).toBeVisible();
     await expect(page.getByPlaceholder('キーワードでカードを検索')).toBeVisible();
@@ -54,7 +63,7 @@ test.describe('Board', () => {
       }),
     ]);
 
-    await page.goto('/board');
+    await gotoBoard(page);
     await expect(page.getByText('Fix bug')).toBeVisible();
     await expect(page.getByText('Write docs')).toBeVisible();
 
@@ -80,7 +89,7 @@ test.describe('Board', () => {
       }),
     ]);
 
-    await page.goto('/board');
+    await gotoBoard(page);
 
     await page.getByRole('button', { name: /Fix bug/ }).click();
 
@@ -90,5 +99,80 @@ test.describe('Board', () => {
 
     await detail.getByRole('button', { name: '閉じる' }).click();
     await expect(detail).toHaveCount(0);
+  });
+
+  test('renders cards across all status columns', async ({ page }) => {
+    await setupBoardSession(page, [
+      makeCardResponse({
+        id: 'card-todo',
+        title: 'Card Todo',
+        summary: 'Todo summary',
+        status_id: 'todo',
+      }),
+      makeCardResponse({
+        id: 'card-progress',
+        title: 'Card In Progress',
+        summary: 'Progress summary',
+        status_id: 'in-progress',
+      }),
+      makeCardResponse({
+        id: 'card-done',
+        title: 'Card Done',
+        summary: 'Done summary',
+        status_id: 'done',
+      }),
+    ]);
+
+    await gotoBoard(page);
+
+    const statusColumn = (name: string) =>
+      page
+        .locator('.board-page__task-board .board-column')
+        .filter({ has: page.getByRole('heading', { name }) });
+
+    const expectCardInStatus = async (statusName: string, cardTitle: string): Promise<void> => {
+      const column = statusColumn(statusName);
+      const card = column.locator('.board-card', { hasText: cardTitle });
+      await expect(card).toBeVisible();
+      await expect(card.locator('.board-badge').first()).toHaveText(statusName);
+    };
+
+    await expectCardInStatus('ToDo', 'Card Todo');
+    await expectCardInStatus('In Progress', 'Card In Progress');
+    await expectCardInStatus('Done', 'Card Done');
+  });
+
+  test('renders subtasks across all status columns', async ({ page }) => {
+    await setupBoardSession(page, [
+      makeCardResponse({
+        id: 'card-subtasks',
+        title: 'Subtask Parent',
+        summary: 'Subtasks summary',
+        status_id: 'todo',
+        subtasks: [
+          { id: 'subtask-todo', title: 'Subtask Todo', status: 'todo' },
+          { id: 'subtask-in-progress', title: 'Subtask In Progress', status: 'in-progress' },
+          { id: 'subtask-done', title: 'Subtask Done', status: 'done' },
+          { id: 'subtask-non-issue', title: 'Subtask Non Issue', status: 'non-issue' },
+        ],
+      }),
+    ]);
+
+    await gotoBoard(page);
+
+    const subtaskColumns = page.locator('.board-page__subtask-board .subtask-column');
+    await expect(subtaskColumns).toHaveCount(4);
+
+    // Columns follow the subtask status order (todo, in-progress, done, non-issue).
+    const subtaskTitles = [
+      'Subtask Todo',
+      'Subtask In Progress',
+      'Subtask Done',
+      'Subtask Non Issue',
+    ];
+
+    for (const [index, title] of subtaskTitles.entries()) {
+      await expect(subtaskColumns.nth(index).getByText(title)).toBeVisible();
+    }
   });
 });

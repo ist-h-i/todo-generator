@@ -7,7 +7,10 @@
 >
   @if (configLoading()) {
     <section class="page-section">
-      <div class="page-state achievement-output-page__state achievement-output-page__state--loading" role="status">
+      <div
+        class="page-state achievement-output-page__state achievement-output-page__state--loading"
+        role="status"
+      >
         <span class="achievement-output-page__spinner" aria-hidden="true"></span>
         <div>
           <h2>設定を読み込んでいます</h2>
@@ -57,7 +60,11 @@
             </p>
           </div>
 
-          <div class="achievement-output-page__subject-options" role="radiogroup" aria-label="テーマの選択方法">
+          <div
+            class="achievement-output-page__subject-options"
+            role="radiogroup"
+            aria-label="テーマの選択方法"
+          >
             <label
               class="achievement-output-page__subject-option"
               [class.is-active]="form.controls.subjectType.value() === 'label'"
@@ -102,12 +109,13 @@
           @if (form.controls.subjectType.value() === 'label') {
             <label class="form-field">
               <span class="form-field__label">ラベル</span>
-              <shared-ui-select name="subject-label"
+              <shared-ui-select
+                name="subject-label"
                 [options]="labelSelectOptions()"
                 [value]="form.controls.subjectLabelId.value()"
                 (valueChange)="updateSubjectLabel($event)"
                 [disabled]="!hasLabels()"
-               />
+              />
               @if (!hasLabels()) {
                 <p class="form-note">ラベルが登録されていません。</p>
               }
@@ -115,7 +123,9 @@
 
             @if (selectedLabel(); as label) {
               @if (label.description) {
-                <p class="form-note achievement-output-page__label-description">{{ label.description }}</p>
+                <p class="form-note achievement-output-page__label-description">
+                  {{ label.description }}
+                </p>
               }
               <div class="surface-card achievement-output-page__achievements">
                 <div class="achievement-output-page__achievements-header">
@@ -248,9 +258,7 @@
               [class.button__spinner--visible]="generating()"
             ></span>
             <shared-ai-mark />
-            <span class="button__label">{{
-              generating() ? '生成中…' : '実績出力を生成'
-            }}</span>
+            <span class="button__label">{{ generating() ? '生成中…' : '実績出力を生成' }}</span>
           </button>
           <button type="button" class="button button--ghost" (click)="reloadConfig()">
             設定を再読込
@@ -275,9 +283,7 @@
               }
             </div>
             <h2 class="page-section__title">生成結果</h2>
-            <p class="page-section__subtitle">
-              生成結果を編集してコピー・ダウンロードできます。
-            </p>
+            <p class="page-section__subtitle">生成結果を編集してコピー・ダウンロードできます。</p>
           </div>
           <div class="page-section__actions">
             <button
@@ -316,7 +322,10 @@
         }
 
         @if (generating()) {
-          <div class="page-state achievement-output-page__state achievement-output-page__state--loading" role="status">
+          <div
+            class="page-state achievement-output-page__state achievement-output-page__state--loading"
+            role="status"
+          >
             <span class="achievement-output-page__spinner" aria-hidden="true"></span>
             <div>
               <h2>実績出力を生成しています</h2>

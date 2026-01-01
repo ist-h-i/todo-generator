@@ -243,7 +243,9 @@ describe('AdminPage', () => {
 
     expect(api.updateCompetency).toHaveBeenCalled();
     expect(component.editingCompetencyId()).toBeNull();
-    expect(component.competencies().find((item) => item.id === competency.id)?.name).toBe(updated.name);
+    expect(component.competencies().find((item) => item.id === competency.id)?.name).toBe(
+      updated.name,
+    );
   });
 
   it('deletes a competency and cancels editing', () => {

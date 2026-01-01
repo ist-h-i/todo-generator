@@ -155,10 +155,11 @@
           </label>
           <label class="form-field">
             <span class="form-field__label">レベル</span>
-            <shared-ui-select name="competency-level"
+            <shared-ui-select
+              name="competency-level"
               formControlName="level"
               [options]="competencyLevelSelectOptions()"
-             />
+            />
           </label>
           <label class="form-field form-field--full">
             <span class="form-field__label">説明</span>
@@ -306,10 +307,11 @@
           </label>
           <label class="form-field">
             <span class="form-field__label">段階数</span>
-            <shared-ui-select name="competency-level-scale"
+            <shared-ui-select
+              name="competency-level-scale"
               formControlName="scale"
               [options]="competencyLevelScaleOptions"
-             />
+            />
           </label>
           <label class="form-field form-field--full">
             <span class="form-field__label">説明 (任意)</span>
@@ -353,19 +355,21 @@
         <div class="form-grid form-grid--two">
           <label class="form-field">
             <span class="form-field__label">対象ユーザ</span>
-            <shared-ui-select formControlName="userId"
+            <shared-ui-select
+              formControlName="userId"
               name="evaluation-user"
               required
               [options]="evaluationUserSelectOptions()"
-             />
+            />
           </label>
           <label class="form-field">
             <span class="form-field__label">コンピテンシー</span>
-            <shared-ui-select formControlName="competencyId"
+            <shared-ui-select
+              formControlName="competencyId"
               name="evaluation-competency"
               required
               [options]="evaluationCompetencySelectOptions()"
-             />
+            />
           </label>
           <label class="form-field">
             <span class="form-field__label">評価開始日</span>
@@ -633,10 +637,11 @@
       <form class="page-form" [formGroup]="apiForm" (submit)="updateApiCredential($event)">
         <label class="form-field">
           <span class="form-field__label">利用モデル</span>
-          <shared-ui-select name="api-model"
+          <shared-ui-select
+            name="api-model"
             formControlName="model"
             [options]="apiModelSelectOptions()"
-           />
+          />
         </label>
 
         <label class="form-field form-field--full">

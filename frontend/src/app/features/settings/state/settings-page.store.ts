@@ -298,9 +298,7 @@ export class SettingsPageStore {
     confidenceThreshold: number;
     fieldVisibility: TemplatePreset['fieldVisibility'];
   } {
-    const normalized = Number.isFinite(value.confidenceThreshold)
-      ? value.confidenceThreshold
-      : 60;
+    const normalized = Number.isFinite(value.confidenceThreshold) ? value.confidenceThreshold : 60;
     const threshold = clampPercent(normalized);
 
     return {

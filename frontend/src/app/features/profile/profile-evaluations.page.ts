@@ -456,5 +456,4 @@ export class ProfileEvaluationsPage {
       .replace(/[\\/:*?"<>|]/g, '-')
       .replace(/\s+/g, '-');
   }
-
 }

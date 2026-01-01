@@ -72,24 +72,6 @@ set "ARGS=%~2"
 start "%TITLE%" /D "%PROJECT_DIR%" cmd.exe /k ""%UVX_CMD%" %ARGS%"
 exit /b
 
-:start_brave
-set "BRAVE_VALUE=%BRAVE_API_KEY%"
-if not defined BRAVE_VALUE (
-    call :read_env_value BRAVE_API_KEY BRAVE_VALUE
-)
-if not defined BRAVE_VALUE (
-    echo [Skip] BRAVE_API_KEY not configured. Skipping MCP Brave Search server.
-    exit /b
-)
-if /I "%BRAVE_VALUE%"=="YOUR_BRAVE_API_KEY_HERE" (
-    echo [Skip] BRAVE_API_KEY is still the placeholder. Skipping MCP Brave Search server.
-    exit /b
-)
-set "BRAVE_API_KEY=%BRAVE_VALUE%"
-echo Starting MCP Brave Search server ...
-call :start_npx "MCP Brave Search Server" "--yes @modelcontextprotocol/server-brave-search"
-exit /b
-
 :start_magic
 set "MAGIC_VALUE=%MAGIC_API_KEY%"
 if not defined MAGIC_VALUE (

@@ -1,11 +1,4 @@
-import {
-  DestroyRef,
-  Injectable,
-  computed,
-  effect,
-  inject,
-  signal,
-} from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
 
 import { AnalysisGateway } from '@core/api/analysis-gateway';
 import { AnalysisProposal, AnalysisRequest } from '@core/models';
@@ -708,4 +701,3 @@ export class AnalyzePageStore {
     this.clearPublishFeedbackTimer();
   }
 }
-

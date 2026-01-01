@@ -7,6 +7,7 @@ Welcome to the Verbalize Yourself knowledge base. Use this index to navigate arc
 - [Repository Index & Map](INDEX.md): Quick tour of source directories, entry points, and supporting tools.
 - [Development Governance Handbook](governance/development-governance-handbook.md): Source of truth for repository structure, quality gates, and AI-assisted delivery expectations.
 - [Angular Coding & Design Guidelines](guidelines/angular-coding-guidelines.md): Standards for the SPA, including state management, patterns, and shared component design.
+- [Test case checklist](testing/test-cases-checklist.md): Inventory of missing Playwright (E2E) and Angular unit test cases, formatted as checklists.
 - [UI Design System](ui-design-system.md): Tokens, components, and accessibility rules for consistent UI primitives.
 - [UI Layout Requirements](ui-layout-requirements.md): Responsive layout grids, navigation heuristics, and multi-pane workflow guidance.
 

@@ -7,7 +7,7 @@ import {
   inject,
   signal,
   output,
-  viewChild
+  viewChild,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { firstValueFrom } from 'rxjs';

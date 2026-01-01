@@ -39,6 +39,8 @@ export class ImmunityMapGateway {
 
   public generate(payload: ImmunityMapRequest): Observable<ImmunityMapResponse> {
     const context = new HttpContext().set(REQUEST_TIMEOUT_MS, AI_REQUEST_TIMEOUT_MS);
-    return this.http.post<ImmunityMapResponse>(buildApiUrl('/analysis/immunity-map'), payload, { context });
+    return this.http.post<ImmunityMapResponse>(buildApiUrl('/analysis/immunity-map'), payload, {
+      context,
+    });
   }
 }
