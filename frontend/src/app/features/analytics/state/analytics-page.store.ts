@@ -165,20 +165,11 @@ export class AnalyticsPageStore {
   public readonly generatedMap = signal<ImmunityMapResponse | null>(null);
   public readonly immunityMapWarnings = computed(() => this.generatedMap()?.warnings ?? []);
   public readonly copyStatus = signal<'idle' | 'copied' | 'failed'>('idle');
-  public readonly isMermaidDialogOpen = signal(false);
 
   public readonly updateShouldText = (value: string): void => this.shouldText.set(value);
   public readonly updateCannotText = (value: string): void => this.cannotText.set(value);
   public readonly updateWantText = (value: string): void => this.wantText.set(value);
   public readonly updateContextText = (value: string): void => this.contextText.set(value);
-
-  public readonly openMermaidDialog = (): void => {
-    this.isMermaidDialogOpen.set(true);
-  };
-
-  public readonly closeMermaidDialog = (): void => {
-    this.isMermaidDialogOpen.set(false);
-  };
 
   public readonly toggleAdvancedMode = (): void => {
     this.advancedMode.update((value) => !value);
@@ -264,8 +255,6 @@ export class AnalyticsPageStore {
     if (this.isGenerating()) {
       return false;
     }
-
-    this.closeMermaidDialog();
 
     const candidateItems = this.buildCandidateAItems();
     const manualItems = this.advancedMode() ? this.buildManualAItems() : [];

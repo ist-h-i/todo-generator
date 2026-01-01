@@ -3,7 +3,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  computed,
   effect,
   input,
   signal,
@@ -35,12 +34,6 @@ export class MermaidViewer implements AfterViewInit {
 
   public readonly isRendering = signal(false);
   public readonly renderError = signal<string | null>(null);
-  public readonly zoom = signal(1);
-  public readonly zoomPercent = computed(() => Math.round(this.zoom() * 100));
-  public readonly hasCode = computed(() => this.code().trim().length > 0);
-  public readonly canZoomIn = computed(() => this.zoom() < MermaidViewer.MAX_ZOOM);
-  public readonly canZoomOut = computed(() => this.zoom() > MermaidViewer.MIN_ZOOM);
-  public readonly canResetZoom = computed(() => this.zoom() !== 1);
 
   private readonly canvas = viewChild<ElementRef<HTMLDivElement>>('canvas');
 
@@ -48,9 +41,6 @@ export class MermaidViewer implements AfterViewInit {
   private renderRequestId = 0;
   private static nextInstanceId = 0;
   private readonly instanceId = MermaidViewer.nextInstanceId++;
-  private static readonly MIN_ZOOM = 0.25;
-  private static readonly MAX_ZOOM = 4;
-  private static readonly ZOOM_STEP = 0.1;
 
   private readonly renderEffect = effect(() => {
     const code = this.code();
@@ -64,24 +54,6 @@ export class MermaidViewer implements AfterViewInit {
 
   public ngAfterViewInit(): void {
     this.viewReady.set(true);
-  }
-
-  public zoomIn(): void {
-    this.setZoom(this.zoom() + MermaidViewer.ZOOM_STEP);
-  }
-
-  public zoomOut(): void {
-    this.setZoom(this.zoom() - MermaidViewer.ZOOM_STEP);
-  }
-
-  public resetZoom(): void {
-    this.zoom.set(1);
-  }
-
-  private setZoom(value: number): void {
-    const clamped = Math.min(MermaidViewer.MAX_ZOOM, Math.max(MermaidViewer.MIN_ZOOM, value));
-    const normalized = Math.round(clamped * 100) / 100;
-    this.zoom.set(normalized);
   }
 
   private readonly normalizeMermaid = (value: string): string => {
