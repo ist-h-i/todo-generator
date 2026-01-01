@@ -27,18 +27,12 @@ import { AnalyticsPageStore } from './state/analytics-page.store';
   templateUrl: './analytics.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [AnalyticsPageStore],
-  host: {
-    '(document:keydown)': 'onKeydown($event)',
-  },
 })
 export class AnalyticsPage {
   private readonly store = inject(AnalyticsPageStore);
 
   private readonly immunityMapMermaidViewer = viewChild<ElementRef<HTMLElement>>(
     'immunityMapMermaidViewer',
-  );
-  private readonly immunityMapMermaidDialogPanel = viewChild<ElementRef<HTMLElement>>(
-    'immunityMapMermaidDialogPanel',
   );
 
   public readonly windowDaysOptions = this.store.windowDaysOptions;
@@ -70,8 +64,8 @@ export class AnalyticsPage {
   public readonly isGenerating = this.store.isGenerating;
   public readonly generationError = this.store.generationError;
   public readonly generatedMap = this.store.generatedMap;
+  public readonly coreInsight = this.store.coreInsight;
   public readonly copyStatus = this.store.copyStatus;
-  public readonly isMermaidDialogOpen = this.store.isMermaidDialogOpen;
 
   public readonly toggleAdvancedMode = this.store.toggleAdvancedMode;
   public readonly refreshCandidates = this.store.refreshCandidates;
@@ -93,36 +87,12 @@ export class AnalyticsPage {
     return target?.value ?? '';
   };
 
-  public readonly openMermaidDialog = (): void => {
-    if (!this.generatedMap()?.mermaid) {
-      return;
-    }
-
-    this.store.openMermaidDialog();
-    setTimeout(() => {
-      this.immunityMapMermaidDialogPanel()?.nativeElement.focus();
-    }, 0);
-  };
-
-  public readonly closeMermaidDialog = (): void => {
-    this.store.closeMermaidDialog();
-  };
-
   public readonly generateImmunityMap = async (): Promise<void> => {
     const generated = await this.store.generateImmunityMap();
     if (generated) {
       this.scrollMermaidViewerIntoView();
     }
   };
-
-  public onKeydown(event: KeyboardEvent): void {
-    if (event.key !== 'Escape' || !this.isMermaidDialogOpen()) {
-      return;
-    }
-
-    event.preventDefault();
-    this.closeMermaidDialog();
-  }
 
   private scrollMermaidViewerIntoView(attempt: number = 0): void {
     if (typeof document === 'undefined') {

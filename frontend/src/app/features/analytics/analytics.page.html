@@ -515,19 +515,7 @@
             <header class="page-section__header">
               <div>
                 <h3 class="page-section__title">Mermaid</h3>
-                <p class="page-section__subtitle">
-                  図をスクロールして全体像を確認できます。必要に応じて全画面表示も利用してください。
-                </p>
-              </div>
-              <div class="page-section__actions">
-                <button
-                  type="button"
-                  class="button button--ghost button--pill"
-                  (click)="openMermaidDialog()"
-                  [disabled]="isGenerating() || !generatedMap()?.mermaid"
-                >
-                  全画面で見る
-                </button>
+                <p class="page-section__subtitle">図をスクロールして全体像を確認できます。</p>
               </div>
             </header>
 
@@ -541,60 +529,38 @@
             }
           </div>
         </section>
+
+        @if (coreInsight(); as insight) {
+          <section class="surface-panel page-panel analytics-immunity-map__insight lg:col-span-2">
+            <div
+              class="analytics-immunity-map__panel-content analytics-immunity-map__insight-content flex flex-col gap-3"
+            >
+              <header class="analytics-immunity-map__insight-header">
+                <div class="analytics-immunity-map__insight-badges">
+                  <span class="page-badge page-badge--accent">最下層の気づき</span>
+                  @if (insight.related_node_id) {
+                    <span class="page-badge">関連: {{ insight.related_node_id }}</span>
+                  }
+                </div>
+                <p class="analytics-immunity-map__insight-subtitle">
+                  問題解決・レベルアップ・コア思考につながるひとこと
+                </p>
+              </header>
+
+              <p class="analytics-immunity-map__insight-text">{{ insight.text }}</p>
+
+              @if (insight.related_node_label) {
+                <div class="analytics-immunity-map__insight-related">
+                  <span class="analytics-immunity-map__insight-related-label">階層3の要点</span>
+                  <span class="analytics-immunity-map__insight-related-value">
+                    {{ insight.related_node_label }}
+                  </span>
+                </div>
+              }
+            </div>
+          </section>
+        }
       }
     </div>
   </section>
-
-  @if (isMermaidDialogOpen()) {
-    <div class="analytics-immunity-map__mermaid-dialog" (click)="closeMermaidDialog()">
-      <div class="analytics-immunity-map__mermaid-dialog-backdrop" aria-hidden="true"></div>
-      <article
-        #immunityMapMermaidDialogPanel
-        class="analytics-immunity-map__mermaid-dialog-panel focus-ring"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="immunity-map-mermaid-dialog-title"
-        tabindex="-1"
-        (click)="$event.stopPropagation()"
-      >
-        <header class="page-section__header">
-          <div>
-            <h2 class="page-section__title" id="immunity-map-mermaid-dialog-title">Mermaid</h2>
-            <p class="page-section__subtitle">免疫マップの Mermaid 図を大きく表示します。</p>
-          </div>
-          <div class="page-section__actions">
-            <a
-              class="button button--ghost button--pill"
-              href="https://mermaid.live/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Mermaid Live Editor
-            </a>
-            <button
-              type="button"
-              class="button button--secondary button--pill"
-              (click)="copyMermaid()"
-              [disabled]="!generatedMap()?.mermaid"
-            >
-              Mermaid をコピー
-            </button>
-            @if (copyStatus() === 'copied') {
-              <span class="form-note">コピーしました。</span>
-            } @else if (copyStatus() === 'failed') {
-              <span class="form-note">コピーに失敗しました。</span>
-            }
-            <button
-              type="button"
-              class="button button--secondary button--pill"
-              (click)="closeMermaidDialog()"
-            >
-              閉じる
-            </button>
-          </div>
-        </header>
-        <shared-mermaid-viewer [code]="generatedMap()?.mermaid ?? ''" />
-      </article>
-    </div>
-  }
 </shared-page-layout>

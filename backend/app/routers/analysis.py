@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import date
 import re
+import unicodedata
 from typing import Any, Iterable, Mapping, Sequence
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -18,6 +19,7 @@ from ..schemas import (
     ImmunityMapCandidate,
     ImmunityMapCandidateRequest,
     ImmunityMapCandidateResponse,
+    ImmunityMapCoreInsight,
     ImmunityMapEvidence,
     ImmunityMapEdge,
     ImmunityMapNode,
@@ -229,12 +231,25 @@ def analyze(
 
 _IMMUNITY_MAP_SYSTEM_PROMPT = (
     "You are Verbalize Yourself's reflection assistant."
-    " You infer an Immunity Map from user-provided statements."
+    " You infer an Immunity Map (A-F) from user-provided statements."
+    " The structure is fixed:"
+    " A = should/cannot/want statements (provided by the server),"
+    " B = obstacles that prevent A,"
+    " C = hidden competing commitments / ideal goals behind the conflict,"
+    " D = deep assumptions or biases that cause B,"
+    " E = true needs that B/C are trying to protect,"
+    " F = core beliefs that sustain C."
+    " Generate nodes for groups B-F and edges between nodes using only the allowed connections."
+    " Never create or output new A nodes; only reference the provided A node ids (A1, A2, ...)."
+    " Node ids must be uppercase letter+number like B1, C1, D1, E1, F1."
     " Your output must be a JSON object that matches the provided schema."
     " Write labels in natural Japanese."
     " Provide a summary with current_analysis and one_line_advice in natural Japanese."
+    " Provide core_insight with text and related_node_id referencing a D/E/F node."
+    " core_insight.text should be a catchy one-liner or action for problem-solving, level-up, or core thinking."
     " Provide optional readout_cards that distinguish observation vs hypothesis and include evidence when possible."
     " Treat deep psychology as hypotheses; avoid clinical or diagnostic language."
+    " When the context is limited, still propose plausible hypotheses rather than returning empty nodes/edges."
     " Do not include any extra keys or any prose outside JSON."
 )
 
@@ -343,6 +358,15 @@ _IMMUNITY_MAP_RESPONSE_SCHEMA: dict[str, Any] = {
                 "one_line_advice": {"type": "string", "minLength": 1},
             },
         },
+        "core_insight": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["text", "related_node_id"],
+            "properties": {
+                "text": {"type": "string", "minLength": 1},
+                "related_node_id": {"type": "string", "minLength": 2},
+            },
+        },
         "readout_cards": {
             "type": "array",
             "default": [],
@@ -405,6 +429,48 @@ def _sort_node_id(value: str) -> tuple[int, str]:
     if not match:
         return (10**9, value)
     return (int(match.group(2)), value)
+
+
+_IMMUNITY_MAP_GROUPS = {"A", "B", "C", "D", "E", "F"}
+_IMMUNITY_MAP_NON_A_GROUPS = {"B", "C", "D", "E", "F"}
+
+
+def _normalize_immunity_map_group(value: Any) -> str | None:
+    text = unicodedata.normalize("NFKC", str(value or "")).strip().upper()
+    if not text:
+        return None
+    if text in _IMMUNITY_MAP_GROUPS:
+        return text
+    if text[0] in _IMMUNITY_MAP_GROUPS:
+        return text[0]
+    match = re.search(r"\b([A-F])\b", text)
+    if match:
+        return match.group(1)
+    return None
+
+
+def _normalize_immunity_map_ref(value: Any) -> str:
+    text = unicodedata.normalize("NFKC", str(value or "")).strip()
+    if not text:
+        return ""
+    return re.sub(r"\s+", "", text)
+
+
+def _canonicalize_immunity_map_ref(value: Any) -> str:
+    normalized = _normalize_immunity_map_ref(value)
+    if not normalized:
+        return ""
+    match = re.match(r"^([A-Fa-f])[^0-9]*([0-9]+)$", normalized)
+    if match:
+        return f"{match.group(1).upper()}{match.group(2)}"
+    return normalized
+
+
+def _next_immunity_map_id(group: str, existing: set[str]) -> str:
+    index = 1
+    while f"{group}{index}" in existing:
+        index += 1
+    return f"{group}{index}"
 
 
 def _render_immunity_map_mermaid(
@@ -613,6 +679,47 @@ def _parse_immunity_map_summary(raw_value: Any) -> ImmunityMapSummary | None:
         return None
 
 
+def _parse_immunity_map_core_insight(
+    raw_value: Any,
+    node_group: Mapping[str, str],
+) -> ImmunityMapCoreInsight | None:
+    item = _to_mapping(raw_value)
+    if not item:
+        return None
+
+    text = str(item.get("text") or "").strip()
+    if not text:
+        return None
+
+    raw_id = item.get("related_node_id") or item.get("node_id") or item.get("related_node")
+    node_id = _canonicalize_immunity_map_ref(raw_id)
+    if not node_id or node_group.get(node_id) not in {"D", "E", "F"}:
+        return None
+
+    try:
+        return ImmunityMapCoreInsight(text=text, related_node_id=node_id)
+    except ValidationError:
+        return None
+
+
+def _fallback_core_insight(
+    summary: ImmunityMapSummary | None,
+    nodes: Sequence[ImmunityMapNode],
+) -> ImmunityMapCoreInsight | None:
+    if not summary:
+        return None
+    text = summary.one_line_advice.strip()
+    if not text:
+        return None
+    for node in nodes:
+        if node.group in {"D", "E", "F"}:
+            try:
+                return ImmunityMapCoreInsight(text=text, related_node_id=node.id)
+            except ValidationError:
+                return None
+    return None
+
+
 @router.post("/immunity-map/candidates", response_model=ImmunityMapCandidateResponse)
 def generate_immunity_map_candidates(
     payload: ImmunityMapCandidateRequest,
@@ -762,10 +869,13 @@ def generate_immunity_map(
         )
 
     a_nodes: list[ImmunityMapNode] = []
-    kind_prefix = {"should": "", "cannot": "", "want": ""}
+    kind_labels = {
+        "should": "やるべき",
+        "cannot": "やれない",
+        "want": "やりたい",
+    }
     for index, item in enumerate(payload.a_items, start=1):
-        prefix = kind_prefix.get(item.kind, "")
-        label = _truncate_label(f"{prefix}{item.text}")
+        label = _truncate_label(item.text)
         a_nodes.append(
             ImmunityMapNode(
                 id=f"A{index}",
@@ -775,7 +885,13 @@ def generate_immunity_map(
             )
         )
 
-    a_lines = [f"- {node.id}: {node.label}" for node in a_nodes]
+    a_lines: list[str] = []
+    for node in a_nodes:
+        kind = str(node.kind or "").strip()
+        kind_hint = kind_labels.get(kind, kind) if kind else ""
+        suffix = f" ({kind_hint}/{kind})" if kind_hint and kind else f" ({kind})" if kind else ""
+        a_lines.append(f"- {node.id}{suffix}: {node.label}")
+
     user_prompt_parts = [
         "Create an Immunity Map for levels A through F. A nodes are provided.",
         "",
@@ -790,13 +906,24 @@ def generate_immunity_map(
     user_prompt_parts.extend(
         [
             "",
+            "Level definitions:",
+            "- B: obstacles that prevent A.",
+            "- C: hidden competing commitments / ideal goals behind the conflict.",
+            "- D: deep assumptions or biases that cause B.",
+            "- E: true needs that B/C are trying to protect.",
+            "- F: core beliefs that sustain C.",
+            "",
             "Output rules:",
             "- Do not create new A nodes; only reference the provided A nodes.",
-            "- Omit empty nodes, edges, and empty groups.",
+            "- Generate B-F nodes (ids like B1.., C1.., D1.., E1.., F1..) and connect them with edges.",
+            "- Avoid empty output: even with limited context, propose plausible hypotheses for B-F rather than returning empty nodes/edges.",
+            "- Do not output nodes with empty labels or edges that reference missing nodes. Do not output groups with zero nodes.",
             "- Allowed connections: A->B, A->C, B->D, B->E, C->E, C->F.",
             "- Keep labels short in natural Japanese and avoid clinical language.",
             "- summary.current_analysis should concisely describe the current situation in Japanese.",
             "- summary.one_line_advice should be a single short actionable sentence in Japanese.",
+            "- core_insight.text should be a short catchy one-liner or action for problem-solving, level-up, or core thinking.",
+            "- core_insight.related_node_id should reference the single most important D/E/F node tied to the insight.",
             "- readout_cards should distinguish observations vs hypotheses and include evidence.",
         ]
     )
@@ -826,25 +953,44 @@ def generate_immunity_map(
     nodes: list[ImmunityMapNode] = list(a_nodes)
     node_ids: set[str] = {node.id for node in nodes}
     node_group: dict[str, str] = {node.id: node.group for node in nodes}
+    ref_aliases: dict[str, str] = {}
+    dropped_nodes = 0
 
     for raw in raw_nodes:
         item = _to_mapping(raw)
         if not item:
             continue
-        node_id = str(item.get("id") or "").strip()
-        group = str(item.get("group") or "").strip()
         label = _truncate_label(str(item.get("label") or ""))
 
-        if not node_id or not group or not label:
+        if not label:
             continue
-        if group == "A":
+
+        group = _normalize_immunity_map_group(item.get("group"))
+        if group not in _IMMUNITY_MAP_NON_A_GROUPS:
             continue
-        if group not in {"B", "C", "D", "E", "F"}:
+
+        raw_id = item.get("id")
+        raw_ref = _normalize_immunity_map_ref(raw_id)
+        raw_key = raw_ref.casefold() if raw_ref else ""
+        canonical_ref = _canonicalize_immunity_map_ref(raw_id)
+
+        node_id = ""
+        if canonical_ref and canonical_ref.startswith(group) and canonical_ref[1:].isdigit():
+            node_id = canonical_ref
+        else:
+            digits = re.search(r"(\d+)$", raw_ref).group(1) if raw_ref and re.search(r"(\d+)$", raw_ref) else None
+            node_id = f"{group}{digits}" if digits else _next_immunity_map_id(group, node_ids)
+
+        if not node_id or node_id in node_ids:
+            dropped_nodes += 1
             continue
-        if not node_id.startswith(group):
-            continue
-        if node_id in node_ids:
-            continue
+
+        if raw_key and raw_key != node_id.casefold():
+            existing_alias = ref_aliases.get(raw_key)
+            if existing_alias and existing_alias != node_id:
+                dropped_nodes += 1
+                continue
+            ref_aliases[raw_key] = node_id
 
         nodes.append(ImmunityMapNode(id=node_id, group=group, label=label))
         node_ids.add(node_id)
@@ -865,8 +1011,24 @@ def generate_immunity_map(
         item = _to_mapping(raw)
         if not item:
             continue
-        from_id = str(item.get("from") or item.get("from_") or "").strip()
-        to_id = str(item.get("to") or "").strip()
+        from_raw = item.get("from") or item.get("from_")
+        to_raw = item.get("to")
+
+        from_key = _normalize_immunity_map_ref(from_raw).casefold()
+        to_key = _normalize_immunity_map_ref(to_raw).casefold()
+
+        from_id = ref_aliases.get(from_key) if from_key else None
+        to_id = ref_aliases.get(to_key) if to_key else None
+
+        if not from_id:
+            candidate = _canonicalize_immunity_map_ref(from_raw)
+            from_id = candidate if candidate in node_ids else ref_aliases.get(candidate.casefold())
+        if not to_id:
+            candidate = _canonicalize_immunity_map_ref(to_raw)
+            to_id = candidate if candidate in node_ids else ref_aliases.get(candidate.casefold())
+
+        from_id = str(from_id or "").strip()
+        to_id = str(to_id or "").strip()
         if not from_id or not to_id:
             continue
         if from_id == to_id:
@@ -887,6 +1049,9 @@ def generate_immunity_map(
     model = generated.get("model")
     token_usage = generated.get("token_usage")
     summary = _parse_immunity_map_summary(generated.get("summary"))
+    core_insight = _parse_immunity_map_core_insight(generated.get("core_insight"), node_group)
+    if not core_insight:
+        core_insight = _fallback_core_insight(summary, nodes)
     readout_cards = _parse_readout_cards(generated.get("readout_cards"))
     warnings = [
         text
@@ -894,11 +1059,21 @@ def generate_immunity_map(
         if text
     ]
 
+    if len(nodes) == len(a_nodes):
+        warnings.append(
+            "B〜F のノードが生成されませんでした。A の文言を具体化するか、追加コンテキストを入れて再生成してください。"
+        )
+    elif dropped_nodes:
+        warnings.append(
+            f"一部のノードが出力形式不正のため破棄されました（{dropped_nodes} 件）。"
+        )
+
     return ImmunityMapResponse(
         model=str(model) if model else None,
         payload=response_payload,
         mermaid=mermaid,
         summary=summary,
+        core_insight=core_insight,
         readout_cards=readout_cards,
         token_usage=token_usage if isinstance(token_usage, Mapping) else {},
         warnings=warnings,

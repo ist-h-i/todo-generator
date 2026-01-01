@@ -94,11 +94,17 @@ export interface ImmunityMapSummary {
   readonly one_line_advice: string;
 }
 
+export interface ImmunityMapCoreInsight {
+  readonly text: string;
+  readonly related_node_id: string;
+}
+
 export interface ImmunityMapResponse {
   readonly model: string | null;
   readonly payload: ImmunityMapPayload;
   readonly mermaid: string;
   readonly summary: ImmunityMapSummary | null;
+  readonly core_insight?: ImmunityMapCoreInsight | null;
   readonly readout_cards?: readonly ImmunityMapReadoutCard[];
   readonly token_usage?: Readonly<Record<string, unknown>>;
   readonly warnings?: readonly string[];
