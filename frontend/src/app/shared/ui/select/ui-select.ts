@@ -64,7 +64,7 @@ export class UiSelect implements ControlValueAccessor, AfterContentInit, OnDestr
     () => !this.multiple() && (!this.size() || this.size() === 1),
   );
 
-  readonly nativeSelectRef = viewChild.required<ElementRef<HTMLSelectElement>>('nativeSelect');
+  readonly nativeSelectRef = viewChild<ElementRef<HTMLSelectElement>>('nativeSelect');
   readonly triggerRef = viewChild<ElementRef<HTMLButtonElement>>('trigger');
 
   public readonly displayOptions = signal<UiSelectOption[]>([]);
