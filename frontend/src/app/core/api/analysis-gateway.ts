@@ -275,12 +275,15 @@ export function resolveSuggestedLabelIds(
  */
 @Injectable({ providedIn: 'root' })
 export class AnalysisGateway {
+  private readonly logger = inject(Logger);
+  private readonly workspace = inject(WorkspaceStore);
+
   private readonly http = inject(HttpClient);
 
-  public constructor(
-    private readonly logger: Logger,
-    private readonly workspace: WorkspaceStore,
-  ) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  public constructor() {}
 
   /**
    * Creates a resource bound to the given request signal.
@@ -303,13 +306,15 @@ export class AnalysisGateway {
         const payload = this.buildPayload(params, settings);
 
         const context = new HttpContext().set(REQUEST_TIMEOUT_MS, AI_REQUEST_TIMEOUT_MS);
-        return this.http.post<ApiAnalysisResponse>(buildApiUrl('/analysis'), payload, { context }).pipe(
-          map((response) => this.mapResponse(response, settings)),
-          catchError((error) => {
-            this.logger.error('analysis-gateway', error);
-            return throwError(() => error);
-          }),
-        );
+        return this.http
+          .post<ApiAnalysisResponse>(buildApiUrl('/analysis'), payload, { context })
+          .pipe(
+            map((response) => this.mapResponse(response, settings)),
+            catchError((error) => {
+              this.logger.error('analysis-gateway', error);
+              return throwError(() => error);
+            }),
+          );
       },
     });
 

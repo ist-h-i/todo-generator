@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
 import { Router } from '@angular/router';
 
@@ -32,7 +32,7 @@ interface RegistrationSubmission {
 
 @Component({
   selector: 'app-login-page',
-  imports: [CommonModule, PageLayout],
+  imports: [PageLayout],
   templateUrl: './login.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

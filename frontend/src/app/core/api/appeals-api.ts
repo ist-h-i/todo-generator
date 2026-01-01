@@ -4,7 +4,11 @@ import { Observable } from 'rxjs';
 
 import { buildApiUrl } from '@core/api/api.config';
 import { AI_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS } from '@core/api/timeout.interceptor';
-import { AppealConfigResponse, AppealGenerationRequest, AppealGenerationResponse } from '@core/models';
+import {
+  AppealConfigResponse,
+  AppealGenerationRequest,
+  AppealGenerationResponse,
+} from '@core/models';
 
 /**
  * API client for achievement output (appeal generation) endpoints.

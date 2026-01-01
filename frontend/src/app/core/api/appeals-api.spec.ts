@@ -3,8 +3,16 @@ import { HttpClientTestingModule, HttpTestingController } from '@angular/common/
 
 import { AppealsApi } from './appeals-api';
 import { buildApiUrl } from './api.config';
-import { AI_REQUEST_TIMEOUT_MS, API_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS } from './timeout.interceptor';
-import { AppealConfigResponse, AppealGenerationRequest, AppealGenerationResponse } from '@core/models';
+import {
+  AI_REQUEST_TIMEOUT_MS,
+  API_REQUEST_TIMEOUT_MS,
+  REQUEST_TIMEOUT_MS,
+} from './timeout.interceptor';
+import {
+  AppealConfigResponse,
+  AppealGenerationRequest,
+  AppealGenerationResponse,
+} from '@core/models';
 
 describe('AppealsApi', () => {
   let api: AppealsApi;

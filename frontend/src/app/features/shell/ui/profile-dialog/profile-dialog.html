@@ -196,7 +196,7 @@
                     <ng-container
                       [ngTemplateOutlet]="roleCategory"
                       [ngTemplateOutletContext]="{ $implicit: child, depth: depth + 1 }"
-                    ></ng-container>
+                    />
                   }
                 </div>
               }
@@ -254,7 +254,7 @@
                       <ng-container
                         [ngTemplateOutlet]="roleCategoryContent"
                         [ngTemplateOutletContext]="{ $implicit: category, depth: depth }"
-                      ></ng-container>
+                      />
                     </div>
                   }
                 </section>
@@ -304,7 +304,7 @@
                       <ng-container
                         [ngTemplateOutlet]="roleCategoryContent"
                         [ngTemplateOutletContext]="{ $implicit: category, depth: depth }"
-                      ></ng-container>
+                      />
                     </div>
                   }
                 </div>
@@ -315,7 +315,7 @@
               <ng-container
                 [ngTemplateOutlet]="roleCategory"
                 [ngTemplateOutletContext]="{ $implicit: category, depth: 0 }"
-              ></ng-container>
+              />
             }
           </div>
 

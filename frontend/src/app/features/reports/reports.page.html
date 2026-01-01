@@ -129,9 +129,9 @@
             </div>
           }
 
-          @if ($any(active.processing_meta)?.ai_warnings?.length) {
+          @if (hasProcessingWarnings()) {
             <div class="app-alert app-alert--notice" role="status">
-              @for (warning of $any(active.processing_meta).ai_warnings ?? []; track warning) {
+              @for (warning of processingWarnings(); track warning) {
                 <p>{{ warning }}</p>
               }
             </div>
@@ -269,7 +269,7 @@
                           <shared-ui-select
                             formControlName="status"
                             [options]="statusSelectOptions()"
-                          ></shared-ui-select>
+                          />
                         </div>
                         <div class="form-field">
                           <label class="form-field__label">推奨ラベル</label>
@@ -286,7 +286,7 @@
                           <shared-ui-select
                             formControlName="priority"
                             [options]="priorityOptions"
-                          ></shared-ui-select>
+                          />
                         </div>
                         <div class="form-field">
                           <label class="form-field__label">期限目安 (日)</label>

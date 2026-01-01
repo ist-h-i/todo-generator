@@ -3,9 +3,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  ViewChild,
   output,
+  viewChild,
 } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 
 interface GuideItem {
   readonly title: string;
@@ -33,6 +34,7 @@ interface FaqItem {
 
 @Component({
   selector: 'app-help-dialog',
+  imports: [NgOptimizedImage],
   templateUrl: './help-dialog.html',
   styleUrl: './help-dialog.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,7 +45,7 @@ interface FaqItem {
 export class HelpDialog implements AfterViewInit {
   public readonly dismiss = output<void>();
 
-  @ViewChild('panel', { static: true }) private readonly panel?: ElementRef<HTMLDivElement>;
+  private readonly panel = viewChild<ElementRef<HTMLDivElement>>('panel');
 
   public readonly aiFeatures: readonly AiFeatureItem[] = [
     {
@@ -110,7 +112,7 @@ export class HelpDialog implements AfterViewInit {
       title: 'コンピテンシーを定期チェックする',
       summary: '実績を振り返り、次の行動プランに落とし込みます。',
       steps: [
-        '「コンピテンシー」で評価対象を選び、上限回数を確認して評価を実行します。',
+        '「コンピテンシー」で評価対象を選び、判定リクエストの上限回数を確認して評価を実行します。',
         'スコア・理由・推奨アクションを確認し、次に取り組むことを決めます。',
         '必要に応じて JSON で出力し、1on1 やスプリント計画に活用します。',
       ],
@@ -149,7 +151,7 @@ export class HelpDialog implements AfterViewInit {
     {
       title: 'コンピテンシー',
       description:
-        'コンピテンシー評価の履歴を確認し、姿勢・行動の推奨アクションを振り返れます。評価には日次上限があるため、残り回数も合わせて確認してください。',
+        'コンピテンシー評価の履歴を確認し、姿勢・行動の推奨アクションを振り返れます。評価には日次の判定リクエスト上限があるため、残り回数も合わせて確認してください。',
       image: 'help/competency.svg',
       alt: 'スコアと推奨アクションが表示されたコンピテンシー評価画面のイラスト',
     },
@@ -192,7 +194,7 @@ export class HelpDialog implements AfterViewInit {
 
   public ngAfterViewInit(): void {
     queueMicrotask(() => {
-      this.panel?.nativeElement.focus();
+      this.panel()?.nativeElement.focus();
     });
   }
 

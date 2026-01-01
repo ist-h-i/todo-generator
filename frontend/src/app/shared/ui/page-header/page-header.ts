@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 type HeadingLevel = 'h1' | 'h2' | 'h3';
 
@@ -8,7 +7,6 @@ type HeadingLevel = 'h1' | 'h2' | 'h3';
  */
 @Component({
   selector: 'shared-page-header',
-  imports: [CommonModule],
   templateUrl: './page-header.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -40,4 +38,32 @@ export class PageHeader {
    * When true the header content is centered for hero-style layouts.
    */
   public readonly centered = input(false);
+
+  public readonly headerClass = computed(() =>
+    [
+      'grid gap-6',
+      this.centered()
+        ? 'justify-items-center text-center md:grid-cols-1'
+        : 'md:grid-cols-[minmax(0,1fr)_auto] md:items-end',
+    ].join(' '),
+  );
+
+  public readonly contentClass = computed(() =>
+    ['grid max-w-6xl gap-3', this.centered() ? 'justify-items-center text-center md:mx-auto' : '']
+      .filter((value) => value.length > 0)
+      .join(' '),
+  );
+
+  public readonly bodyClass = computed(() =>
+    ['mt-1 flex flex-wrap gap-3 empty:hidden', this.centered() ? 'justify-center' : '']
+      .filter((value) => value.length > 0)
+      .join(' '),
+  );
+
+  public readonly actionsClass = computed(() =>
+    [
+      'flex flex-wrap gap-3 empty:hidden',
+      this.centered() ? 'justify-center' : 'justify-start md:justify-end',
+    ].join(' '),
+  );
 }

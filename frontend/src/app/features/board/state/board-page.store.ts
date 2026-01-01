@@ -165,6 +165,10 @@ export class BoardPageStore {
   public readonly isSubtaskResolved = (subtask: Subtask): boolean =>
     RESOLVED_SUBTASK_STATUSES.has(subtask.status);
 
+  private isSubtaskStatus(value: string): value is SubtaskStatus {
+    return SUBTASK_STATUS_META_LOOKUP.has(value as SubtaskStatus);
+  }
+
   public readonly isCardResolved = (card: Card): boolean =>
     card.subtasks.length > 0 && card.subtasks.every((task) => this.isSubtaskResolved(task));
 
@@ -640,9 +644,25 @@ export class BoardPageStore {
   public readonly changeSubtaskStatus = (
     cardId: string,
     subtaskId: string,
-    status: SubtaskStatus,
+    status: string | string[] | null,
   ): void => {
+    if (typeof status !== 'string') {
+      return;
+    }
+    if (!this.isSubtaskStatus(status)) {
+      return;
+    }
     this.workspace.updateSubtaskStatus(cardId, subtaskId, status);
+  };
+
+  public readonly updateNewSubtaskStatus = (status: string | string[] | null): void => {
+    if (typeof status !== 'string') {
+      return;
+    }
+    if (!this.isSubtaskStatus(status)) {
+      return;
+    }
+    this.newSubtaskForm.controls.status.setValue(status);
   };
 
   public readonly deleteSubtask = (cardId: string, subtaskId: string): void => {

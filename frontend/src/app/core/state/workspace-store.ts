@@ -1695,8 +1695,7 @@ export class WorkspaceStore {
     const dueDate = sanitizeDateString(payload.dueDate);
     const confidence = sanitizeConfidence(payload.confidence);
     const generatedBy =
-      sanitizeString(payload.generatedBy) ??
-      (payload.originSuggestionId ? 'analysis' : undefined);
+      sanitizeString(payload.generatedBy) ?? (payload.originSuggestionId ? 'analysis' : undefined);
 
     return {
       title: payload.title,

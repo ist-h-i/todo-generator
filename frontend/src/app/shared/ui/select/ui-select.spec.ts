@@ -39,6 +39,20 @@ describe('UiSelect', () => {
     expect(valueEl?.textContent?.trim()).toBe('Two');
   });
 
+  it('syncs the label when a value input is provided', () => {
+    const fixture = TestBed.createComponent(UiSelect);
+    fixture.componentRef.setInput('options', [
+      { value: 'a', label: 'Alpha' },
+      { value: 'b', label: 'Beta' },
+    ]);
+    fixture.componentRef.setInput('value', 'b');
+
+    fixture.detectChanges();
+
+    const valueEl = fixture.nativeElement.querySelector('.ui-select__value') as HTMLElement | null;
+    expect(valueEl?.textContent?.trim()).toBe('Beta');
+  });
+
   it('opens the panel and emits the selected value when an option is clicked', () => {
     const fixture = TestBed.createComponent(UiSelect);
     fixture.componentRef.setInput('options', [
@@ -48,6 +62,8 @@ describe('UiSelect', () => {
 
     const onChange = jasmine.createSpy('onChange');
     fixture.componentInstance.registerOnChange(onChange);
+    const valueChange = jasmine.createSpy('valueChange');
+    const subscription = fixture.componentInstance.valueChange.subscribe(valueChange);
 
     fixture.detectChanges();
 
@@ -68,10 +84,13 @@ describe('UiSelect', () => {
     fixture.detectChanges();
 
     expect(onChange).toHaveBeenCalledWith('b');
+    expect(valueChange).toHaveBeenCalledWith('b');
     expect(fixture.componentInstance.panelOpen()).toBeFalse();
 
     const valueEl = fixture.nativeElement.querySelector('.ui-select__value') as HTMLElement | null;
     expect(valueEl?.textContent?.trim()).toBe('Beta');
+
+    subscription.unsubscribe();
   });
 
   it('ignores clicks on disabled options', () => {

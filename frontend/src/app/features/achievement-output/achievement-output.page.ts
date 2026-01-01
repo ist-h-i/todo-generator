@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -9,7 +8,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 
 import { AppealsApi } from '@core/api/appeals-api';
@@ -48,7 +46,7 @@ interface AchievementOutputForm {
 
 @Component({
   selector: 'app-achievement-output-page',
-  imports: [CommonModule, FormsModule, PageLayout, UiSelect, AiMark],
+  imports: [PageLayout, UiSelect, AiMark],
   templateUrl: './achievement-output.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -265,9 +263,17 @@ export class AchievementOutputPage {
     this.form.controls.subjectType.setValue(type);
   }
 
-  public updateSubjectLabel(value: string): void {
+  public updateSubjectLabel(value: string | string[] | null): void {
+    if (typeof value !== 'string') {
+      return;
+    }
     this.form.controls.subjectLabelId.setValue(value);
   }
+
+  public readonly readInputValue = (event: Event): string => {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement | null;
+    return target?.value ?? '';
+  };
 
   public updateCustomSubject(value: string): void {
     this.form.controls.subjectCustom.setValue(value);
@@ -433,7 +439,7 @@ export class AchievementOutputPage {
 
     this.form.patchValue({
       subjectType: hasLabels ? 'label' : 'custom',
-      subjectLabelId: hasLabels ? labels[0]?.id ?? '' : '',
+      subjectLabelId: hasLabels ? (labels[0]?.id ?? '') : '',
       subjectCustom: '',
       flow,
       formats: formats.map((format) => format.id),
@@ -546,9 +552,7 @@ export class AchievementOutputPage {
       return;
     }
 
-    this.generationErrorState.set(
-      '実績出力の生成に失敗しました。時間をおいて再度お試しください。',
-    );
+    this.generationErrorState.set('実績出力の生成に失敗しました。時間をおいて再度お試しください。');
   }
 
   private extractErrorMessage(error: unknown): string | null {

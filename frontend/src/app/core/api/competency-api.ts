@@ -43,7 +43,9 @@ export class CompetencyApi {
     return this.http.post<CompetencyEvaluation>(buildApiUrl('/users/me/evaluations'), payload);
   }
 
-  public runMyEvaluationsBatch(payload: SelfEvaluationBatchRequest): Observable<CompetencyEvaluation[]> {
+  public runMyEvaluationsBatch(
+    payload: SelfEvaluationBatchRequest,
+  ): Observable<CompetencyEvaluation[]> {
     return this.http.post<CompetencyEvaluation[]>(
       buildApiUrl('/users/me/evaluations/batch'),
       payload,

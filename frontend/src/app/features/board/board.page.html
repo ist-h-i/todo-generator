@@ -36,7 +36,7 @@
               class="form-control board-filters__search-input"
               placeholder="キーワードでカードを検索"
               [value]="searchForm.controls.search.value()"
-              (input)="updateSearch($any($event.target).value)"
+              (input)="updateSearch(readInputValue($event))"
             />
           </div>
         </label>
@@ -46,10 +46,8 @@
             <button
               type="button"
               class="button button--pill"
-              [ngClass]="{
-                'button--secondary': groupingSignal() === 'status',
-                'button--ghost': groupingSignal() !== 'status',
-              }"
+              [class.button--secondary]="groupingSignal() === 'status'"
+              [class.button--ghost]="groupingSignal() !== 'status'"
               [attr.aria-pressed]="groupingSignal() === 'status'"
               (click)="selectGrouping('status')"
             >
@@ -58,10 +56,8 @@
             <button
               type="button"
               class="button button--pill"
-              [ngClass]="{
-                'button--secondary': groupingSignal() === 'label',
-                'button--ghost': groupingSignal() !== 'label',
-              }"
+              [class.button--secondary]="groupingSignal() === 'label'"
+              [class.button--ghost]="groupingSignal() !== 'label'"
               [attr.aria-pressed]="groupingSignal() === 'label'"
               (click)="selectGrouping('label')"
             >
@@ -78,10 +74,8 @@
               <button
                 type="button"
                 class="button button--pill"
-                [ngClass]="{
-                  'button--secondary': isQuickFilterActive(filter.id),
-                  'button--ghost': !isQuickFilterActive(filter.id),
-                }"
+                [class.button--secondary]="isQuickFilterActive(filter.id)"
+                [class.button--ghost]="!isQuickFilterActive(filter.id)"
                 [attr.aria-pressed]="isQuickFilterActive(filter.id)"
                 [title]="filter.description"
                 (click)="toggleQuickFilter(filter.id)"
@@ -474,7 +468,7 @@
                   rows="4"
                   placeholder="カード全体の共有事項や次のアクションを記入"
                   [value]="commentDraftValue('card')"
-                  (input)="updateCommentDraft('card', $any($event.target).value)"
+                  (input)="updateCommentDraft('card', readInputValue($event))"
                 ></textarea>
               </label>
             </div>
@@ -535,7 +529,7 @@
                     type="text"
                     class="subtask-editor__input"
                     [value]="task.title"
-                    (change)="updateSubtaskTitle(active.id, task.id, $any($event.target).value)"
+                    (change)="updateSubtaskTitle(active.id, task.id, readInputValue($event))"
                   />
                 </label>
                 <div class="subtask-editor__layout">
@@ -546,9 +540,7 @@
                         type="date"
                         class="subtask-editor__input"
                         [value]="dateInputValue(task.dueDate)"
-                        (change)="
-                          updateSubtaskDueDate(active.id, task.id, $any($event.target).value)
-                        "
+                        (change)="updateSubtaskDueDate(active.id, task.id, readInputValue($event))"
                       />
                     </label>
                     <label class="subtask-editor__field">
@@ -556,9 +548,9 @@
                       <shared-ui-select
                         [name]="'subtask-status-' + task.id"
                         [options]="subtaskStatusSelectOptions"
-                        [ngModel]="task.status"
-                        (ngModelChange)="changeSubtaskStatus(active.id, task.id, $event)"
-                      ></shared-ui-select>
+                        [value]="task.status"
+                        (valueChange)="changeSubtaskStatus(active.id, task.id, $event)"
+                      />
                     </label>
                     <label class="subtask-editor__field">
                       <span class="subtask-editor__field-label">担当者</span>
@@ -566,9 +558,7 @@
                         type="text"
                         class="subtask-editor__input"
                         [value]="task.assignee ?? ''"
-                        (change)="
-                          updateSubtaskAssignee(active.id, task.id, $any($event.target).value)
-                        "
+                        (change)="updateSubtaskAssignee(active.id, task.id, readInputValue($event))"
                       />
                     </label>
                     <label class="subtask-editor__field">
@@ -579,9 +569,7 @@
                         step="0.5"
                         class="subtask-editor__input"
                         [value]="task.estimateHours ?? ''"
-                        (change)="
-                          updateSubtaskEstimate(active.id, task.id, $any($event.target).value)
-                        "
+                        (change)="updateSubtaskEstimate(active.id, task.id, readInputValue($event))"
                       />
                     </label>
                   </div>
@@ -666,7 +654,7 @@
                               rows="3"
                               placeholder="進捗や課題を共有"
                               [value]="commentDraftValue(task.id)"
-                              (input)="updateCommentDraft(task.id, $any($event.target).value)"
+                              (input)="updateCommentDraft(task.id, readInputValue($event))"
                             ></textarea>
                           </label>
                         </div>
@@ -708,7 +696,7 @@
                 class="subtask-editor__input"
                 placeholder="例: API仕様を確認"
                 [value]="newSubtaskForm.controls.title.value()"
-                (input)="newSubtaskForm.controls.title.setValue($any($event.target).value)"
+                (input)="newSubtaskForm.controls.title.setValue(readInputValue($event))"
               />
             </label>
             <label class="subtask-editor__field">
@@ -716,9 +704,9 @@
               <shared-ui-select
                 name="new-subtask-status"
                 [options]="subtaskStatusSelectOptions"
-                [ngModel]="newSubtaskForm.controls.status.value()"
-                (ngModelChange)="newSubtaskForm.controls.status.setValue($event)"
-              ></shared-ui-select>
+                [value]="newSubtaskForm.controls.status.value()"
+                (valueChange)="updateNewSubtaskStatus($event)"
+              />
             </label>
             <label class="subtask-editor__field">
               <span class="subtask-editor__field-label">期限</span>
@@ -726,7 +714,7 @@
                 type="date"
                 class="subtask-editor__input"
                 [value]="dateInputValue(newSubtaskForm.controls.dueDate.value())"
-                (change)="newSubtaskForm.controls.dueDate.setValue($any($event.target).value)"
+                (change)="newSubtaskForm.controls.dueDate.setValue(readInputValue($event))"
               />
             </label>
             <label class="subtask-editor__field">
@@ -736,7 +724,7 @@
                 class="subtask-editor__input"
                 placeholder="任意"
                 [value]="newSubtaskForm.controls.assignee.value()"
-                (input)="newSubtaskForm.controls.assignee.setValue($any($event.target).value)"
+                (input)="newSubtaskForm.controls.assignee.setValue(readInputValue($event))"
               />
             </label>
             <label class="subtask-editor__field">
@@ -748,7 +736,7 @@
                 class="subtask-editor__input"
                 placeholder="任意"
                 [value]="newSubtaskForm.controls.estimateHours.value()"
-                (input)="newSubtaskForm.controls.estimateHours.setValue($any($event.target).value)"
+                (input)="newSubtaskForm.controls.estimateHours.setValue(readInputValue($event))"
               />
             </label>
           </div>

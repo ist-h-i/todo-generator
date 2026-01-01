@@ -10,7 +10,11 @@ import {
   StatusReportUpdateRequest,
 } from '@core/models';
 import { buildApiUrl } from './api.config';
-import { AI_REQUEST_TIMEOUT_MS, API_REQUEST_TIMEOUT_MS, REQUEST_TIMEOUT_MS } from './timeout.interceptor';
+import {
+  AI_REQUEST_TIMEOUT_MS,
+  API_REQUEST_TIMEOUT_MS,
+  REQUEST_TIMEOUT_MS,
+} from './timeout.interceptor';
 
 const baseTimestamp = '2025-02-01T00:00:00.000Z';
 

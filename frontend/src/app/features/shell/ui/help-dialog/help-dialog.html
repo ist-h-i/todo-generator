@@ -121,7 +121,14 @@
       <div class="help-dialog__guides">
         @for (guide of guides; track guide.title) {
           <article class="help-dialog__card">
-            <img [src]="guide.image" [alt]="guide.alt" loading="lazy" decoding="async" />
+            <img
+              [ngSrc]="guide.image"
+              [alt]="guide.alt"
+              width="360"
+              height="240"
+              loading="lazy"
+              decoding="async"
+            />
             <div class="help-dialog__card-body">
               <h4 class="help-dialog__card-title">{{ guide.title }}</h4>
               <p class="help-dialog__card-text">{{ guide.description }}</p>

@@ -151,7 +151,7 @@
                 name="immunity-map-window-days"
                 [formControl]="windowDaysControl"
                 [options]="windowDaysOptions"
-              ></shared-ui-select>
+              />
               <p class="form-note">日報週報・カード履歴をもとに候補を作成します。</p>
             </label>
             <div class="form-field">
@@ -265,7 +265,7 @@
                       type="text"
                       class="form-control"
                       [value]="candidateText(candidate)"
-                      (input)="updateCandidateText(candidate.id, $any($event.target).value)"
+                      (input)="updateCandidateText(candidate.id, readInputValue($event))"
                       placeholder="起点の内容を調整できます"
                     />
                   </label>
@@ -326,7 +326,7 @@
                     class="form-control form-control--textarea"
                     placeholder="例: 計画した学習時間を確保する"
                     [value]="shouldText()"
-                    (input)="updateShouldText($any($event.target).value)"
+                    (input)="updateShouldText(readInputValue($event))"
                   ></textarea>
                 </label>
                 <label class="form-field">
@@ -335,7 +335,7 @@
                     class="form-control form-control--textarea"
                     placeholder="例: 夕方に集中力が続かない"
                     [value]="cannotText()"
-                    (input)="updateCannotText($any($event.target).value)"
+                    (input)="updateCannotText(readInputValue($event))"
                   ></textarea>
                 </label>
                 <label class="form-field form-field--full">
@@ -344,7 +344,7 @@
                     class="form-control form-control--textarea"
                     placeholder="例: 週末に振り返りの時間を作りたい"
                     [value]="wantText()"
-                    (input)="updateWantText($any($event.target).value)"
+                    (input)="updateWantText(readInputValue($event))"
                   ></textarea>
                 </label>
               </div>
@@ -354,7 +354,7 @@
                   class="form-control form-control--textarea"
                   placeholder="補足したい背景や状況を入力してください"
                   [value]="contextText()"
-                  (input)="updateContextText($any($event.target).value)"
+                  (input)="updateContextText(readInputValue($event))"
                 ></textarea>
                 <p class="form-note">追加コンテキストは自動補完と組み合わせて AI に渡します。</p>
               </label>
@@ -537,7 +537,7 @@
                 <p>図が生成されるまで少しお待ちください。</p>
               </div>
             } @else if (generatedMap(); as generated) {
-              <shared-mermaid-viewer [code]="generated.mermaid"></shared-mermaid-viewer>
+              <shared-mermaid-viewer [code]="generated.mermaid" />
             }
           </div>
         </section>
@@ -593,7 +593,7 @@
             </button>
           </div>
         </header>
-        <shared-mermaid-viewer [code]="generatedMap()?.mermaid ?? ''"></shared-mermaid-viewer>
+        <shared-mermaid-viewer [code]="generatedMap()?.mermaid ?? ''" />
       </article>
     </div>
   }

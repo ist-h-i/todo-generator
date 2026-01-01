@@ -65,7 +65,7 @@ This document explains how the workspace persists data across board management, 
 ## 5. Competency evaluations
 
 - **Competency definitions**: `/admin/competencies` manages competency rubrics, prompt templates, and evaluation jobs. Admins can trigger new evaluations for any workspace member.
-- **User-facing evaluations**: `/users/me/evaluations` surfaces personal history, quota status, and allows self-service evaluations. Daily limits are enforced through `reserve_daily_quota` and `get_evaluation_daily_limit` helpers.
+- **User-facing evaluations**: `/users/me/evaluations` surfaces personal history and quota status, while `/users/me/evaluations/batch` runs self-service evaluations for multiple competencies. Daily limits are enforced per request through `reserve_daily_quota` and `get_evaluation_daily_limit` helpers.
 - **Evaluator service**: `services/competency_evaluator.py` builds prompts, validates responses, records token usage, and persists `CompetencyEvaluation` and `EvaluationJob` rows with summary statistics.
 
 ## 6. Data integrity and migrations

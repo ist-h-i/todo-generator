@@ -48,11 +48,19 @@ export class StatusReportsGateway {
 
   public submitReport(id: string): Observable<StatusReportDetail> {
     const context = new HttpContext().set(REQUEST_TIMEOUT_MS, AI_REQUEST_TIMEOUT_MS);
-    return this.http.post<StatusReportDetail>(buildApiUrl(`/status-reports/${id}/submit`), {}, { context });
+    return this.http.post<StatusReportDetail>(
+      buildApiUrl(`/status-reports/${id}/submit`),
+      {},
+      { context },
+    );
   }
 
   public retryReport(id: string): Observable<StatusReportDetail> {
     const context = new HttpContext().set(REQUEST_TIMEOUT_MS, AI_REQUEST_TIMEOUT_MS);
-    return this.http.post<StatusReportDetail>(buildApiUrl(`/status-reports/${id}/retry`), {}, { context });
+    return this.http.post<StatusReportDetail>(
+      buildApiUrl(`/status-reports/${id}/retry`),
+      {},
+      { context },
+    );
   }
 }

@@ -12,7 +12,7 @@
 ## Objectives
 
 - Give members a transparent view into AI-authored competency evaluations, including scores, rationales, and recommended next actions.
-- Allow members to self-trigger an evaluation while enforcing daily quota limits and surfacing remaining usage.
+- Allow members to self-trigger a batch evaluation request (multiple competencies per request) while enforcing daily quota limits and surfacing remaining usage.
 - Support manual exports and historical review so members can reuse insights outside the application.
 - Maintain operational guardrails so quota overages, invalid periods, or missing competencies return explicit error feedback.
 
@@ -25,8 +25,8 @@
 ## User Stories
 
 1. **View history** – As a member, I can see up to 12 recent competency evaluations, including triggered source, AI model, and rationale, so I can understand trends.【F:frontend/src/app/features/profile/evaluations/page.ts†L60-L151】【F:frontend/src/app/features/profile/evaluations/page.html†L85-L240】
-2. **Monitor quota** – As a member, I can see today’s evaluation limit, remaining runs, and usage state so I know when I can safely trigger another evaluation.【F:frontend/src/app/features/profile/evaluations/page.ts†L44-L113】【F:frontend/src/app/features/profile/evaluations/page.html†L12-L54】
-3. **Run evaluation** – As a member, I can trigger a manual evaluation that reuses my latest competency context, and I receive immediate feedback or errors if quotas or validation fail.【F:frontend/src/app/features/profile/evaluations/page.ts†L118-L209】【F:backend/app/routers/competency_evaluations.py†L110-L185】
+2. **Monitor quota** – As a member, I can see today’s evaluation request limit, remaining runs, and usage state so I know when I can safely trigger another evaluation request (batch counts as 1).【F:frontend/src/app/features/profile/evaluations/page.ts†L44-L113】【F:frontend/src/app/features/profile/evaluations/page.html†L12-L54】
+3. **Run evaluation** – As a member, I can trigger a manual evaluation request for selected competencies, and I receive immediate feedback or errors if quotas or validation fail.【F:frontend/src/app/features/profile/evaluations/page.ts†L118-L209】【F:backend/app/routers/competency_evaluations.py†L110-L185】
 4. **Export results** – As a member, I can download the latest evaluation as JSON with a sanitized filename for external sharing.【F:frontend/src/app/features/profile/evaluations/page.ts†L210-L275】
 5. **Admin audit** – As an administrator, I can filter evaluations by user, competency, or time window to investigate performance or resolve disputes.【F:backend/app/routers/competency_evaluations.py†L43-L78】
 
@@ -39,13 +39,15 @@
 
 ### Quota Awareness & Enforcement
 
-- Daily evaluation limits default to 3 per member but respect per-user overrides stored in `UserQuotaOverride`.【F:backend/app/utils/quotas.py†L1-L59】
+- Daily evaluation limits default to 3 per member but respect per-user overrides stored in `UserQuotaOverride`. Limits apply per evaluation request (single or batch).【F:backend/app/utils/quotas.py†L1-L59】
 - `/users/me/evaluations/quota` returns `daily_limit`, `used`, and `remaining` fields. When limits are unlimited (`<= 0`), the frontend must show “無制限.”【F:frontend/src/app/features/profile/evaluations/page.ts†L44-L114】【F:backend/app/routers/competency_evaluations.py†L92-L109】
-- Triggering an evaluation reserves quota via `reserve_daily_quota`. If the limit is exceeded, the API returns HTTP 429 with a descriptive message, and the UI refreshes quota state to reflect the lockout.【F:frontend/src/app/features/profile/evaluations/page.ts†L147-L209】【F:backend/app/routers/competency_evaluations.py†L134-L158】【F:backend/app/utils/quotas.py†L61-L117】
+- Batch requests to `/users/me/evaluations/batch` consume one quota per request even when multiple competencies are selected.【F:backend/app/routers/competency_evaluations.py†L502-L590】
+- Triggering an evaluation request reserves quota via `reserve_daily_quota`. If the limit is exceeded, the API returns HTTP 429 with a descriptive message, and the UI refreshes quota state to reflect the lockout.【F:frontend/src/app/features/profile/evaluations/page.ts†L147-L209】【F:backend/app/routers/competency_evaluations.py†L134-L158】【F:backend/app/utils/quotas.py†L61-L117】
 
 ### Evaluation Triggers
 
-- Manual runs use the latest competency ID from history when present; otherwise they rely on backend default competency resolution that validates active records and raises 404 if unavailable.【F:frontend/src/app/features/profile/evaluations/page.ts†L147-L186】【F:backend/app/routers/competency_evaluations.py†L23-L60】【F:backend/app/routers/competency_evaluations.py†L110-L133】
+- Single-run requests use the latest competency ID from history when present; batch runs send `competency_ids` and validate that every selected competency exists and is active, returning 404 if any are missing.【F:frontend/src/app/features/profile/evaluations/page.ts†L147-L209】【F:backend/app/routers/competency_evaluations.py†L23-L60】【F:backend/app/routers/competency_evaluations.py†L110-L133】
+- Batch evaluations submit a single Gemini request for the selected competencies so AI usage aligns with the per-request quota model.【F:backend/app/routers/competency_evaluations.py†L540-L640】
 - The backend normalizes evaluation periods, enforcing that the start date is not after the end date and defaulting to the current month when unspecified. Invalid ranges return HTTP 400.【F:backend/app/routers/competency_evaluations.py†L62-L89】
 - Evaluation jobs record execution metadata (`triggered_by`, timestamps, job status) and pass through to the evaluator service so downstream monitoring can reconcile manual vs. automated runs.【F:backend/app/routers/competency_evaluations.py†L158-L185】
 

@@ -1,8 +1,9 @@
+model = "gpt-5.2-codex"
+model_reasoning_effort = "xhigh"
 # ===================================================================
 #  Codex / MCP configuration (cross-platform)
 #  - Node 20+ が必須（npx 使用）
 #  - uv (Astral) を導入済み（Python 系 MCP サーバで使用）
-#  - Secrets: BRAVE_API_KEY, MAGIC_API_KEY を GitHub Actions に登録
 # ===================================================================
 
 # -------------------------------------------------------------------
@@ -11,62 +12,62 @@
 
 [mcp_servers.filesystem]
 command = "npx"
-args = ["-y", "@modelcontextprotocol/server-filesystem", "${workspaceFolder}"]
+args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
+startup_timeout_sec = 60
 
 [mcp_servers.memory]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-memory"]
+startup_timeout_sec = 60
 
 [mcp_servers.puppeteer]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-puppeteer"]
+startup_timeout_sec = 60
 
 [mcp_servers.playwright]
 command = "npx"
 args = ["-y", "@playwright/mcp@latest"]
+startup_timeout_sec = 60
+
+[mcp_servers.angular-cli]
+command = "npx"
+args = ["-y", "@angular/cli@next", "mcp"]
+startup_timeout_sec = 60
 
 [mcp_servers.sequential-thinking]
 command = "npx"
 args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+startup_timeout_sec = 60
 
-[mcp_servers.brave-search]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-brave-search"]
-# BRAVE_API_KEY は環境変数または Secrets から注入
-env = { BRAVE_API_KEY = "$BRAVE_API_KEY" }
-
-# サーバ名は正規表現 ^[a-zA-Z0-9_-]+$ に適合させる
-[mcp_servers.magic_21st]
-command = "npx"
 # .env 経由で実行したい場合
-args = ["-y", "dotenv", "-e", ".env", "--", "npx", "-y", "@21st-dev/magic@latest"]
 # 直接キーを注入する場合はこちらを使用（コメントアウトを外す）
-# env = { API_KEY = "$MAGIC_API_KEY" }
 
 # -------------------------------------------------------------------
 # Python / uv 系サーバ（事前に uv tool install で導入しておく）
 # -------------------------------------------------------------------
 
 [mcp_servers.fetch]
-command = "mcp-server-fetch"
-args = []
+command = "uvx"
+args = ["mcp-server-fetch"]
+startup_timeout_sec = 60
 
 [mcp_servers.time]
-command = "mcp-server-time"
-args = []
+command = "uvx"
+args = ["mcp-server-time"]
+startup_timeout_sec = 60
 
 [mcp_servers.serena]
-command = "serena"
-args = ["start-mcp-server", "--context", "codex", "--project", "${workspaceFolder}"]
+command = "uvx"
+args = ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "codex", "--project", "."]
+env = { PYTHONUTF8 = "1", PYTHONIOENCODING = "UTF-8" }
+startup_timeout_sec = 180
 
-# -------------------------------------------------------------------
-# パイプライン設定（Codex Auto Dev）
-# -------------------------------------------------------------------
+[projects.'\\?\C:\Users\Hiroshi.Inoue\Documents\GitHub\todo-generator']
+trust_level = "trusted"
 
-[pipelines.auto-dev]
-description = "Translator -> Requirements Analyst -> Detail Designer -> Planner pipeline"
-steps = ["translator", "requirements_analyst", "detail_designer", "planner"]
+[features]
+experimental_windows_sandbox = true
 
-# ===================================================================
-# End of file
-# ===================================================================
+[notice]
+hide_full_access_warning = true

@@ -86,7 +86,7 @@ HTTP concerns are centralised under `core/api`:
 - **Workspace operations**: `/cards` handles card CRUD, drag-and-drop updates, nested `/subtasks`, and `/cards/{id}/similar`. `/comments` and `/activity-log` manage discussions and manual activity entries. `/labels`, `/statuses`, `/error-categories`, and `/workspace/templates` provide configuration endpoints used by the settings UX.
 - **Analysis and automation**: `/analysis` forwards intake requests to `GeminiClient` and returns JSON-schema validated proposals. `/analysis/immunity-map` turns reflective inputs into Mermaid-formatted immunity maps. `/status-reports` orchestrates shift report CRUD plus AI processing through `StatusReportService`. `/reports` manages report templates and generated narratives and formats analytics context, while `/appeals` produces Japanese appeal narratives for external escalation workflows.
 - **Analytics and improvement**: `/analytics` serves snapshot records for dashboards. `/initiatives` coordinates improvement initiatives linked to analytics snapshots.
-- **Competency management**: `/admin/competencies` allows administrators to manage competency rubrics and trigger evaluations. `/admin/evaluations` and `/users/me/evaluations` expose evaluation history and quotas for administrators and end users respectively.
+- **Competency management**: `/admin/competencies` allows administrators to manage competency rubrics and trigger evaluations. `/admin/evaluations` and `/users/me/evaluations` expose evaluation history and quotas for administrators and end users respectively, while `/users/me/evaluations/batch` runs batch requests that consume one daily quota per call.
 - **Administration**: `/admin/users` manages user roles, quota overrides, and invites. `/admin/api-credentials`, `/admin/quotas/defaults`, and `/admin/quotas/{user_id}` (exposed through `admin_settings.py`) provide credential storage and quota configuration guarded by `require_admin`.
 
 ### Services and utilities
@@ -144,7 +144,7 @@ Timestamp mixins enforce UTC-aware audit fields, and helper methods normalise ID
 ### Competency evaluation lifecycle
 
 1. Admins define competencies and prompts through `/admin/competencies`.
-2. Users request evaluations via `/users/me/evaluations`. Quota helpers ensure daily limits, and `CompetencyEvaluator` runs Gemini prompts, storing results and token usage.
+2. Users request evaluations via `/users/me/evaluations` or `/users/me/evaluations/batch`. Quota helpers enforce daily limits per request (batch counts as 1), and `CompetencyEvaluator` runs Gemini prompts, storing results and token usage.
 3. Administrators review evaluations via `/admin/evaluations`, while users check their own history and quotas in the profile feature.
 
 ### Administrative operations

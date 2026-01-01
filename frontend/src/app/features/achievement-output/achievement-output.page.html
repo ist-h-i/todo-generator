@@ -7,7 +7,10 @@
 >
   @if (configLoading()) {
     <section class="page-section">
-      <div class="page-state achievement-output-page__state achievement-output-page__state--loading" role="status">
+      <div
+        class="page-state achievement-output-page__state achievement-output-page__state--loading"
+        role="status"
+      >
         <span class="achievement-output-page__spinner" aria-hidden="true"></span>
         <div>
           <h2>設定を読み込んでいます</h2>
@@ -57,7 +60,11 @@
             </p>
           </div>
 
-          <div class="achievement-output-page__subject-options" role="radiogroup" aria-label="テーマの選択方法">
+          <div
+            class="achievement-output-page__subject-options"
+            role="radiogroup"
+            aria-label="テーマの選択方法"
+          >
             <label
               class="achievement-output-page__subject-option"
               [class.is-active]="form.controls.subjectType.value() === 'label'"
@@ -105,10 +112,10 @@
               <shared-ui-select
                 name="subject-label"
                 [options]="labelSelectOptions()"
-                [ngModel]="form.controls.subjectLabelId.value()"
-                (ngModelChange)="updateSubjectLabel($event)"
+                [value]="form.controls.subjectLabelId.value()"
+                (valueChange)="updateSubjectLabel($event)"
                 [disabled]="!hasLabels()"
-              ></shared-ui-select>
+              />
               @if (!hasLabels()) {
                 <p class="form-note">ラベルが登録されていません。</p>
               }
@@ -116,7 +123,9 @@
 
             @if (selectedLabel(); as label) {
               @if (label.description) {
-                <p class="form-note achievement-output-page__label-description">{{ label.description }}</p>
+                <p class="form-note achievement-output-page__label-description">
+                  {{ label.description }}
+                </p>
               }
               <div class="surface-card achievement-output-page__achievements">
                 <div class="achievement-output-page__achievements-header">
@@ -152,7 +161,7 @@
                 maxlength="120"
                 placeholder="例: 新規オンボーディングの成果"
                 [value]="form.controls.subjectCustom.value()"
-                (input)="updateCustomSubject($any($event.target).value)"
+                (input)="updateCustomSubject(readInputValue($event))"
               />
               <p class="form-note">120 文字以内で入力してください。</p>
             </label>
@@ -186,7 +195,7 @@
                   class="form-control"
                   placeholder="例: 課題"
                   [value]="step"
-                  (input)="updateFlowStep(index, $any($event.target).value)"
+                  (input)="updateFlowStep(index, readInputValue($event))"
                 />
               </div>
             }
@@ -249,9 +258,7 @@
               [class.button__spinner--visible]="generating()"
             ></span>
             <shared-ai-mark />
-            <span class="button__label">{{
-              generating() ? '生成中…' : '実績出力を生成'
-            }}</span>
+            <span class="button__label">{{ generating() ? '生成中…' : '実績出力を生成' }}</span>
           </button>
           <button type="button" class="button button--ghost" (click)="reloadConfig()">
             設定を再読込
@@ -276,9 +283,7 @@
               }
             </div>
             <h2 class="page-section__title">生成結果</h2>
-            <p class="page-section__subtitle">
-              生成結果を編集してコピー・ダウンロードできます。
-            </p>
+            <p class="page-section__subtitle">生成結果を編集してコピー・ダウンロードできます。</p>
           </div>
           <div class="page-section__actions">
             <button
@@ -317,7 +322,10 @@
         }
 
         @if (generating()) {
-          <div class="page-state achievement-output-page__state achievement-output-page__state--loading" role="status">
+          <div
+            class="page-state achievement-output-page__state achievement-output-page__state--loading"
+            role="status"
+          >
             <span class="achievement-output-page__spinner" aria-hidden="true"></span>
             <div>
               <h2>実績出力を生成しています</h2>
@@ -351,7 +359,7 @@
                 [attr.data-editor]="activeFormat()?.editor_mode ?? null"
                 placeholder="生成結果がここに表示されます"
                 [value]="activeContent()"
-                (input)="updateFormatContent(activeFormatId(), $any($event.target).value)"
+                (input)="updateFormatContent(activeFormatId(), readInputValue($event))"
               ></textarea>
             </div>
 

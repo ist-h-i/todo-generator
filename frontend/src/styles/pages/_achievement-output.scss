@@ -231,15 +231,8 @@
 .achievement-output-page__output-text {
   min-height: clamp(14rem, 24vw, 22rem);
   font-family:
-    'JetBrains Mono',
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    'Liberation Mono',
-    'Courier New',
-    monospace;
+    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
   line-height: 1.6;
 }
 

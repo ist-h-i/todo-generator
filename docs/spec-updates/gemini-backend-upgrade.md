@@ -23,7 +23,7 @@
 | Status report（分析/提案） | `POST /status-reports/{report_id}/submit` | Gemini 呼び出し済み | `backend/app/routers/status_reports.py`, `backend/app/services/status_reports.py` |
 | Appeal generation（文章生成） | `POST /appeals/generate` | Gemini が使える場合のみ呼び出し + 失敗時/未設定時は deterministic fallback | `backend/app/routers/appeals.py`, `backend/app/services/appeals.py` |
 | Recommendation scoring（カードおすすめ度） | `POST /cards`, `PATCH /cards/{id}`, `GET /cards/{id}/similar` | deterministic heuristic（LLM 未使用） | `backend/app/services/recommendation_scoring.py`, `backend/app/routers/cards.py` |
-| Competency evaluation（評価生成） | `POST /users/me/evaluations` | rule-based（LLM 未使用） | `backend/app/services/competency_evaluator.py`, `backend/app/routers/competency_evaluations.py` |
+| Competency evaluation（評価生成） | `POST /users/me/evaluations` / `POST /users/me/evaluations/batch` | rule-based（LLM 未使用） | `backend/app/services/competency_evaluator.py`, `backend/app/routers/competency_evaluations.py` |
 | Immunity map（免疫マップ推測/可視化） | `POST /analysis/immunity-map` | Gemini（構造化出力 + Mermaid 生成） | `backend/app/routers/analysis.py` |
 | Report drafting（レポート生成） | `POST /reports/generate` | deterministic 生成（LLM 未使用） | `backend/app/routers/reports.py` |
 
@@ -99,11 +99,12 @@
   - 既存の `Card.ai_confidence` / `Card.ai_notes` / `Card.ai_failure_reason` を継続利用。
   - `model` / `token_usage` の保存が必要なら、`custom_fields` へ格納するか、専用カラム/テーブル追加を検討する。
 
-### 5.3 Competency evaluations（`/users/me/evaluations`）
+### 5.3 Competency evaluations（`/users/me/evaluations`, `/users/me/evaluations/batch`）
 
 現状は rule-based で評価と提案を生成しており、AI 支援体験（合理的な根拠・行動提案）が弱い。
 
 - 方針: `CompetencyEvaluator` を Gemini ベースに置き換える、または `GeminiCompetencyEvaluator` を追加して移行する。
+- バッチ評価は 1 リクエストで複数コンピテンシーを判定し、日次クォータは 1 回分消費する前提とする。
 - 入力コンテキスト案:
   - 評価対象期間のカード/サブタスク集計（既存のメトリクス）
   - `Competency`（level, rubric, criteria prompts）

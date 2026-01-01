@@ -89,3 +89,4 @@ Use this map when you need to find code fast. For a full catalogue of written gu
 - [Documentation Index](README.md) — curated guide to architecture, governance, and feature docs
 - [Development Governance Handbook](governance/development-governance-handbook.md) — coding standards and quality gates
 - [Angular Coding & Design Guidelines](guidelines/angular-coding-guidelines.md) — SPA-specific rules
+- [Test case checklist](testing/test-cases-checklist.md) — Playwright (E2E) and Angular unit test inventory
