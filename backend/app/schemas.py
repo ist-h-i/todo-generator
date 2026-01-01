@@ -884,11 +884,19 @@ class ImmunityMapSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ImmunityMapCoreInsight(BaseModel):
+    text: str = Field(min_length=1)
+    related_node_id: str = Field(min_length=2)
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class ImmunityMapResponse(BaseModel):
     model: Optional[str] = None
     payload: ImmunityMapPayload
     mermaid: str
     summary: Optional[ImmunityMapSummary] = None
+    core_insight: Optional[ImmunityMapCoreInsight] = None
     readout_cards: List[ImmunityMapReadoutCard] = Field(default_factory=list)
     token_usage: Dict[str, Any] = Field(default_factory=dict)
     warnings: List[str] = Field(default_factory=list)

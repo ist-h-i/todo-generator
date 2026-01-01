@@ -475,6 +475,101 @@
   --mermaid-viewer-resize: vertical;
 }
 
+.analytics-immunity-map__insight {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border-card));
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--accent) 28%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent) 16%, var(--surface-layer-1)),
+      color-mix(in srgb, var(--surface-layer-2) 82%, var(--accent-muted) 18%)
+    );
+  box-shadow:
+    0 28px 60px -45px color-mix(in srgb, var(--accent) 70%, transparent),
+    0 18px 34px -32px color-mix(in srgb, var(--surface-inverse) 55%, transparent);
+}
+
+.analytics-immunity-map__insight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 20% 20%,
+      color-mix(in srgb, var(--accent-strong) 22%, transparent),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 80% 10%,
+      color-mix(in srgb, var(--accent) 20%, transparent),
+      transparent 55%
+    );
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.analytics-immunity-map__insight-content {
+  position: relative;
+  z-index: 1;
+}
+
+.analytics-immunity-map__insight-header {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.analytics-immunity-map__insight-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.analytics-immunity-map__insight-subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.analytics-immunity-map__insight-text {
+  margin: 0;
+  font-size: clamp(1.4rem, 1.1rem + 1.1vw, 2.05rem);
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  text-shadow: 0 18px 35px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.analytics-immunity-map__insight-related {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px dashed color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
+}
+
+.analytics-immunity-map__insight-related-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.analytics-immunity-map__insight-related-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 
 
 

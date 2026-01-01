@@ -163,6 +163,23 @@ export class AnalyticsPageStore {
   public readonly isGenerating = signal(false);
   public readonly generationError = signal<string | null>(null);
   public readonly generatedMap = signal<ImmunityMapResponse | null>(null);
+  public readonly coreInsight = computed(() => {
+    const generated = this.generatedMap();
+    const insight = generated?.core_insight ?? null;
+    if (!insight || typeof insight.text !== 'string' || insight.text.trim().length === 0) {
+      return null;
+    }
+
+    const relatedNode = generated?.payload.nodes.find(
+      (node) => node.id === insight.related_node_id,
+    );
+
+    return {
+      ...insight,
+      related_node_label: relatedNode?.label ?? null,
+      related_node_group: relatedNode?.group ?? null,
+    };
+  });
   public readonly immunityMapWarnings = computed(() => this.generatedMap()?.warnings ?? []);
   public readonly copyStatus = signal<'idle' | 'copied' | 'failed'>('idle');
 
@@ -383,6 +400,21 @@ export class AnalyticsPageStore {
       lines.push('### ひとことアドバイス');
       lines.push('');
       lines.push(generated.summary.one_line_advice.trim());
+      lines.push('');
+    }
+
+    if (generated.core_insight?.text) {
+      const relatedId = generated.core_insight.related_node_id;
+      const relatedNode = generated.payload.nodes.find((node) => node.id === relatedId);
+      const relationLabel = relatedNode
+        ? `${relatedId} (${relatedNode.group}): ${relatedNode.label}`
+        : relatedId;
+
+      lines.push('## 気づきのひとこと');
+      lines.push('');
+      lines.push(`- 関連: ${this.sanitizeInlineMarkdownText(relationLabel)}`);
+      lines.push('');
+      lines.push(generated.core_insight.text.trim());
       lines.push('');
     }
 

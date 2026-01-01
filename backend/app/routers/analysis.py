@@ -19,6 +19,7 @@ from ..schemas import (
     ImmunityMapCandidate,
     ImmunityMapCandidateRequest,
     ImmunityMapCandidateResponse,
+    ImmunityMapCoreInsight,
     ImmunityMapEvidence,
     ImmunityMapEdge,
     ImmunityMapNode,
@@ -244,6 +245,8 @@ _IMMUNITY_MAP_SYSTEM_PROMPT = (
     " Your output must be a JSON object that matches the provided schema."
     " Write labels in natural Japanese."
     " Provide a summary with current_analysis and one_line_advice in natural Japanese."
+    " Provide core_insight with text and related_node_id referencing a D/E/F node."
+    " core_insight.text should be a catchy one-liner or action for problem-solving, level-up, or core thinking."
     " Provide optional readout_cards that distinguish observation vs hypothesis and include evidence when possible."
     " Treat deep psychology as hypotheses; avoid clinical or diagnostic language."
     " When the context is limited, still propose plausible hypotheses rather than returning empty nodes/edges."
@@ -353,6 +356,15 @@ _IMMUNITY_MAP_RESPONSE_SCHEMA: dict[str, Any] = {
             "properties": {
                 "current_analysis": {"type": "string", "minLength": 1},
                 "one_line_advice": {"type": "string", "minLength": 1},
+            },
+        },
+        "core_insight": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["text", "related_node_id"],
+            "properties": {
+                "text": {"type": "string", "minLength": 1},
+                "related_node_id": {"type": "string", "minLength": 2},
             },
         },
         "readout_cards": {
@@ -667,6 +679,47 @@ def _parse_immunity_map_summary(raw_value: Any) -> ImmunityMapSummary | None:
         return None
 
 
+def _parse_immunity_map_core_insight(
+    raw_value: Any,
+    node_group: Mapping[str, str],
+) -> ImmunityMapCoreInsight | None:
+    item = _to_mapping(raw_value)
+    if not item:
+        return None
+
+    text = str(item.get("text") or "").strip()
+    if not text:
+        return None
+
+    raw_id = item.get("related_node_id") or item.get("node_id") or item.get("related_node")
+    node_id = _canonicalize_immunity_map_ref(raw_id)
+    if not node_id or node_group.get(node_id) not in {"D", "E", "F"}:
+        return None
+
+    try:
+        return ImmunityMapCoreInsight(text=text, related_node_id=node_id)
+    except ValidationError:
+        return None
+
+
+def _fallback_core_insight(
+    summary: ImmunityMapSummary | None,
+    nodes: Sequence[ImmunityMapNode],
+) -> ImmunityMapCoreInsight | None:
+    if not summary:
+        return None
+    text = summary.one_line_advice.strip()
+    if not text:
+        return None
+    for node in nodes:
+        if node.group in {"D", "E", "F"}:
+            try:
+                return ImmunityMapCoreInsight(text=text, related_node_id=node.id)
+            except ValidationError:
+                return None
+    return None
+
+
 @router.post("/immunity-map/candidates", response_model=ImmunityMapCandidateResponse)
 def generate_immunity_map_candidates(
     payload: ImmunityMapCandidateRequest,
@@ -869,6 +922,8 @@ def generate_immunity_map(
             "- Keep labels short in natural Japanese and avoid clinical language.",
             "- summary.current_analysis should concisely describe the current situation in Japanese.",
             "- summary.one_line_advice should be a single short actionable sentence in Japanese.",
+            "- core_insight.text should be a short catchy one-liner or action for problem-solving, level-up, or core thinking.",
+            "- core_insight.related_node_id should reference the single most important D/E/F node tied to the insight.",
             "- readout_cards should distinguish observations vs hypotheses and include evidence.",
         ]
     )
@@ -994,6 +1049,9 @@ def generate_immunity_map(
     model = generated.get("model")
     token_usage = generated.get("token_usage")
     summary = _parse_immunity_map_summary(generated.get("summary"))
+    core_insight = _parse_immunity_map_core_insight(generated.get("core_insight"), node_group)
+    if not core_insight:
+        core_insight = _fallback_core_insight(summary, nodes)
     readout_cards = _parse_readout_cards(generated.get("readout_cards"))
     warnings = [
         text
@@ -1015,6 +1073,7 @@ def generate_immunity_map(
         payload=response_payload,
         mermaid=mermaid,
         summary=summary,
+        core_insight=core_insight,
         readout_cards=readout_cards,
         token_usage=token_usage if isinstance(token_usage, Mapping) else {},
         warnings=warnings,

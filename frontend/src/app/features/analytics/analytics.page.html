@@ -531,6 +531,37 @@
             }
           </div>
         </section>
+
+        @if (coreInsight(); as insight) {
+          <section class="surface-panel page-panel analytics-immunity-map__insight lg:col-span-2">
+            <div
+              class="analytics-immunity-map__panel-content analytics-immunity-map__insight-content flex flex-col gap-3"
+            >
+              <header class="analytics-immunity-map__insight-header">
+                <div class="analytics-immunity-map__insight-badges">
+                  <span class="page-badge page-badge--accent">最下層の気づき</span>
+                  @if (insight.related_node_id) {
+                    <span class="page-badge">関連: {{ insight.related_node_id }}</span>
+                  }
+                </div>
+                <p class="analytics-immunity-map__insight-subtitle">
+                  問題解決・レベルアップ・コア思考につながるひとこと
+                </p>
+              </header>
+
+              <p class="analytics-immunity-map__insight-text">{{ insight.text }}</p>
+
+              @if (insight.related_node_label) {
+                <div class="analytics-immunity-map__insight-related">
+                  <span class="analytics-immunity-map__insight-related-label">階層3の要点</span>
+                  <span class="analytics-immunity-map__insight-related-value">
+                    {{ insight.related_node_label }}
+                  </span>
+                </div>
+              }
+            </div>
+          </section>
+        }
       }
     </div>
   </section>

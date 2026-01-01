@@ -64,6 +64,7 @@ export class AnalyticsPage {
   public readonly isGenerating = this.store.isGenerating;
   public readonly generationError = this.store.generationError;
   public readonly generatedMap = this.store.generatedMap;
+  public readonly coreInsight = this.store.coreInsight;
   public readonly copyStatus = this.store.copyStatus;
 
   public readonly toggleAdvancedMode = this.store.toggleAdvancedMode;
