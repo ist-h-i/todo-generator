@@ -129,9 +129,9 @@
             </div>
           }
 
-          @if ($any(active.processing_meta)?.ai_warnings?.length) {
+          @if (hasProcessingWarnings()) {
             <div class="app-alert app-alert--notice" role="status">
-              @for (warning of $any(active.processing_meta).ai_warnings ?? []; track warning) {
+              @for (warning of processingWarnings(); track warning) {
                 <p>{{ warning }}</p>
               }
             </div>

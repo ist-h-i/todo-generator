@@ -48,7 +48,7 @@
               <input
                 type="checkbox"
                 [checked]="selectedCompetencyIds().includes(competency.id)"
-                (change)="toggleCompetencySelection(competency.id, $any($event.target).checked)"
+                (change)="toggleCompetencySelection(competency.id, readInputChecked($event))"
               />
               <span>{{ competency.name }}</span>
             </label>

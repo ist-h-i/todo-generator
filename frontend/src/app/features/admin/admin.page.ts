@@ -7,14 +7,7 @@ import {
   signal,
 } from '@angular/core';
 
-import {
-  FormArray,
-  FormBuilder,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -78,7 +71,6 @@ export class AdminPage {
   private readonly api = inject(AdminApi);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(Auth);
-  private readonly formBuilder = inject(FormBuilder);
 
   public readonly activeTab = signal<AdminTab>('competencies');
   public readonly competencies = signal<Competency[]>([]);
@@ -297,6 +289,11 @@ export class AdminPage {
   public clearError(): void {
     this.error.set(null);
   }
+
+  public readonly readInputChecked = (event: Event): boolean => {
+    const target = event.target as HTMLInputElement | null;
+    return target?.checked ?? false;
+  };
 
   public addCriterion(): void {
     this.competencyCriteria.push(this.createCriterionGroup());
@@ -911,34 +908,26 @@ export class AdminPage {
   }
 
   private createCriterionGroup(initial?: Partial<CompetencyCriterionInput>): CriterionFormGroup {
-    return this.formBuilder.group({
-      title: this.formBuilder.control(initial?.title ?? '', { nonNullable: true }),
-      description: this.formBuilder.control(initial?.description ?? '', { nonNullable: true }),
+    return new FormGroup({
+      title: new FormControl(initial?.title ?? '', { nonNullable: true }),
+      description: new FormControl(initial?.description ?? '', { nonNullable: true }),
     });
   }
 
   private createUserQuotaForm(user: AdminUser): UserQuotaForm {
-    return this.formBuilder.group({
-      cardDailyLimit: this.formBuilder.control<number | null>(user.card_daily_limit ?? null),
-      evaluationDailyLimit: this.formBuilder.control<number | null>(
-        user.evaluation_daily_limit ?? null,
-      ),
-      analysisDailyLimit: this.formBuilder.control<number | null>(
-        user.analysis_daily_limit ?? null,
-      ),
-      statusReportDailyLimit: this.formBuilder.control<number | null>(
+    return new FormGroup({
+      cardDailyLimit: new FormControl<number | null>(user.card_daily_limit ?? null),
+      evaluationDailyLimit: new FormControl<number | null>(user.evaluation_daily_limit ?? null),
+      analysisDailyLimit: new FormControl<number | null>(user.analysis_daily_limit ?? null),
+      statusReportDailyLimit: new FormControl<number | null>(
         user.status_report_daily_limit ?? null,
       ),
-      immunityMapDailyLimit: this.formBuilder.control<number | null>(
-        user.immunity_map_daily_limit ?? null,
-      ),
-      immunityMapCandidateDailyLimit: this.formBuilder.control<number | null>(
+      immunityMapDailyLimit: new FormControl<number | null>(user.immunity_map_daily_limit ?? null),
+      immunityMapCandidateDailyLimit: new FormControl<number | null>(
         user.immunity_map_candidate_daily_limit ?? null,
       ),
-      appealDailyLimit: this.formBuilder.control<number | null>(user.appeal_daily_limit ?? null),
-      autoCardDailyLimit: this.formBuilder.control<number | null>(
-        user.auto_card_daily_limit ?? null,
-      ),
+      appealDailyLimit: new FormControl<number | null>(user.appeal_daily_limit ?? null),
+      autoCardDailyLimit: new FormControl<number | null>(user.auto_card_daily_limit ?? null),
     });
   }
 

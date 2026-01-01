@@ -45,4 +45,9 @@ export class AnalyzePage {
   public readonly updateProposalSummary = this.store.updateProposalSummary;
   public readonly updateProposalTitle = this.store.updateProposalTitle;
   public readonly updateSubtaskTitle = this.store.updateSubtaskTitle;
+
+  public readonly readInputValue = (event: Event): string => {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement | null;
+    return target?.value ?? '';
+  };
 }

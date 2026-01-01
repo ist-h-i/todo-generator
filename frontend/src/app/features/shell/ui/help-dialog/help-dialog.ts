@@ -6,6 +6,7 @@ import {
   output,
   viewChild,
 } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 
 interface GuideItem {
   readonly title: string;
@@ -33,6 +34,7 @@ interface FaqItem {
 
 @Component({
   selector: 'app-help-dialog',
+  imports: [NgOptimizedImage],
   templateUrl: './help-dialog.html',
   styleUrl: './help-dialog.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

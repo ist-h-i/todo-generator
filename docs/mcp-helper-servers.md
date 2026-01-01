@@ -9,12 +9,13 @@ Launch the Model Context Protocol helper servers when you need Codex or other MC
 - Sequential thinking (`@modelcontextprotocol/server-sequential-thinking`)
 - Time (`mcp-server-time`)
 - Serena (`serena start-mcp-server`)
-- Optional adapters: Magic (`@21st-dev/magic`) when `MAGIC_API_KEY` is available, and Playwright (`@playwright/mcp`).
+- Optional adapters: Playwright (`@playwright/mcp`).
 
 ## Prerequisites
 
 - Ensure `uvx` is available (`uv` 0.4.0+). See <https://docs.astral.sh/uv/getting-started/> for installation guidance.
 - Ensure `npx` is available (install Node.js 20+ from <https://nodejs.org/>).
+- Serena currently requires Python 3.11 (`<3.12` upstream). The helper script requests Python 3.11 via `uvx`, so install it or allow `uv` to download a managed interpreter.
 
 ## Windows
 

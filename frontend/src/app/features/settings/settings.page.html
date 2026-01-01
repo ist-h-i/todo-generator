@@ -49,7 +49,7 @@
               class="form-control"
               placeholder="例: QA Review"
               [value]="statusForm.controls.name.value()"
-              (input)="statusForm.controls.name.setValue($any($event.target).value)"
+              (input)="statusForm.controls.name.setValue(readInputValue($event))"
             />
           </label>
           <label class="form-field settings-color-field">
@@ -59,7 +59,7 @@
               type="color"
               class="form-control settings-color-picker"
               [value]="statusForm.controls.color.value()"
-              (input)="statusForm.controls.color.setValue($any($event.target).value)"
+              (input)="statusForm.controls.color.setValue(readInputValue($event))"
             />
           </label>
         </div>
@@ -135,7 +135,7 @@
               class="form-control"
               placeholder="例: DevOps"
               [value]="labelForm.controls.name.value()"
-              (input)="labelForm.controls.name.setValue($any($event.target).value)"
+              (input)="labelForm.controls.name.setValue(readInputValue($event))"
             />
           </label>
           <label class="form-field settings-color-field">
@@ -145,7 +145,7 @@
               type="color"
               class="form-control settings-color-picker"
               [value]="labelForm.controls.color.value()"
-              (input)="labelForm.controls.color.setValue($any($event.target).value)"
+              (input)="labelForm.controls.color.setValue(readInputValue($event))"
             />
           </label>
         </div>
@@ -219,7 +219,7 @@
                     class="form-control"
                     placeholder="例: スプリント改善"
                     [value]="templateEditForm.controls.name.value()"
-                    (input)="templateEditForm.controls.name.setValue($any($event.target).value)"
+                    (input)="templateEditForm.controls.name.setValue(readInputValue($event))"
                   />
                 </label>
 
@@ -234,9 +234,7 @@
                     class="form-control form-control--textarea"
                     placeholder="テンプレートの利用シーンを記載してください"
                     [value]="templateEditForm.controls.description.value()"
-                    (input)="
-                      templateEditForm.controls.description.setValue($any($event.target).value)
-                    "
+                    (input)="templateEditForm.controls.description.setValue(readInputValue($event))"
                   ></textarea>
                 </label>
 
@@ -270,7 +268,7 @@
                     (input)="
                       updateConfidenceThreshold(
                         templateEditForm.controls.confidenceThreshold,
-                        $any($event.target).valueAsNumber
+                        readInputNumberValue($event)
                       )
                     "
                   />
@@ -287,7 +285,7 @@
                         [checked]="
                           templateEditForm.controls.defaultLabelIds.value().includes(label.id)
                         "
-                        (change)="toggleEditTemplateLabel(label.id, $any($event.target).checked)"
+                        (change)="toggleEditTemplateLabel(label.id, readInputChecked($event))"
                       />
                       <span>{{ label.name }}</span>
                     </label>
@@ -306,9 +304,7 @@
                       type="checkbox"
                       [checked]="templateEditForm.controls.showStoryPoints.value()"
                       (change)="
-                        templateEditForm.controls.showStoryPoints.setValue(
-                          $any($event.target).checked
-                        )
+                        templateEditForm.controls.showStoryPoints.setValue(readInputChecked($event))
                       "
                     />
                     <span>ストーリーポイント</span>
@@ -318,7 +314,7 @@
                       type="checkbox"
                       [checked]="templateEditForm.controls.showDueDate.value()"
                       (change)="
-                        templateEditForm.controls.showDueDate.setValue($any($event.target).checked)
+                        templateEditForm.controls.showDueDate.setValue(readInputChecked($event))
                       "
                     />
                     <span>期限</span>
@@ -328,7 +324,7 @@
                       type="checkbox"
                       [checked]="templateEditForm.controls.showAssignee.value()"
                       (change)="
-                        templateEditForm.controls.showAssignee.setValue($any($event.target).checked)
+                        templateEditForm.controls.showAssignee.setValue(readInputChecked($event))
                       "
                     />
                     <span>担当</span>
@@ -338,9 +334,7 @@
                       type="checkbox"
                       [checked]="templateEditForm.controls.showConfidence.value()"
                       (change)="
-                        templateEditForm.controls.showConfidence.setValue(
-                          $any($event.target).checked
-                        )
+                        templateEditForm.controls.showConfidence.setValue(readInputChecked($event))
                       "
                     />
                     <span>AIおすすめ度</span>
@@ -401,7 +395,7 @@
             class="form-control"
             placeholder="例: スプリント改善"
             [value]="templateForm.controls.name.value()"
-            (input)="templateForm.controls.name.setValue($any($event.target).value)"
+            (input)="templateForm.controls.name.setValue(readInputValue($event))"
           />
         </label>
 
@@ -412,7 +406,7 @@
             class="form-control form-control--textarea"
             placeholder="テンプレートの利用シーンを記載してください"
             [value]="templateForm.controls.description.value()"
-            (input)="templateForm.controls.description.setValue($any($event.target).value)"
+            (input)="templateForm.controls.description.setValue(readInputValue($event))"
           ></textarea>
         </label>
 
@@ -440,7 +434,7 @@
             (input)="
               updateConfidenceThreshold(
                 templateForm.controls.confidenceThreshold,
-                $any($event.target).valueAsNumber
+                readInputNumberValue($event)
               )
             "
           />
@@ -455,7 +449,7 @@
               <input
                 type="checkbox"
                 [checked]="templateForm.controls.defaultLabelIds.value().includes(label.id)"
-                (change)="toggleCreateTemplateLabel(label.id, $any($event.target).checked)"
+                (change)="toggleCreateTemplateLabel(label.id, readInputChecked($event))"
               />
               <span>{{ label.name }}</span>
             </label>
@@ -473,7 +467,7 @@
             <input
               type="checkbox"
               [checked]="templateForm.controls.showStoryPoints.value()"
-              (change)="templateForm.controls.showStoryPoints.setValue($any($event.target).checked)"
+              (change)="templateForm.controls.showStoryPoints.setValue(readInputChecked($event))"
             />
             <span>ストーリーポイント</span>
           </label>
@@ -481,7 +475,7 @@
             <input
               type="checkbox"
               [checked]="templateForm.controls.showDueDate.value()"
-              (change)="templateForm.controls.showDueDate.setValue($any($event.target).checked)"
+              (change)="templateForm.controls.showDueDate.setValue(readInputChecked($event))"
             />
             <span>期限</span>
           </label>
@@ -489,7 +483,7 @@
             <input
               type="checkbox"
               [checked]="templateForm.controls.showAssignee.value()"
-              (change)="templateForm.controls.showAssignee.setValue($any($event.target).checked)"
+              (change)="templateForm.controls.showAssignee.setValue(readInputChecked($event))"
             />
             <span>担当</span>
           </label>
@@ -497,7 +491,7 @@
             <input
               type="checkbox"
               [checked]="templateForm.controls.showConfidence.value()"
-              (change)="templateForm.controls.showConfidence.setValue($any($event.target).checked)"
+              (change)="templateForm.controls.showConfidence.setValue(readInputChecked($event))"
             />
             <span>AIおすすめ度</span>
           </label>

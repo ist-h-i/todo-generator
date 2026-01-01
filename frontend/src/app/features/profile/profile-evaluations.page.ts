@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -11,7 +12,7 @@ import { PageLayout } from '@shared/ui/page-layout/page-layout';
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
 import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 import { HttpErrorResponse } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { CompetencyApi } from '@core/api/competency-api';
 import {
@@ -59,19 +60,102 @@ export class ProfileEvaluationsPage {
   private readonly destroyRef = inject(DestroyRef);
   private feedbackTimeoutId: number | null = null;
 
-  public readonly evaluations = signal<CompetencyEvaluation[]>([]);
-  public readonly loading = signal<boolean>(false);
-  public readonly error = signal<string | null>(null);
-  public readonly quota = signal<EvaluationQuotaStatus | null>(null);
-  public readonly quotaLoading = signal<boolean>(false);
-  public readonly quotaError = signal<string | null>(null);
+  private readonly evaluationsRequestId = signal(0);
+  private readonly quotaRequestId = signal(0);
+  private readonly competenciesRequestId = signal(0);
+
+  private readonly evaluationsResource = rxResource<CompetencyEvaluation[], number>({
+    defaultValue: [],
+    params: this.evaluationsRequestId,
+    stream: () => this.api.getMyEvaluations(DEFAULT_HISTORY_LIMIT),
+  });
+  private readonly quotaResource = rxResource<EvaluationQuotaStatus | null, number>({
+    defaultValue: null,
+    params: this.quotaRequestId,
+    stream: () => this.api.getMyEvaluationQuota(),
+  });
+  private readonly competenciesResource = rxResource<CompetencySummary[], number>({
+    defaultValue: [],
+    params: this.competenciesRequestId,
+    stream: () => this.api.getMyCompetencies(),
+  });
+
+  public readonly evaluations = computed(() => {
+    if (this.evaluationsResource.status() === 'error') {
+      return [];
+    }
+
+    return this.evaluationsResource.value();
+  });
+  public readonly loading = computed(() => this.evaluationsResource.isLoading());
+  public readonly error = computed(() => {
+    if (this.evaluationsResource.status() !== 'error') {
+      return null;
+    }
+
+    return this.resolveHttpErrorMessage(
+      this.evaluationsResource.error(),
+      'コンピテンシー評価の取得に失敗しました。時間をおいて再度お試しください。',
+    );
+  });
+  public readonly quota = computed(() => {
+    if (this.quotaResource.status() === 'error') {
+      return null;
+    }
+
+    return this.quotaResource.value();
+  });
+  public readonly quotaLoading = computed(() => this.quotaResource.isLoading());
+  public readonly quotaError = computed(() => {
+    if (this.quotaResource.status() !== 'error') {
+      return null;
+    }
+
+    return this.resolveHttpErrorMessage(
+      this.quotaResource.error(),
+      '評価上限の情報を取得できませんでした。',
+    );
+  });
   public readonly runningEvaluation = signal<boolean>(false);
   public readonly actionError = signal<string | null>(null);
   public readonly feedback = signal<string | null>(null);
-  public readonly competencies = signal<CompetencySummary[]>([]);
-  public readonly competenciesLoading = signal<boolean>(false);
-  public readonly competenciesError = signal<string | null>(null);
+  public readonly competencies = computed(() => {
+    if (this.competenciesResource.status() === 'error') {
+      return [];
+    }
+
+    return this.competenciesResource.value();
+  });
+  public readonly competenciesLoading = computed(() => this.competenciesResource.isLoading());
+  public readonly competenciesError = computed(() => {
+    if (this.competenciesResource.status() !== 'error') {
+      return null;
+    }
+
+    return this.resolveHttpErrorMessage(
+      this.competenciesResource.error(),
+      'コンピテンシー一覧の取得に失敗しました。時間をおいて再度お試しください。',
+    );
+  });
   public readonly selectedCompetencyIds = signal<string[]>([]);
+
+  public readonly readInputChecked = (event: Event): boolean => {
+    const target = event.target as HTMLInputElement | null;
+    return target?.checked ?? false;
+  };
+
+  private readonly syncCompetencySelection = effect(() => {
+    const status = this.competenciesResource.status();
+    if (status !== 'resolved' && status !== 'local') {
+      return;
+    }
+
+    const allowed = new Set(this.competencies().map((competency) => competency.id));
+    this.selectedCompetencyIds.update((selected) => {
+      const filtered = selected.filter((competencyId) => allowed.has(competencyId));
+      return filtered.length === selected.length ? selected : filtered;
+    });
+  });
 
   public readonly latestEvaluation = computed<CompetencyEvaluation | null>(() => {
     const [latest] = this.evaluations();
@@ -165,12 +249,6 @@ export class ProfileEvaluationsPage {
     return true;
   });
 
-  public constructor() {
-    this.loadEvaluations();
-    this.loadQuota();
-    this.loadCompetencies();
-  }
-
   public refresh(): void {
     this.loadEvaluations();
     this.loadQuota();
@@ -241,8 +319,7 @@ export class ProfileEvaluationsPage {
       .subscribe({
         next: (evaluation) => {
           this.runningEvaluation.set(false);
-          this.error.set(null);
-          this.evaluations.update((list) => {
+          this.evaluationsResource.update((list) => {
             const filtered = list.filter((item) => item.id !== evaluation.id);
             return [evaluation, ...filtered].slice(0, DEFAULT_HISTORY_LIMIT);
           });
@@ -251,10 +328,10 @@ export class ProfileEvaluationsPage {
         },
         error: (error: HttpErrorResponse) => {
           this.runningEvaluation.set(false);
-          const message =
-            typeof error.error === 'object' && error.error?.detail
-              ? String(error.error.detail)
-              : '評価の実行に失敗しました。時間をおいて再度お試しください。';
+          const message = this.resolveHttpErrorMessage(
+            error,
+            '評価の実行に失敗しました。時間をおいて再度お試しください。',
+          );
           this.actionError.set(message);
           if (error.status === 429 || error.status === 401) {
             this.loadQuota();
@@ -282,8 +359,7 @@ export class ProfileEvaluationsPage {
       .subscribe({
         next: (evaluations) => {
           this.runningEvaluation.set(false);
-          this.error.set(null);
-          this.evaluations.update((list) => {
+          this.evaluationsResource.update((list) => {
             const byId = new Map<string, CompetencyEvaluation>();
             [...evaluations, ...list].forEach((item) => byId.set(item.id, item));
             const merged = Array.from(byId.values()).sort((a, b) =>
@@ -299,10 +375,10 @@ export class ProfileEvaluationsPage {
         },
         error: (error: HttpErrorResponse) => {
           this.runningEvaluation.set(false);
-          const message =
-            typeof error.error === 'object' && error.error?.detail
-              ? String(error.error.detail)
-              : '評価の実行に失敗しました。時間をおいて再度お試しください。';
+          const message = this.resolveHttpErrorMessage(
+            error,
+            '評価の実行に失敗しました。時間をおいて再度お試しください。',
+          );
           this.actionError.set(message);
           if (error.status === 429 || error.status === 401) {
             this.loadQuota();
@@ -360,79 +436,45 @@ export class ProfileEvaluationsPage {
   }
 
   private loadEvaluations(): void {
-    this.loading.set(true);
-    this.error.set(null);
-
-    this.api
-      .getMyEvaluations(DEFAULT_HISTORY_LIMIT)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (evaluations) => {
-          this.evaluations.set(evaluations);
-          this.loading.set(false);
-        },
-        error: (error: HttpErrorResponse) => {
-          this.loading.set(false);
-          const message =
-            typeof error.error === 'object' && error.error?.detail
-              ? String(error.error.detail)
-              : 'コンピテンシー評価の取得に失敗しました。時間をおいて再度お試しください。';
-          this.error.set(message);
-        },
-      });
+    this.evaluationsRequestId.update((value) => value + 1);
   }
 
   private loadQuota(): void {
-    this.quotaLoading.set(true);
-    this.quotaError.set(null);
-
-    this.api
-      .getMyEvaluationQuota()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (quota) => {
-          this.quota.set(quota);
-          this.quotaLoading.set(false);
-        },
-        error: (error: HttpErrorResponse) => {
-          this.quotaLoading.set(false);
-          this.quota.set(null);
-          const message =
-            typeof error.error === 'object' && error.error?.detail
-              ? String(error.error.detail)
-              : '評価上限の情報を取得できませんでした。';
-          this.quotaError.set(message);
-        },
-      });
+    this.quotaRequestId.update((value) => value + 1);
   }
 
   private loadCompetencies(): void {
-    this.competenciesLoading.set(true);
-    this.competenciesError.set(null);
+    this.competenciesRequestId.update((value) => value + 1);
+  }
 
-    this.api
-      .getMyCompetencies()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (competencies) => {
-          this.competencies.set(competencies);
-          this.competenciesLoading.set(false);
+  private resolveHttpErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      return this.extractErrorDetail(error) ?? fallback;
+    }
 
-          const allowed = new Set(competencies.map((competency) => competency.id));
-          this.selectedCompetencyIds.update((selected) =>
-            selected.filter((competencyId) => allowed.has(competencyId)),
-          );
-        },
-        error: (error: HttpErrorResponse) => {
-          this.competenciesLoading.set(false);
-          this.competencies.set([]);
-          const message =
-            typeof error.error === 'object' && error.error?.detail
-              ? String(error.error.detail)
-              : 'コンピテンシー一覧の取得に失敗しました。時間をおいて再度お試しください。';
-          this.competenciesError.set(message);
-        },
-      });
+    if (error instanceof Error && error.message) {
+      return error.message;
+    }
+
+    if (typeof error === 'string' && error.trim().length > 0) {
+      return error;
+    }
+
+    return fallback;
+  }
+
+  private extractErrorDetail(error: HttpErrorResponse): string | null {
+    const payload = error.error;
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    if (!('detail' in payload)) {
+      return null;
+    }
+
+    const detail = (payload as { detail?: unknown }).detail;
+    return detail ? String(detail) : null;
   }
 
   private showFeedback(message: string): void {

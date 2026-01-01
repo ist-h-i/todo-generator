@@ -270,6 +270,11 @@ export class AchievementOutputPage {
     this.form.controls.subjectLabelId.setValue(value);
   }
 
+  public readonly readInputValue = (event: Event): string => {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement | null;
+    return target?.value ?? '';
+  };
+
   public updateCustomSubject(value: string): void {
     this.form.controls.subjectCustom.setValue(value);
   }

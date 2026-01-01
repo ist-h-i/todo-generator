@@ -1,5 +1,5 @@
 import { afterNextRender, ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { DecimalPipe, NgClass } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 
 import { PageHeader } from '@shared/ui/page-header/page-header';
@@ -12,7 +12,7 @@ type ColumnAccentSource = { readonly accent: string };
 
 @Component({
   selector: 'app-board-page',
-  imports: [NgClass, DecimalPipe, DragDropModule, PageHeader, LocalDateTimePipe, UiSelect],
+  imports: [DecimalPipe, DragDropModule, PageHeader, LocalDateTimePipe, UiSelect],
   templateUrl: './board.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [BoardPageStore],

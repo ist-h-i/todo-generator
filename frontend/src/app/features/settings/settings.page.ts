@@ -45,4 +45,19 @@ export class SettingsPage {
   public readonly removeTemplate = this.store.removeTemplate;
   public readonly removeStatus = this.store.removeStatus;
   public readonly removeLabel = this.store.removeLabel;
+
+  public readonly readInputValue = (event: Event): string => {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement | null;
+    return target?.value ?? '';
+  };
+
+  public readonly readInputChecked = (event: Event): boolean => {
+    const target = event.target as HTMLInputElement | null;
+    return target?.checked ?? false;
+  };
+
+  public readonly readInputNumberValue = (event: Event): number => {
+    const target = event.target as HTMLInputElement | null;
+    return target?.valueAsNumber ?? Number.NaN;
+  };
 }

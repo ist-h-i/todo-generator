@@ -51,6 +51,8 @@
     "serena": {
       "command": "uvx",
       "args": [
+        "--python",
+        "3.11",
         "--from",
         "git+https://github.com/oraios/serena",
         "serena",
@@ -60,26 +62,11 @@
         "--project",
         "${workspaceFolder}"
       ],
-      "timeoutSeconds": 180,
-      "disabledTools": []
-    },
-    "@21st-dev/magic": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "dotenv",
-        "-e",
-        ".env",
-        "--",
-        "npx",
-        "-y",
-        "@21st-dev/magic@latest"
-      ],
       "env": {
-        "API_KEY": "${env:MAGIC_API_KEY}"
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "UTF-8"
       },
+      "timeoutSeconds": 180,
       "disabledTools": []
     },
     "mcp-playwright": {

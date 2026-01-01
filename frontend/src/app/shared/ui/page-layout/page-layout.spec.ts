@@ -43,7 +43,6 @@ describe('PageLayout', () => {
 });
 
 @Component({
-  standalone: true,
   imports: [PageLayout],
   template: `
     <shared-page-layout [title]="title">

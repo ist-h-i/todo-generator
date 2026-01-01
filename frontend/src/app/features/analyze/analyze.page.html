@@ -16,7 +16,7 @@
           class="form-control form-control--textarea analyze-page__notes-input"
           placeholder="例: ユーザーからのフィードバックや不具合の状況を貼り付けてください"
           [value]="analyzeForm.controls.notes.value()"
-          (input)="analyzeForm.controls.notes.setValue($any($event.target).value)"
+          (input)="analyzeForm.controls.notes.setValue(readInputValue($event))"
         ></textarea>
       </label>
 
@@ -81,7 +81,7 @@
               class="form-control form-control--textarea"
               placeholder="例: 新規登録フローの離脱率を20%改善する"
               [value]="analyzeForm.controls.objective.value()"
-              (input)="analyzeForm.controls.objective.setValue($any($event.target).value)"
+              (input)="analyzeForm.controls.objective.setValue(readInputValue($event))"
             ></textarea>
             <p class="form-note">
               ゴールは AI
@@ -252,7 +252,7 @@
                     type="text"
                     class="form-control"
                     [value]="proposal.title"
-                    (input)="updateProposalTitle(proposal.id, $any($event.target).value)"
+                    (input)="updateProposalTitle(proposal.id, readInputValue($event))"
                     placeholder="カードのタイトルを入力"
                   />
                 </label>
@@ -261,7 +261,7 @@
                   <textarea
                     class="form-control form-control--textarea"
                     [value]="proposal.summary"
-                    (input)="updateProposalSummary(proposal.id, $any($event.target).value)"
+                    (input)="updateProposalSummary(proposal.id, readInputValue($event))"
                     placeholder="概要や背景を記入"
                   ></textarea>
                 </label>
@@ -303,9 +303,7 @@
                           type="text"
                           class="form-control"
                           [value]="task.title"
-                          (input)="
-                            updateSubtaskTitle(proposal.id, task.id, $any($event.target).value)
-                          "
+                          (input)="updateSubtaskTitle(proposal.id, task.id, readInputValue($event))"
                           placeholder="サブタスクの内容を入力"
                         />
                         <button

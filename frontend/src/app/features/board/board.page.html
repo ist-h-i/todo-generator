@@ -46,10 +46,8 @@
             <button
               type="button"
               class="button button--pill"
-              [ngClass]="{
-                'button--secondary': groupingSignal() === 'status',
-                'button--ghost': groupingSignal() !== 'status',
-              }"
+              [class.button--secondary]="groupingSignal() === 'status'"
+              [class.button--ghost]="groupingSignal() !== 'status'"
               [attr.aria-pressed]="groupingSignal() === 'status'"
               (click)="selectGrouping('status')"
             >
@@ -58,10 +56,8 @@
             <button
               type="button"
               class="button button--pill"
-              [ngClass]="{
-                'button--secondary': groupingSignal() === 'label',
-                'button--ghost': groupingSignal() !== 'label',
-              }"
+              [class.button--secondary]="groupingSignal() === 'label'"
+              [class.button--ghost]="groupingSignal() !== 'label'"
               [attr.aria-pressed]="groupingSignal() === 'label'"
               (click)="selectGrouping('label')"
             >
@@ -78,10 +74,8 @@
               <button
                 type="button"
                 class="button button--pill"
-                [ngClass]="{
-                  'button--secondary': isQuickFilterActive(filter.id),
-                  'button--ghost': !isQuickFilterActive(filter.id),
-                }"
+                [class.button--secondary]="isQuickFilterActive(filter.id)"
+                [class.button--ghost]="!isQuickFilterActive(filter.id)"
                 [attr.aria-pressed]="isQuickFilterActive(filter.id)"
                 [title]="filter.description"
                 (click)="toggleQuickFilter(filter.id)"

@@ -89,8 +89,6 @@ Create a `.env` file in the repository root or export variables before launching
 
 Store the Neon credentials outside the repository (for example, in a `.env` file that is excluded from version control) and inject them through `DATABASE_URL` when you want to run against PostgreSQL.
 
-If you plan to use the `@21st-dev/magic` MCP server, define `MAGIC_API_KEY` in your environment (or `.env`) before running `start-mcp-servers.*`; both `.modelcontext.json` and `.codex/config.toml` now load the API key from that variable at runtime.
-
 ### One-click startup on Windows
 
 Run the bundled script from the repository root. It creates a virtual environment, installs Python and npm dependencies, and launches both servers in separate terminals.
@@ -132,7 +130,7 @@ The backend starts on <http://localhost:8000> (with auto-applied migrations and 
 
 - Sign in from the frontend at `http://localhost:4200/login` (backend auth endpoints live under `POST /auth/*`).
 - Store secrets and Gemini keys through the admin console once `SECRET_ENCRYPTION_KEY` is configured.
-- Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, with optional Magic and Playwright adapters) when running Codex automation or other MCP-aware tooling.
+- Use `start-mcp-servers.*` to launch the Model Context Protocol helper servers (filesystem, memory, fetch, puppeteer, sequential thinking, time, serena, with optional Playwright adapters) when running Codex automation or other MCP-aware tooling.
 
 ## Quality and automation
 

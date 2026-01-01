@@ -161,7 +161,7 @@
                 maxlength="120"
                 placeholder="例: 新規オンボーディングの成果"
                 [value]="form.controls.subjectCustom.value()"
-                (input)="updateCustomSubject($any($event.target).value)"
+                (input)="updateCustomSubject(readInputValue($event))"
               />
               <p class="form-note">120 文字以内で入力してください。</p>
             </label>
@@ -195,7 +195,7 @@
                   class="form-control"
                   placeholder="例: 課題"
                   [value]="step"
-                  (input)="updateFlowStep(index, $any($event.target).value)"
+                  (input)="updateFlowStep(index, readInputValue($event))"
                 />
               </div>
             }
@@ -359,7 +359,7 @@
                 [attr.data-editor]="activeFormat()?.editor_mode ?? null"
                 placeholder="生成結果がここに表示されます"
                 [value]="activeContent()"
-                (input)="updateFormatContent(activeFormatId(), $any($event.target).value)"
+                (input)="updateFormatContent(activeFormatId(), readInputValue($event))"
               ></textarea>
             </div>
 

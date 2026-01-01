@@ -6,7 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { RouterLink } from '@angular/router';
@@ -28,6 +28,32 @@ import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
 import { UiSelect } from '@shared/ui/select/ui-select';
 import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 
+type SectionFormControls = {
+  title: FormControl<string>;
+  body: FormControl<string>;
+};
+type SectionFormGroup = FormGroup<SectionFormControls>;
+type SubtaskFormControls = {
+  title: FormControl<string>;
+  description: FormControl<string>;
+  status: FormControl<string>;
+};
+type SubtaskFormGroup = FormGroup<SubtaskFormControls>;
+type ProposalFormControls = {
+  title: FormControl<string>;
+  summary: FormControl<string>;
+  status: FormControl<string>;
+  labels: FormControl<string>;
+  priority: FormControl<string>;
+  dueInDays: FormControl<number | null>;
+  subtasks: FormArray<SubtaskFormGroup>;
+};
+type ProposalFormGroup = FormGroup<ProposalFormControls>;
+type ReportFormControls = {
+  tags: FormControl<string>;
+  sections: FormArray<SectionFormGroup>;
+};
+
 @Component({
   selector: 'app-report-assistant-page',
   imports: [ReactiveFormsModule, RouterLink, PageLayout, LocalDateTimePipe, UiSelect, AiMark],
@@ -36,7 +62,6 @@ import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 })
 export class ReportAssistantPage {
   private readonly gateway = inject(StatusReportsGateway);
-  private readonly fb = inject(FormBuilder);
   private readonly workspace = inject(WorkspaceStore);
 
   public constructor() {
@@ -50,7 +75,7 @@ export class ReportAssistantPage {
   private readonly publishPendingState = signal(false);
   private readonly publishErrorState = signal<string | null>(null);
   private readonly publishSuccessState = signal<string | null>(null);
-  public readonly proposals = new FormArray<FormGroup>([]);
+  public readonly proposals = new FormArray<ProposalFormGroup>([]);
   public readonly statusSelectOptions = computed(() => {
     const statuses = [...this.workspace.settings().statuses].sort(
       (left, right) => (left.order ?? 0) - (right.order ?? 0),
@@ -90,9 +115,9 @@ export class ReportAssistantPage {
     return index;
   });
 
-  public readonly form = this.fb.group({
-    tags: [''],
-    sections: this.fb.array([this.createSectionGroup()]),
+  public readonly form: FormGroup<ReportFormControls> = new FormGroup({
+    tags: new FormControl('', { nonNullable: true }),
+    sections: new FormArray<SectionFormGroup>([this.createSectionGroup()]),
   });
 
   private readonly syncProposalsEffect = effect(() => {
@@ -109,6 +134,23 @@ export class ReportAssistantPage {
   public readonly error = computed(() => this.errorState());
   public readonly successMessage = computed(() => this.successState());
   public readonly detail = computed(() => this.detailState());
+  public readonly processingWarnings = computed(() => {
+    const detail = this.detailState();
+    if (!detail) {
+      return [];
+    }
+
+    const warnings = detail.processing_meta['ai_warnings'];
+    if (!Array.isArray(warnings)) {
+      return [];
+    }
+
+    return warnings
+      .filter((warning): warning is string => typeof warning === 'string')
+      .map((warning) => warning.trim())
+      .filter((warning) => warning.length > 0);
+  });
+  public readonly hasProcessingWarnings = computed(() => this.processingWarnings().length > 0);
   public readonly publishPending = computed(() => this.publishPendingState());
   public readonly publishError = computed(() => this.publishErrorState());
   public readonly publishSuccess = computed(() => this.publishSuccessState());
@@ -132,12 +174,12 @@ export class ReportAssistantPage {
     return index.get(normalized) ?? '未設定';
   };
 
-  public get sections(): FormArray<FormGroup> {
-    return this.form.get('sections') as FormArray<FormGroup>;
+  public get sections(): FormArray<SectionFormGroup> {
+    return this.form.controls.sections;
   }
 
-  public get proposalControls(): FormGroup[] {
-    return this.proposals.controls as FormGroup[];
+  public get proposalControls(): ProposalFormGroup[] {
+    return this.proposals.controls;
   }
 
   public addSection(): void {
@@ -194,8 +236,8 @@ export class ReportAssistantPage {
     this.clearPublishFeedback();
   }
 
-  public proposalSubtasks(index: number): FormArray<FormGroup> {
-    return this.proposals.at(index)?.get('subtasks') as FormArray<FormGroup>;
+  public proposalSubtasks(index: number): FormArray<SubtaskFormGroup> {
+    return this.proposals.at(index)!.controls.subtasks;
   }
 
   public addSubtask(index: number): void {
@@ -484,35 +526,41 @@ export class ReportAssistantPage {
     this.publishSuccessState.set(null);
   }
 
-  private createSectionGroup(): FormGroup {
-    return this.fb.group({
-      title: [''],
-      body: ['', Validators.required],
+  private createSectionGroup(): SectionFormGroup {
+    return new FormGroup<SectionFormControls>({
+      title: new FormControl('', { nonNullable: true }),
+      body: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     });
   }
 
-  private createProposalGroup(proposal?: StatusReportProposal): FormGroup {
+  private createProposalGroup(proposal?: StatusReportProposal): ProposalFormGroup {
     const settings = this.workspace.settings();
     const statusId = this.resolveStatusId(proposal?.status, settings) ?? '';
-    return this.fb.group({
-      title: [proposal?.title ?? '', [Validators.required]],
-      summary: [proposal?.summary ?? '', [Validators.required]],
-      status: [statusId],
-      labels: [proposal ? proposal.labels.join(', ') : ''],
-      priority: [proposal?.priority ?? 'medium'],
-      dueInDays: [proposal?.due_in_days ?? null],
-      subtasks: new FormArray<FormGroup>(
+    return new FormGroup<ProposalFormControls>({
+      title: new FormControl(proposal?.title ?? '', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      summary: new FormControl(proposal?.summary ?? '', {
+        nonNullable: true,
+        validators: [Validators.required],
+      }),
+      status: new FormControl(statusId, { nonNullable: true }),
+      labels: new FormControl(proposal ? proposal.labels.join(', ') : '', { nonNullable: true }),
+      priority: new FormControl(proposal?.priority ?? 'medium', { nonNullable: true }),
+      dueInDays: new FormControl<number | null>(proposal?.due_in_days ?? null),
+      subtasks: new FormArray<SubtaskFormGroup>(
         (proposal?.subtasks ?? []).map((subtask) => this.createSubtaskGroup(subtask)),
       ),
     });
   }
 
-  private createSubtaskGroup(subtask?: StatusReportProposalSubtask): FormGroup {
+  private createSubtaskGroup(subtask?: StatusReportProposalSubtask): SubtaskFormGroup {
     const status = this.normalizeSubtaskStatusForEditing(subtask?.status);
-    return this.fb.group({
-      title: [subtask?.title ?? ''],
-      description: [subtask?.description ?? ''],
-      status: [status || 'todo'],
+    return new FormGroup<SubtaskFormControls>({
+      title: new FormControl(subtask?.title ?? '', { nonNullable: true }),
+      description: new FormControl(subtask?.description ?? '', { nonNullable: true }),
+      status: new FormControl(status || 'todo', { nonNullable: true }),
     });
   }
 
@@ -559,13 +607,15 @@ export class ReportAssistantPage {
   }
 
   private buildCreatePayload(): StatusReportCreateRequest | null {
-    const value = this.form.value;
-    const sections = this.sections.controls
-      .map((control) => control.value)
-      .map((section) => ({
-        title: section.title?.trim() ?? null,
-        body: (section.body ?? '').trim(),
-      }))
+    const sections = this.sections
+      .getRawValue()
+      .map((section) => {
+        const title = section.title.trim();
+        return {
+          title: title.length > 0 ? title : null,
+          body: section.body.trim(),
+        };
+      })
       .filter((section) => section.body.length > 0);
 
     if (sections.length === 0) {
@@ -574,7 +624,7 @@ export class ReportAssistantPage {
 
     return {
       shift_type: null,
-      tags: this.parseTags(value.tags ?? ''),
+      tags: this.parseTags(this.form.controls.tags.value),
       sections,
       auto_ticket_enabled: false,
     } satisfies StatusReportCreateRequest;
@@ -641,32 +691,20 @@ export class ReportAssistantPage {
     this.clearPublishFeedback();
   }
 
-  private buildProposalPayload(group: FormGroup): StatusReportProposal | null {
-    const raw = group.value as {
-      title?: string | null;
-      summary?: string | null;
-      status?: string | null;
-      labels?: string | null;
-      priority?: string | null;
-      dueInDays?: number | string | null;
-      subtasks?: readonly {
-        title?: string | null;
-        description?: string | null;
-        status?: string | null;
-      }[];
-    };
+  private buildProposalPayload(group: ProposalFormGroup): StatusReportProposal | null {
+    const raw = group.getRawValue();
 
-    const title = (raw.title ?? '').trim();
-    const summary = (raw.summary ?? '').trim();
+    const title = raw.title.trim();
+    const summary = raw.summary.trim();
     if (!title || !summary) {
       return null;
     }
 
-    const status = (raw.status ?? '').trim();
-    const labels = this.parseTags(raw.labels ?? '');
-    const priority = (raw.priority ?? 'medium').trim() || 'medium';
+    const status = raw.status.trim();
+    const labels = this.parseTags(raw.labels);
+    const priority = raw.priority.trim() || 'medium';
     const dueInDays = this.parseDueInDays(raw.dueInDays);
-    const subtasks = this.buildSubtaskPayloads(raw.subtasks ?? []);
+    const subtasks = this.buildSubtaskPayloads(raw.subtasks);
 
     return {
       title,
@@ -694,17 +732,17 @@ export class ReportAssistantPage {
 
   private buildSubtaskPayloads(
     subtasks: readonly {
-      title?: string | null;
-      description?: string | null;
-      status?: string | null;
+      title: string;
+      description: string;
+      status: string;
     }[],
   ): readonly StatusReportProposalSubtask[] {
     const mapped: StatusReportProposalSubtask[] = [];
 
     for (const subtask of subtasks) {
-      const title = (subtask.title ?? '').trim();
-      const description = (subtask.description ?? '').trim();
-      const status = (subtask.status ?? '').trim();
+      const title = subtask.title.trim();
+      const description = subtask.description.trim();
+      const status = subtask.status.trim();
 
       if (!title && !description) {
         continue;

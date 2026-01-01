@@ -86,7 +86,7 @@
                     <input
                       type="checkbox"
                       [checked]="competency.is_active"
-                      (change)="toggleCompetencyActive(competency, $any($event.target).checked)"
+                      (change)="toggleCompetencyActive(competency, readInputChecked($event))"
                       aria-label="{{ competency.name }} を有効化"
                     />
                     <span>有効</span>
@@ -479,7 +479,7 @@
                     <input
                       type="checkbox"
                       [checked]="user.is_admin"
-                      (change)="toggleAdmin(user, $any($event.target).checked)"
+                      (change)="toggleAdmin(user, readInputChecked($event))"
                       aria-label="{{ user.email }} の管理者権限を切り替え"
                     />
                   </td>
@@ -487,7 +487,7 @@
                     <input
                       type="checkbox"
                       [checked]="user.is_active"
-                      (change)="toggleActive(user, $any($event.target).checked)"
+                      (change)="toggleActive(user, readInputChecked($event))"
                       aria-label="{{ user.email }} の有効状態を切り替え"
                     />
                   </td>
