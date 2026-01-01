@@ -36,7 +36,7 @@
               class="form-control board-filters__search-input"
               placeholder="キーワードでカードを検索"
               [value]="searchForm.controls.search.value()"
-              (input)="updateSearch($any($event.target).value)"
+              (input)="updateSearch(readInputValue($event))"
             />
           </div>
         </label>
@@ -474,7 +474,7 @@
                   rows="4"
                   placeholder="カード全体の共有事項や次のアクションを記入"
                   [value]="commentDraftValue('card')"
-                  (input)="updateCommentDraft('card', $any($event.target).value)"
+                  (input)="updateCommentDraft('card', readInputValue($event))"
                 ></textarea>
               </label>
             </div>
@@ -535,7 +535,7 @@
                     type="text"
                     class="subtask-editor__input"
                     [value]="task.title"
-                    (change)="updateSubtaskTitle(active.id, task.id, $any($event.target).value)"
+                    (change)="updateSubtaskTitle(active.id, task.id, readInputValue($event))"
                   />
                 </label>
                 <div class="subtask-editor__layout">
@@ -547,7 +547,7 @@
                         class="subtask-editor__input"
                         [value]="dateInputValue(task.dueDate)"
                         (change)="
-                          updateSubtaskDueDate(active.id, task.id, $any($event.target).value)
+                          updateSubtaskDueDate(active.id, task.id, readInputValue($event))
                         "
                       />
                     </label>
@@ -566,7 +566,7 @@
                         class="subtask-editor__input"
                         [value]="task.assignee ?? ''"
                         (change)="
-                          updateSubtaskAssignee(active.id, task.id, $any($event.target).value)
+                          updateSubtaskAssignee(active.id, task.id, readInputValue($event))
                         "
                       />
                     </label>
@@ -579,7 +579,7 @@
                         class="subtask-editor__input"
                         [value]="task.estimateHours ?? ''"
                         (change)="
-                          updateSubtaskEstimate(active.id, task.id, $any($event.target).value)
+                          updateSubtaskEstimate(active.id, task.id, readInputValue($event))
                         "
                       />
                     </label>
@@ -665,7 +665,7 @@
                               rows="3"
                               placeholder="進捗や課題を共有"
                               [value]="commentDraftValue(task.id)"
-                              (input)="updateCommentDraft(task.id, $any($event.target).value)"
+                              (input)="updateCommentDraft(task.id, readInputValue($event))"
                             ></textarea>
                           </label>
                         </div>
@@ -707,7 +707,7 @@
                 class="subtask-editor__input"
                 placeholder="例: API仕様を確認"
                 [value]="newSubtaskForm.controls.title.value()"
-                (input)="newSubtaskForm.controls.title.setValue($any($event.target).value)"
+                (input)="newSubtaskForm.controls.title.setValue(readInputValue($event))"
               />
             </label>
             <label class="subtask-editor__field">
@@ -724,7 +724,7 @@
                 type="date"
                 class="subtask-editor__input"
                 [value]="dateInputValue(newSubtaskForm.controls.dueDate.value())"
-                (change)="newSubtaskForm.controls.dueDate.setValue($any($event.target).value)"
+                (change)="newSubtaskForm.controls.dueDate.setValue(readInputValue($event))"
               />
             </label>
             <label class="subtask-editor__field">
@@ -734,7 +734,7 @@
                 class="subtask-editor__input"
                 placeholder="任意"
                 [value]="newSubtaskForm.controls.assignee.value()"
-                (input)="newSubtaskForm.controls.assignee.setValue($any($event.target).value)"
+                (input)="newSubtaskForm.controls.assignee.setValue(readInputValue($event))"
               />
             </label>
             <label class="subtask-editor__field">
@@ -746,7 +746,7 @@
                 class="subtask-editor__input"
                 placeholder="任意"
                 [value]="newSubtaskForm.controls.estimateHours.value()"
-                (input)="newSubtaskForm.controls.estimateHours.setValue($any($event.target).value)"
+                (input)="newSubtaskForm.controls.estimateHours.setValue(readInputValue($event))"
               />
             </label>
           </div>

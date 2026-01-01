@@ -264,7 +264,7 @@
                       type="text"
                       class="form-control"
                       [value]="candidateText(candidate)"
-                      (input)="updateCandidateText(candidate.id, $any($event.target).value)"
+                      (input)="updateCandidateText(candidate.id, readInputValue($event))"
                       placeholder="起点の内容を調整できます"
                     />
                   </label>
@@ -325,7 +325,7 @@
                     class="form-control form-control--textarea"
                     placeholder="例: 計画した学習時間を確保する"
                     [value]="shouldText()"
-                    (input)="updateShouldText($any($event.target).value)"
+                    (input)="updateShouldText(readInputValue($event))"
                   ></textarea>
                 </label>
                 <label class="form-field">
@@ -334,7 +334,7 @@
                     class="form-control form-control--textarea"
                     placeholder="例: 夕方に集中力が続かない"
                     [value]="cannotText()"
-                    (input)="updateCannotText($any($event.target).value)"
+                    (input)="updateCannotText(readInputValue($event))"
                   ></textarea>
                 </label>
                 <label class="form-field form-field--full">
@@ -343,7 +343,7 @@
                     class="form-control form-control--textarea"
                     placeholder="例: 週末に振り返りの時間を作りたい"
                     [value]="wantText()"
-                    (input)="updateWantText($any($event.target).value)"
+                    (input)="updateWantText(readInputValue($event))"
                   ></textarea>
                 </label>
               </div>
@@ -353,7 +353,7 @@
                   class="form-control form-control--textarea"
                   placeholder="補足したい背景や状況を入力してください"
                   [value]="contextText()"
-                  (input)="updateContextText($any($event.target).value)"
+                  (input)="updateContextText(readInputValue($event))"
                 ></textarea>
                 <p class="form-note">追加コンテキストは自動補完と組み合わせて AI に渡します。</p>
               </label>

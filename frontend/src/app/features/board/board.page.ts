@@ -95,6 +95,10 @@ export class BoardPage {
   public readonly labelName = this.store.labelName;
   public readonly isLabelApplied = this.store.isLabelApplied;
   public readonly handleLabelToggle = this.store.handleLabelToggle;
+  public readonly readInputValue = (event: Event): string => {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement | null;
+    return target?.value ?? '';
+  };
 
   public constructor() {
     afterNextRender(() => {
