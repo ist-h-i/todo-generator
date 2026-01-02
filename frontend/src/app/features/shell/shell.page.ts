@@ -101,21 +101,6 @@ export class ShellPage {
   private readonly loadingState = this.loadingStore.isLoading;
   private readonly loadingMessageState = this.loadingStore.message;
   private loadingToastId: number | null = null;
-  public readonly globalErrorMessage = computed(() => this.errorMessage());
-  public readonly isGlobalLoading = computed(() => {
-    if (this.errorMessage()) {
-      return false;
-    }
-
-    return this.loadingState();
-  });
-  public readonly globalLoadingMessage = computed(() => {
-    if (!this.isGlobalLoading()) {
-      return null;
-    }
-
-    return this.loadingMessageState();
-  });
 
   public displayName(user: { nickname: string | null; email: string }): string {
     return getDisplayName(user);
@@ -210,10 +195,6 @@ export class ShellPage {
   public readonly logout = (): void => {
     this.auth.logout();
     void this.router.navigateByUrl('/login');
-  };
-
-  public readonly dismissGlobalError = (): void => {
-    this.errorNotifier.clear();
   };
 
   public constructor() {

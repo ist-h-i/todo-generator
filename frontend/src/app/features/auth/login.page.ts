@@ -161,7 +161,6 @@ export class LoginPage {
       this.isRegisterFormValid() && (!this.pending() || this.registerFormChangedSinceLastSubmit()),
   );
   public readonly isLoginView = computed(() => this.activeView() === 'login');
-  public readonly isRegisterView = computed(() => this.activeView() === 'register');
 
   public constructor() {
     effect(() => {

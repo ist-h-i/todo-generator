@@ -23,7 +23,6 @@ import {
   CompetencySummary,
   EvaluationQuotaStatus,
   SelfEvaluationBatchRequest,
-  SelfEvaluationRequest,
 } from '@core/models';
 
 type NextActionCategory = 'attitude' | 'behavior';
@@ -348,18 +347,6 @@ export class ProfileEvaluationsPage {
     return quota.remaining ?? Math.max(quota.daily_limit - quota.used, 0);
   });
 
-  public readonly canRunEvaluation = computed<boolean>(() => {
-    if (this.isAdminViewer()) {
-      return false;
-    }
-
-    if (this.quotaLoading()) {
-      return false;
-    }
-
-    return !this.limitReached();
-  });
-
   public readonly canRunBatchEvaluation = computed<boolean>(() => {
     if (this.isAdminViewer()) {
       return false;
@@ -519,52 +506,6 @@ export class ProfileEvaluationsPage {
     }
 
     return `${quota.remaining} 回`;
-  }
-
-  public runEvaluation(): void {
-    if (this.isAdminViewer()) {
-      return;
-    }
-
-    if (this.runningEvaluation() || !this.canRunEvaluation()) {
-      return;
-    }
-
-    this.runningEvaluation.set(true);
-    this.actionError.set(null);
-    this.feedback.set(null);
-
-    const payload: SelfEvaluationRequest = {};
-    const latest = this.latestEvaluation();
-    if (latest?.competency_id) {
-      payload.competency_id = latest.competency_id;
-    }
-
-    this.api
-      .runMyEvaluation(payload)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (evaluation) => {
-          this.runningEvaluation.set(false);
-          this.evaluationsResource.update((list) => {
-            const filtered = list.filter((item) => item.id !== evaluation.id);
-            return [evaluation, ...filtered].slice(0, DEFAULT_HISTORY_LIMIT);
-          });
-          this.showFeedback('評価を実行しました。最新の結果が反映されています。');
-          this.loadQuota();
-        },
-        error: (error: HttpErrorResponse) => {
-          this.runningEvaluation.set(false);
-          const message = this.resolveHttpErrorMessage(
-            error,
-            '評価の実行に失敗しました。時間をおいて再度お試しください。',
-          );
-          this.actionError.set(message);
-          if (error.status === 429 || error.status === 401) {
-            this.loadQuota();
-          }
-        },
-      });
   }
 
   public runBatchEvaluation(): void {

@@ -20,7 +20,7 @@ type ColumnAccentSource = { readonly accent: string };
 export class BoardPage {
   private readonly store = inject(BoardPageStore);
 
-  public readonly subtaskStatusOptions = this.store.subtaskStatusOptions;
+  private readonly subtaskStatusOptions = this.store.subtaskStatusOptions;
   public readonly subtaskStatusSelectOptions = this.subtaskStatusOptions.map((status) => ({
     value: status.id,
     label: status.title,
@@ -29,23 +29,15 @@ export class BoardPage {
   public readonly groupingLabelSignal = this.store.groupingLabelSignal;
   public readonly columnsSignal = this.store.columnsSignal;
   public readonly filtersSignal = this.store.filtersSignal;
-  public readonly filteredCardsSignal = this.store.filteredCardsSignal;
   public readonly statusesSignal = this.store.statusesSignal;
-  public readonly labelsSignal = this.store.labelsSignal;
   public readonly quickFilters = this.store.quickFilters;
   public readonly cardsByIdSignal = this.store.cardsByIdSignal;
-  public readonly labelsByIdSignal = this.store.labelsByIdSignal;
-  public readonly statusesByIdSignal = this.store.statusesByIdSignal;
-  public readonly isSubtaskResolved = this.store.isSubtaskResolved;
   public readonly isCardResolved = this.store.isCardResolved;
   public readonly subtaskColumnsSignal = this.store.subtaskColumnsSignal;
   public readonly searchForm = this.store.searchForm;
-  public readonly cardForm = this.store.cardForm;
   public readonly newSubtaskForm = this.store.newSubtaskForm;
   public readonly commentAuthorNameSignal = this.store.commentAuthorNameSignal;
-  public readonly commentsByContextSignal = this.store.commentsByContextSignal;
   public readonly orphanedSubtaskCommentsSignal = this.store.orphanedSubtaskCommentsSignal;
-  public readonly isCardFormValid = this.store.isCardFormValid;
   public readonly isNewSubtaskFormValid = this.store.isNewSubtaskFormValid;
   public readonly quickFilterSummarySignal = this.store.quickFilterSummarySignal;
   public readonly updateSearch = this.store.updateSearch;
@@ -59,7 +51,6 @@ export class BoardPage {
   public readonly handleDrop = this.store.handleDrop;
   public readonly handleSubtaskDrop = this.store.handleSubtaskDrop;
   public readonly selectedCardSignal = this.store.selectedCardSignal;
-  public readonly saveCardDetails = this.store.saveCardDetails;
   public readonly commentDraftValue = this.store.commentDraftValue;
   public readonly updateCommentDraft = this.store.updateCommentDraft;
   public readonly isCommentDraftValid = this.store.isCommentDraftValid;
@@ -93,8 +84,6 @@ export class BoardPage {
   public readonly priorityLabel = this.store.priorityLabel;
   public readonly dateInputValue = this.store.dateInputValue;
   public readonly labelName = this.store.labelName;
-  public readonly isLabelApplied = this.store.isLabelApplied;
-  public readonly handleLabelToggle = this.store.handleLabelToggle;
   public readonly readInputValue = (event: Event): string => {
     const target = event.target as HTMLInputElement | HTMLTextAreaElement | null;
     return target?.value ?? '';

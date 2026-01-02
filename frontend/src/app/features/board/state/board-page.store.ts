@@ -60,14 +60,6 @@ const PRIORITY_LABEL_LOOKUP: Record<Card['priority'], string> = {
   urgent: '緊急',
 };
 
-interface CardFormState {
-  readonly title: string;
-  readonly summary: string;
-  readonly statusId: string;
-  readonly assignee: string;
-  readonly storyPoints: string;
-  readonly priority: Card['priority'];
-}
 
 type SubtaskStatus = Subtask['status'];
 
@@ -133,9 +125,9 @@ export class BoardPageStore {
   );
   public readonly columnsSignal = this.workspace.boardColumns;
   public readonly filtersSignal = this.workspace.filters;
-  public readonly filteredCardsSignal = this.workspace.filteredCards;
+  private readonly filteredCardsSignal = this.workspace.filteredCards;
   public readonly statusesSignal = computed(() => this.workspace.settings().statuses);
-  public readonly labelsSignal = computed(() => this.workspace.settings().labels);
+  private readonly labelsSignal = computed(() => this.workspace.settings().labels);
   public readonly quickFilters = QUICK_FILTER_OPTIONS;
 
   public readonly cardsByIdSignal = computed<ReadonlyMap<string, Card>>(() => {
@@ -146,7 +138,7 @@ export class BoardPageStore {
     return lookup;
   });
 
-  public readonly labelsByIdSignal = computed<ReadonlyMap<string, Label>>(() => {
+  private readonly labelsByIdSignal = computed<ReadonlyMap<string, Label>>(() => {
     const lookup = new Map<string, Label>();
     for (const label of this.labelsSignal()) {
       lookup.set(label.id, label);
@@ -154,7 +146,7 @@ export class BoardPageStore {
     return lookup;
   });
 
-  public readonly statusesByIdSignal = computed<ReadonlyMap<string, Status>>(() => {
+  private readonly statusesByIdSignal = computed<ReadonlyMap<string, Status>>(() => {
     const lookup = new Map<string, Status>();
     for (const status of this.statusesSignal()) {
       lookup.set(status.id, status);
@@ -211,15 +203,6 @@ export class BoardPageStore {
   });
 
   public readonly searchForm = createSignalForm({ search: '' });
-
-  public readonly cardForm = createSignalForm({
-    title: '',
-    summary: '',
-    statusId: '',
-    assignee: '',
-    storyPoints: '',
-    priority: 'medium' as Card['priority'],
-  });
 
   public readonly newSubtaskForm = createSignalForm({
     title: '',
@@ -284,25 +267,7 @@ export class BoardPageStore {
 
     return orphaned;
   });
-
-  private lastCardFormBaseline: CardFormState | null = null;
   private lastSelectedCardId: string | null = null;
-
-  private areCardFormStatesEqual(left: CardFormState, right: CardFormState): boolean {
-    return (
-      left.title === right.title &&
-      left.summary === right.summary &&
-      left.statusId === right.statusId &&
-      left.assignee === right.assignee &&
-      left.storyPoints === right.storyPoints &&
-      left.priority === right.priority
-    );
-  }
-
-  public readonly isCardFormValid = (): boolean => {
-    const snapshot = this.cardForm.value();
-    return snapshot.title.trim().length > 0 && snapshot.statusId.trim().length > 0;
-  };
 
   public readonly isNewSubtaskFormValid = (): boolean =>
     this.newSubtaskForm.controls.title.value().trim().length > 0;
@@ -368,6 +333,9 @@ export class BoardPageStore {
    */
   public readonly confirmDeleteCard = (card: Card): void => {
     const message = `カード「${card.title}」を削除しますか？この操作は取り消せません。`;
+    if (typeof window === 'undefined') {
+      return;
+    }
     if (window.confirm(message)) {
       this.workspace.removeCard(card.id);
     }
@@ -420,107 +388,30 @@ export class BoardPageStore {
 
   private readonly syncSelectedCardFormsEffect = effect(() => {
     const active = this.selectedCardSignal();
-    const formSnapshot = this.cardForm.value();
 
     if (!active) {
-      const statuses = this.statusesSignal();
-      const fallback: CardFormState = {
-        title: '',
-        summary: '',
-        statusId: statuses[0]?.id ?? '',
-        assignee: '',
-        storyPoints: '',
-        priority: 'medium',
-      };
-
-      if (!this.areCardFormStatesEqual(formSnapshot, fallback)) {
-        this.cardForm.reset(fallback);
-      }
-      this.lastCardFormBaseline = fallback;
-      this.commentDraftsState.set({ card: '' });
-      this.editingCommentState.set(null);
-      this.newSubtaskForm.reset({
-        title: '',
-        assignee: '',
-        estimateHours: '',
-        dueDate: '',
-        status: 'todo',
-      });
+      this.resetSelectionState();
       this.lastSelectedCardId = null;
       return;
     }
 
-    const baseline: CardFormState = {
-      title: active.title,
-      summary: active.summary,
-      statusId: active.statusId,
-      assignee: active.assignee ?? '',
-      storyPoints: active.storyPoints.toString(),
-      priority: active.priority,
-    };
-
-    let baselineChanged = true;
-    let hasUnsavedChanges = false;
-
-    if (this.lastCardFormBaseline) {
-      baselineChanged = !this.areCardFormStatesEqual(baseline, this.lastCardFormBaseline);
-      hasUnsavedChanges = !this.areCardFormStatesEqual(formSnapshot, this.lastCardFormBaseline);
+    if (this.lastSelectedCardId !== active.id) {
+      this.resetSelectionState();
+      this.lastSelectedCardId = active.id;
     }
-
-    const selectedCardChanged = this.lastSelectedCardId !== active.id;
-
-    if (selectedCardChanged || (!hasUnsavedChanges && baselineChanged)) {
-      this.cardForm.reset(baseline);
-      this.lastCardFormBaseline = baseline;
-    } else if (baselineChanged && this.areCardFormStatesEqual(formSnapshot, baseline)) {
-      this.lastCardFormBaseline = baseline;
-    } else if (!this.lastCardFormBaseline) {
-      this.lastCardFormBaseline = baseline;
-    }
-
-    if (selectedCardChanged) {
-      this.commentDraftsState.set({ card: '' });
-      this.editingCommentState.set(null);
-      this.newSubtaskForm.reset({
-        title: '',
-        assignee: '',
-        estimateHours: '',
-        dueDate: '',
-        status: 'todo',
-      });
-    }
-
-    this.lastSelectedCardId = active.id;
   });
 
-  public readonly saveCardDetails = (event: Event): void => {
-    event.preventDefault();
-
-    const active = this.selectedCardSignal();
-    if (!active || !this.isCardFormValid()) {
-      return;
-    }
-
-    const snapshot = this.cardForm.value();
-    const title = snapshot.title.trim();
-    const summary = snapshot.summary.trim();
-    const statusId = snapshot.statusId.trim();
-    const assignee = snapshot.assignee.trim();
-    const storyPointsInput = snapshot.storyPoints.trim();
-    const parsedStoryPoints = storyPointsInput.length > 0 ? Number(storyPointsInput) : undefined;
-
-    this.workspace.updateCardDetails(active.id, {
-      title,
-      summary,
-      statusId,
-      priority: snapshot.priority,
-      assignee: assignee.length > 0 ? assignee : undefined,
-      storyPoints:
-        parsedStoryPoints !== undefined && Number.isFinite(parsedStoryPoints)
-          ? parsedStoryPoints
-          : undefined,
+  private resetSelectionState(): void {
+    this.commentDraftsState.set({ card: '' });
+    this.editingCommentState.set(null);
+    this.newSubtaskForm.reset({
+      title: '',
+      assignee: '',
+      estimateHours: '',
+      dueDate: '',
+      status: 'todo',
     });
-  };
+  }
 
   private readonly setCommentDraft = (contextId: string, value: string): void => {
     this.commentDraftsState.update((drafts) => ({ ...drafts, [contextId]: value }));
@@ -761,18 +652,5 @@ export class BoardPageStore {
   public readonly labelName = (labelId: string): string => {
     const label = this.labelsByIdSignal().get(labelId);
     return label ? label.name : labelId;
-  };
-
-  public readonly isLabelApplied = (card: Card, labelId: string): boolean =>
-    card.labelIds.includes(labelId);
-
-  public readonly handleLabelToggle = (card: Card, labelId: string, checked: boolean): void => {
-    const labels = new Set(card.labelIds);
-    if (checked) {
-      labels.add(labelId);
-    } else {
-      labels.delete(labelId);
-    }
-    this.workspace.updateCardLabels(card.id, Array.from(labels));
   };
 }

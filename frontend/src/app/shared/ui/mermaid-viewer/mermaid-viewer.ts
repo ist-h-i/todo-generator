@@ -1,9 +1,11 @@
+import { DOCUMENT } from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   effect,
+  inject,
   input,
   signal,
   viewChild,
@@ -24,7 +26,6 @@ const loadMermaid = async (): Promise<MermaidAPI> => {
 
 @Component({
   selector: 'shared-mermaid-viewer',
-  imports: [],
   templateUrl: './mermaid-viewer.html',
   styleUrl: './mermaid-viewer.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,6 +36,7 @@ export class MermaidViewer implements AfterViewInit {
   public readonly isRendering = signal(false);
   public readonly renderError = signal<string | null>(null);
 
+  private readonly documentRef = inject(DOCUMENT);
   private readonly canvas = viewChild<ElementRef<HTMLDivElement>>('canvas');
 
   private readonly viewReady = signal(false);
@@ -66,8 +68,10 @@ export class MermaidViewer implements AfterViewInit {
     return (fenced?.[1] ?? trimmed).trim();
   };
 
-  private readonly resolveMermaidTheme = (): 'dark' | 'default' =>
-    document.documentElement.classList.contains('dark') ? 'dark' : 'default';
+  private readonly resolveMermaidTheme = (): 'dark' | 'default' => {
+    const root = this.documentRef?.documentElement;
+    return root?.classList.contains('dark') ? 'dark' : 'default';
+  };
 
   private readonly render = async (code: string, requestId: number): Promise<void> => {
     const host = this.canvas()?.nativeElement;
