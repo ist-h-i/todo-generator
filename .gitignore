@@ -14,3 +14,5 @@ backend/.env
 auth.json.b64
 .codex/
 .vscode/
+backend/logs/
+logs/
