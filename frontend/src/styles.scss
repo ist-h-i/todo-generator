@@ -833,6 +833,10 @@ app-help-dialog .help-dialog__panel {
   outline: none;
 }
 
+:root.dark app-help-dialog .help-dialog__panel {
+  background: linear-gradient(180deg, var(--surface-layer-1), var(--surface-layer-3));
+}
+
 app-help-dialog .help-dialog__header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -892,10 +896,177 @@ app-help-dialog .help-dialog__close:hover {
   color: var(--text-primary);
 }
 
+app-help-dialog .help-dialog__toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border-overlay);
+  background: color-mix(in srgb, var(--surface-overlay) 88%, transparent);
+}
+
+app-help-dialog .help-dialog__toc-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border-overlay);
+  background: color-mix(in srgb, var(--surface-overlay-strong) 92%, transparent);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.86rem;
+  letter-spacing: 0.02em;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+app-help-dialog .help-dialog__toc-link:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-overlay-strong));
+  background: color-mix(in srgb, var(--surface-overlay-strong) 88%, var(--accent) 12%);
+  color: var(--text-primary);
+}
+
 app-help-dialog .help-dialog__section {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+app-help-dialog .help-dialog__intro {
+  gap: 1.5rem;
+}
+
+app-help-dialog .help-dialog__intro-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+app-help-dialog .help-dialog__quickstart {
+  display: grid;
+  gap: 1rem;
+}
+
+app-help-dialog .help-dialog__quickstart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.25rem 1.25rem 1.35rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border-overlay);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--surface-overlay-strong) 92%, transparent),
+    color-mix(in srgb, var(--surface-overlay) 86%, var(--accent) 14%)
+  );
+}
+
+app-help-dialog .help-dialog__quickstart-badge {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-overlay));
+  color: color-mix(in srgb, var(--accent) 88%, var(--text-primary));
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+}
+
+app-help-dialog .help-dialog__quickstart-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+app-help-dialog .help-dialog__quickstart-text {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+app-help-dialog .help-dialog__tips {
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border-overlay);
+  background: color-mix(in srgb, var(--surface-overlay) 92%, transparent);
+}
+
+app-help-dialog .help-dialog__tips-title {
+  margin: 0 0 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+app-help-dialog .help-dialog__tips-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+app-help-dialog .help-dialog__tip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-overlay) 70%, transparent);
+}
+
+app-help-dialog .help-dialog__tip:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+app-help-dialog .help-dialog__tip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+app-help-dialog .help-dialog__tip-title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+app-help-dialog .help-dialog__tip-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+app-help-dialog .help-dialog__kbd {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--border-overlay-strong) 80%, transparent);
+  background: color-mix(in srgb, var(--surface-overlay-strong) 96%, transparent);
+  color: var(--text-primary);
+  box-shadow: 0 10px 18px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+app-help-dialog .help-dialog__tip-text {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
 }
 
 app-help-dialog .help-dialog__section-title {
@@ -1102,6 +1273,13 @@ app-help-dialog .help-dialog__secondary {
 app-help-dialog .help-dialog__secondary:hover {
   border-color: var(--border-overlay-strong);
   color: var(--text-primary);
+}
+
+@media (min-width: 48rem) {
+  app-help-dialog .help-dialog__intro-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    align-items: start;
+  }
 }
 
 /* Profile dialog */
