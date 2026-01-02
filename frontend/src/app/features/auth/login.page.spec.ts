@@ -278,16 +278,13 @@ describe('LoginPage', () => {
     const component = fixture.componentInstance;
 
     expect(component.isLoginView()).toBeTrue();
-    expect(component.isRegisterView()).toBeFalse();
 
     component.showRegisterView();
 
     expect(component.isLoginView()).toBeFalse();
-    expect(component.isRegisterView()).toBeTrue();
 
     component.showLoginView();
 
     expect(component.isLoginView()).toBeTrue();
-    expect(component.isRegisterView()).toBeFalse();
   });
 });

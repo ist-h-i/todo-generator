@@ -1,6 +1,18 @@
 import type { Page } from '@playwright/test';
 
 export const API_ORIGIN = 'http://localhost:8000';
+const API_BASE_URL_STORAGE_KEY = 'verbalize-yourself:api-base-url';
+
+const ensureApiBaseUrl = async (page: Page): Promise<void> => {
+  await page.addInitScript(
+    ({ storageKey, apiOrigin }) => {
+      if (!window.localStorage.getItem(storageKey)) {
+        window.localStorage.setItem(storageKey, apiOrigin);
+      }
+    },
+    { storageKey: API_BASE_URL_STORAGE_KEY, apiOrigin: API_ORIGIN },
+  );
+};
 
 type MockRequest = {
   readonly method: string;
@@ -43,6 +55,7 @@ export const mockApi = async (
   mocks: ApiMockMap,
   options?: { readonly strict?: boolean },
 ): Promise<void> => {
+  await ensureApiBaseUrl(page);
   const strict = options?.strict ?? true;
 
   await page.route(`${API_ORIGIN}/**`, async (route) => {
@@ -105,4 +118,3 @@ export const mockApi = async (
     });
   });
 };
-

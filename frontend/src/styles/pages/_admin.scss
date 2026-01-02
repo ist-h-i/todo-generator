@@ -2,8 +2,9 @@ app-admin-page {
   display: block;
   color: var(--text-primary);
   padding: 0;
-  --panel-padding: clamp(1.5rem, 2.4vw, 2rem);
-  --page-content-gap: clamp(1.75rem, 2vw, 2.5rem);
+  --panel-padding: clamp(1rem, 1.6vw, 1.5rem);
+  --page-content-gap: clamp(1.25rem, 1.6vw, 1.75rem);
+  --page-padding-inline: clamp(10px, 1.2vw, 18px);
 }
 
 app-admin-page .admin-page {
@@ -77,14 +78,138 @@ app-admin-page .admin-evaluations__items {
   margin: 0;
   padding: 0;
   display: grid;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+app-admin-page .admin-evaluations {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 48rem), 1fr));
+}
+
+app-admin-page .admin-evaluations__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+app-admin-page .admin-evaluations__search-field {
+  flex: 1 1 18rem;
+  min-width: min(18rem, 100%);
+  margin: 0;
+}
+
+app-admin-page .admin-evaluations__search-field .form-field__label {
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+app-admin-page .admin-evaluations__search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+app-admin-page .admin-evaluations__search-input {
+  min-height: 2.75rem;
+  border-radius: 9999px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+app-admin-page .admin-evaluations__search-input::-webkit-search-cancel-button,
+app-admin-page .admin-evaluations__search-input::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+app-admin-page .admin-evaluations__search-input::-ms-clear {
+  display: none;
+}
+
+app-admin-page .admin-evaluations__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+app-admin-page .admin-evaluations__clear {
+  border-color: color-mix(in srgb, var(--border-subtle) 70%, transparent);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+app-admin-page .admin-manual {
+  gap: 1rem;
+}
+
+app-admin-page .admin-manual__period {
+  display: grid;
   gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+app-admin-page .admin-manual__competency-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+app-admin-page .admin-manual__competency-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+app-admin-page .admin-manual__competency-list {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  padding: 0.6rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-card) 92%, transparent);
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+app-admin-page .admin-manual__competency-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-card) 92%, transparent);
+  color: var(--text-secondary);
+}
+
+app-admin-page .admin-manual__competency-option input {
+  width: 1rem;
+  height: 1rem;
+}
+
+app-admin-page .admin-manual__competency-empty {
+  padding: 0.35rem 0.2rem;
+}
+
+app-admin-page .admin-manual__footer {
+  display: flex;
+  justify-content: flex-end;
 }
 
 app-admin-page .admin-evaluations__items li {
-  border-radius: 1rem;
-  border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-card) 88%, transparent);
-  padding: 0.75rem 0.85rem;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
   display: grid;
   gap: 0.35rem;
   color: var(--text-secondary);
@@ -93,6 +218,212 @@ app-admin-page .admin-evaluations__items li {
 app-admin-page .admin-evaluations__items strong {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+app-admin-page .admin-evaluations__items p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+}
+
+app-admin-page .admin-evaluations__criterion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+app-admin-page .admin-evaluations__criterion-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+app-admin-page .admin-evaluations__criterion-rationale {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+app-admin-page .admin-evaluations__item {
+  padding: 0;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--border-subtle) 65%, transparent);
+  background: color-mix(in srgb, var(--surface-card) 92%, transparent);
+  box-shadow: 0 18px 36px -32px color-mix(in srgb, var(--surface-inverse) 55%, transparent);
+}
+
+app-admin-page .admin-evaluations__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.1rem 1.2rem;
+  text-decoration: none;
+  color: inherit;
+  height: 100%;
+}
+
+app-admin-page .admin-evaluations__item:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface-card) 94%, transparent);
+  box-shadow: 0 22px 44px -34px color-mix(in srgb, var(--surface-inverse) 65%, transparent);
+}
+
+app-admin-page .admin-evaluations__card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: -4px;
+}
+
+app-admin-page .admin-evaluations__header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+app-admin-page .admin-evaluations__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+app-admin-page .admin-evaluations__title {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+app-admin-page .admin-evaluations__competencies {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+app-admin-page .admin-evaluations__identity {
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+app-admin-page .admin-evaluations__identity-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+app-admin-page .admin-evaluations__user {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+app-admin-page .admin-evaluations__user-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+app-admin-page .admin-evaluations__user-email {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+app-admin-page .admin-evaluations__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+  margin-left: auto;
+  text-align: left;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+app-admin-page .admin-evaluations__set {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin-top: 0.75rem;
+}
+
+app-admin-page .admin-evaluations__entry {
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+app-admin-page .admin-evaluations__entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+app-admin-page .admin-evaluations__entry-title {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+app-admin-page .admin-evaluations__entry-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+app-admin-page .admin-evaluations__rationale {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+app-admin-page .admin-evaluations__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  max-width: 100%;
+  margin-top: 0.5rem;
+}
+
+app-admin-page .admin-evaluations__page-indicator {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+@media (min-width: 54rem) {
+  app-admin-page .admin-evaluations__header {
+    flex-direction: row;
+    align-items: flex-start;
+  }
 }
 
 app-admin-page .page-table {

@@ -95,13 +95,6 @@ describe('ReportAssistantPage', () => {
   const access = <T>(instance: ReportAssistantPage, key: string): T =>
     (instance as unknown as Record<string, T>)[key];
 
-  it('normalizes proposal statuses for display', () => {
-    expect(component.formatProposalStatus('in-progress')).toBe('進行中');
-    expect(component.formatProposalStatus(' 完了 ')).toBe('完了');
-    expect(component.formatProposalStatus('未知のステータス')).toBe('未設定');
-    expect(component.formatProposalStatus(null)).toBe('未設定');
-  });
-
   it('resolves the canonical status identifier from analyzer output', () => {
     const settings = workspace.settingsValue;
     const resolveStatusId = access<

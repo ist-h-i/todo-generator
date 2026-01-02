@@ -13,14 +13,16 @@ import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
 import { AiMark } from '@shared/ui/ai-mark/ai-mark';
 import { HttpErrorResponse } from '@angular/common/http';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
 
+import { AdminApi } from '@core/api/admin-api';
 import { CompetencyApi } from '@core/api/competency-api';
+import { Auth } from '@core/auth/auth';
 import {
   CompetencyEvaluation,
   CompetencySummary,
   EvaluationQuotaStatus,
   SelfEvaluationBatchRequest,
-  SelfEvaluationRequest,
 } from '@core/models';
 
 type NextActionCategory = 'attitude' | 'behavior';
@@ -31,6 +33,15 @@ interface NextActionCard {
   categoryLabel: string;
   description: string;
   text: string;
+}
+
+interface EvaluationGroup {
+  id: string;
+  jobId: string | null;
+  evaluations: CompetencyEvaluation[];
+  createdAt: string;
+  periodStart: string;
+  periodEnd: string;
 }
 
 const NEXT_ACTION_META: Record<NextActionCategory, { label: string; description: string }> = {
@@ -45,6 +56,7 @@ const NEXT_ACTION_META: Record<NextActionCategory, { label: string; description:
 };
 
 const DEFAULT_HISTORY_LIMIT = 12;
+const JUMP_HISTORY_LIMIT = 50;
 
 /**
  * Page allowing end users to review their competency evaluation results.
@@ -57,17 +69,39 @@ const DEFAULT_HISTORY_LIMIT = 12;
 })
 export class ProfileEvaluationsPage {
   private readonly api = inject(CompetencyApi);
+  private readonly adminApi = inject(AdminApi);
+  private readonly auth = inject(Auth);
+  private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private feedbackTimeoutId: number | null = null;
 
   private readonly evaluationsRequestId = signal(0);
   private readonly quotaRequestId = signal(0);
   private readonly competenciesRequestId = signal(0);
+  private readonly viewerUserId = signal<string | null>(null);
+  private readonly focusedEvaluationId = signal<string | null>(null);
+  private readonly historyLimit = computed(() =>
+    this.focusedEvaluationId() ? JUMP_HISTORY_LIMIT : DEFAULT_HISTORY_LIMIT,
+  );
 
-  private readonly evaluationsResource = rxResource<CompetencyEvaluation[], number>({
+  private readonly evaluationsParams = computed(() => ({
+    requestId: this.evaluationsRequestId(),
+    userId: this.auth.isAdmin() ? this.viewerUserId() : null,
+    limit: this.historyLimit(),
+  }));
+
+  private readonly evaluationsResource = rxResource<
+    CompetencyEvaluation[],
+    { requestId: number; userId: string | null; limit: number }
+  >({
     defaultValue: [],
-    params: this.evaluationsRequestId,
-    stream: () => this.api.getMyEvaluations(DEFAULT_HISTORY_LIMIT),
+    params: this.evaluationsParams,
+    stream: ({ params }) => {
+      if (params?.userId) {
+        return this.adminApi.listEvaluations({ userId: params.userId });
+      }
+      return this.api.getMyEvaluations(params?.limit ?? DEFAULT_HISTORY_LIMIT);
+    },
   });
   private readonly quotaResource = rxResource<EvaluationQuotaStatus | null, number>({
     defaultValue: null,
@@ -138,6 +172,37 @@ export class ProfileEvaluationsPage {
     );
   });
   public readonly selectedCompetencyIds = signal<string[]>([]);
+  public readonly isAdminViewer = computed(
+    () => this.auth.isAdmin() && Boolean(this.viewerUserId()),
+  );
+  public readonly hasJumpTarget = computed(() => {
+    const focusedId = this.focusedEvaluationId();
+    if (!focusedId) {
+      return false;
+    }
+
+    const status = this.evaluationsResource.status();
+    if (status !== 'resolved' && status !== 'local') {
+      return false;
+    }
+
+    return this.evaluations().some((evaluation) => evaluation.id === focusedId);
+  });
+  public readonly jumpTargetMessage = computed(() => {
+    const focusedId = this.focusedEvaluationId();
+    if (!focusedId) {
+      return null;
+    }
+
+    const status = this.evaluationsResource.status();
+    if (status !== 'resolved' && status !== 'local') {
+      return null;
+    }
+
+    return this.hasJumpTarget()
+      ? null
+      : '指定された評価が見つからなかったため、最新の評価を表示しています。';
+  });
 
   public readonly readInputChecked = (event: Event): boolean => {
     const target = event.target as HTMLInputElement | null;
@@ -157,55 +222,112 @@ export class ProfileEvaluationsPage {
     });
   });
 
+  public constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const userId = params.get('userId');
+      const evaluationId = params.get('evaluationId');
+      this.viewerUserId.set(userId ? userId.trim() : null);
+      this.focusedEvaluationId.set(evaluationId ? evaluationId.trim() : null);
+    });
+  }
+
   public readonly latestEvaluation = computed<CompetencyEvaluation | null>(() => {
     const [latest] = this.evaluations();
     return latest ?? null;
   });
 
-  public readonly history = computed<CompetencyEvaluation[]>(() => {
-    const [, ...history] = this.evaluations();
-    return history;
-  });
-
-  public readonly hasEvaluations = computed(() => this.evaluations().length > 0);
-  public readonly latestNextActions = computed<NextActionCard[]>(() => {
-    const evaluation = this.latestEvaluation();
-    if (!evaluation) {
+  private readonly evaluationGroups = computed<EvaluationGroup[]>(() => {
+    const evaluations = this.evaluations();
+    if (evaluations.length === 0) {
       return [];
     }
 
-    const cards: NextActionCard[] = [];
-
-    const appendActions = (
-      items: readonly string[] | undefined | null,
-      category: NextActionCategory,
-    ): void => {
-      if (!Array.isArray(items)) {
-        return;
+    const grouped = new Map<string, EvaluationGroup>();
+    evaluations.forEach((evaluation) => {
+      const jobId = evaluation.job_id ?? null;
+      const groupId = jobId ?? evaluation.id;
+      let group = grouped.get(groupId);
+      if (!group) {
+        group = {
+          id: groupId,
+          jobId,
+          evaluations: [],
+          createdAt: evaluation.created_at,
+          periodStart: evaluation.period_start,
+          periodEnd: evaluation.period_end,
+        };
+        grouped.set(groupId, group);
       }
+      group.evaluations.push(evaluation);
+      if (evaluation.created_at.localeCompare(group.createdAt) > 0) {
+        group.createdAt = evaluation.created_at;
+        group.periodStart = evaluation.period_start;
+        group.periodEnd = evaluation.period_end;
+      }
+    });
 
-      items.forEach((value, index) => {
-        const text = typeof value === 'string' ? value.trim() : '';
-        if (!text) {
-          return;
-        }
+    return Array.from(grouped.values())
+      .map((group) => ({
+        ...group,
+        evaluations: [...group.evaluations].sort((a, b) =>
+          b.created_at.localeCompare(a.created_at),
+        ),
+      }))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  });
 
-        const meta = NEXT_ACTION_META[category];
-        cards.push({
-          id: `${category}-${index}`,
-          category,
-          categoryLabel: meta.label,
-          description: meta.description,
-          text,
-        });
-      });
+  public readonly displayGroup = computed<EvaluationGroup | null>(() => {
+    const groups = this.evaluationGroups();
+    if (groups.length === 0) {
+      return null;
+    }
+
+    const focusedId = this.focusedEvaluationId();
+    if (focusedId) {
+      const focused = groups.find((group) =>
+        group.evaluations.some((evaluation) => evaluation.id === focusedId),
+      );
+      if (focused) {
+        return focused;
+      }
+    }
+
+    const selected = this.selectedCompetencyIds();
+    if (selected.length === 0) {
+      return groups[0];
+    }
+
+    const hasAllSelected = (group: EvaluationGroup): boolean => {
+      return selected.every((competencyId) =>
+        group.evaluations.some((evaluation) => evaluation.competency_id === competencyId),
+      );
+    };
+    const hasAnySelected = (group: EvaluationGroup): boolean => {
+      return group.evaluations.some((evaluation) => selected.includes(evaluation.competency_id));
     };
 
-    appendActions(evaluation.attitude_actions, 'attitude');
-    appendActions(evaluation.behavior_actions, 'behavior');
-
-    return cards;
+    return groups.find(hasAllSelected) ?? groups.find(hasAnySelected) ?? groups[0];
   });
+
+  public readonly displayEvaluations = computed<CompetencyEvaluation[]>(() => {
+    const group = this.displayGroup();
+    if (!group) {
+      return [];
+    }
+
+    return this.orderEvaluationsBySelection(group.evaluations, this.selectedCompetencyIds());
+  });
+
+  public readonly historyGroups = computed<EvaluationGroup[]>(() => {
+    const groups = this.evaluationGroups();
+    const displayId = this.displayGroup()?.id;
+    if (!displayId) {
+      return groups;
+    }
+    return groups.filter((group) => group.id !== displayId);
+  });
+
+  public readonly hasEvaluations = computed(() => this.evaluations().length > 0);
   public readonly limitReached = computed<boolean>(() => {
     const quota = this.quota();
     if (!quota || quota.daily_limit <= 0) {
@@ -225,15 +347,11 @@ export class ProfileEvaluationsPage {
     return quota.remaining ?? Math.max(quota.daily_limit - quota.used, 0);
   });
 
-  public readonly canRunEvaluation = computed<boolean>(() => {
-    if (this.quotaLoading()) {
+  public readonly canRunBatchEvaluation = computed<boolean>(() => {
+    if (this.isAdminViewer()) {
       return false;
     }
 
-    return !this.limitReached();
-  });
-
-  public readonly canRunBatchEvaluation = computed<boolean>(() => {
     if (this.quotaLoading()) {
       return false;
     }
@@ -251,8 +369,10 @@ export class ProfileEvaluationsPage {
 
   public refresh(): void {
     this.loadEvaluations();
-    this.loadQuota();
-    this.loadCompetencies();
+    if (!this.isAdminViewer()) {
+      this.loadQuota();
+      this.loadCompetencies();
+    }
   }
 
   public scorePercent(evaluation: CompetencyEvaluation | null): number {
@@ -278,6 +398,96 @@ export class ProfileEvaluationsPage {
     return Array.isArray(actions) && actions.length > 0;
   }
 
+  public isSelectedCompetency(competencyId: string | null | undefined): boolean {
+    if (!competencyId) {
+      return false;
+    }
+
+    return this.selectedCompetencyIds().includes(competencyId);
+  }
+
+  public groupCompetencyLabel(group: EvaluationGroup): string {
+    const names = group.evaluations
+      .map((evaluation) => evaluation.competency?.name)
+      .filter((name): name is string => typeof name === 'string' && name.trim().length > 0);
+
+    if (names.length === 0) {
+      return `${group.evaluations.length} 件の評価`;
+    }
+
+    const uniqueNames = Array.from(new Set(names));
+    if (uniqueNames.length <= 3) {
+      return uniqueNames.join(' / ');
+    }
+
+    return `${uniqueNames.slice(0, 3).join(' / ')} ほか${uniqueNames.length - 3}件`;
+  }
+
+  public groupTriggeredLabel(group: EvaluationGroup): string {
+    const uniqueTriggeredBy = Array.from(
+      new Set(group.evaluations.map((evaluation) => evaluation.triggered_by).filter(Boolean)),
+    );
+    if (uniqueTriggeredBy.length === 1) {
+      return this.triggeredLabel(uniqueTriggeredBy[0]);
+    }
+    if (uniqueTriggeredBy.length === 0) {
+      return '不明な実行方法';
+    }
+    return '混在';
+  }
+
+  public groupAiModelLabel(group: EvaluationGroup): string {
+    const uniqueModels = Array.from(
+      new Set(
+        group.evaluations
+          .map((evaluation) => evaluation.ai_model?.trim() || '未設定')
+          .filter(Boolean),
+      ),
+    );
+    if (uniqueModels.length === 1) {
+      return uniqueModels[0];
+    }
+    return '複数';
+  }
+
+  public nextActionsFor(evaluation: CompetencyEvaluation | null): NextActionCard[] {
+    if (!evaluation) {
+      return [];
+    }
+
+    const cards: NextActionCard[] = [];
+
+    const appendActions = (
+      items: readonly string[] | undefined | null,
+      category: NextActionCategory,
+    ): void => {
+      if (!Array.isArray(items)) {
+        return;
+      }
+
+      items.forEach((value, index) => {
+        const text = typeof value === 'string' ? value.trim() : '';
+        if (!text) {
+          return;
+        }
+
+        const meta = NEXT_ACTION_META[category];
+        cards.push({
+          id: `${evaluation.id}-${category}-${index}`,
+          category,
+          categoryLabel: meta.label,
+          description: meta.description,
+          text,
+        });
+      });
+    };
+
+    appendActions(evaluation.attitude_actions, 'attitude');
+    appendActions(evaluation.behavior_actions, 'behavior');
+
+    return cards;
+  }
+
   public limitLabel(quota: EvaluationQuotaStatus | null): string {
     if (!quota) {
       return '-';
@@ -298,49 +508,11 @@ export class ProfileEvaluationsPage {
     return `${quota.remaining} 回`;
   }
 
-  public runEvaluation(): void {
-    if (this.runningEvaluation() || !this.canRunEvaluation()) {
+  public runBatchEvaluation(): void {
+    if (this.isAdminViewer()) {
       return;
     }
 
-    this.runningEvaluation.set(true);
-    this.actionError.set(null);
-    this.feedback.set(null);
-
-    const payload: SelfEvaluationRequest = {};
-    const latest = this.latestEvaluation();
-    if (latest?.competency_id) {
-      payload.competency_id = latest.competency_id;
-    }
-
-    this.api
-      .runMyEvaluation(payload)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (evaluation) => {
-          this.runningEvaluation.set(false);
-          this.evaluationsResource.update((list) => {
-            const filtered = list.filter((item) => item.id !== evaluation.id);
-            return [evaluation, ...filtered].slice(0, DEFAULT_HISTORY_LIMIT);
-          });
-          this.showFeedback('評価を実行しました。最新の結果が反映されています。');
-          this.loadQuota();
-        },
-        error: (error: HttpErrorResponse) => {
-          this.runningEvaluation.set(false);
-          const message = this.resolveHttpErrorMessage(
-            error,
-            '評価の実行に失敗しました。時間をおいて再度お試しください。',
-          );
-          this.actionError.set(message);
-          if (error.status === 429 || error.status === 401) {
-            this.loadQuota();
-          }
-        },
-      });
-  }
-
-  public runBatchEvaluation(): void {
     if (this.runningEvaluation() || !this.canRunBatchEvaluation()) {
       return;
     }
@@ -365,7 +537,7 @@ export class ProfileEvaluationsPage {
             const merged = Array.from(byId.values()).sort((a, b) =>
               b.created_at.localeCompare(a.created_at),
             );
-            return merged.slice(0, DEFAULT_HISTORY_LIMIT);
+            return merged.slice(0, this.historyLimit());
           });
           const count = evaluations.length;
           this.showFeedback(
@@ -489,6 +661,26 @@ export class ProfileEvaluationsPage {
         this.feedbackTimeoutId = null;
       }, 4000);
     }
+  }
+
+  private orderEvaluationsBySelection(
+    evaluations: CompetencyEvaluation[],
+    selected: string[],
+  ): CompetencyEvaluation[] {
+    if (selected.length === 0) {
+      return evaluations;
+    }
+
+    const order = new Map(selected.map((competencyId, index) => [competencyId, index]));
+    const filtered = evaluations
+      .filter((evaluation) => order.has(evaluation.competency_id))
+      .sort((a, b) => {
+        const aIndex = order.get(a.competency_id) ?? 0;
+        const bIndex = order.get(b.competency_id) ?? 0;
+        return aIndex - bIndex;
+      });
+
+    return filtered.length > 0 ? filtered : evaluations;
   }
 
   private sanitizeFileName(input: string): string {

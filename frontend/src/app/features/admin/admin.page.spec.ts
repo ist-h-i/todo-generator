@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { computed, signal } from '@angular/core';
 import { of } from 'rxjs';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { AdminApi } from '@core/api/admin-api';
 import { Auth } from '@core/auth/auth';
@@ -112,7 +113,7 @@ describe('AdminPage', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [AdminPage],
+      imports: [AdminPage, RouterTestingModule],
       providers: [
         { provide: AdminApi, useClass: MockAdminApiService },
         { provide: Auth, useClass: MockAuthService },

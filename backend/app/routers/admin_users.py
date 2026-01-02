@@ -37,6 +37,7 @@ def list_users(
             schemas.AdminUserRead(
                 id=user.id,
                 email=user.email,
+                nickname=user.nickname,
                 is_admin=user.is_admin,
                 is_active=user.is_active,
                 card_daily_limit=get_card_daily_limit(db, user.id),
@@ -111,6 +112,7 @@ def update_user(
     return schemas.AdminUserRead(
         id=user.id,
         email=user.email,
+        nickname=user.nickname,
         is_admin=user.is_admin,
         is_active=user.is_active,
         card_daily_limit=get_card_daily_limit(db, user.id),

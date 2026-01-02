@@ -124,6 +124,10 @@ export class AnalyticsPageStore {
   });
   public readonly candidatesLoading = computed(() => {
     const status = this.candidatesResource.status();
+    const error = this.candidatesResource.error();
+    if (error !== null && error !== undefined) {
+      return false;
+    }
     return status === 'loading' || status === 'reloading';
   });
   public readonly candidatesError = computed(() => this.candidatesResource.error());

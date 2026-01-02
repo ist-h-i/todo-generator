@@ -9,6 +9,7 @@ import {
   COMMENTS_EMPTY,
   REGISTRATION_RESPONSE,
   TEST_TOKEN,
+  TEST_USER,
   TOKEN_RESPONSE,
   makeCardResponse,
 } from './support/test-data';
@@ -125,6 +126,7 @@ test.describe('Auth', () => {
   test('login success navigates to board and stores token', async ({ page }) => {
     await mockApi(page, {
       'POST /auth/login': { json: TOKEN_RESPONSE },
+      'GET /auth/me': { json: TEST_USER },
       'GET /statuses': { json: BOARD_STATUSES },
       'GET /labels': { json: BOARD_LABELS },
       'GET /workspace/templates': { json: BOARD_TEMPLATES },
@@ -188,5 +190,30 @@ test.describe('Auth', () => {
       window.localStorage.getItem('verbalize-yourself/auth-token'),
     );
     expect(storedToken).toBeNull();
+  });
+
+  test('login input validation blocks submission', async ({ page }) => {
+    await page.goto('/login');
+
+    await page.locator('#login-email').fill('invalid-email');
+    await page.locator('#login-password').fill('short');
+
+    await expect(page.locator('#login-email-error')).toBeVisible();
+    await expect(page.locator('#login-password-error')).toBeVisible();
+    await expect(page.locator('form.auth-form button[type="submit"]')).toBeDisabled();
+  });
+
+  test('register nickname length validation shows error', async ({ page }) => {
+    await page.goto('/login');
+    await page.locator('.auth-toggle-button').click();
+
+    const longNickname = 'a'.repeat(65);
+    await page.locator('#register-nickname').fill(longNickname);
+    await page.locator('#register-email').fill('tester@example.com');
+    await page.locator('#register-password').fill('12345678');
+    await page.locator('#register-confirm-password').fill('12345678');
+
+    await expect(page.locator('#register-nickname-error')).toBeVisible();
+    await expect(page.locator('form.auth-form button[type="submit"]')).toBeDisabled();
   });
 });

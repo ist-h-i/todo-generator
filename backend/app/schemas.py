@@ -1053,9 +1053,18 @@ class CompetencySummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CompetencyCriterionReference(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CompetencyEvaluationItemRead(BaseModel):
     id: str
     criterion_id: Optional[str] = None
+    criterion: Optional[CompetencyCriterionReference] = None
     score_value: int
     score_label: str
     rationale: Optional[str] = None
@@ -1081,6 +1090,7 @@ class CompetencyEvaluationRead(BaseModel):
     behavior_actions: List[str] = Field(default_factory=list)
     ai_model: Optional[str] = None
     triggered_by: str
+    job_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     competency: Optional[CompetencySummary] = None
@@ -1139,6 +1149,7 @@ class EvaluationQuotaStatus(BaseModel):
 class AdminUserRead(BaseModel):
     id: str
     email: EmailStr
+    nickname: Optional[str] = None
     is_admin: bool
     is_active: bool
     card_daily_limit: Optional[int] = None

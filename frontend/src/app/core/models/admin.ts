@@ -74,9 +74,16 @@ export interface CompetencySummary {
   level: CompetencyLevel;
 }
 
+export interface CompetencyCriterionReference {
+  id: string;
+  title: string;
+  description?: string | null;
+}
+
 export interface CompetencyEvaluationItem {
   id: string;
   criterion_id?: string | null;
+  criterion?: CompetencyCriterionReference | null;
   score_value: number;
   score_label: string;
   rationale?: string | null;
@@ -101,6 +108,7 @@ export interface CompetencyEvaluation {
   ai_model?: string | null;
   warnings?: string[];
   triggered_by: string;
+  job_id?: string | null;
   created_at: IsoDateString;
   updated_at: IsoDateString;
   competency?: CompetencySummary | null;
@@ -136,6 +144,7 @@ export interface EvaluationQuotaStatus {
 export interface AdminUser {
   id: string;
   email: string;
+  nickname?: string | null;
   is_admin: boolean;
   is_active: boolean;
   card_daily_limit: number | null;
