@@ -17,7 +17,8 @@
         <h2 class="help-dialog__title" id="help-dialog-title">Verbalize Yourself ヘルプセンター</h2>
         <p class="help-dialog__description" id="help-dialog-description">
           AI
-          活用の整理、代表的なユースケース、主要な画面の使い方、よくある質問への回答をまとめています。
+          活用（タスク起票・日報/週報・分析・実績出力・コンピテンシー）の整理、はじめ方、画面ガイド、FAQ
+          をまとめています。
         </p>
       </div>
       <button
@@ -39,7 +40,58 @@
       </button>
     </header>
 
-    <section class="help-dialog__section">
+    <nav class="help-dialog__toc" aria-label="ヘルプ内ナビゲーション">
+      @for (link of tocLinks; track link.id) {
+        <button type="button" class="help-dialog__toc-link focus-ring" (click)="scrollTo(link.id)">
+          {{ link.label }}
+        </button>
+      }
+    </nav>
+
+    <section class="help-dialog__section help-dialog__intro" id="help-intro">
+      <div class="help-dialog__intro-header">
+        <h3 class="help-dialog__section-title">はじめに（クイックスタート）</h3>
+        <p class="help-dialog__section-lead">
+          初めての方は、まずこの 3
+          ステップから。慣れてきたら「分析」や「実績出力」で振り返りと共有を強化しましょう。
+        </p>
+      </div>
+
+      <div class="help-dialog__intro-grid">
+        <div class="help-dialog__quickstart" aria-label="クイックスタート">
+          @for (item of quickStart; track item.badge) {
+            <article class="help-dialog__quickstart-card">
+              <p class="help-dialog__quickstart-badge" aria-hidden="true">{{ item.badge }}</p>
+              <h4 class="help-dialog__quickstart-title">{{ item.title }}</h4>
+              <p class="help-dialog__quickstart-text">{{ item.description }}</p>
+            </article>
+          }
+        </div>
+
+        <aside class="help-dialog__tips" aria-label="使い方のコツ">
+          <h4 class="help-dialog__tips-title">使い方のコツ</h4>
+          <ul class="help-dialog__tips-list">
+            @for (tip of tips; track tip.title) {
+              <li class="help-dialog__tip">
+                <div class="help-dialog__tip-header">
+                  <p class="help-dialog__tip-title">{{ tip.title }}</p>
+                  @if (tip.keys?.length) {
+                    <div class="help-dialog__tip-keys" aria-label="キーボードショートカット">
+                      @for (key of tip.keys ?? []; track key) {
+                        <kbd class="help-dialog__kbd">{{ key }}</kbd>
+                      }
+                    </div>
+                  }
+                </div>
+                <p class="help-dialog__tip-text">{{ tip.description }}</p>
+              </li>
+            }
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section class="help-dialog__section" id="help-ai">
       <h3 class="help-dialog__section-title">AI活用（機能別の整理）</h3>
       <p class="help-dialog__section-lead">
         AI
@@ -91,7 +143,7 @@
       </p>
     </section>
 
-    <section class="help-dialog__section">
+    <section class="help-dialog__section" id="help-usecases">
       <h3 class="help-dialog__section-title">基本的なユースケース</h3>
       <p class="help-dialog__section-lead">
         何から始めればよいか迷ったときは、下記のシナリオを参考に全体の流れを把握してください。
@@ -113,7 +165,7 @@
       </div>
     </section>
 
-    <section class="help-dialog__section">
+    <section class="help-dialog__section" id="help-guides">
       <h3 class="help-dialog__section-title">各画面の使い方</h3>
       <p class="help-dialog__section-lead">
         アプリ全体の流れを把握できるよう、それぞれの画面でできることをハイライトしました。
@@ -138,7 +190,7 @@
       </div>
     </section>
 
-    <section class="help-dialog__section">
+    <section class="help-dialog__section" id="help-faq">
       <h3 class="help-dialog__section-title">よくある質問</h3>
       <dl class="help-dialog__faq">
         @for (item of faqs; track item.question) {

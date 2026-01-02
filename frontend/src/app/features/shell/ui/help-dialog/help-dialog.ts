@@ -32,6 +32,23 @@ interface FaqItem {
   readonly answer: string;
 }
 
+interface HelpTocLink {
+  readonly id: string;
+  readonly label: string;
+}
+
+interface QuickStartItem {
+  readonly badge: string;
+  readonly title: string;
+  readonly description: string;
+}
+
+interface HelpTipItem {
+  readonly title: string;
+  readonly description: string;
+  readonly keys?: readonly string[];
+}
+
 @Component({
   selector: 'app-help-dialog',
   imports: [NgOptimizedImage],
@@ -45,37 +62,101 @@ interface FaqItem {
 export class HelpDialog implements AfterViewInit {
   public readonly dismiss = output<void>();
 
-  private readonly panel = viewChild<ElementRef<HTMLDivElement>>('panel');
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
+
+  public readonly tocLinks: readonly HelpTocLink[] = [
+    { id: 'help-intro', label: 'はじめに' },
+    { id: 'help-ai', label: 'AI活用' },
+    { id: 'help-usecases', label: 'ユースケース' },
+    { id: 'help-guides', label: '画面ガイド' },
+    { id: 'help-faq', label: 'FAQ' },
+  ];
+
+  public readonly quickStart: readonly QuickStartItem[] = [
+    {
+      badge: '01',
+      title: 'メモを貼る',
+      description: '「タスク起票」でノートを貼り付け、ゴールを決めます。',
+    },
+    {
+      badge: '02',
+      title: 'カード化して回す',
+      description: '提案を整えてボードへ追加し、ドラッグ＆ドロップで進捗を更新します。',
+    },
+    {
+      badge: '03',
+      title: '振り返り・共有へ',
+      description: '「日報・週報解析」「分析」「実績出力」で改善と共有を加速します。',
+    },
+  ];
+
+  public readonly tips: readonly HelpTipItem[] = [
+    {
+      title: 'まずは安全に',
+      description: '機密情報や個人情報は入力しないでください。',
+    },
+    {
+      title: 'AI は下書き',
+      description: '生成結果は必ずレビューしてからカード化・共有しましょう。',
+    },
+    {
+      title: '提案が少ないとき',
+      description: '入力を具体化するか、「設定 > テンプレート」のしきい値を調整してください。',
+    },
+    {
+      title: '上限に達したとき',
+      description: '日次上限の可能性があります。時間をおくか、管理者へお問い合わせください。',
+    },
+    {
+      title: 'ショートカット',
+      description: 'ヘルプはキーボードでも閉じられます（背景クリックでも閉じます）。',
+      keys: ['Esc'],
+    },
+  ];
 
   public readonly aiFeatures: readonly AiFeatureItem[] = [
     {
       title: 'タスク起票（メモ → カード案）',
-      summary: 'ノートを貼り付けると、AI がカード案とサブタスクを提案します。',
+      summary:
+        '作業メモやアイデアを貼り付けると、AI がカード案とサブタスクを提案します。ゴールとおすすめ度を手がかりに、実行できる形へ整えましょう。',
       bullets: [
-        '入力: ノート / ゴール（自動 or 手動）',
-        'AI: タイトル・詳細・ラベル・サブタスクの提案 + おすすめ度',
-        '出力: 編集した提案をボードへ追加',
-        '関連: 設定 > テンプレート（おすすめ度しきい値 / 表示項目）',
+        '入力: ノート + ゴール（AIにおまかせ / 自分で指定）',
+        'AI: ゴール候補 + カード案（タイトル・詳細・ラベル・サブタスク）+ おすすめ度',
+        '出力: 編集して「この案をカードに追加」/「すべてをボードに追加」',
+        '関連: 設定 > テンプレート（おすすめ度しきい値 / 初期値 / 表示項目）',
       ],
     },
     {
       title: '日報・週報解析（振り返り → タスク候補）',
-      summary: 'タグと本文をセクションで送ると、タスク候補と振り返り観点を抽出します。',
+      summary:
+        '日報・週報をセクション単位で入力すると、AI が改善タスクと振り返り観点を抽出します。履歴は分析のコンテキストとして活用されます。',
       bullets: [
-        '入力: タグ / セクション（見出し + 本文）',
-        'AI: タスク候補・サブタスク・振り返り観点の提案',
-        '出力: 提案を編集して必要なものだけカード化',
-        '関連: 分析 > 免疫マップ（レポートがコンテキストとして活用されます）',
+        '入力: タグ + セクション（見出し + 本文）',
+        'AI: タスク候補・サブタスク・振り返り観点（改善の切り口）',
+        '出力: 提案を編集してカード化 / 履歴として蓄積',
+        '関連: 分析（免疫マップのコンテキストとして活用されます）',
       ],
     },
     {
       title: '免疫マップ生成（詰まりの構造化）',
-      summary: '日報・カード履歴などのコンテキストから、免疫マップと読み解きを生成します。',
+      summary:
+        'カードや日報のコンテキストから、詰まりの構造（Should / Cannot / Want）を Mermaid 図と読み解きで整理します。',
       bullets: [
-        '入力: 起点候補（自動）/ Should-Cannot-Want（手動） + 任意の補足',
-        'AI: Mermaid 図 + サマリー + 読み解きカード（根拠つき）',
-        '出力: Mermaid を共有し、気づきをボードや日報へ反映',
-        '関連: 日報・週報解析 / ボード / プロフィール（コンテキストとして参照）',
+        '入力: 起点候補（カード・日報など）+ Should-Cannot-Want（手動）+ 任意の補足',
+        'AI: 免疫マップ候補 + Mermaid 図 + サマリー + 読み解きカード（根拠つき）',
+        '出力: Mermaid を共有し、気づきを改善タスクとしてボードへ反映',
+        '関連: 日報・週報解析 / ボード（コンテキストとして参照されます）',
+      ],
+    },
+    {
+      title: '実績出力（実績 → 文章生成）',
+      summary:
+        'ラベルやテーマを指定して、実績を因果で語れる文章に整えます。複数の出力形式を切り替え、編集・コピー・ダウンロードできます。',
+      bullets: [
+        '入力: テーマ（ラベル / 自由入力）+ フロー（最大5つ）+ 出力形式',
+        'AI: 出力形式ごとの文章生成（注意点・警告も提示）',
+        '出力: 編集してコピー / ダウンロード（.md / .txt / .csv）',
+        '関連: ボード（ラベルでテーマを揃える）/ 管理（API・日次上限）',
       ],
     },
   ];
@@ -106,6 +187,15 @@ export class HelpDialog implements AfterViewInit {
         '「分析」で候補カードを生成し、起点にしたい内容を選びます（手動入力も可能）。',
         '免疫マップを生成して、サマリー・読み解きカード・Mermaid 図を確認します。',
         'Mermaid を共有し、必要ならボードに改善タスクを追加します。',
+      ],
+    },
+    {
+      title: '実績を文章にして共有する',
+      summary: '完了した取り組みを、外部に伝わる文章（複数形式）に整えます。',
+      steps: [
+        'ボードで実績にしたいカードやラベルを整理し、テーマを決めます。',
+        '「実績出力」でテーマ（ラベル / 自由入力）とフローを整え、出力形式を選びます。',
+        '生成結果を編集してコピー / ダウンロードし、1on1・評価・提出資料に活用します。',
       ],
     },
     {
@@ -144,9 +234,16 @@ export class HelpDialog implements AfterViewInit {
     {
       title: '分析ダッシュボード',
       description:
-        '完了率やステータス・ラベルの分布をまとめて確認できます。免疫マップ生成では、候補カードを選んで Mermaid 図と読み解きを作成できます。',
+        '進捗率、ポイント、ステータス・ラベルの内訳をまとめて把握できます。免疫マップ生成では、候補カードを選んで Mermaid 図と読み解き（根拠つき）を作成できます。',
       image: 'help/analytics.svg',
       alt: 'グラフと指標カードが並ぶ分析ダッシュボード画面のイラスト',
+    },
+    {
+      title: '実績出力',
+      description:
+        'ラベルやテーマを指定し、フローと出力形式を整えて実績を文章化します。生成結果はタブで切り替えられ、コピーやダウンロード（.md / .txt / .csv）に対応しています。',
+      image: 'help/achievement-output.svg',
+      alt: '入力フォームと生成結果のエディタが並ぶ実績出力画面のイラスト',
     },
     {
       title: 'コンピテンシー',
@@ -176,6 +273,11 @@ export class HelpDialog implements AfterViewInit {
         'おすすめ度がテンプレートのしきい値を下回る提案は非表示になります。「設定 > テンプレート」でしきい値を調整するか、ノート・日報本文を具体的にして再度お試しください。',
     },
     {
+      question: '実績出力の「ラベルから選択」とは何ですか？',
+      answer:
+        '登録済みラベルに紐づく実績データを自動で参照して、文章を生成するモードです。ラベルが未登録の場合は「自由入力」でテーマを指定してください。',
+    },
+    {
       question: '日報・週報はどこで確認できますか？',
       answer:
         '「日報・週報解析」に履歴が残り、イベントや提案内容も確認できます。入力内容は免疫マップ生成のコンテキストとして利用されるため、機密情報は入力しないようご注意ください。',
@@ -183,7 +285,7 @@ export class HelpDialog implements AfterViewInit {
     {
       question: 'AI 機能が利用できない場合は？',
       answer:
-        '管理者が Gemini API キーと利用モデルを設定しているか確認してください。日次上限に達している場合もあるため、時間をおいて再度お試しください。',
+        '管理者が Gemini API キーと利用モデルを設定しているか（管理 > API・日次上限）を確認してください。日次上限に達している場合もあるため、時間をおいて再度お試しください。',
     },
     {
       question: 'ダークモードを固定することはできますか？',
@@ -196,6 +298,20 @@ export class HelpDialog implements AfterViewInit {
     queueMicrotask(() => {
       this.panel()?.nativeElement.focus();
     });
+  }
+
+  public scrollTo(sectionId: string): void {
+    const container = this.panel()?.nativeElement;
+    if (!container) {
+      return;
+    }
+
+    const target = container.querySelector<HTMLElement>(`#${sectionId}`);
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   public onKeydown(event: KeyboardEvent): void {

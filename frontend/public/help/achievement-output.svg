@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" role="img" aria-labelledby="title desc">
+  <title id="title">実績出力</title>
+  <desc id="desc">実績を複数形式の文章に生成し、コピーやダウンロードできる画面イメージ</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0f7ff" />
+      <stop offset="1" stop-color="#faf5ff" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#10203a" flood-opacity="0.16" />
+    </filter>
+    <clipPath id="windowClip">
+      <rect x="28" y="28" width="304" height="184" rx="22" />
+    </clipPath>
+  </defs>
+
+  <rect width="360" height="240" rx="26" fill="url(#bg)" />
+  <circle cx="302" cy="52" r="118" fill="#9333ea" opacity="0.12" />
+  <circle cx="62" cy="214" r="92" fill="#2563eb" opacity="0.06" />
+
+  <g filter="url(#shadow)">
+    <rect x="28" y="28" width="304" height="184" rx="22" fill="#ffffff" opacity="0.96" />
+    <rect
+      x="28"
+      y="28"
+      width="304"
+      height="184"
+      rx="22"
+      fill="none"
+      stroke="#c4b5fd"
+      stroke-opacity="0.28"
+      stroke-width="1.2"
+    />
+
+    <g clip-path="url(#windowClip)">
+      <!-- Header -->
+      <rect x="28" y="28" width="304" height="32" fill="#f8fafc" />
+      <rect x="28" y="59.5" width="304" height="1" fill="#e2e8f0" />
+
+      <!-- Brand -->
+      <rect x="42" y="38" width="18" height="18" rx="6" fill="#9333ea" opacity="0.9" />
+      <rect x="66" y="40" width="66" height="6" rx="3" fill="#94a3b8" opacity="0.55" />
+      <rect x="66" y="50" width="42" height="4" rx="2" fill="#94a3b8" opacity="0.38" />
+
+      <!-- Two column layout -->
+      <rect x="42" y="74" width="136" height="128" rx="16" fill="#f1f5f9" stroke="#e2e8f0" />
+      <rect x="186" y="74" width="132" height="128" rx="16" fill="#f1f5f9" stroke="#e2e8f0" />
+
+      <!-- Left: Input -->
+      <rect x="54" y="86" width="54" height="5" rx="2.5" fill="#94a3b8" opacity="0.32" />
+      <rect x="54" y="98" width="58" height="12" rx="6" fill="#9333ea" opacity="0.16" />
+      <rect x="116" y="98" width="48" height="12" rx="6" fill="#94a3b8" opacity="0.2" />
+      <rect x="54" y="116" width="110" height="18" rx="9" fill="#ffffff" stroke="#e2e8f0" opacity="0.96" />
+      <rect x="54" y="140" width="110" height="36" rx="12" fill="#ffffff" stroke="#e2e8f0" opacity="0.96" />
+      <rect x="54" y="182" width="78" height="14" rx="7" fill="#2563eb" opacity="0.18" />
+      <path
+        d="M126 189l3 3 7-7"
+        fill="none"
+        stroke="#2563eb"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.7"
+      />
+
+      <!-- Right: Output -->
+      <rect x="198" y="86" width="46" height="5" rx="2.5" fill="#94a3b8" opacity="0.32" />
+      <!-- Tabs -->
+      <rect x="198" y="98" width="38" height="12" rx="6" fill="#9333ea" opacity="0.2" />
+      <rect x="240" y="98" width="32" height="12" rx="6" fill="#94a3b8" opacity="0.22" />
+      <rect x="276" y="98" width="28" height="12" rx="6" fill="#94a3b8" opacity="0.22" />
+      <!-- Editor -->
+      <rect x="198" y="116" width="108" height="60" rx="12" fill="#ffffff" stroke="#e2e8f0" opacity="0.96" />
+      <rect x="208" y="128" width="72" height="4" rx="2" fill="#94a3b8" opacity="0.24" />
+      <rect x="208" y="138" width="84" height="4" rx="2" fill="#94a3b8" opacity="0.22" />
+      <rect x="208" y="148" width="64" height="4" rx="2" fill="#94a3b8" opacity="0.18" />
+      <rect x="208" y="158" width="78" height="4" rx="2" fill="#94a3b8" opacity="0.16" />
+      <!-- Actions -->
+      <rect x="198" y="182" width="40" height="14" rx="7" fill="#9333ea" opacity="0.16" />
+      <rect x="242" y="182" width="64" height="14" rx="7" fill="#94a3b8" opacity="0.2" />
+    </g>
+  </g>
+</svg>
+

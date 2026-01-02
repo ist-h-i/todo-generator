@@ -1,4 +1,4 @@
-model = "gpt-5.2-codex"
+model = "gpt-5.2"
 model_reasoning_effort = "xhigh"
 # ===================================================================
 #  Codex / MCP configuration (cross-platform)
