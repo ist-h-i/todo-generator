@@ -537,7 +537,7 @@ export class ProfileEvaluationsPage {
             const merged = Array.from(byId.values()).sort((a, b) =>
               b.created_at.localeCompare(a.created_at),
             );
-            return merged.slice(0, DEFAULT_HISTORY_LIMIT);
+            return merged.slice(0, this.historyLimit());
           });
           const count = evaluations.length;
           this.showFeedback(
