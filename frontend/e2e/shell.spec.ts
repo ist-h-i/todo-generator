@@ -44,18 +44,20 @@ test.describe('Shell', () => {
     const themeButton = page.locator('button.shell-quick-action');
     await themeButton.click();
 
-    const darkPreference = await page.evaluate(() =>
-      window.localStorage.getItem('verbalize-yourself:theme-preference'),
-    );
-    expect(darkPreference).toBe('dark');
-    expect(await page.locator('html').evaluate((el) => el.classList.contains('dark'))).toBe(true);
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.localStorage.getItem('verbalize-yourself:theme-preference')),
+      )
+      .toBe('dark');
+    await expect(page.locator('html')).toHaveClass(/dark/);
 
     await themeButton.click();
-    const lightPreference = await page.evaluate(() =>
-      window.localStorage.getItem('verbalize-yourself:theme-preference'),
-    );
-    expect(lightPreference).toBe('light');
-    expect(await page.locator('html').evaluate((el) => el.classList.contains('dark'))).toBe(false);
+    await expect
+      .poll(() =>
+        page.evaluate(() => window.localStorage.getItem('verbalize-yourself:theme-preference')),
+      )
+      .toBe('light');
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
   });
 
   test('legacy theme preference migrates to new key', async ({ page }) => {

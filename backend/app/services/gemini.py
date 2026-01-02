@@ -248,6 +248,7 @@ class GeminiClient:
     _LEGACY_MODEL_ALIASES: ClassVar[dict[str, str]] = {
         "gemini-1.5-flash": "models/gemini-1.5-flash",
         "gemini-2.0-flash": "models/gemini-2.0-flash",
+        "gemini-2.0-flash-lite": "models/gemini-2.0-flash-lite",
         "gemini-2.5-flash": "models/gemini-2.5-flash",
         "gemini-2.5-flash-lite": "models/gemini-2.5-flash-lite",
         "gemini-2.5-pro": "models/gemini-2.5-pro",
@@ -260,8 +261,6 @@ class GeminiClient:
         "models/gemini-2.5-pro",
         "models/gemini-2.0-flash",
         "models/gemini-2.0-flash-lite",
-        "models/gemini-1.5-flash",
-        "models/gemini-1.5-flash-latest",
     )
     _DEFAULT_SUPPORTED_MODEL: ClassVar[str] = (
         settings.__class__.model_fields["gemini_model"].default or "models/gemini-2.5-flash"
@@ -270,6 +269,8 @@ class GeminiClient:
         {
             "models/gemini-2.0-flash-exp",
             "models/gemini-2.0-flash-exp-image-generation",
+            "models/gemini-1.5-flash",
+            "models/gemini-1.5-flash-latest",
             "gemini-1.0-pro",
             "models/gemini-1.0-pro",
             "gemini-1.0-pro-vision",
@@ -627,8 +628,10 @@ class GeminiClient:
 
         if primary_model and used_model and used_model != primary_model:
             if primary_model in zero_quota_models and reported_model:
-                warnings.append(
-                    f"Gemini モデル '{primary_model}' のクォータが 0 のため '{reported_model}' にフォールバックしました。"
+                logger.warning(
+                    "Gemini model fallback due to zero quota (structured): primary=%s reported=%s",
+                    primary_model,
+                    reported_model,
                 )
             elif reported_model:
                 warnings.append(f"Gemini モデル '{primary_model}' から '{reported_model}' にフォールバックしました。")
@@ -733,8 +736,10 @@ class GeminiClient:
 
         if primary_model and used_model and used_model != primary_model:
             if primary_model in zero_quota_models and reported_model:
-                warnings.append(
-                    f"Gemini モデル '{primary_model}' のクォータが 0 のため '{reported_model}' にフォールバックしました。"
+                logger.warning(
+                    "Gemini model fallback due to zero quota (analysis): primary=%s reported=%s",
+                    primary_model,
+                    reported_model,
                 )
             elif reported_model:
                 warnings.append(f"Gemini モデル '{primary_model}' から '{reported_model}' にフォールバックしました。")

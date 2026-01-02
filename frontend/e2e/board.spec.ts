@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import type { CardResponse } from '../src/app/core/api/cards-api';
 
+import type { ApiMockMap } from './support/api-mock';
 import { mockApi } from './support/api-mock';
 import { setLocalStorage } from './support/storage';
 import {
@@ -16,7 +17,11 @@ import {
   makeCardResponse,
 } from './support/test-data';
 
-const setupBoardSession = async (page: Page, cards: readonly CardResponse[]): Promise<void> => {
+const setupBoardSession = async (
+  page: Page,
+  cards: readonly CardResponse[],
+  overrides: ApiMockMap = {},
+): Promise<void> => {
   await setLocalStorage(page, { [AUTH_TOKEN_STORAGE_KEY]: TEST_TOKEN });
 
   await mockApi(page, {
@@ -28,6 +33,7 @@ const setupBoardSession = async (page: Page, cards: readonly CardResponse[]): Pr
     'PUT /board-layouts': { json: { ...BOARD_LAYOUT, board_grouping: 'status' } },
     'GET /cards': { json: cards },
     'GET /comments': { json: COMMENTS_EMPTY },
+    ...overrides,
   });
 };
 
@@ -174,5 +180,158 @@ test.describe('Board', () => {
     for (const [index, title] of subtaskTitles.entries()) {
       await expect(subtaskColumns.nth(index).getByText(title)).toBeVisible();
     }
+  });
+
+  test('toggles quick filters and grouping', async ({ page }) => {
+    const assignedToUser = TEST_USER.nickname ?? TEST_USER.email;
+    await setupBoardSession(page, [
+      makeCardResponse({
+        id: 'card-quick-1',
+        title: 'Fix bug',
+        summary: 'Investigate crash',
+        status_id: 'todo',
+        label_ids: ['bug'],
+        assignees: [assignedToUser],
+      }),
+      makeCardResponse({
+        id: 'card-quick-2',
+        title: 'Docs update',
+        summary: 'Refresh guide',
+        status_id: 'in-progress',
+        label_ids: ['docs'],
+        assignees: [assignedToUser],
+      }),
+    ]);
+
+    await gotoBoard(page);
+
+    const quickFilter = page.locator('.board-filters__quick-list .button').first();
+    await expect(quickFilter).toHaveAttribute('aria-pressed', 'false');
+    await quickFilter.click();
+    await expect(quickFilter).toHaveAttribute('aria-pressed', 'true');
+
+    await page.locator('.board-filters__view-actions .button').nth(1).click();
+    await expect(page.locator('.board-card__actions').first()).toBeVisible();
+  });
+
+  test('manages comments, subtasks, and delete confirmation', async ({ page }) => {
+    const now = '2025-01-01T00:00:00Z';
+
+    await setupBoardSession(
+      page,
+      [
+        makeCardResponse({
+          id: 'card-detail',
+          title: 'Fix auth',
+          summary: 'Resolve login bug',
+          status_id: 'todo',
+          label_ids: ['bug'],
+          subtasks: [
+            { id: 'subtask-1', title: 'Investigate logs', status: 'todo' },
+          ],
+        }),
+      ],
+      {
+        'GET /comments': {
+          json: [
+            {
+              id: 'comment-1',
+              card_id: 'card-detail',
+              content: 'Initial note',
+              subtask_id: null,
+              author_id: 'user-1',
+              author_nickname: 'Tester',
+              created_at: now,
+              updated_at: now,
+            },
+            {
+              id: 'comment-orphan',
+              card_id: 'card-detail',
+              content: 'Orphaned note',
+              subtask_id: 'missing-subtask',
+              author_id: 'user-1',
+              author_nickname: 'Tester',
+              created_at: now,
+              updated_at: now,
+            },
+          ],
+        },
+        'POST /comments': {
+          json: {
+            id: 'comment-2',
+            card_id: 'card-detail',
+            content: 'New comment',
+            subtask_id: null,
+            author_id: 'user-1',
+            author_nickname: 'Tester',
+            created_at: now,
+            updated_at: now,
+          },
+        },
+        'PUT /comments/comment-1': {
+          json: {
+            id: 'comment-1',
+            card_id: 'card-detail',
+            content: 'Updated note',
+            subtask_id: null,
+            author_id: 'user-1',
+            author_nickname: 'Tester',
+            created_at: now,
+            updated_at: now,
+          },
+        },
+        'DELETE /comments/comment-1': { status: 204 },
+        'POST /cards/card-detail/subtasks': {
+          json: {
+            id: 'subtask-2',
+            title: 'New subtask',
+            status: 'todo',
+            assignee: null,
+            estimate_hours: null,
+            due_date: null,
+          },
+        },
+        'DELETE /cards/card-detail': { status: 204 },
+      },
+    );
+
+    await gotoBoard(page);
+
+    await page.locator('.board-card__select', { hasText: 'Fix auth' }).click();
+    await expect(page.locator('.board-detail')).toBeVisible();
+
+    await expect(page.locator('.comment-pane__section--orphaned')).toBeVisible();
+
+    const cardCommentForm = page.locator('.card-comments form.comment-form');
+    await cardCommentForm.locator('textarea').fill('New comment');
+    await cardCommentForm.locator('button[type="submit"]').click();
+    await expect(page.locator('.card-comments .comment-list__message', { hasText: 'New comment' })).toBeVisible();
+
+    const commentItem = page.locator('.card-comments .comment-list__item', { hasText: 'Initial note' });
+    await commentItem.locator('.comment-list__edit').click();
+    await cardCommentForm.locator('textarea').fill('Updated note');
+    await cardCommentForm.locator('button[type="submit"]').click();
+    await expect(page.locator('.card-comments .comment-list__message', { hasText: 'Updated note' })).toBeVisible();
+
+    const updatedItem = page.locator('.card-comments .comment-list__item', { hasText: 'Updated note' });
+    await updatedItem.locator('.comment-list__remove').click();
+    await expect(page.locator('.card-comments .comment-list__message', { hasText: 'Updated note' })).toHaveCount(0);
+
+    const newSubtaskForm = page.locator('form.subtask-editor__form');
+    await newSubtaskForm.locator('input[type="text"]').first().fill('New subtask');
+    await newSubtaskForm.locator('button[type="submit"]').click();
+    const newSubtaskTitle = page
+      .locator('.subtask-editor__title-field input.subtask-editor__input')
+      .last();
+    await expect(newSubtaskTitle).toHaveValue('New subtask');
+
+    const deleteButton = page.locator('.board-detail button.button--danger');
+    page.once('dialog', async (dialog) => dialog.dismiss());
+    await deleteButton.click();
+    await expect(page.locator('.board-detail')).toBeVisible();
+
+    page.once('dialog', async (dialog) => dialog.accept());
+    await deleteButton.click();
+    await expect(page.locator('.board-detail')).toHaveCount(0);
   });
 });

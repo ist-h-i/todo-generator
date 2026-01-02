@@ -283,7 +283,7 @@ def test_request_analysis_falls_back_when_model_has_zero_quota() -> None:
     assertions.assertTrue(data["proposals"] == [])
     warnings = data.get("warnings") or []
     assertions.assertTrue(isinstance(warnings, list))
-    assertions.assertTrue(any("フォールバック" in str(item) for item in warnings))
+    assertions.assertTrue(len(warnings) == 0)
     assertions.assertTrue(calls["primary"] == 1)
     assertions.assertTrue(calls["fallback"] == 1)
 

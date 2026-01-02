@@ -343,7 +343,7 @@
   }
 
   @if (activeTab() === 'evaluations') {
-    <section class="page-section">
+    <section class="page-section admin-evaluations__manual">
       <header class="page-section__header">
         <h2 class="page-section__title">手動判定</h2>
         <p class="page-section__subtitle">
@@ -351,26 +351,43 @@
         </p>
       </header>
 
-      <form class="page-form" [formGroup]="evaluationForm" (ngSubmit)="triggerEvaluation()">
-        <div class="form-grid form-grid--two">
-          <label class="form-field">
-            <span class="form-field__label">対象ユーザ</span>
-            <shared-ui-select
-              formControlName="userId"
-              name="evaluation-user"
-              required
-              [options]="evaluationUserSelectOptions()"
+      <form
+        class="page-form admin-manual"
+        [formGroup]="evaluationForm"
+        (ngSubmit)="triggerEvaluation()"
+      >
+        <label class="form-field">
+          <span class="form-field__label">ユーザ検索</span>
+          <div class="admin-evaluations__search">
+            <input
+              type="search"
+              class="form-control admin-evaluations__search-input"
+              placeholder="ニックネーム・メールで検索"
+              name="evaluation-user-search"
+              [value]="evaluationUserSearchQuery()"
+              (input)="updateEvaluationUserSearch($event)"
             />
-          </label>
-          <label class="form-field">
-            <span class="form-field__label">コンピテンシー</span>
-            <shared-ui-select
-              formControlName="competencyId"
-              name="evaluation-competency"
-              required
-              [options]="evaluationCompetencySelectOptions()"
-            />
-          </label>
+            @if (isEvaluationUserSearchActive()) {
+              <button
+                type="button"
+                class="button button--ghost button--pill admin-evaluations__clear"
+                (click)="clearEvaluationUserSearch()"
+              >
+                クリア
+              </button>
+            }
+          </div>
+        </label>
+        <label class="form-field">
+          <span class="form-field__label">対象ユーザ</span>
+          <shared-ui-select
+            formControlName="userId"
+            name="evaluation-user"
+            required
+            [options]="evaluationUserSelectOptions()"
+          />
+        </label>
+        <div class="admin-manual__period">
           <label class="form-field">
             <span class="form-field__label">評価開始日</span>
             <input
@@ -390,14 +407,58 @@
             />
           </label>
         </div>
+        <div class="admin-manual__competencies">
+          <div class="admin-manual__competency-header">
+            <span class="form-field__label">コンピテンシー</span>
+            <div class="admin-manual__competency-actions">
+              <button
+                type="button"
+                class="button button--ghost button--pill"
+                (click)="selectAllEvaluationCompetencies()"
+                [disabled]="competencies().length === 0"
+              >
+                全選択
+              </button>
+              <button
+                type="button"
+                class="button button--ghost button--pill"
+                (click)="clearEvaluationCompetencySelection()"
+                [disabled]="evaluationCompetencySelectionCount() === 0"
+              >
+                全解除
+              </button>
+            </div>
+          </div>
+          <div class="admin-manual__competency-list" role="group" aria-label="コンピテンシーを選択">
+            @for (competency of competencies(); track competency.id) {
+              <label class="admin-manual__competency-option">
+                <input
+                  type="checkbox"
+                  [checked]="isEvaluationCompetencySelected(competency.id)"
+                  (change)="
+                    toggleEvaluationCompetencySelection(competency.id, readInputChecked($event))
+                  "
+                />
+                <span>{{ competency.name }}</span>
+              </label>
+            }
+            @if (competencies().length === 0) {
+              <span class="form-note admin-manual__competency-empty">
+                コンピテンシーが未設定です。
+              </span>
+            }
+          </div>
+          <p class="form-note">選択中 {{ evaluationCompetencySelectionCount() }} 件</p>
+        </div>
 
-        <button type="submit" class="button button--primary" [disabled]="loading()">
-          <shared-ai-mark />
-          判定を実行
-        </button>
+        <div class="admin-manual__footer">
+          <button type="submit" class="button button--primary" [disabled]="loading()">
+            <shared-ai-mark />
+            判定を実行
+          </button>
+        </div>
       </form>
     </section>
-
     <section class="page-section">
       <header class="page-section__header">
         <h2 class="page-section__title">評価履歴</h2>
@@ -409,36 +470,149 @@
           まだ評価結果はありません。手動判定を実行するか、月次バッチを待機してください。
         </p>
       } @else {
-        <ul class="page-list admin-evaluations">
-          @for (evaluation of evaluations(); track evaluation.id) {
-            <li class="page-list__item admin-evaluations__item">
-              <header class="page-list__heading admin-evaluations__header">
-                <div>
-                  <strong>{{ evaluation.competency?.name || '不明なコンピテンシー' }}</strong>
-                  <span class="page-badge page-badge--accent">{{ evaluation.score_label }}</span>
-                </div>
-                <span class="admin-evaluations__meta">
-                  対象: {{ userEmail(evaluation.user_id) }} ／ 期間:
-                  {{ evaluation.period_start | localDateTime: 'yyyy/MM/dd' }} -
-                  {{ evaluation.period_end | localDateTime: 'yyyy/MM/dd' }}
-                </span>
-              </header>
-              <p class="admin-evaluations__rationale">
-                {{ evaluation.rationale || 'AI からの根拠は取得できませんでした。' }}
-              </p>
-              @if (evaluation.items.length > 0) {
-                <ul class="admin-evaluations__items">
-                  @for (item of evaluation.items; track item.id) {
-                    <li>
-                      <strong>{{ item.score_label }}</strong>
-                      <p>{{ item.rationale || '根拠は未入力です。' }}</p>
-                    </li>
-                  }
-                </ul>
-              }
-            </li>
+        <div class="admin-evaluations__toolbar">
+          <label class="form-field admin-evaluations__search-field">
+            <span class="form-field__label">検索</span>
+            <div class="admin-evaluations__search">
+              <input
+                type="search"
+                class="form-control admin-evaluations__search-input"
+                placeholder="ニックネーム・メール・コンピテンシーで検索"
+                [value]="evaluationSearchQuery()"
+                (input)="updateEvaluationSearch($event)"
+              />
+            </div>
+          </label>
+          <div class="admin-evaluations__count" aria-live="polite">
+            <span>
+              表示 {{ evaluationRange().start }}-{{ evaluationRange().end }} /
+              {{ evaluationRange().total }}
+              セット
+            </span>
+            @if (isEvaluationSearchActive()) {
+              <button
+                type="button"
+                class="button button--ghost button--pill admin-evaluations__clear"
+                (click)="clearEvaluationSearch()"
+              >
+                クリア
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (filteredEvaluationGroups().length === 0) {
+          <p class="page-empty">検索結果がありません。</p>
+        } @else {
+          <ul class="page-list admin-evaluations">
+            @for (group of pagedEvaluationGroups(); track group.id) {
+              <li class="page-list__item admin-evaluations__item">
+                <a
+                  class="admin-evaluations__card"
+                  [routerLink]="['/profile/evaluations']"
+                  [queryParams]="{ userId: group.userId, evaluationId: group.primaryEvaluationId }"
+                  aria-label="評価セットの詳細を開く"
+                >
+                  <header class="page-list__heading admin-evaluations__header">
+                    <div class="admin-evaluations__summary">
+                      <div class="admin-evaluations__title">
+                        <strong>評価セット</strong>
+                        <span class="page-badge page-badge--accent">
+                          {{ group.evaluations.length }}件
+                        </span>
+                      </div>
+                      <p class="admin-evaluations__competencies">
+                        {{ groupCompetencyLabel(group) }}
+                      </p>
+                    </div>
+                    <div class="admin-evaluations__meta">
+                      @if (evaluationUser(group.userId); as user) {
+                        <div class="admin-evaluations__identity">
+                          <span class="admin-evaluations__identity-label">対象</span>
+                          <div class="admin-evaluations__user">
+                            <span class="admin-evaluations__user-name">{{ user.displayName }}</span>
+                            @if (user.email && user.email !== user.displayName) {
+                              <span class="admin-evaluations__user-email">{{ user.email }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                      <span>
+                        期間: {{ group.periodStart | localDateTime: 'yyyy/MM/dd' }} -
+                        {{ group.periodEnd | localDateTime: 'yyyy/MM/dd' }}
+                      </span>
+                    </div>
+                  </header>
+                  <ul class="admin-evaluations__set">
+                    @for (evaluation of group.evaluations; track evaluation.id) {
+                      <li class="admin-evaluations__entry">
+                        <header class="admin-evaluations__entry-header">
+                          <div class="admin-evaluations__entry-title">
+                            <strong>{{
+                              evaluation.competency?.name || '不明なコンピテンシー'
+                            }}</strong>
+                            <span class="page-badge page-badge--accent">
+                              {{ evaluation.score_label }}
+                            </span>
+                          </div>
+                          <span class="admin-evaluations__entry-meta">
+                            評価項目: {{ evaluation.items.length }}件
+                          </span>
+                        </header>
+                        <p class="admin-evaluations__rationale">
+                          {{ evaluation.rationale || 'AI からの根拠は取得できませんでした。' }}
+                        </p>
+                        @if (evaluation.items.length > 0) {
+                          <ul class="admin-evaluations__items">
+                            @for (item of evaluation.items; track item.id; let index = $index) {
+                              <li class="admin-evaluations__criterion">
+                                <header class="admin-evaluations__criterion-header">
+                                  <span class="admin-evaluations__criterion-title">
+                                    {{ item.criterion?.title || '評価項目 ' + (index + 1) }}
+                                  </span>
+                                  <span class="page-badge page-badge--accent">
+                                    {{ item.score_label }}
+                                  </span>
+                                </header>
+                                <p class="admin-evaluations__criterion-rationale">
+                                  {{ item.rationale || '根拠は未入力です。' }}
+                                </p>
+                              </li>
+                            }
+                          </ul>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </a>
+              </li>
+            }
+          </ul>
+
+          @if (showEvaluationPagination()) {
+            <nav class="admin-evaluations__pagination" aria-label="評価履歴のページ">
+              <button
+                type="button"
+                class="button button--ghost button--pill"
+                (click)="previousEvaluationPage()"
+                [disabled]="evaluationPageNumber() <= 1"
+              >
+                前へ
+              </button>
+              <span class="admin-evaluations__page-indicator">
+                {{ evaluationPageNumber() }} / {{ evaluationPageCount() }}
+              </span>
+              <button
+                type="button"
+                class="button button--ghost button--pill"
+                (click)="nextEvaluationPage()"
+                [disabled]="evaluationPageNumber() >= evaluationPageCount()"
+              >
+                次へ
+              </button>
+            </nav>
           }
-        </ul>
+        }
       }
     </section>
   }

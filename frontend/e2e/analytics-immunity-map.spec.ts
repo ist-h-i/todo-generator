@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import type { ApiMockMap } from './support/api-mock';
 import { mockApi } from './support/api-mock';
 import { setLocalStorage } from './support/storage';
 import {
@@ -42,6 +43,7 @@ const buildArrayCandidateResponse = (): Record<string, unknown>[] => [
 const setupAnalyticsSession = async (
   page: Page,
   candidateResponse: unknown = buildNestedCandidateResponse(),
+  overrides: ApiMockMap = {},
 ): Promise<void> => {
   await setLocalStorage(page, { [AUTH_TOKEN_STORAGE_KEY]: TEST_TOKEN });
 
@@ -62,6 +64,7 @@ const setupAnalyticsSession = async (
       ],
     },
     'POST /analysis/immunity-map/candidates': { json: candidateResponse },
+    ...overrides,
   });
 };
 
@@ -91,5 +94,78 @@ test.describe('Analytics', () => {
     const candidateInput = candidates.first().locator('input.form-control');
     await expect(candidateInput).toHaveValue(/array/i);
   });
-});
 
+  test('shows candidate fetch error state', async ({ page }) => {
+    await setupAnalyticsSession(page, buildNestedCandidateResponse(), {
+      'POST /analysis/immunity-map/candidates': { status: 500, json: { detail: 'failed' } },
+    });
+
+    await page.goto('/analytics');
+
+    await page.locator('.analytics-immunity-map__composer button.button--secondary').click();
+    const errorAlert = page.locator('.analytics-immunity-map__composer .app-alert--error');
+    const globalError = page.locator('.hover-message[data-severity="error"]');
+    await expect(errorAlert.or(globalError)).toBeVisible();
+  });
+
+  test('shows empty candidate state after refresh', async ({ page }) => {
+    await setupAnalyticsSession(page, {
+      candidates: [],
+      used_sources: { status_reports: 0, cards: 0, snapshots: 0 },
+    });
+
+    await page.goto('/analytics');
+
+    await page.locator('.analytics-immunity-map__composer button.button--secondary').click();
+
+    await expect(page.locator('.analytics-immunity-map__composer .page-state')).toBeVisible();
+    await expect(page.locator('.analytics-immunity-map__candidate')).toHaveCount(0);
+  });
+
+  test('shows generation error when no candidates are selected', async ({ page }) => {
+    await setupAnalyticsSession(page, buildNestedCandidateResponse());
+
+    await page.goto('/analytics');
+
+    await page.locator('.analytics-immunity-map__composer button.button--secondary').click();
+
+    await expect(page.locator('.analytics-immunity-map__candidate')).toHaveCount(1);
+    const toggleButton = page.locator('.analytics-immunity-map__candidate button.button--pill');
+    await toggleButton.click();
+
+    await page.locator('.analytics-immunity-map__composer button.button--primary').click();
+    await expect(page.locator('.analytics-immunity-map__composer .app-alert--error')).toBeVisible();
+  });
+
+  test('generates immunity map from manual inputs', async ({ page }) => {
+    await setupAnalyticsSession(page, buildNestedCandidateResponse(), {
+      'POST /analysis/immunity-map': {
+        json: {
+          model: 'test-model',
+          payload: {
+            nodes: [{ id: 'A1', group: 'A', label: 'Root', kind: 'should' }],
+            edges: [],
+          },
+          mermaid: 'graph TD; A1[Root];',
+          summary: {
+            current_analysis: 'Current state',
+            one_line_advice: 'Next step',
+          },
+          core_insight: { text: 'Key insight', related_node_id: 'A1' },
+          readout_cards: [],
+          warnings: [],
+        },
+      },
+    });
+
+    await page.goto('/analytics');
+
+    await page.locator('.analytics-immunity-map__composer button.button--pill').first().click();
+
+    const manualInputs = page.locator('.analytics-immunity-map__composer textarea.form-control--textarea');
+    await manualInputs.first().fill('Keep focus on onboarding');
+
+    await page.locator('.analytics-immunity-map__composer button.button--primary').click();
+    await expect(page.locator('.analytics-immunity-map__viewer')).toBeVisible();
+  });
+});

@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { buildApiUrl } from './api.config';
@@ -48,8 +48,29 @@ export class AdminApi {
     );
   }
 
-  public listEvaluations(): Observable<CompetencyEvaluation[]> {
-    return this.http.get<CompetencyEvaluation[]>(buildApiUrl('/admin/evaluations'));
+  public listEvaluations(filters?: {
+    userId?: string;
+    competencyId?: string;
+    periodStart?: string;
+    periodEnd?: string;
+  }): Observable<CompetencyEvaluation[]> {
+    let params = new HttpParams();
+    if (filters?.userId) {
+      params = params.set('user_id', filters.userId);
+    }
+    if (filters?.competencyId) {
+      params = params.set('competency_id', filters.competencyId);
+    }
+    if (filters?.periodStart) {
+      params = params.set('period_start', filters.periodStart);
+    }
+    if (filters?.periodEnd) {
+      params = params.set('period_end', filters.periodEnd);
+    }
+
+    return this.http.get<CompetencyEvaluation[]>(buildApiUrl('/admin/evaluations'), {
+      params,
+    });
   }
 
   public listCompetencyLevels(): Observable<CompetencyLevelDefinition[]> {

@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -11,6 +12,9 @@ import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } fr
 import { PageLayout } from '@shared/ui/page-layout/page-layout';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 
 import { AdminApi } from '@core/api/admin-api';
 import { Auth } from '@core/auth/auth';
@@ -30,6 +34,7 @@ import {
 import { LocalDateTimePipe } from '@shared/pipes/local-date-time';
 import { UiSelect } from '@shared/ui/select/ui-select';
 import { AiMark } from '@shared/ui/ai-mark/ai-mark';
+import { getDisplayName } from '@shared/utils/display-name';
 
 type AdminTab = 'competencies' | 'evaluations' | 'users' | 'settings';
 type CriterionFormGroup = FormGroup<{
@@ -60,10 +65,20 @@ type CompetencyLevelFormControls = {
   description: FormControl<string>;
   sort_order: FormControl<number | null>;
 };
+type AdminEvaluationGroup = {
+  id: string;
+  jobId: string | null;
+  userId: string;
+  createdAt: string;
+  periodStart: string;
+  periodEnd: string;
+  primaryEvaluationId: string;
+  evaluations: CompetencyEvaluation[];
+};
 
 @Component({
   selector: 'app-admin-page',
-  imports: [ReactiveFormsModule, PageLayout, LocalDateTimePipe, UiSelect, AiMark],
+  imports: [ReactiveFormsModule, PageLayout, LocalDateTimePipe, UiSelect, AiMark, RouterLink],
   templateUrl: './admin.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -114,7 +129,7 @@ export class AdminPage {
     },
   ];
   private readonly defaultGeminiModel = 'models/gemini-2.5-flash';
-  private readonly competencyCriteria = new FormArray<CriterionFormGroup>([
+  private readonly initialCompetencyCriteria = new FormArray<CriterionFormGroup>([
     this.createCriterionGroup(),
   ]);
   public readonly competencyForm: FormGroup<CompetencyFormControls> = new FormGroup({
@@ -129,7 +144,7 @@ export class AdminPage {
       nonNullable: true,
     }),
     is_active: new FormControl(true, { nonNullable: true }),
-    criteria: this.competencyCriteria,
+    criteria: this.initialCompetencyCriteria,
   });
 
   public readonly competencyLevelSelectOptions = computed(() =>
@@ -155,7 +170,7 @@ export class AdminPage {
 
   public readonly evaluationForm: FormGroup<{
     userId: FormControl<string>;
-    competencyId: FormControl<string>;
+    competencyIds: FormControl<string[]>;
     periodStart: FormControl<string>;
     periodEnd: FormControl<string>;
   }> = new FormGroup({
@@ -163,7 +178,7 @@ export class AdminPage {
       nonNullable: true,
       validators: [Validators.required],
     }),
-    competencyId: new FormControl('', {
+    competencyIds: new FormControl<string[]>([], {
       nonNullable: true,
       validators: [Validators.required],
     }),
@@ -171,17 +186,139 @@ export class AdminPage {
     periodEnd: new FormControl('', { nonNullable: true }),
   });
 
-  public readonly evaluationUserSelectOptions = computed(() => {
-    const users = this.users().map((user) => ({ value: user.id, label: user.email }));
-    return [{ value: '', label: '選択してください' }, ...users];
+  public readonly evaluationUserSearchQuery = signal('');
+  private readonly evaluationSelectedUserId = signal('');
+  private readonly evaluationUserQueryTokens = computed(() => {
+    const normalized = this.normalizeSearchText(this.evaluationUserSearchQuery());
+    return normalized.length === 0 ? [] : normalized.split(' ').filter(Boolean);
+  });
+  public readonly evaluationSearchQuery = signal('');
+  private readonly evaluationPage = signal(1);
+  private readonly evaluationPageSize = 8;
+  private readonly userIndex = computed(() => {
+    const index = new Map<string, AdminUser>();
+    for (const user of this.users()) {
+      index.set(user.id, user);
+    }
+    return index;
+  });
+  private readonly evaluationQueryTokens = computed(() => {
+    const normalized = this.normalizeSearchText(this.evaluationSearchQuery());
+    return normalized.length === 0 ? [] : normalized.split(' ').filter(Boolean);
+  });
+  private readonly evaluationGroups = computed<AdminEvaluationGroup[]>(() => {
+    const evaluations = this.evaluations();
+    if (evaluations.length === 0) {
+      return [];
+    }
+
+    const grouped = new Map<string, AdminEvaluationGroup>();
+    for (const evaluation of evaluations) {
+      const jobId = evaluation.job_id ?? null;
+      const groupId = jobId ?? evaluation.id;
+      let group = grouped.get(groupId);
+      if (!group) {
+        group = {
+          id: groupId,
+          jobId,
+          userId: evaluation.user_id,
+          createdAt: evaluation.created_at,
+          periodStart: evaluation.period_start,
+          periodEnd: evaluation.period_end,
+          primaryEvaluationId: evaluation.id,
+          evaluations: [],
+        };
+        grouped.set(groupId, group);
+      }
+      group.evaluations.push(evaluation);
+      if (evaluation.created_at.localeCompare(group.createdAt) > 0) {
+        group.createdAt = evaluation.created_at;
+        group.periodStart = evaluation.period_start;
+        group.periodEnd = evaluation.period_end;
+        group.primaryEvaluationId = evaluation.id;
+      }
+    }
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        ...group,
+        evaluations: [...group.evaluations].sort((a, b) =>
+          b.created_at.localeCompare(a.created_at),
+        ),
+      }))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  });
+  public readonly filteredEvaluationGroups = computed(() => {
+    const tokens = this.evaluationQueryTokens();
+    if (tokens.length === 0) {
+      return this.evaluationGroups();
+    }
+    return this.evaluationGroups().filter((group) => this.matchesEvaluationGroup(group, tokens));
+  });
+  public readonly evaluationPageCount = computed(() => {
+    const total = this.filteredEvaluationGroups().length;
+    return Math.max(1, Math.ceil(total / this.evaluationPageSize));
+  });
+  private readonly evaluationPageIndex = computed(() => {
+    const pageCount = this.evaluationPageCount();
+    const current = this.evaluationPage();
+    return Math.min(Math.max(1, current), pageCount);
+  });
+  public readonly evaluationPageNumber = computed(() => this.evaluationPageIndex());
+  public readonly pagedEvaluationGroups = computed(() => {
+    const page = this.evaluationPageIndex();
+    const start = (page - 1) * this.evaluationPageSize;
+    return this.filteredEvaluationGroups().slice(start, start + this.evaluationPageSize);
+  });
+  public readonly evaluationRange = computed(() => {
+    const total = this.filteredEvaluationGroups().length;
+    if (total === 0) {
+      return { start: 0, end: 0, total };
+    }
+    const page = this.evaluationPageIndex();
+    const start = (page - 1) * this.evaluationPageSize + 1;
+    const end = Math.min(start + this.evaluationPageSize - 1, total);
+    return { start, end, total };
+  });
+  public readonly isEvaluationSearchActive = computed(
+    () => this.evaluationSearchQuery().trim().length > 0,
+  );
+  public readonly isEvaluationUserSearchActive = computed(
+    () => this.evaluationUserSearchQuery().trim().length > 0,
+  );
+  public readonly showEvaluationPagination = computed(() => this.evaluationPageCount() > 1);
+
+  private readonly filteredEvaluationUsers = computed(() => {
+    const tokens = this.evaluationUserQueryTokens();
+    const users = this.users();
+    const filtered =
+      tokens.length === 0
+        ? users
+        : users.filter((user) => {
+            const searchable = this.normalizeSearchText(this.buildUserSearchText(user));
+            if (!searchable) {
+              return false;
+            }
+            return tokens.every((token) => searchable.includes(token));
+          });
+
+    const selectedId = this.evaluationSelectedUserId().trim();
+    if (!selectedId) {
+      return filtered;
+    }
+    const selected = users.find((user) => user.id === selectedId);
+    if (!selected || filtered.some((user) => user.id === selectedId)) {
+      return filtered;
+    }
+    return [selected, ...filtered];
   });
 
-  public readonly evaluationCompetencySelectOptions = computed(() => {
-    const competencies = this.competencies().map((competency) => ({
-      value: competency.id,
-      label: competency.name,
+  public readonly evaluationUserSelectOptions = computed(() => {
+    const users = this.filteredEvaluationUsers().map((user) => ({
+      value: user.id,
+      label: this.formatUserOptionLabel(user),
     }));
-    return [{ value: '', label: '選択してください' }, ...competencies];
+    return [{ value: '', label: '選択してください' }, ...users];
   });
 
   public readonly apiForm: FormGroup<{
@@ -241,9 +378,6 @@ export class AdminPage {
     { value: 'models/gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
     { value: 'models/gemini-3-flash', label: 'Gemini 3 Flash' },
     { value: 'models/gemini-3-pro', label: 'Gemini 3 Pro' },
-    { value: 'models/gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-    { value: 'models/gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' },
-    { value: 'models/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash 001' },
   ];
   private readonly knownGeminiModelValues = new Set(
     this.geminiModelOptions.map((option) => option.value),
@@ -276,6 +410,18 @@ export class AdminPage {
   public constructor() {
     this.competencyLevels.set(this.sortLevels(this.defaultCompetencyLevels));
     this.bootstrap();
+    this.evaluationSelectedUserId.set(this.evaluationForm.controls.userId.value);
+    this.evaluationForm.controls.userId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => this.evaluationSelectedUserId.set(value ?? ''));
+    effect(() => {
+      const pageCount = this.evaluationPageCount();
+      const current = this.evaluationPage();
+      const next = Math.min(Math.max(1, current), pageCount);
+      if (current !== next) {
+        this.evaluationPage.set(next);
+      }
+    });
   }
 
   public setActiveTab(tab: AdminTab): void {
@@ -310,6 +456,13 @@ export class AdminPage {
     this.clearError();
     this.editingCompetencyId.set(competency.id);
 
+    const criteria = competency.criteria
+      .map((criterion) => ({
+        title: criterion.title.trim(),
+        description: (criterion.description ?? '').trim(),
+      }))
+      .filter((criterion) => criterion.title.length > 0 || criterion.description.length > 0);
+
     this.competencyForm.patchValue({
       name: competency.name,
       level: competency.level,
@@ -317,22 +470,7 @@ export class AdminPage {
       is_active: competency.is_active,
     });
 
-    while (this.competencyCriteria.length > 0) {
-      this.competencyCriteria.removeAt(this.competencyCriteria.length - 1);
-    }
-
-    if (competency.criteria.length === 0) {
-      this.competencyCriteria.push(this.createCriterionGroup());
-    } else {
-      for (const criterion of competency.criteria) {
-        this.competencyCriteria.push(
-          this.createCriterionGroup({
-            title: criterion.title,
-            description: criterion.description ?? '',
-          }),
-        );
-      }
-    }
+    this.setCompetencyCriteria(criteria);
 
     this.ensureCompetencyLevelSelection();
   }
@@ -465,17 +603,13 @@ export class AdminPage {
 
   public resetCompetencyForm(): void {
     this.editingCompetencyId.set(null);
-    while (this.competencyCriteria.length > 1) {
-      this.competencyCriteria.removeAt(this.competencyCriteria.length - 1);
-    }
+    this.setCompetencyCriteria([]);
     this.competencyForm.reset({
       name: '',
       level: this.defaultCompetencyLevelValue(),
       description: '',
       is_active: true,
     });
-    const first = this.competencyCriteria.at(0);
-    first?.reset({ title: '', description: '' });
     this.ensureCompetencyLevelSelection();
   }
 
@@ -527,7 +661,8 @@ export class AdminPage {
     }
 
     const evaluation = this.evaluationForm.getRawValue();
-    if (!evaluation.userId || !evaluation.competencyId) {
+    const competencyIds = this.resolveEvaluationCompetencyIds();
+    if (!evaluation.userId || competencyIds.length === 0) {
       this.error.set('ユーザとコンピテンシーを選択してください。');
       return;
     }
@@ -540,14 +675,54 @@ export class AdminPage {
     };
 
     this.loading.set(true);
-    this.api
-      .triggerEvaluation(evaluation.competencyId, payload)
+    type EvaluationBatchResult = {
+      competencyId: string;
+      evaluation: CompetencyEvaluation | null;
+      error?: unknown;
+    };
+    const requests = competencyIds.map((competencyId) =>
+      this.api.triggerEvaluation(competencyId, payload).pipe(
+        map((evaluation) => ({ competencyId, evaluation }) as EvaluationBatchResult),
+        catchError((error) =>
+          of({ competencyId, evaluation: null, error } as EvaluationBatchResult),
+        ),
+      ),
+    );
+    forkJoin(requests)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (evaluation) => {
+        next: (results) => {
           this.loading.set(false);
-          this.evaluations.update((items) => [evaluation, ...items].slice(0, 25));
-          this.notify('評価を実行しました。');
+          const evaluations = results
+            .map((result) => result.evaluation)
+            .filter((item): item is CompetencyEvaluation => Boolean(item));
+          const failures = results.filter((result) => !result.evaluation);
+
+          if (evaluations.length > 0) {
+            this.evaluations.update((items) => {
+              const byId = new Map<string, CompetencyEvaluation>();
+              [...evaluations, ...items].forEach((item) => byId.set(item.id, item));
+              return Array.from(byId.values()).sort((a, b) =>
+                b.created_at.localeCompare(a.created_at),
+              );
+            });
+            const count = evaluations.length;
+            this.notify(
+              count === 1
+                ? '評価を実行しました。'
+                : `評価を実行しました。${count} 件を更新しました。`,
+            );
+          }
+
+          if (failures.length > 0) {
+            if (evaluations.length === 0) {
+              this.handleError(failures[0]?.error, '評価の実行に失敗しました。');
+            } else {
+              this.error.set(
+                `評価の一部に失敗しました。${evaluations.length} 件成功 / ${failures.length} 件失敗。`,
+              );
+            }
+          }
         },
         error: (err) => {
           this.loading.set(false);
@@ -665,9 +840,89 @@ export class AdminPage {
       });
   }
 
-  public userEmail(userId: string): string {
-    const match = this.users().find((user) => user.id === userId);
-    return match?.email ?? userId;
+  public updateEvaluationUserSearch(event: Event): void {
+    const target = event.target as HTMLInputElement | null;
+    this.evaluationUserSearchQuery.set(target?.value ?? '');
+  }
+
+  public clearEvaluationUserSearch(): void {
+    this.evaluationUserSearchQuery.set('');
+  }
+
+  public isEvaluationCompetencySelected(competencyId: string): boolean {
+    return this.evaluationForm.controls.competencyIds.value.includes(competencyId);
+  }
+
+  public toggleEvaluationCompetencySelection(competencyId: string, checked: boolean): void {
+    const current = this.evaluationForm.controls.competencyIds.value;
+    const next = new Set(current);
+    if (checked) {
+      next.add(competencyId);
+    } else {
+      next.delete(competencyId);
+    }
+    this.setEvaluationCompetencySelection(Array.from(next));
+  }
+
+  public selectAllEvaluationCompetencies(): void {
+    const allIds = this.competencies().map((competency) => competency.id);
+    this.setEvaluationCompetencySelection(allIds);
+  }
+
+  public clearEvaluationCompetencySelection(): void {
+    this.setEvaluationCompetencySelection([]);
+  }
+
+  public evaluationCompetencySelectionCount(): number {
+    return this.evaluationForm.controls.competencyIds.value.length;
+  }
+
+  public updateEvaluationSearch(event: Event): void {
+    const target = event.target as HTMLInputElement | null;
+    this.evaluationSearchQuery.set(target?.value ?? '');
+    this.evaluationPage.set(1);
+  }
+
+  public clearEvaluationSearch(): void {
+    this.evaluationSearchQuery.set('');
+    this.evaluationPage.set(1);
+  }
+
+  public goToEvaluationPage(page: number): void {
+    const pageCount = this.evaluationPageCount();
+    const next = Math.min(Math.max(1, page), pageCount);
+    this.evaluationPage.set(next);
+  }
+
+  public previousEvaluationPage(): void {
+    this.goToEvaluationPage(this.evaluationPageIndex() - 1);
+  }
+
+  public nextEvaluationPage(): void {
+    this.goToEvaluationPage(this.evaluationPageIndex() + 1);
+  }
+
+  public evaluationUser(userId: string): { displayName: string; email: string | null } {
+    const user = this.userIndex().get(userId);
+    if (!user) {
+      return { displayName: userId, email: null };
+    }
+    const displayName = getDisplayName(user) || user.email || userId;
+    return { displayName, email: user.email ?? null };
+  }
+
+  public groupCompetencyLabel(group: AdminEvaluationGroup): string {
+    const names = group.evaluations
+      .map((evaluation) => evaluation.competency?.name)
+      .filter((name): name is string => typeof name === 'string' && name.trim().length > 0);
+    if (names.length === 0) {
+      return `${group.evaluations.length} 件の評価`;
+    }
+    const uniqueNames = Array.from(new Set(names));
+    if (uniqueNames.length <= 3) {
+      return uniqueNames.join(' / ');
+    }
+    return `${uniqueNames.slice(0, 3).join(' / ')} ほか${uniqueNames.length - 3}件`;
   }
 
   public updateQuotaDefaults(event: SubmitEvent): void {
@@ -914,6 +1169,18 @@ export class AdminPage {
     });
   }
 
+  private setCompetencyCriteria(criteria: Partial<CompetencyCriterionInput>[]): void {
+    const groups =
+      criteria.length > 0
+        ? criteria.map((criterion) => this.createCriterionGroup(criterion))
+        : [this.createCriterionGroup()];
+    this.competencyForm.setControl('criteria', new FormArray(groups));
+  }
+
+  private get competencyCriteria(): FormArray<CriterionFormGroup> {
+    return this.competencyForm.controls.criteria;
+  }
+
   private createUserQuotaForm(user: AdminUser): UserQuotaForm {
     return new FormGroup({
       cardDailyLimit: new FormControl<number | null>(user.card_daily_limit ?? null),
@@ -964,6 +1231,81 @@ export class AdminPage {
 
   public formatLevelLabel(level: CompetencyLevelDefinition): string {
     return `${level.label} (${level.scale}段階)`;
+  }
+
+  private normalizeCompetencySelection(value: string[] | null | undefined): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    const trimmed = value.map((entry) => entry.trim()).filter(Boolean);
+    return Array.from(new Set(trimmed));
+  }
+
+  private setEvaluationCompetencySelection(value: string[]): void {
+    const normalized = this.normalizeCompetencySelection(value);
+    this.evaluationForm.controls.competencyIds.setValue(normalized);
+  }
+
+  private resolveEvaluationCompetencyIds(): string[] {
+    return this.normalizeCompetencySelection(this.evaluationForm.controls.competencyIds.value);
+  }
+
+  private normalizeSearchText(value: string): string {
+    return value.toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  private matchesEvaluationGroup(group: AdminEvaluationGroup, tokens: string[]): boolean {
+    if (tokens.length === 0) {
+      return true;
+    }
+    return group.evaluations.some((evaluation) => this.matchesEvaluation(evaluation, tokens));
+  }
+
+  private matchesEvaluation(evaluation: CompetencyEvaluation, tokens: string[]): boolean {
+    if (tokens.length === 0) {
+      return true;
+    }
+    const searchable = this.normalizeSearchText(this.buildEvaluationSearchText(evaluation));
+    if (!searchable) {
+      return false;
+    }
+    return tokens.every((token) => searchable.includes(token));
+  }
+
+  private buildEvaluationSearchText(evaluation: CompetencyEvaluation): string {
+    const user = this.userIndex().get(evaluation.user_id);
+    const userName = user ? getDisplayName(user) : '';
+    const parts = [
+      userName,
+      user?.email ?? '',
+      evaluation.competency?.name ?? '',
+      evaluation.score_label ?? '',
+      evaluation.rationale ?? '',
+      evaluation.period_start ?? '',
+      evaluation.period_end ?? '',
+    ];
+    for (const item of evaluation.items ?? []) {
+      parts.push(item.score_label ?? '');
+      parts.push(item.rationale ?? '');
+      parts.push(item.criterion?.title ?? '');
+    }
+    return parts.filter((part) => part && part.trim().length > 0).join(' ');
+  }
+
+  private formatUserOptionLabel(user: AdminUser): string {
+    const displayName = getDisplayName(user);
+    const email = (user.email ?? '').trim();
+    if (displayName && email && displayName !== email) {
+      return `${displayName} (${email})`;
+    }
+    return displayName || email || user.id;
+  }
+
+  private buildUserSearchText(user: AdminUser): string {
+    const displayName = getDisplayName(user);
+    return [displayName, user.email ?? '', user.nickname ?? '']
+      .filter((part) => part && part.trim().length > 0)
+      .join(' ');
   }
 
   private defaultCompetencyLevelValue(): string {

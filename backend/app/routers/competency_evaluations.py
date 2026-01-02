@@ -159,7 +159,9 @@ def _evaluation_query(db: Session):
         db.query(models.CompetencyEvaluation)
         .options(
             joinedload(models.CompetencyEvaluation.competency),
-            selectinload(models.CompetencyEvaluation.items),
+            selectinload(models.CompetencyEvaluation.items).selectinload(
+                models.CompetencyEvaluationItem.criterion
+            ),
         )
         .order_by(models.CompetencyEvaluation.created_at.desc())
     )
