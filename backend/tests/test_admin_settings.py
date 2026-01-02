@@ -43,17 +43,17 @@ def test_admin_can_update_gemini_model_without_rotating_secret(client: TestClien
     update = client.put(
         "/admin/api-credentials/gemini",
         headers=headers,
-        json={"model": "gemini-1.5-flash"},
+        json={"model": "gemini-2.0-flash"},
     )
     assertions.assertTrue(update.status_code == 200, update.text)
     updated_payload = update.json()
-    assertions.assertTrue(updated_payload["model"] == "models/gemini-1.5-flash")
+    assertions.assertTrue(updated_payload["model"] == "models/gemini-2.0-flash")
     assertions.assertTrue(updated_payload["secret_hint"] == created_payload["secret_hint"])
 
     fetch = client.get("/admin/api-credentials/gemini", headers=headers)
     assertions.assertTrue(fetch.status_code == 200, fetch.text)
     fetched_payload = fetch.json()
-    assertions.assertTrue(fetched_payload["model"] == "models/gemini-1.5-flash")
+    assertions.assertTrue(fetched_payload["model"] == "models/gemini-2.0-flash")
 
 
 def test_admin_replace_deprecated_model_on_create(client: TestClient) -> None:

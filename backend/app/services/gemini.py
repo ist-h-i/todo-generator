@@ -429,8 +429,19 @@ class GeminiClient:
     def _canonical_model_family(name: str) -> str:
         """Strip version suffixes so related model variants can be grouped."""
 
-        base = name.split("/")[-1]
-        return re.sub(r"-(?:latest|\d+)$", "", base)
+        base = name.split("/")[-1].strip()
+        if not base:
+            return base
+
+        while True:
+            stripped = re.sub(r"-(\d+)$", "", base)
+            if stripped == base:
+                break
+            base = stripped
+
+        base = re.sub(r"-latest$", "", base)
+        base = re.sub(r"-preview(?:-[0-9A-Za-z-]+)?$", "", base)
+        return base
 
     @classmethod
     def normalize_model_name(cls, model: str) -> str:

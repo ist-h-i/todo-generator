@@ -593,7 +593,7 @@ def test_sanitize_model_name_replaces_deprecated_models() -> None:
     )
     assertions.assertTrue(
         GeminiClient.sanitize_model_name("models/gemini-1.5-flash", fallback=default_model)
-        == "models/gemini-1.5-flash"
+        == default_model
     )
 
 
@@ -645,6 +645,37 @@ def test_client_resolves_available_flash_variant(monkeypatch: pytest.MonkeyPatch
     assertions.assertTrue(client.model == "models/gemini-2.0-flash-002")
     assertions.assertTrue(isinstance(client._client, DummyGenerativeModel))
     assertions.assertTrue(client._client.name == "models/gemini-2.0-flash-002")
+
+
+def test_client_resolves_available_preview_variant(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeModel:
+        def __init__(self, name: str, methods: tuple[str, ...]) -> None:
+            self.name = name
+            self.supported_generation_methods = methods
+
+    def fake_list_models() -> list[FakeModel]:
+        return [
+            FakeModel("models/gemini-3-flash-preview", ("generateContent",)),
+            FakeModel("models/gemini-3-pro-preview", ("generateContent",)),
+        ]
+
+    class DummyGenerativeModel:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    monkeypatch.setattr(
+        "app.services.gemini.genai",
+        SimpleNamespace(
+            configure=lambda **_: None,
+            list_models=fake_list_models,
+            GenerativeModel=DummyGenerativeModel,
+            types=SimpleNamespace(GenerationConfig=None),
+        ),
+    )
+
+    client = GeminiClient(model="models/gemini-3-flash", api_key="sk-preview")
+
+    assertions.assertTrue(client.model == "models/gemini-3-flash-preview")
 
 
 def test_client_raises_when_requested_model_missing(monkeypatch: pytest.MonkeyPatch) -> None:

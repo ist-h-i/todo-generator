@@ -1,122 +1,322 @@
-# Angular Coding & Design Guidelines
+You are a professional Angular 20 and TypeScript engineer.
+Generate modern Angular 20 code that fully embraces Signals, standalone APIs, and the latest best practices.
 
-## Purpose & Scope
+PROJECT CONTEXT
 
-This guide records the Angular-specific coding, architecture, and testing expectations for the single-page application. It extends `../governance/development-governance-handbook.md` and aligns the team on the Angular v20 baseline, folder layout, and design guardrails.
+- This project uses Angular v20.
+- Standalone APIs, Signals, signal inputs, and modern async primitives like Resources are available.
+- Angular style guide and LLM integration files (llms.txt) are considered the source of truth; your code must align with them.
 
-## Angular v20 Baseline
+LANGUAGE
 
-- Ship new features with `standalone` components, directives, and pipes. Keep `NgModule` usage only where legacy integration cannot be refactored yet.
-- Configure zone-less change detection with `provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true, polyfill: false })` and ensure new code does not depend on `NgZone`.
-- Model UI reactivity with Signals (`signal`, `computed`, `effect`) and enforce the new control-flow syntax (`@if`, `@for`, `@switch`, `@let`). Do not introduce new usages of `*ngIf`, `*ngFor`, `*ngSwitch`, or `ng-template`-based aliases; refactor legacy templates opportunistically.
-- Build forms with the Angular 19+ SignalForms API (`signalFormGroup`, `signalFormControl`, `signalModel`, `model()`) and favour `FormSignal` patterns over the legacy reactive or template-driven directives.
-- Fetch remote data through the Resource API (`resource`, `signalResource`, `rxResource`/`RxResource`) and shared data-fetching utilities; do not inject or call `HttpClient` directly in new code.
-- Use the modern `input()` and `output()` helpers and mark inputs as `required` when the contract demands it.
-- Default to SignalForms or, when unavoidable, strongly typed reactive forms; use `@defer` to stage non-critical rendering, and apply `ngOptimizedImage` for media delivery.
-- Adopt the application builder (`@angular-devkit/build-angular:application`) with ESBuild optimisations and CLI budgets enabled by default.
+- TypeScript + HTML for code.
+- Explanations and comments: Japanese by default.
 
-## Project Structure
+========================
 
-- Source root: `frontend/src/app`.
-- `app/app.routes.ts` contains only the root routes. Feature routes live in `features/**/routes.ts` and load via `loadChildren` or `loadComponent`.
-- `app/core/`: singleton services (configuration, logging, authentication), HTTP interceptors, guards, providers, and environment wiring.
-- `app/shared/`: reusable UI primitives, directives, pipes, and helpers. Keep this layer presentation focused and side-effect free.
-- `app/features/<feature-name>/`: feature slices organised as:
-  - `data/`: API clients, data-access services, DTO mappers, validators.
-  - `state/`: facades, signal stores, selectors, and side-effect orchestration.
-  - `ui/`: feature presentation components, directives, and pipes.
-  - `routes.ts`: exports the feature `Route[]`.
-  - `testing/` (optional): feature-specific mocks and test harnesses.
-- `app/testing/`: cross-feature testing utilities and global mocks.
-- Co-locate HTML, SCSS, and spec files with their component or service. Restrict global CSS to tokens and layout primitives inside `frontend/src/styles/**`.
+1. TypeScript General Rules
+========================
+(Same strict TS rules as v19: no `any`, prefer inference, safe narrowing, small pure functions, strong domain types.)
 
-## Architecture & State Management
+========================
+2. Angular Architecture & Class Design (v20)
+========================
 
-- Follow Clean Architecture boundaries: UI -> facade/state -> data-access -> external API.
-- Keep presentation components dumb: accept inputs, emit outputs, and delegate business rules to facades. Do not invoke HTTP clients (including `HttpClient`) directly from UI components or templates; surface resources via facades instead.
-- Prefer Angular Signal Store (`@angular/core/rxjs-interop`) for feature-level state. Use NgRx ComponentStore only for complex orchestration or when integrating with existing NgRx code.
-- Expose readonly signals/selectors from facades and keep mutations encapsulated behind intention-revealing methods.
-- Validate API payloads in `data/` using schema libraries such as `zod` or `typia` before persisting data in the store.
-- Represent remote lifecycles with `signalResource`, `rxResource`, or discriminated unions like `'idle' | 'loading' | 'success' | 'error'`. Centralise optimistic update and rollback logic and ensure resources are declared in the `data/` layer.
-- Wrap third-party or REST integrations inside Resource-based data clients. New services must expose typed `resource` factories instead of raw `HttpClient` calls; refactor legacy clients when touched.
-- Use `effect()` for side effects, and pair with `onCleanup` when registering external listeners to avoid leaks.
+- Standalone-first architecture:
+  - New components, directives, pipes are standalone.
+  - Do NOT set `standalone: true` explicitly; it is the default in modern Angular 20+.
+- Feature-sliced structure:
+  - Group routes, components, services, and models per feature.
+- Clear layering:
+  - Components: presentation.
+  - Facades/services: state orchestration and domain logic.
+  - Repositories/gateways: HTTP, storage, external APIs.
+- Avoid shared “god” services that know about everything.
 
-## TypeScript & Coding Standards
+========================
+3. Components, Templates & Signals (v20)
+========================
 
-- Enable strict compilation: `strict`, `noImplicitOverride`, `useUnknownInCatchVariables`, `noUncheckedIndexedAccess`.
-- Prefer `inject()` utilities for dependency resolution. Constructor injection is acceptable when upgrading legacy classes but not the default.
-- Avoid `any`. Accept `unknown` at unsafe boundaries and narrow with guards or schema validation. Keep framework-mandated `any` signatures isolated.
-- Bridge RxJS with Signals using `toSignal`, `fromObservable`, or `model()`. Avoid manual `subscribe`; when unavoidable, wrap with `takeUntilDestroyed()` and document the reason.
-- Give callbacks explicit return types (including `void`) and mark member visibility consistently.
-- Follow naming conventions: `camelCase` for locals, `PascalCase` for types and components, `UPPER_SNAKE_CASE` for constants. Append the `Signal` suffix when the purpose is not obvious.
-- Configure ESLint with `@angular-eslint` v20 presets, enforce import ordering (Angular -> third-party -> internal), and block unused imports or variables.
-- Create barrel files only when they improve clarity without increasing coupling or cycle risk.
+- Components:
+  - OnPush change detection by default.
+  - Use Signals for internal state, `computed()` for derived values.
+- Templates:
+  - Use `@if`, `@for`, `@switch` control flow syntax.
+  - No arrow functions in templates.
+  - No heavy logic in templates; move to `computed()` or methods.
+- Host bindings:
+  - Configure via the `host` object in decorators, not `@HostBinding` / `@HostListener`.
+- CSS / styling:
+  - Prefer component-scoped styles; avoid global styles except for design system tokens.
 
-## Legacy Debt Guardrails
+========================
+4. Inputs, Outputs & Signal APIs (v20)
+========================
 
-- Do not create new `NgModule` declarations or reintroduce `moduleId`; refactor touched legacy modules into standalone components during feature work.
-- Replace `[(ngModel)]` and template-driven forms with signal forms or typed signal form helpers when modifying affected code.
-- Avoid manual change detection (`ChangeDetectorRef.detectChanges`, `markForCheck`, direct `NgZone` usage) unless wrapping third-party widgets. Document and revisit any unavoidable exceptions.
-- Stop adding raw `Subject`-based state containers or service-level `EventEmitter`. Use Angular Signal Store, `model()`, or typed RxJS streams bridged to signals.
-- Prohibit direct DOM manipulation via `ElementRef.nativeElement`, global query selectors, or `Renderer2` shortcuts; prefer Angular CDK utilities or custom directives.
-- Migrate any residual `HttpClient` consumers toward shared Resource-based clients when touching the surrounding code.
+- Use `input()` / `output()` functions for public component APIs.
+  - Do not introduce new decorator-based inputs/outputs.
+- Treat signal inputs as the default:
+  - Inputs are Signals that can be used directly in `computed()` and `effect()`.
+- Ensure all inputs/outputs are strongly typed and documented.
 
-## Templates & Components
+========================
+5. Async Data: Resources, RxJS & Signals (v20)
+========================
 
-- Use selectors prefixed with `app-` for feature components and `shared-` for cross-application primitives.
-- Prefer the modern control-flow syntax (`@if`, `@for`, `@switch`, `@let`) and wrap conditional fragments in `ng-container` to avoid unnecessary DOM nodes. Ban new uses of `*ngIf`, `*ngFor`, `*ngSwitch`, and `ng-template` microsyntax.
-- Express view state with signals instead of mutable class fields or `markForCheck`.
-- Bake accessibility in: wire `aria-*` attributes, label controls, manage focus traps in dialogs, and keep keyboard support intact.
-- Localise user-facing text through the shared translation utilities or `i18n` attributes. Do not hard-code strings outside placeholders.
-- Gate non-critical content behind `@defer` with `on viewport` or `on interaction`, and provide skeleton or busy states while deferred areas load.
+- For async data (HTTP calls, loading remote resources):
+  - Prefer Angular’s **Resource** APIs (e.g. `httpResource`, `rxResource`) where suitable for signal-based async state.
+  - Alternatively, use Observables + `toSignal()` to expose values as Signals.
+- Keep loading, success, and error states explicit in the Resource/Signal model.
+- Do not hide async behavior inside random component methods.
 
-## Styling & Theming
+========================
+6. Routing, SSR & Hybrid Rendering (v20)
+========================
 
-- Use design tokens defined in `frontend/src/styles.scss` and `docs/ui-design-system.md` via CSS custom properties. Avoid hard-coded hex values.
-- Scope component styles with `:host`, `:host-context`, and CSS layers. Import mixins or variables instead of re-declaring values.
-- Respect the documented spacing and typography scale, use `clamp()` for responsive sizing, and align grids with published breakpoints.
-- Provide full interaction states (default, hover, active, focus, disabled). Ensure WCAG AA contrast in both light and dark themes and record ratios when changing tokens.
-- Prefer vector icons from the shared library. Add new assets only when the shared set lacks the required graphic.
+- Use standalone route configs and lazy loading.
+- Design routes to support SSR + hydration:
+  - Avoid relying on browser-only globals without guards.
+  - Place side effects in lifecycle hooks that run correctly in both environments.
+- Prefer data resolvers and guards that are simple, composable functions.
 
-## Testing & Quality Gates
+========================
+7. Forms (v20)
+========================
 
-- Co-locate unit tests with their source files. Use Angular Testing Library or the Angular `TestBed` `mount` API for standalone components.
-- Mock HTTP dependencies with `HttpTestingController` or feature-specific fakes. Cover success, failure, and optimistic update scenarios.
-- Assert signal-driven behaviour via the exposed signals or effects rather than internal implementation details.
-- Maintain coverage thresholds of at least 90 percent for statements, branches, functions, and lines. Enforce coverage in CI.
-- Use Playwright for end-to-end tests covering critical user journeys, SSR hydration, and key accessibility flows.
-- Provide Storybook v8 stories or visual snapshots for components with meaningful UI to catch regressions early.
+- Reactive Forms are still the primary form model.
+- Strong typing is mandatory:
+  - Use typed form groups and controls.
+- For complex forms:
+  - Consider feature-level form services or facades using Signals to manage client-side state.
 
-## Tooling & Developer Experience
+========================
+8. Performance, Images & Accessibility (v20)
+========================
 
-- Scaffold code with CLI generators (for example `ng g @angular/core:component --standalone --inline-style=false --flat=false`) to keep conventions consistent.
-- Standard scripts (run from `frontend/`): `npm run lint`, `npm run format:check`, `npm test -- --watch=false`, `npm run build`, `npm run e2e`.
-- Enable the Angular CLI build cache and ESLint cache to shorten feedback loops locally and in CI.
-- Record architecture decisions in `docs/adr` and update entries when new patterns or dependencies are introduced.
-- Keep Storybook (`npm run storybook`, `npm run story:build`) aligned with feature work and attach UI evidence to review requests.
+- Performance:
+  - OnPush + Signals + built-in control flow as default combo.
+  - Use memoization via `computed()` instead of recalculating expensive values in the template.
+- Images:
+  - Use `NgOptimizedImage` for static images; provide width/height and alt text.
+- Accessibility:
+  - Follow WCAG AA and Angular accessibility best practices.
+  - Use semantic HTML and ARIA patterns; ensure full keyboard support.
 
-## Performance & Delivery
+========================
+9. Services, DI & Testing (v20)
+========================
 
-- Lazy-load features with `loadChildren` or `loadComponent` and combine with `@defer` for progressive loading. Trigger deferred sections with `on viewport` or `on interaction`.
-- Use build optimizer, ESBuild, and CLI budgets (initial bundle, lazy chunk, CSS). Monitor budget regressions in CI.
-- Optimise media with `ngOptimizedImage`, specify `priority` hints when needed, and defer analytics to `requestIdleCallback`.
-- Implement SSR with `@angular/ssr`, enable signal hydration, and validate boundaries in end-to-end tests. Consider the View Transitions API for smoother route changes.
-- Track Web Vitals and ship metrics through the shared logging infrastructure.
+- DI:
+  - Use `inject()` where functional style is beneficial (standalone functions, factory providers).
+  - Still use constructor injection for classes that are natural services/components.
+- Services:
+  - Keep them single-responsibility and testable.
+- Testing:
+  - Write tests for Signals and Resource-based async flows.
+  - Use component harnesses for reusable UI pieces.
 
-## Interaction & Accessibility
+========================
+10. Outdated Patterns You MUST Avoid (v20)
+========================
 
-- Route global notifications through the shared services; avoid bespoke overlays.
-- Honour `prefers-reduced-motion` and keep animations at 200 ms or faster unless accessibility requirements dictate otherwise.
-- Ensure dialogs declare appropriate `role`, `aria-modal`, and focus handling. Provide visible focus states and skip links for long layouts.
+- DO NOT add new NgModules for normal feature code.
+- DO NOT use `@Input()` / `@Output()` for new APIs.
+- DO NOT use `*ngIf` / `*ngFor` / `*ngSwitch` in new templates.
+- DO NOT rely on zone.js-specific tricks for refreshing the UI; prefer Signals, OnPush, and explicit state updates.
+- DO NOT create new Template-driven forms unless explicitly requested.
 
-## Security
+========================
+X. Folder & File Structure (Common for all Angular versions)
+========================
 
-- Sanitize `[innerHTML]` bindings via `DomSanitizer` and avoid bypassing Angular security contexts without review.
-- Centralise authentication, authorisation, and logging responsibilities in interceptors or guards inside `app/core/`. Align CSRF and credential handling with backend expectations.
+Follow a consistent, feature-based folder structure.
+Assume a standard Angular workspace (one app), no Nx unless explicitly mentioned.
 
-## Delivery Checklist
+1) Top-level project layout
 
-1. Confirm alignment with design tokens, layout rules, and accessibility requirements before opening a PR.
-2. Run `npm run lint`, `npm test -- --watch=false`, `npm run build`, and `npm run e2e`; attach relevant reports to the PR.
-3. Validate responsive breakpoints, dark mode, SSR hydration, and signal-driven UX scenarios locally.
-4. Update `docs/ui-design-system.md`, ADRs, and feature READMEs when introducing tokens, patterns, or architectural decisions.
+- project-root/
+  - package.json
+  - angular.json (or modern workspace config)
+  - tsconfig*.json
+  - src/
+    - main.ts
+    - index.html
+    - styles.* (global styles, design tokens only)
+    - app/
+      - app.config.ts (providers, router, etc.)
+      - core/
+      - shared/
+      - features/
+      - environments/ (optional, or at src/environments)
+
+1) app/core (Singletons & cross-cutting concerns)
+
+- Purpose: app-wide singletons & infrastructure, never feature-specific UI.
+- Typical structure:
+  - src/app/core/
+    - layout/
+      - shell/
+        - shell.ts|html|scss (app shell / layout)
+    - services/
+      - auth.ts
+      - api-http.ts
+      - logger.ts
+    - interceptors/
+      - auth.interceptor.ts
+      - error.interceptor.ts
+    - guards/
+      - auth.guard.ts
+    - config/
+      - app-config.tokens.ts
+    - util/
+      - date-time.util.ts
+- Rules:
+  - `core` contains only SINGLETON services or global infrastructure.
+  - Do NOT put feature-specific logic here.
+  - Components in `core` are layout/shell-only (e.g. navigation, header, footer).
+
+1) app/shared (Reusable, feature-agnostic building blocks)
+
+- Purpose: small, reusable, UI and utility elements with no business semantics.
+- Typical structure:
+  - src/app/shared/
+    - ui/
+      - button/
+        - button.ts|html|scss
+      - card/
+        - card.ts|html|scss
+    - directives/
+      - autofocus.ts
+      - scroll-into-view.ts
+    - pipes/
+      - date-range.ts
+      - truncate.ts
+    - utils/
+      - form-error.util.ts
+- Rules:
+  - `shared` MUST NOT depend on any feature folder.
+  - `shared` UI components are “dumb” / presentational:
+    - No feature-specific business logic.
+    - Accept data via inputs, raise events via outputs.
+  - Prefer “headless” components or directives for reusable behavior.
+
+1) app/features (Feature-oriented vertical slices)
+
+- Purpose: each domain feature (Todo, User, Settings, etc.) lives in its own folder.
+- Typical structure:
+  - src/app/features/
+    - todo/
+      - todo.routes.ts          (standalone route config for this feature)
+      - todo.page.ts|html|scss  (main route host component)
+      - components/
+        - todo-list/
+          - todo-list.ts|html|scss
+        - todo-item/
+          - todo-item.ts|html|scss
+      - services/
+        - todo.ts
+        - todo.facade.ts (optional, for view-model / state handling)
+      - models/
+        - todo.model.ts
+        - todo-status.enum.ts
+      - state/ (optional)
+        - todo.store.ts (signals or NgRx store)
+      - **tests**/ (optional)
+        - todo.page.spec.ts
+        - todo.spec.ts
+    - user/
+      - user.routes.ts
+      - user.page.ts|html|scss
+      - components/
+      - services/
+      - models/
+      - state/
+- Rules:
+  - Each feature folder owns its routing, pages, components, and services.
+  - Pages (route-level components) live at the root of the feature folder (e.g. `todo.page.ts`).
+  - Keep subfolders:
+    - `components/` for smaller building-block components within that feature.
+    - `services/` for feature-specific services/facades.
+    - `models/` for domain models and enums.
+    - `state/` or `store/` for feature state (signals, NgRx, etc.).
+  - Do NOT create cross-feature imports directly between feature folders:
+    - A feature may depend on `core` and `shared`.
+    - Features should NOT depend directly on each other.
+    - If something is shared between features, move it into `shared` or `core`.
+
+1) Routing files per feature
+
+- For each feature, create a dedicated route config file:
+  - `todo.routes.ts`, `user.routes.ts`, etc.
+- Route config file responsibilities:
+  - Define `routes: Routes = [...]` for that feature.
+  - Use standalone components (`loadComponent`, etc.).
+  - Export the route array for use in the app-level router config.
+- Do NOT mix route config and large business logic in the same file.
+
+1) File & naming conventions
+
+- Use kebab-case for folders and filenames:
+  - `todo-list.ts`, `user-profile.page.ts`, `app-config.tokens.ts`
+- Type suffixes:
+  - Do NOT add type suffixes for Angular assets that already live in a type folder (components/services/directives/pipes).
+  - Use `*.ts` for those assets (e.g. `ui-select.ts`, `auth.ts`, `autofocus.ts`, `truncate.ts`).
+  - Note: Angular CLI may generate `*-pipe.ts` for pipes; rename to `*.ts` to match this convention when needed.
+- Class names:
+  - Components/services/directives: use PascalCase without `Component` / `Service` / `Directive` suffix.
+  - Pages: use `*Page` (do NOT use `*PageComponent`).
+  - Pipes: keep `*Pipe` for readability (optional).
+- Suffixes (used only when they add meaning beyond the folder):
+  - `*.page.ts`       for route-level components (pages)
+  - `*.facade.ts`     for facade services (state/view-model orchestration)
+  - `*.model.ts`      for domain models
+  - `*.routes.ts`     for routing files
+  - `*.store.ts` or `*.state.ts` for state containers
+- Keep tests close to the code:
+  - `*.spec.ts` next to the file under test, or inside a `__tests__/` folder at the feature root.
+- Use barrel files (`index.ts`) sparingly:
+  - Optional for re-exporting public API of a feature or shared module.
+  - Do NOT create deep, confusing re-export chains.
+
+1) Imports & dependency direction
+
+- Allowed import directions:
+  - `features/*` → `shared/*`, `core/*`
+  - `shared/*`  → (no feature imports), maybe `core/*` if necessary
+  - `core/*`    → (no feature imports)
+- Forbidden:
+  - `features/featureA` → `features/featureB`
+  - `shared/*` → `features/*`
+- If a piece of logic is used from multiple features:
+  - Move it into `shared` (if UI-level or general utility).
+  - Move it into `core` (if infrastructure-level or singleton service).
+- Keep the dependency graph acyclic and top-down: core → shared → features.
+
+1) Version-specific notes
+
+- Angular 18:
+  - Feature folders may still contain older NgModule-based code.
+  - For new code, prefer standalone components but keep the folder structure above.
+- Angular 19–21:
+  - Assume fully standalone architecture; avoid new NgModules.
+  - Route files (`*.routes.ts`) are the main entrypoint into each feature.
+
+When generating code or examples:
+
+- Always place files in the proper folder according to these rules.
+- When showing a code snippet, briefly mention the intended path, e.g.:
+  - `// File: src/app/features/todo/todo.page.ts`
+  - `// File: src/app/shared/ui/button/button.ts`
+This helps the reader keep the folder structure consistent.
+
+Migration commands:
+<https://v20.angular.dev/reference/migrations>
+<https://v20.angular.dev/reference/migrations/self-closing-tags>
+<https://v20.angular.dev/reference/migrations/cleanup-unused-imports>
+<https://v20.angular.dev/reference/migrations/signal-queries>
+<https://v20.angular.dev/reference/migrations/outputs>
+<https://v20.angular.dev/reference/migrations/signal-inputs>
+<https://v20.angular.dev/reference/migrations/route-lazy-loading>
+<https://v20.angular.dev/reference/migrations/inject-function>
+<https://v20.angular.dev/reference/migrations/control-flow>
+<https://v20.angular.dev/reference/migrations/standalone>
