@@ -119,6 +119,16 @@ class AppealGenerationService:
         achievements = self._resolve_achievements(owner_id=owner.id, label_id=subject_label_id, request=request)
         sanitized_achievements = self._sanitize_achievements(achievements)
         warnings = self._derive_flow_warnings(request.flow)
+        log_context: dict[str, object] = {
+            "owner_id": owner.id,
+            "subject_type": request.subject.type,
+            "flow_count": len(request.flow),
+            "format_count": len(request.formats),
+        }
+        if request.subject.type == "label":
+            log_context["subject_label_id"] = subject_label_id
+        else:
+            log_context["subject_length"] = len(subject_text.strip())
 
         fallback_formats = self._build_fallback_formats(
             request.formats,
@@ -146,12 +156,28 @@ class AppealGenerationService:
                 )
                 response_schema = self._prompt_builder.build_response_schema(request.formats)
                 payload = self._gemini.generate_appeal(prompt=prompt, response_schema=response_schema)
-                generated_formats, token_usage, generation_status = self._merge_ai_payload(
+                (
+                    generated_formats,
+                    token_usage,
+                    generation_status,
+                    ai_formats,
+                    fallback_formats_used,
+                ) = self._merge_ai_payload(
                     requested_formats=request.formats,
                     payload=payload,
                     fallback_formats=fallback_formats,
                     subject=sanitized_subject,
                 )
+                if generation_status != "success":
+                    reason = "ai_response_partial" if ai_formats else "ai_response_empty"
+                    logger.warning(
+                        "Appeal generation returned status=%s reason=%s context=%s ai_formats=%s fallback_formats=%s",
+                        generation_status,
+                        reason,
+                        log_context,
+                        ai_formats,
+                        fallback_formats_used,
+                    )
                 ai_warnings = payload.get("warnings")
                 if isinstance(ai_warnings, list):
                     for item in ai_warnings:
@@ -160,15 +186,22 @@ class AppealGenerationService:
                             warnings.append(text)
             except GeminiError as exc:
                 ai_failure_reason = str(exc)
-                logger.warning("Appeal generation via Gemini failed; using fallback content", exc_info=True)
+                logger.warning(
+                    "Appeal generation fallback: gemini_error. context=%s reason=%s",
+                    log_context,
+                    str(exc),
+                    exc_info=True,
+                )
         elif self._gemini is not None and self._prompt_builder is None:
             ai_failure_reason = "AI のテンプレートが利用できないため、フォールバックで生成しました。"
-            logger.info(
-                "Skipping Gemini appeal generation because the prompt templates could not be loaded: %s",
+            logger.warning(
+                "Appeal generation fallback: prompt_builder_unavailable. context=%s error=%s",
+                log_context,
                 self._prompt_builder_error,
             )
         elif self._gemini is None:
             ai_failure_reason = "AI が利用できないため、フォールバックで生成しました。"
+            logger.warning("Appeal generation fallback: gemini_unavailable. context=%s", log_context)
 
         record = self._repository.create(
             owner_id=owner.id,
@@ -346,7 +379,13 @@ class AppealGenerationService:
         payload: dict[str, object],
         fallback_formats: dict[str, schemas.AppealGeneratedFormat],
         subject: str,
-    ) -> tuple[dict[str, schemas.AppealGeneratedFormat], dict[str, int], str]:
+    ) -> tuple[
+        dict[str, schemas.AppealGeneratedFormat],
+        dict[str, int],
+        str,
+        list[str],
+        list[str],
+    ]:
         raw_formats = payload.get("formats", {})
         if not isinstance(raw_formats, dict):
             raw_formats = {}
@@ -363,6 +402,8 @@ class AppealGenerationService:
         tokens: dict[str, int] = {}
         used_ai = False
         used_fallback = False
+        ai_formats: list[str] = []
+        fallback_formats_used: list[str] = []
 
         for format_id in requested_formats:
             entry = raw_formats.get(format_id)
@@ -371,6 +412,7 @@ class AppealGenerationService:
                 if not content:
                     generated_format = fallback_formats[format_id]
                     used_fallback = True
+                    fallback_formats_used.append(format_id)
                 else:
                     normalized = self._ensure_connectors(format_id, content, subject)
                     tokens_used = self._coerce_int(entry.get("tokens_used") if isinstance(entry, dict) else None)
@@ -382,9 +424,11 @@ class AppealGenerationService:
                     )
                     tokens[format_id] = tokens_used
                     used_ai = True
+                    ai_formats.append(format_id)
             else:
                 generated_format = fallback_formats[format_id]
                 used_fallback = True
+                fallback_formats_used.append(format_id)
 
             generated.setdefault(format_id, generated_format)
             tokens.setdefault(format_id, generated_format.tokens_used or 0)
@@ -397,7 +441,7 @@ class AppealGenerationService:
             status = "success"
         if "total_tokens" in usage_map:
             tokens.setdefault("total_tokens", usage_map["total_tokens"])
-        return generated, tokens, status
+        return generated, tokens, status, ai_formats, fallback_formats_used
 
     def _coerce_int(self, value: object) -> int | None:
         if value is None:

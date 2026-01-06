@@ -7,6 +7,24 @@
   gap: 0.75rem;
 }
 
+.mermaid-viewer__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mermaid-viewer__zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mermaid-viewer__zoom-label {
+  min-width: 3.25rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
 .mermaid-viewer__canvas {
   overflow: auto;
   max-width: 100%;

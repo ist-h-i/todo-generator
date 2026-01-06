@@ -88,6 +88,34 @@ class AppealPromptBuilder:
     def build_response_schema(self, requested_formats: Iterable[str] | None = None) -> dict[str, Any]:
         """Return the JSON schema expected from the Responses API."""
 
+        format_ids: list[str] = []
+        if requested_formats:
+            for fmt in requested_formats:
+                cleaned = fmt.strip()
+                if cleaned and cleaned not in format_ids:
+                    format_ids.append(cleaned)
+        if not format_ids:
+            format_ids = ["markdown", "bullet_list", "table"]
+
+        format_properties: dict[str, Any] = {
+            format_id: {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "content": {"type": "string", "minLength": 1},
+                    "tokens_used": {"type": "integer"},
+                },
+                "required": ["content"],
+            }
+            for format_id in format_ids
+        }
+        token_usage_properties: dict[str, Any] = {
+            format_id: {"type": "number"} for format_id in format_ids
+        }
+        token_usage_properties.setdefault("prompt_tokens", {"type": "number"})
+        token_usage_properties.setdefault("completion_tokens", {"type": "number"})
+        token_usage_properties.setdefault("total_tokens", {"type": "number"})
+
         schema: dict[str, Any] = {
             "type": "object",
             "additionalProperties": False,
@@ -96,34 +124,16 @@ class AppealPromptBuilder:
                 "formats": {
                     "type": "object",
                     "additionalProperties": False,
-                    "patternProperties": {
-                        ".*": {
-                            "type": "object",
-                            "additionalProperties": False,
-                            "properties": {
-                                "content": {"type": "string", "minLength": 1},
-                                "tokens_used": {"type": "integer"},
-                            },
-                            "required": ["content"],
-                        }
-                    },
+                    "properties": format_properties,
                 },
                 "token_usage": {
                     "type": "object",
-                    "additionalProperties": {
-                        "type": "number",
-                    },
+                    "additionalProperties": False,
+                    "properties": token_usage_properties,
                 },
             },
             "required": ["formats"],
         }
-
-        if requested_formats:
-            allowed = [fmt.strip().lower() for fmt in requested_formats if fmt.strip()]
-            schema["properties"]["formats"]["propertyNames"] = {
-                "type": "string",
-                "enum": allowed,
-            }
 
         return schema
 
