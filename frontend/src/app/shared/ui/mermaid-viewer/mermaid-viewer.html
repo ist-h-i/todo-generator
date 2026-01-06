@@ -3,7 +3,40 @@
     <p class="form-note">Mermaid を描画中…</p>
   }
 
-  <div #canvas class="mermaid-viewer__canvas" aria-label="Mermaid ?"></div>
+  <div class="mermaid-viewer__toolbar">
+    <div class="mermaid-viewer__zoom">
+      <button
+        type="button"
+        class="button button--ghost button--pill"
+        [disabled]="!hasDiagram() || !canZoomOut() || isRendering()"
+        aria-label="ズームアウト"
+        (click)="zoomOut()"
+      >
+        -
+      </button>
+      <span class="mermaid-viewer__zoom-label" aria-live="polite">{{ zoomPercent() }}%</span>
+      <button
+        type="button"
+        class="button button--ghost button--pill"
+        [disabled]="!hasDiagram() || !canZoomIn() || isRendering()"
+        aria-label="ズームイン"
+        (click)="zoomIn()"
+      >
+        +
+      </button>
+      <button
+        type="button"
+        class="button button--ghost button--pill"
+        [disabled]="!hasDiagram() || zoomLevel() === 1 || isRendering()"
+        aria-label="ズームをリセット"
+        (click)="resetZoom()"
+      >
+        100%
+      </button>
+    </div>
+  </div>
+
+  <div #canvas class="mermaid-viewer__canvas" aria-label="Mermaid 図"></div>
 
   @if (renderError(); as error) {
     <p class="app-alert app-alert--error" role="alert">{{ error }}</p>
